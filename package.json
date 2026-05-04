@@ -1,0 +1,23 @@
+{
+  "name": "custom-risk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Custom Risk MVP monorepo.",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "shared"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:backend": "npm --workspace @custom-risk/backend run dev",
+    "dev:frontend": "npm --workspace @custom-risk/frontend run dev",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck:backend": "npm --workspace @custom-risk/backend run typecheck",
+    "typecheck:frontend": "npm --workspace @custom-risk/frontend run typecheck",
+    "typecheck:shared": "npm --workspace @custom-risk/shared run typecheck"
+  }
+}
