@@ -29,6 +29,49 @@ Do not commit real `.env` files or secrets.
 npm install
 ```
 
+### Environment setup
+
+Create a local environment file before running app or database commands:
+
+```sh
+cp .env.example .env
+```
+
+Then update `.env` with local-only values. Required variables are listed in
+`.env.example`; the important local contract is:
+
+- `NODE_ENV` - use `development` for local work.
+- `PORT` - backend HTTP port; use `3000`.
+- `DATABASE_URL` - PostgreSQL connection string for the backend and Prisma.
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - local PostgreSQL service settings.
+- `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` - random 256-bit signing secrets.
+- `JWT_ACCESS_EXPIRY` - default access token lifetime; use `60m`.
+- `JWT_REFRESH_EXPIRY_DAYS` - default refresh token lifetime in days; use `30`.
+- `BCRYPT_COST_FACTOR` - bcrypt work factor; use `12` unless deliberately testing a lower local value.
+- `CORS_ALLOWED_ORIGINS` - comma-separated browser origins allowed to call the API.
+- `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_LOGIN` - auth rate-limit settings.
+- `SEED_ADMIN_PASSWORD` - local/dev password used by seed scripts for the default System Admin.
+
+Use placeholders only in `.env.example`. Real JWT secrets, database passwords,
+and seed passwords belong in your uncommitted `.env` or runtime environment.
+
+### Local ports
+
+- Backend/API: `http://localhost:3000`
+- Frontend dev server: `http://localhost:5173`
+- PostgreSQL: `localhost:5432`
+
+For host-based development, set `DATABASE_URL` to use `localhost`. When running
+inside Docker Compose in the next Phase 0 ticket, the app service can use the
+PostgreSQL service name `db` as the database host.
+
+### Database service
+
+Local development expects PostgreSQL 16. Create a database and user matching
+your `.env` values, then make sure `DATABASE_URL` points at that database before
+running Prisma or backend commands. The default example database name is
+`customrisk`.
+
 ### Package scripts
 
 Run these from the repository root:
