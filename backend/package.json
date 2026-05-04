@@ -7,8 +7,11 @@
   "types": "dist/server.d.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "prebuild": "npm run prisma:generate",
     "build": "tsc --project tsconfig.json",
+    "pretest": "npm run prisma:generate",
     "test": "node --import tsx --test test",
+    "pretypecheck": "npm run prisma:generate",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
