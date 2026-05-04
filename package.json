@@ -15,9 +15,14 @@
     "dev:backend": "npm --workspace @custom-risk/backend run dev",
     "dev:frontend": "npm --workspace @custom-risk/frontend run dev",
     "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:backend": "npm --workspace @custom-risk/backend run test",
+    "test:frontend": "npm --workspace @custom-risk/frontend run test",
+    "test:shared": "npm --workspace @custom-risk/shared run test",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "typecheck:backend": "npm --workspace @custom-risk/backend run typecheck",
     "typecheck:frontend": "npm --workspace @custom-risk/frontend run typecheck",
-    "typecheck:shared": "npm --workspace @custom-risk/shared run typecheck"
+    "typecheck:shared": "npm --workspace @custom-risk/shared run typecheck",
+    "lint": "npm run typecheck"
   }
 }

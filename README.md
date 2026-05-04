@@ -98,10 +98,15 @@ Run these from the repository root:
 
 - `npm run dev:backend` - start the backend package in watch mode on `PORT`.
 - `npm run dev:frontend` - start the Vite frontend dev server on port `5173`.
+- `npm run test` - run all workspace test suites.
+- `npm run test:backend` - run only the backend test suite.
+- `npm run test:frontend` - run only the frontend test suite.
+- `npm run test:shared` - run only the shared package test suite.
 - `npm run typecheck` - typecheck all workspace packages.
 - `npm run typecheck:backend` - typecheck only the backend package.
 - `npm run typecheck:frontend` - typecheck only the frontend package.
 - `npm run typecheck:shared` - typecheck only the shared package.
+- `npm run lint` - run the current baseline lint gate, which is TypeScript typechecking.
 - `npm run build` - build all workspace packages that define a build script.
 
 The backend and frontend are separate TypeScript packages under npm workspaces.
