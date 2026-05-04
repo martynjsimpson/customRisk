@@ -1,5 +1,8 @@
-import { createServer } from "node:http";
 import { Socket } from "node:net";
+
+import { createApp } from "./app.js";
+import { logger } from "./config/logger.js";
+import { disconnectPrisma } from "./db/prisma.js";
 
 const port = Number.parseInt(process.env.PORT ?? "3000", 10);
 
@@ -38,28 +41,34 @@ async function waitForDatabase(databaseUrl: string, timeoutMs = 30_000) {
   throw new Error("Database was not reachable before startup timeout");
 }
 
-const server = createServer((request, response) => {
-  response.writeHead(200, { "content-type": "application/json" });
-  response.end(
-    JSON.stringify({
-      data: {
-        service: "custom-risk-backend",
-        status: "bootstrapped",
-        path: request.url
-      }
-    })
-  );
-});
+const app = createApp({ logger });
 
 try {
   if (process.env.DATABASE_URL) {
     await waitForDatabase(process.env.DATABASE_URL);
   }
 
-  server.listen(port, () => {
-    console.log(`Custom Risk backend listening on port ${port}`);
+  const server = app.listen(port, () => {
+    logger.info({ port }, "Custom Risk backend listening");
   });
+
+  const shutdown = async (signal: NodeJS.Signals) => {
+    logger.info({ signal }, "Shutting down backend");
+
+    server.close(async (error) => {
+      if (error) {
+        logger.error({ error }, "Error while closing HTTP server");
+        process.exitCode = 1;
+      }
+
+      await disconnectPrisma();
+      process.exit();
+    });
+  };
+
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
 } catch (error) {
-  console.error(error);
+  logger.error({ error }, "Backend startup failed");
   process.exit(1);
 }
