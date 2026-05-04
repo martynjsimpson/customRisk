@@ -7,20 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/*
-  Custom Risk MVP Prisma Schema
-
-  Notes:
-  - PostgreSQL should have gen_random_uuid() available. If needed, add this
-    to the first migration:
-      CREATE EXTENSION IF NOT EXISTS pgcrypto;
-  - If you want true case-insensitive email uniqueness, either:
-      1. normalise emails to lowercase in application code, or
-      2. enable citext and change User.email to @db.Citext in a migration.
-  - Prisma does not express all conditional CHECK constraints. Enforce these
-    in Zod/service validation and, where useful, add raw SQL CHECK constraints
-    in migrations.
-*/
+// Custom Risk MVP Prisma Schema
+//
+// Notes:
+// - PostgreSQL should have gen_random_uuid() available. If needed, add this
+//   to the first migration:
+//     CREATE EXTENSION IF NOT EXISTS pgcrypto;
+// - If you want true case-insensitive email uniqueness, either:
+//     1. normalise emails to lowercase in application code, or
+//     2. enable citext and change User.email to @db.Citext in a migration.
+// - Prisma does not express all conditional CHECK constraints. Enforce these
+//   in Zod/service validation and, where useful, add raw SQL CHECK constraints
+//   in migrations.
 
 enum RegisterPermissionRole {
   REGISTER_ADMIN
@@ -215,6 +213,7 @@ model Register {
   matrixCells            RiskMatrixCell[]
   responseStrategies     ResponseStrategy[]
   customFieldDefinitions CustomFieldDefinition[]
+  customFieldValues      RiskCustomFieldValue[]
   auditEvents            AuditEvent[]
   auditRiskSnapshots     AuditRiskSnapshot[]
   exportJobs             ExportJob[]
