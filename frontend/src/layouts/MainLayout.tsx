@@ -2,10 +2,13 @@ import { AppShell, Button, Group, NavLink, Text, Title } from "@mantine/core";
 import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/session";
+import { usePermissions } from "../hooks/usePermissions";
 
 export function MainLayout() {
   const { user, logout } = useAuth();
+  const { isSystemAdmin, registerRoles } = usePermissions();
   const location = useLocation();
+  const hasRegisterAccess = isSystemAdmin || registerRoles.length > 0;
 
   return (
     <AppShell header={{ height: 60 }} navbar={{ width: 240, breakpoint: "sm" }} padding="md">
@@ -27,6 +30,22 @@ export function MainLayout() {
           label="Home"
           active={location.pathname === "/"}
         />
+        {hasRegisterAccess ? (
+          <NavLink
+            component={Link}
+            to="/registers"
+            label="Registers"
+            active={location.pathname.startsWith("/registers")}
+          />
+        ) : null}
+        {isSystemAdmin ? (
+          <NavLink
+            component={Link}
+            to="/users"
+            label="Users"
+            active={location.pathname.startsWith("/users")}
+          />
+        ) : null}
       </AppShell.Navbar>
       <AppShell.Main>
         <Outlet />
