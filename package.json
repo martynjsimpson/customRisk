@@ -23,6 +23,9 @@
     "typecheck:backend": "npm --workspace @custom-risk/backend run typecheck",
     "typecheck:frontend": "npm --workspace @custom-risk/frontend run typecheck",
     "typecheck:shared": "npm --workspace @custom-risk/shared run typecheck",
-    "lint": "npm run typecheck"
+    "lint": "npm run typecheck",
+    "db:migrate": "prisma migrate deploy --schema backend/prisma/schema.prisma",
+    "db:setup": "npm run db:migrate && npm run seed:admin",
+    "seed:admin": "npm --workspace @custom-risk/backend run prisma:seed"
   }
 }

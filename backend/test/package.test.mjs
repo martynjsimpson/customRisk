@@ -7,4 +7,6 @@ test("backend package exposes required quality scripts", async () => {
 
   assert.equal(packageJson.scripts.typecheck, "tsc --noEmit --project tsconfig.json");
   assert.match(packageJson.scripts.test, /^node .*--test/);
+  assert.equal(packageJson.scripts["prisma:deploy"], "prisma migrate deploy");
+  assert.equal(packageJson.scripts["prisma:seed"], "tsx prisma/seed.ts");
 });
