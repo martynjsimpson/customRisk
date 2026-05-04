@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+
+# Prisma / local DB scratch files
+backend/prisma/migrations/dev.db
+
+# IDEs
+.vscode/
+.idea/
