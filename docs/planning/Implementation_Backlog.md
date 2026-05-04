@@ -15,7 +15,7 @@ This document turns the MVP product and architecture documents into an implement
 It is intended to support:
 
 - phase planning;
-- AI coding prompts;
+- AI-assisted implementation sessions;
 - acceptance testing;
 - implementation review;
 - MVP scope control.

@@ -33,7 +33,7 @@ Use the following documents as authoritative:
 | Drafted Prisma schema reference | `docs/architecture/Schema.md` and `backend/prisma/schema.prisma` |
 | Ticket breakdown | `docs/planning/Implementation_Backlog.md` |
 | Phase execution detail | `docs/planning/Phase_*.md` |
-| AI-ready implementation prompts | `docs/prompts/*.md` |
+| Reusable AI prompt patterns | `docs/prompts/Prompt_Templates.md` |
 
 If this document appears to conflict with an authoritative document, use the authoritative document and update this file only if the guidance itself is wrong.
 
