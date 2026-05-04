@@ -61,9 +61,9 @@ and seed passwords belong in your uncommitted `.env` or runtime environment.
 - Frontend dev server: `http://localhost:5173`
 - PostgreSQL: `localhost:5432`
 
-For host-based development, set `DATABASE_URL` to use `localhost`. When running
-inside Docker Compose in the next Phase 0 ticket, the app service can use the
-PostgreSQL service name `db` as the database host.
+For host-based development, set `DATABASE_URL` to use `localhost`. Docker
+Compose sets the app service `DATABASE_URL` to use the PostgreSQL service name
+`db` as the database host.
 
 ### Database service
 
