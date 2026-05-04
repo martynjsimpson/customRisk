@@ -2,9 +2,12 @@ import { Router, type NextFunction, type Request, type RequestHandler, type Resp
 
 import {
   createRegisterController,
+  addRegisterPermissionController,
   getRegisterController,
   getRegisterSummaryController,
+  listRegisterPermissionsController,
   listRegistersController,
+  removeRegisterPermissionController,
   updateRegisterController
 } from "../controllers/registers.controller.js";
 import { authenticate } from "../middleware/authenticate.js";
@@ -16,7 +19,9 @@ import {
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
   createRegisterSchema,
+  createRegisterPermissionSchema,
   listRegistersQuerySchema,
+  registerPermissionParamsSchema,
   registerIdParamsSchema,
   updateRegisterSchema
 } from "../validators/registers.schemas.js";
@@ -35,6 +40,24 @@ export function createRegistersRouter() {
   router.use(authenticate);
   router.get("/", validateRequest({ query: listRegistersQuerySchema }), asyncRoute(listRegistersController));
   router.post("/", requireSystemAdmin, validateRequest({ body: createRegisterSchema }), asyncRoute(createRegisterController));
+  router.get(
+    "/:registerId/permissions",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(listRegisterPermissionsController)
+  );
+  router.post(
+    "/:registerId/permissions",
+    validateRequest({ params: registerIdParamsSchema, body: createRegisterPermissionSchema }),
+    requireRegisterManagement(),
+    asyncRoute(addRegisterPermissionController)
+  );
+  router.delete(
+    "/:registerId/permissions/:permissionId",
+    validateRequest({ params: registerPermissionParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(removeRegisterPermissionController)
+  );
   router.get(
     "/:registerId/summary",
     validateRequest({ params: registerIdParamsSchema }),

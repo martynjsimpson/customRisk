@@ -4,6 +4,16 @@ export const registerIdParamsSchema = z.object({
   registerId: z.string().uuid()
 });
 
+export const registerPermissionParamsSchema = z.object({
+  registerId: z.string().uuid(),
+  permissionId: z.string().uuid()
+});
+
+export const createRegisterPermissionSchema = z.object({
+  userId: z.string().uuid(),
+  role: z.enum(["REGISTER_ADMIN", "REGISTER_VIEWER"])
+});
+
 export const listRegistersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
@@ -42,6 +52,8 @@ export const updateRegisterSchema = z.object({
 });
 
 export type RegisterIdParams = z.infer<typeof registerIdParamsSchema>;
+export type RegisterPermissionParams = z.infer<typeof registerPermissionParamsSchema>;
+export type CreateRegisterPermissionBody = z.infer<typeof createRegisterPermissionSchema>;
 export type ListRegistersQuery = z.infer<typeof listRegistersQuerySchema>;
 export type CreateRegisterBody = z.infer<typeof createRegisterSchema>;
 export type UpdateRegisterBody = z.infer<typeof updateRegisterSchema>;

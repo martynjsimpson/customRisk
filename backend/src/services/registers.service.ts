@@ -7,6 +7,7 @@ import { getEffectiveRegisterRole, listAccessibleRegisterIds } from "../permissi
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
 import type {
+  CreateRegisterPermissionBody,
   CreateRegisterBody,
   ListRegistersQuery,
   UpdateRegisterBody
@@ -351,4 +352,168 @@ export async function getRegisterSummary(registerId: string) {
     overdueRisks,
     risksByLevel
   };
+}
+
+export async function listRegisterPermissions(registerId: string) {
+  return prisma.registerPermission.findMany({
+    where: { registerId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          isActive: true,
+          isSystemAdmin: true
+        }
+      },
+      createdBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      }
+    },
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }]
+  });
+}
+
+export async function addRegisterPermission(
+  actor: AuthenticatedActor,
+  registerId: string,
+  input: CreateRegisterPermissionBody
+) {
+  const [register, user] = await Promise.all([
+    prisma.register.findUnique({ where: { id: registerId }, select: { id: true, name: true } }),
+    prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { id: true, name: true, email: true, isActive: true }
+    })
+  ]);
+
+  if (!register) {
+    throw new ApiError(404, "NOT_FOUND", "Register not found");
+  }
+
+  if (!user || !user.isActive) {
+    throw new ApiError(400, "VALIDATION_ERROR", "User must exist and be active", {
+      userId: "User must exist and be active"
+    });
+  }
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const permission = await tx.registerPermission.create({
+        data: {
+          registerId,
+          userId: input.userId,
+          role: input.role,
+          createdByUserId: actor.id
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              isActive: true,
+              isSystemAdmin: true
+            }
+          }
+        }
+      });
+
+      await recordAuditEvent(
+        {
+          action:
+            input.role === "REGISTER_ADMIN"
+              ? auditActions.registerAdminAdded
+              : auditActions.registerViewerAdded,
+          actor,
+          objectType: "REGISTER_PERMISSION",
+          objectId: permission.id,
+          objectDisplayName: user.email,
+          scopeType: "REGISTER",
+          registerId,
+          summary:
+            input.role === "REGISTER_ADMIN"
+              ? "Register Admin added"
+              : "Register Viewer added",
+          metadataJson: {
+            userId: user.id,
+            role: input.role
+          }
+        },
+        tx
+      );
+
+      return permission;
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new ApiError(409, "CONFLICT", "Register permission already exists");
+    }
+    throw error;
+  }
+}
+
+export async function removeRegisterPermission(
+  actor: AuthenticatedActor,
+  registerId: string,
+  permissionId: string
+) {
+  const permission = await prisma.registerPermission.findFirst({
+    where: { id: permissionId, registerId },
+    include: {
+      register: { select: { id: true, name: true } },
+      user: { select: { id: true, name: true, email: true } }
+    }
+  });
+
+  if (!permission) {
+    throw new ApiError(404, "NOT_FOUND", "Register permission not found");
+  }
+
+  if (permission.role === "REGISTER_ADMIN" && !actor.isSystemAdmin) {
+    const adminCount = await prisma.registerPermission.count({
+      where: { registerId, role: "REGISTER_ADMIN" }
+    });
+
+    if (adminCount <= 1) {
+      throw new ApiError(422, "UNPROCESSABLE", "Cannot remove the final Register Admin");
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.registerPermission.delete({
+      where: { id: permission.id }
+    });
+
+    await recordAuditEvent(
+      {
+        action:
+          permission.role === "REGISTER_ADMIN"
+            ? auditActions.registerAdminRemoved
+            : auditActions.registerViewerRemoved,
+        actor,
+        objectType: "REGISTER_PERMISSION",
+        objectId: permission.id,
+        objectDisplayName: permission.user.email,
+        scopeType: "REGISTER",
+        registerId,
+        summary:
+          permission.role === "REGISTER_ADMIN"
+            ? "Register Admin removed"
+            : "Register Viewer removed",
+        metadataJson: {
+          userId: permission.userId,
+          role: permission.role
+        }
+      },
+      tx
+    );
+  });
+
+  return { success: true };
 }

@@ -5,13 +5,18 @@ import {
   createRegister,
   getRegister,
   getRegisterSummary,
+  addRegisterPermission,
   listRegisters,
+  listRegisterPermissions,
+  removeRegisterPermission,
   updateRegister
 } from "../services/registers.service.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
   CreateRegisterBody,
+  CreateRegisterPermissionBody,
   ListRegistersQuery,
+  RegisterPermissionParams,
   RegisterIdParams,
   UpdateRegisterBody
 } from "../validators/registers.schemas.js";
@@ -53,4 +58,36 @@ export async function updateRegisterController(
 
 export async function getRegisterSummaryController(request: Request<RegisterIdParams>, response: Response) {
   sendData(response, await getRegisterSummary(request.params.registerId));
+}
+
+export async function listRegisterPermissionsController(
+  request: Request<RegisterIdParams>,
+  response: Response
+) {
+  sendData(response, await listRegisterPermissions(request.params.registerId));
+}
+
+export async function addRegisterPermissionController(
+  request: Request<RegisterIdParams, unknown, CreateRegisterPermissionBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await addRegisterPermission(actorOrThrow(request), request.params.registerId, request.body),
+    201
+  );
+}
+
+export async function removeRegisterPermissionController(
+  request: Request<RegisterPermissionParams>,
+  response: Response
+) {
+  sendData(
+    response,
+    await removeRegisterPermission(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.permissionId
+    )
+  );
 }
