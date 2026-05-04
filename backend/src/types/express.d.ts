@@ -1,5 +1,21 @@
 import type { Request } from "express";
 
+export interface AuthenticatedActor {
+  id: string;
+  name: string;
+  email: string;
+  isSystemAdmin: boolean;
+  isActive: boolean;
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      actor?: AuthenticatedActor;
+    }
+  }
+}
+
 export type TypedRequestBody<TBody> = Request<Record<string, string>, unknown, TBody>;
 
 export type TypedRequestQuery<TQuery> = Request<Record<string, string>, unknown, unknown, TQuery>;

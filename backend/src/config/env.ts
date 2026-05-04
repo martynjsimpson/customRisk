@@ -21,3 +21,15 @@ export function getJwtAccessExpiry(): string {
 export function getBcryptCostFactor(): number {
   return Number.parseInt(optional("BCRYPT_COST_FACTOR", "12"), 10);
 }
+
+export function getJwtRefreshExpiryDays(): number {
+  return Number.parseInt(optional("JWT_REFRESH_EXPIRY_DAYS", "30"), 10);
+}
+
+export function getRateLimitWindowMs(): number {
+  return Number.parseInt(optional("RATE_LIMIT_WINDOW_MS", "60000"), 10);
+}
+
+export function getRateLimitMaxLogin(): number {
+  return Number.parseInt(optional("RATE_LIMIT_MAX_LOGIN", "10"), 10);
+}
