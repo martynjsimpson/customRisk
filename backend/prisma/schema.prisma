@@ -1,0 +1,582 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/*
+  Custom Risk MVP Prisma Schema
+
+  Notes:
+  - PostgreSQL should have gen_random_uuid() available. If needed, add this
+    to the first migration:
+      CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  - If you want true case-insensitive email uniqueness, either:
+      1. normalise emails to lowercase in application code, or
+      2. enable citext and change User.email to @db.Citext in a migration.
+  - Prisma does not express all conditional CHECK constraints. Enforce these
+    in Zod/service validation and, where useful, add raw SQL CHECK constraints
+    in migrations.
+*/
+
+enum RegisterPermissionRole {
+  REGISTER_ADMIN
+  REGISTER_VIEWER
+}
+
+enum RiskState {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum CustomFieldType {
+  TEXT
+  MULTILINE_TEXT
+  BOOLEAN
+  NUMBER
+  DATE
+  DROPDOWN
+  PERSON_PICKER
+}
+
+enum AuditScopeType {
+  SYSTEM
+  REGISTER
+  RISK
+}
+
+enum AuditObjectType {
+  USER
+  REGISTER
+  REGISTER_PERMISSION
+  RISK
+  RISK_REVIEW
+  CUSTOM_FIELD
+  CUSTOM_FIELD_OPTION
+  LIKELIHOOD_VALUE
+  IMPACT_VALUE
+  RISK_LEVEL
+  RISK_MATRIX
+  RESPONSE_STRATEGY
+  EXPORT
+  AUTH
+  API_KEY
+}
+
+enum AuditValueType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  DATE
+  JSON
+  USER
+  UUID
+}
+
+enum ExportJobStatus {
+  REQUESTED
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  email          String  @unique
+  passwordHash   String  @map("password_hash")
+  isSystemAdmin  Boolean @default(false) @map("is_system_admin")
+  isActive       Boolean @default(true) @map("is_active")
+
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lastFailedLoginAt   DateTime? @map("last_failed_login_at") @db.Timestamptz(6)
+  lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(6)
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedByUserId String?  @map("updated_by_user_id") @db.Uuid
+
+  createdBy User? @relation("UserCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("UserUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  usersCreated User[] @relation("UserCreatedBy")
+  usersUpdated User[] @relation("UserUpdatedBy")
+
+  registersCreated Register[] @relation("RegisterCreatedBy")
+  registersUpdated Register[] @relation("RegisterUpdatedBy")
+
+  registerPermissions        RegisterPermission[] @relation("RegisterPermissionUser")
+  registerPermissionsCreated RegisterPermission[] @relation("RegisterPermissionCreatedBy")
+
+  risksOwned        Risk[] @relation("RiskOwner")
+  risksCreated      Risk[] @relation("RiskSystemCreatedBy")
+  risksUpdated      Risk[] @relation("RiskSystemUpdatedBy")
+  risksLastReviewed Risk[] @relation("RiskLastReviewedBy")
+
+  riskReviews RiskReview[] @relation("RiskReviewReviewer")
+
+  customFieldDefinitionsCreated CustomFieldDefinition[] @relation("CustomFieldDefinitionCreatedBy")
+  customFieldDefinitionsUpdated CustomFieldDefinition[] @relation("CustomFieldDefinitionUpdatedBy")
+  riskCustomPersonValues        RiskCustomFieldValue[]  @relation("RiskCustomFieldPersonUser")
+
+  auditEvents AuditEvent[] @relation("AuditEventActor")
+
+  refreshTokens RefreshToken[]
+  apiKeys       ApiKey[] @relation("ApiKeyUser")
+  apiKeysCreated ApiKey[] @relation("ApiKeyCreatedBy")
+
+  exportJobs ExportJob[] @relation("ExportJobRequestedBy")
+
+  @@index([isActive])
+  @@index([isSystemAdmin])
+  @@map("user")
+}
+
+model RefreshToken {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  tokenHash     String   @unique @map("token_hash")
+  tokenFamilyId String   @map("token_family_id") @db.Uuid
+  expiresAt     DateTime @map("expires_at") @db.Timestamptz(6)
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  replacedByTokenId String? @unique @map("replaced_by_token_id") @db.Uuid
+  userAgent         String? @map("user_agent")
+  ipAddress         String? @map("ip_address")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedByToken RefreshToken? @relation("RefreshTokenRotation", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  replacesToken   RefreshToken? @relation("RefreshTokenRotation")
+
+  @@index([userId])
+  @@index([tokenFamilyId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@map("refresh_token")
+}
+
+model ApiKey {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String
+  keyPrefix   String    @unique @map("key_prefix")
+  keyHash     String    @unique @map("key_hash")
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(6)
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+
+  user      User  @relation("ApiKeyUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("ApiKeyCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([revokedAt])
+  @@map("api_key")
+}
+
+model Register {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String  @unique
+  description String? @db.Text
+
+  riskIdPrefix             String? @map("risk_id_prefix")
+  riskIdZeroPaddingEnabled Boolean @default(false) @map("risk_id_zero_padding_enabled")
+  riskIdZeroPaddingWidth   Int     @default(4) @map("risk_id_zero_padding_width")
+  nextRiskSequence         Int     @default(1) @map("next_risk_sequence")
+
+  defaultNewRiskState          RiskState @default(DRAFT) @map("default_new_risk_state")
+  reviewsEnabled               Boolean   @default(true) @map("reviews_enabled")
+  defaultReviewFrequencyMonths Int       @default(12) @map("default_review_frequency_months")
+  reviewAttestationText        String    @default("I confirm that I have reviewed this risk and the recorded details remain accurate or have been updated.") @map("review_attestation_text") @db.Text
+  allowViewerExport            Boolean   @default(false) @map("allow_viewer_export")
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedByUserId String   @map("updated_by_user_id") @db.Uuid
+
+  createdBy User @relation("RegisterCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy User @relation("RegisterUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  permissions            RegisterPermission[]
+  risks                  Risk[]
+  riskReviews            RiskReview[]
+  likelihoodValues       LikelihoodValue[]
+  impactValues           ImpactValue[]
+  riskLevels             RiskLevel[]
+  matrixCells            RiskMatrixCell[]
+  responseStrategies     ResponseStrategy[]
+  customFieldDefinitions CustomFieldDefinition[]
+  auditEvents            AuditEvent[]
+  auditRiskSnapshots     AuditRiskSnapshot[]
+  exportJobs             ExportJob[]
+
+  @@index([name])
+  @@map("register")
+}
+
+model RegisterPermission {
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId      String                 @map("register_id") @db.Uuid
+  userId          String                 @map("user_id") @db.Uuid
+  role            RegisterPermissionRole
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdByUserId String                 @map("created_by_user_id") @db.Uuid
+
+  register  Register @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  user      User     @relation("RegisterPermissionUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("RegisterPermissionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([registerId, userId, role])
+  @@index([userId, role])
+  @@index([registerId, role])
+  @@map("register_permission")
+}
+
+model Risk {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId    String    @map("register_id") @db.Uuid
+  displayRiskId String    @map("display_risk_id")
+  riskSequence  Int       @map("risk_sequence")
+  title         String
+  description   String    @db.Text
+  state         RiskState @default(DRAFT)
+
+  ownerUserId String @map("owner_user_id") @db.Uuid
+  createdDate DateTime @map("created_date") @db.Date
+
+  likelihoodValueId  String  @map("likelihood_value_id") @db.Uuid
+  impactValueId      String  @map("impact_value_id") @db.Uuid
+  riskScore          Decimal @map("risk_score") @db.Decimal(12, 4)
+  riskLevelId        String  @map("risk_level_id") @db.Uuid
+  responseStrategyId String  @map("response_strategy_id") @db.Uuid
+  responseAction     String? @map("response_action") @db.Text
+
+  lastReviewedAt       DateTime? @map("last_reviewed_at") @db.Timestamptz(6)
+  lastReviewedByUserId String?   @map("last_reviewed_by_user_id") @db.Uuid
+  nextReviewDate       DateTime? @map("next_review_date") @db.Date
+
+  systemCreatedAt       DateTime @default(now()) @map("system_created_at") @db.Timestamptz(6)
+  systemCreatedByUserId String   @map("system_created_by_user_id") @db.Uuid
+  systemUpdatedAt       DateTime @updatedAt @map("system_updated_at") @db.Timestamptz(6)
+  systemUpdatedByUserId String   @map("system_updated_by_user_id") @db.Uuid
+
+  register         Register         @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  owner            User             @relation("RiskOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  likelihoodValue  LikelihoodValue  @relation("RiskLikelihood", fields: [likelihoodValueId], references: [id], onDelete: Restrict)
+  impactValue      ImpactValue      @relation("RiskImpact", fields: [impactValueId], references: [id], onDelete: Restrict)
+  riskLevel        RiskLevel        @relation("RiskRiskLevel", fields: [riskLevelId], references: [id], onDelete: Restrict)
+  responseStrategy ResponseStrategy @relation("RiskResponseStrategy", fields: [responseStrategyId], references: [id], onDelete: Restrict)
+
+  systemCreatedBy User  @relation("RiskSystemCreatedBy", fields: [systemCreatedByUserId], references: [id], onDelete: Restrict)
+  systemUpdatedBy User  @relation("RiskSystemUpdatedBy", fields: [systemUpdatedByUserId], references: [id], onDelete: Restrict)
+  lastReviewedBy  User? @relation("RiskLastReviewedBy", fields: [lastReviewedByUserId], references: [id], onDelete: SetNull)
+
+  reviews           RiskReview[]
+  customFieldValues RiskCustomFieldValue[]
+  auditEvents       AuditEvent[]
+
+  @@unique([registerId, displayRiskId])
+  @@unique([registerId, riskSequence])
+  @@index([registerId, state])
+  @@index([registerId, ownerUserId])
+  @@index([registerId, riskLevelId])
+  @@index([registerId, nextReviewDate])
+  @@index([systemUpdatedAt])
+  @@map("risk")
+}
+
+model RiskReview {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  riskId                   String   @map("risk_id") @db.Uuid
+  registerId               String   @map("register_id") @db.Uuid
+  reviewedByUserId         String   @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt               DateTime @default(now()) @map("reviewed_at") @db.Timestamptz(6)
+  comment                  String?  @db.Text
+  attestationText          String   @map("attestation_text") @db.Text
+  calculatedNextReviewDate DateTime @map("calculated_next_review_date") @db.Date
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  risk             Risk     @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  register         Register @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  reviewedBy       User     @relation("RiskReviewReviewer", fields: [reviewedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([riskId, reviewedAt])
+  @@index([registerId, reviewedAt])
+  @@index([reviewedByUserId])
+  @@map("risk_review")
+}
+
+model LikelihoodValue {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId   String   @map("register_id") @db.Uuid
+  name         String
+  numericValue Decimal  @map("numeric_value") @db.Decimal(12, 4)
+  displayOrder Int      @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  register    Register         @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  risks       Risk[]           @relation("RiskLikelihood")
+  matrixCells RiskMatrixCell[] @relation("MatrixLikelihood")
+
+  @@unique([registerId, name])
+  @@unique([registerId, numericValue])
+  @@unique([registerId, displayOrder])
+  @@index([registerId, isActive])
+  @@map("likelihood_value")
+}
+
+model ImpactValue {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId   String   @map("register_id") @db.Uuid
+  name         String
+  numericValue Decimal  @map("numeric_value") @db.Decimal(12, 4)
+  displayOrder Int      @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  register    Register         @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  risks       Risk[]           @relation("RiskImpact")
+  matrixCells RiskMatrixCell[] @relation("MatrixImpact")
+
+  @@unique([registerId, name])
+  @@unique([registerId, numericValue])
+  @@unique([registerId, displayOrder])
+  @@index([registerId, isActive])
+  @@map("impact_value")
+}
+
+model RiskLevel {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId   String   @map("register_id") @db.Uuid
+  name         String
+  description  String?  @db.Text
+  displayOrder Int      @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  register    Register         @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  risks       Risk[]           @relation("RiskRiskLevel")
+  matrixCells RiskMatrixCell[]
+
+  @@unique([registerId, name])
+  @@unique([registerId, displayOrder])
+  @@index([registerId, isActive])
+  @@map("risk_level")
+}
+
+model RiskMatrixCell {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId        String   @map("register_id") @db.Uuid
+  likelihoodValueId String   @map("likelihood_value_id") @db.Uuid
+  impactValueId     String   @map("impact_value_id") @db.Uuid
+  riskLevelId       String   @map("risk_level_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  register        Register        @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  likelihoodValue LikelihoodValue @relation("MatrixLikelihood", fields: [likelihoodValueId], references: [id], onDelete: Cascade)
+  impactValue     ImpactValue     @relation("MatrixImpact", fields: [impactValueId], references: [id], onDelete: Cascade)
+  riskLevel       RiskLevel       @relation(fields: [riskLevelId], references: [id], onDelete: Restrict)
+
+  @@unique([registerId, likelihoodValueId, impactValueId])
+  @@index([registerId, riskLevelId])
+  @@map("risk_matrix_cell")
+}
+
+model ResponseStrategy {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId   String   @map("register_id") @db.Uuid
+  name         String
+  displayOrder Int      @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  register Register @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  risks    Risk[]   @relation("RiskResponseStrategy")
+
+  @@unique([registerId, name])
+  @@unique([registerId, displayOrder])
+  @@index([registerId, isActive])
+  @@map("response_strategy")
+}
+
+model CustomFieldDefinition {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId   String          @map("register_id") @db.Uuid
+  fieldName    String          @map("field_name")
+  fieldType    CustomFieldType @map("field_type")
+  helpText     String?         @map("help_text") @db.Text
+  isRequired   Boolean         @default(false) @map("is_required")
+  displayOrder Int             @map("display_order")
+  isActive     Boolean         @default(true) @map("is_active")
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedByUserId String   @map("updated_by_user_id") @db.Uuid
+
+  register  Register @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("CustomFieldDefinitionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy User     @relation("CustomFieldDefinitionUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  options CustomFieldOption[]
+  values  RiskCustomFieldValue[]
+
+  @@unique([registerId, fieldName])
+  @@unique([registerId, displayOrder])
+  @@index([registerId, isActive])
+  @@map("custom_field_definition")
+}
+
+model CustomFieldOption {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customFieldDefinitionId String   @map("custom_field_definition_id") @db.Uuid
+  label                   String
+  displayOrder            Int      @map("display_order")
+  isActive                Boolean  @default(true) @map("is_active")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  customFieldDefinition CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
+  values                RiskCustomFieldValue[]
+
+  @@unique([customFieldDefinitionId, label])
+  @@unique([customFieldDefinitionId, displayOrder])
+  @@index([customFieldDefinitionId, isActive])
+  @@map("custom_field_option")
+}
+
+model RiskCustomFieldValue {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  riskId                  String   @map("risk_id") @db.Uuid
+  registerId              String   @map("register_id") @db.Uuid
+  customFieldDefinitionId String   @map("custom_field_definition_id") @db.Uuid
+
+  textValue        String?   @map("text_value") @db.Text
+  numberValue      Decimal?  @map("number_value") @db.Decimal(18, 6)
+  booleanValue     Boolean?  @map("boolean_value")
+  dateValue        DateTime? @map("date_value") @db.Date
+  personUserId     String?   @map("person_user_id") @db.Uuid
+  personEmail      String?   @map("person_email")
+  dropdownOptionId String?   @map("dropdown_option_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  risk                  Risk                  @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  register              Register              @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  customFieldDefinition CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
+  personUser            User?                 @relation("RiskCustomFieldPersonUser", fields: [personUserId], references: [id], onDelete: Restrict)
+  dropdownOption        CustomFieldOption?    @relation(fields: [dropdownOptionId], references: [id], onDelete: Restrict)
+
+  @@unique([riskId, customFieldDefinitionId])
+  @@index([registerId, customFieldDefinitionId])
+  @@index([dropdownOptionId])
+  @@index([personUserId])
+  @@map("risk_custom_field_value")
+}
+
+model AuditEvent {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  occurredAt         DateTime        @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  actorUserId        String?         @map("actor_user_id") @db.Uuid
+  actorDisplayName   String?         @map("actor_display_name")
+  actorEmail         String?         @map("actor_email")
+  action             String
+  objectType         AuditObjectType @map("object_type")
+  objectId           String          @map("object_id")
+  objectDisplayName  String?         @map("object_display_name")
+  scopeType          AuditScopeType  @map("scope_type")
+  registerId         String?         @map("register_id") @db.Uuid
+  riskId             String?         @map("risk_id") @db.Uuid
+  displayRiskId      String?         @map("display_risk_id")
+  summary            String          @db.Text
+  metadataJson       Json?           @map("metadata_json") @db.JsonB
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor   User?     @relation("AuditEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  register Register? @relation(fields: [registerId], references: [id], onDelete: SetNull)
+  risk     Risk?     @relation(fields: [riskId], references: [id], onDelete: SetNull)
+
+  fieldChanges AuditFieldChange[]
+  riskSnapshot  AuditRiskSnapshot?
+
+  @@index([occurredAt])
+  @@index([actorUserId])
+  @@index([scopeType, occurredAt])
+  @@index([registerId, occurredAt])
+  @@index([riskId, occurredAt])
+  @@index([displayRiskId, occurredAt])
+  @@index([objectType, objectId])
+  @@index([action])
+  @@map("audit_event")
+}
+
+model AuditFieldChange {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  auditEventId String          @map("audit_event_id") @db.Uuid
+  fieldName    String          @map("field_name")
+  fieldLabel   String?         @map("field_label")
+  previousValue Json?          @map("previous_value") @db.JsonB
+  newValue      Json?          @map("new_value") @db.JsonB
+  valueType     AuditValueType? @map("value_type")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  auditEvent AuditEvent @relation(fields: [auditEventId], references: [id], onDelete: Cascade)
+
+  @@index([auditEventId])
+  @@index([fieldName])
+  @@map("audit_field_change")
+}
+
+model AuditRiskSnapshot {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  auditEventId   String   @unique @map("audit_event_id") @db.Uuid
+  riskInternalId String   @map("risk_internal_id") @db.Uuid
+  registerId     String   @map("register_id") @db.Uuid
+  displayRiskId  String   @map("display_risk_id")
+  snapshotJson   Json     @map("snapshot_json") @db.JsonB
+  deletionReason String?  @map("deletion_reason") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  auditEvent AuditEvent @relation(fields: [auditEventId], references: [id], onDelete: Cascade)
+  register   Register   @relation(fields: [registerId], references: [id], onDelete: Restrict)
+
+  @@index([registerId, displayRiskId])
+  @@index([riskInternalId])
+  @@map("audit_risk_snapshot")
+}
+
+model ExportJob {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId         String          @map("register_id") @db.Uuid
+  requestedByUserId  String          @map("requested_by_user_id") @db.Uuid
+  requestedAt        DateTime        @default(now()) @map("requested_at") @db.Timestamptz(6)
+  filterJson         Json?           @map("filter_json") @db.JsonB
+  includedClosedRisks Boolean        @default(false) @map("included_closed_risks")
+  rowCount           Int?            @map("row_count")
+  status             ExportJobStatus @default(REQUESTED)
+  completedAt        DateTime?       @map("completed_at") @db.Timestamptz(6)
+
+  register        Register @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  requestedByUser User     @relation("ExportJobRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([registerId, requestedAt])
+  @@index([requestedByUserId, requestedAt])
+  @@index([status])
+  @@map("export_job")
+}
