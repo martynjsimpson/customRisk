@@ -1,9 +1,9 @@
 # Custom Risk — MVP Implementation Backlog
 
-**Version:** 1.0  
-**Date:** 2026-05-04  
-**Status:** Draft  
-**Applies to:** MVP implementation  
+**Version:** 1.1
+**Date:** 2026-05-04
+**Status:** Draft
+**Applies to:** MVP implementation
 **Related documents:** AI Build Instructions v1.1, MVP Scope v1.2, MVP Functional Specification v1.2, MVP Data Model v1.2, Technical Architecture v1.0, API Route Map v1.0, Permission Model v1.0, Audit Model v1.0, Security Model v1.0
 
 ---
@@ -20,7 +20,7 @@ It is intended to support:
 - implementation review;
 - MVP scope control.
 
-Tickets are grouped by the six MVP phases from MVP Scope. The backlog is intentionally implementation-oriented and should not introduce scope beyond the product and architecture documents.
+Tickets are grouped by implementation phase. Phase 0 is an implementation-only environment/bootstrap phase added before the six MVP product phases from MVP Scope. The backlog is intentionally implementation-oriented and should not introduce scope beyond the product and architecture documents.
 
 ---
 
@@ -48,11 +48,11 @@ P1-01
 
 ---
 
-## 3. Phase 1 — Foundation
+## 3. Phase 0 — Environment and Bootstrap
 
-Phase goal: establish the runnable application foundation, database schema, authentication, users, registers, basic permissions, and audit framework.
+Phase goal: create an empty but runnable development environment and project skeleton before product foundation work begins.
 
-## P1-01 — Repository and Package Foundation
+## P0-01 — Repository and Package Foundation
 
 **Goal:** Create the monorepo package structure for backend and frontend.
 
@@ -74,11 +74,31 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - package scripts are documented;
 - `.env.example` contains required non-secret variables.
 
-## P1-02 — Docker and Local Runtime
+## P0-02 — Local Environment Configuration
+
+**Goal:** Define the local development environment contract.
+
+**Dependencies:** P0-01.
+
+**Deliverables:**
+
+- `.env.example`;
+- documented local environment variables;
+- local setup notes in README;
+- agreed local ports;
+- seed password environment variable documented.
+
+**Acceptance criteria:**
+
+- a developer can identify required local variables without reading source code;
+- no real secrets are committed;
+- local setup instructions identify how to configure database and app services.
+
+## P0-03 — Docker and Local Runtime
 
 **Goal:** Provide local containerised runtime for app and PostgreSQL.
 
-**Dependencies:** P1-01.
+**Dependencies:** P0-01, P0-02.
 
 **Deliverables:**
 
@@ -95,11 +115,37 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - app can reach database through `DATABASE_URL`;
 - no real secrets are committed.
 
-## P1-03 — Prisma Schema and Initial Migration
+## P0-04 — Development Scripts and Quality Gates
+
+**Goal:** Provide basic scripts future tickets can rely on.
+
+**Dependencies:** P0-01.
+
+**Deliverables:**
+
+- backend typecheck script;
+- frontend typecheck script;
+- backend test script placeholder or initial test setup;
+- frontend test script placeholder or initial test setup;
+- format/lint scripts where practical.
+
+**Acceptance criteria:**
+
+- documented scripts run from the expected package directories;
+- failing typecheck/test scripts fail with non-zero exit status;
+- later phase tickets can reference these scripts for verification.
+
+---
+
+## 4. Phase 1 — Foundation
+
+Phase goal: establish the product foundation: database schema, backend shell, validation, authentication, users, registers, basic permissions, audit framework, and initial frontend shell.
+
+## P1-01 — Prisma Schema and Initial Migration
 
 **Goal:** Implement the drafted MVP Prisma schema.
 
-**Dependencies:** P1-01, P1-02, `backend/prisma/schema.prisma`.
+**Dependencies:** P0-01, P0-03, `backend/prisma/schema.prisma`.
 
 **Deliverables:**
 
@@ -115,11 +161,11 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - schema matches the drafted `backend/prisma/schema.prisma`;
 - no schema changes are made outside Prisma migrations.
 
-## P1-04 — Backend App Shell
+## P1-02 — Backend App Shell
 
 **Goal:** Create the Express backend application shell.
 
-**Dependencies:** P1-01.
+**Dependencies:** P0-01.
 
 **Deliverables:**
 
@@ -137,11 +183,11 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - unhandled errors return standard error shape without stack traces;
 - server logs errors server-side.
 
-## P1-05 — Validation and Error Utilities
+## P1-03 — Validation and Error Utilities
 
 **Goal:** Establish reusable Zod validation and API error handling.
 
-**Dependencies:** P1-04.
+**Dependencies:** P1-02.
 
 **Deliverables:**
 
@@ -156,11 +202,11 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - validation errors can include field-level messages;
 - tests cover success and failure validation paths.
 
-## P1-06 — Password and Token Utilities
+## P1-04 — Password and Token Utilities
 
 **Goal:** Implement secure password hashing and token helpers.
 
-**Dependencies:** P1-04.
+**Dependencies:** P1-02.
 
 **Deliverables:**
 
@@ -176,11 +222,11 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - plain passwords and tokens are never logged;
 - unit tests cover password validation and hash verification.
 
-## P1-07 — Local Authentication Routes
+## P1-05 — Local Authentication Routes
 
 **Goal:** Implement login, refresh, logout, and current-user session bootstrap.
 
-**Dependencies:** P1-03, P1-06.
+**Dependencies:** P1-01, P1-04.
 
 **Deliverables:**
 
@@ -204,11 +250,51 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - access tokens are not stored in persistent frontend storage;
 - audit events are created where required.
 
+## P1-06 — Audit Framework
+
+**Goal:** Create reusable audit write/read foundation.
+
+**Dependencies:** P1-01, P1-02.
+
+**Deliverables:**
+
+- audit service;
+- audit event creation helper;
+- field-change helper;
+- transaction-client support;
+- basic audit query helpers.
+
+**Acceptance criteria:**
+
+- audit events can be written inside Prisma transactions;
+- field changes can be attached to events;
+- audit writes do not record secrets;
+- audit service is used by auth/user/register foundation tickets.
+
+## P1-07 — Permission Service
+
+**Goal:** Centralise effective permission checks.
+
+**Dependencies:** P1-01, P1-05.
+
+**Deliverables:**
+
+- authenticated actor context;
+- permission helper functions from Permission Model;
+- middleware for System Admin, register access, configuration access, risk access, export access;
+- hidden-resource error behaviour.
+
+**Acceptance criteria:**
+
+- permission checks read current database state;
+- System Admin, Register Admin, Register Viewer, and Risk Owner paths are covered by tests;
+- `404` is used where revealing existence would be inappropriate.
+
 ## P1-08 — User Management API
 
 **Goal:** Implement System Admin user management.
 
-**Dependencies:** P1-07, P1-10.
+**Dependencies:** P1-05, P1-06, P1-07.
 
 **Deliverables:**
 
@@ -227,51 +313,11 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - System Admin role changes are audited;
 - password values are redacted from audit and logs.
 
-## P1-09 — Audit Framework
-
-**Goal:** Create reusable audit write/read foundation.
-
-**Dependencies:** P1-03, P1-04.
-
-**Deliverables:**
-
-- audit service;
-- audit event creation helper;
-- field-change helper;
-- transaction-client support;
-- basic audit query helpers.
-
-**Acceptance criteria:**
-
-- audit events can be written inside Prisma transactions;
-- field changes can be attached to events;
-- audit writes do not record secrets;
-- audit service is used by auth/user/register foundation tickets.
-
-## P1-10 — Permission Service
-
-**Goal:** Centralise effective permission checks.
-
-**Dependencies:** P1-03, P1-07.
-
-**Deliverables:**
-
-- authenticated actor context;
-- permission helper functions from Permission Model;
-- middleware for System Admin, register access, configuration access, risk access, export access;
-- hidden-resource error behaviour.
-
-**Acceptance criteria:**
-
-- permission checks read current database state;
-- System Admin, Register Admin, Register Viewer, and Risk Owner paths are covered by tests;
-- `404` is used where revealing existence would be inappropriate.
-
-## P1-11 — Register Foundation API
+## P1-09 — Register Foundation API
 
 **Goal:** Implement register creation, listing, detail, settings update, and default configuration seeding.
 
-**Dependencies:** P1-09, P1-10.
+**Dependencies:** P1-06, P1-07.
 
 **Deliverables:**
 
@@ -291,11 +337,11 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - default configuration is seeded;
 - register creation/settings changes are audited.
 
-## P1-12 — Register Permission API
+## P1-10 — Register Permission API
 
 **Goal:** Implement register-level permission management.
 
-**Dependencies:** P1-10, P1-11.
+**Dependencies:** P1-07, P1-09.
 
 **Deliverables:**
 
@@ -311,11 +357,11 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - final Register Admin removal is blocked unless actor is System Admin;
 - permission changes are audited.
 
-## P1-13 — Frontend App Shell and Auth UI
+## P1-11 — Frontend App Shell and Auth UI
 
 **Goal:** Create the frontend shell, routing, session bootstrap, and login/logout experience.
 
-**Dependencies:** P1-07.
+**Dependencies:** P0-01, P1-05.
 
 **Deliverables:**
 
@@ -335,11 +381,11 @@ Phase goal: establish the runnable application foundation, database schema, auth
 - page refresh uses refresh endpoint before rendering protected routes;
 - access token is kept in memory only.
 
-## P1-14 — Users and Registers Frontend Foundation
+## P1-12 — Users and Registers Frontend Foundation
 
 **Goal:** Build MVP UI for users and register administration foundation.
 
-**Dependencies:** P1-08, P1-11, P1-12, P1-13.
+**Dependencies:** P1-08, P1-09, P1-10, P1-11.
 
 **Deliverables:**
 
@@ -360,7 +406,7 @@ Phase goal: establish the runnable application foundation, database schema, auth
 
 ---
 
-## 4. Phase 2 — Risk Register Core
+## 5. Phase 2 — Risk Register Core
 
 Phase goal: implement risk records, core risk table/detail/create/edit/delete behaviour, displayed Risk ID generation, ownership, state, and CSV export.
 
@@ -368,7 +414,7 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 
 **Goal:** Implement core risk service methods and derived values.
 
-**Dependencies:** P1-10, P1-11.
+**Dependencies:** P1-07, P1-09.
 
 **Deliverables:**
 
@@ -478,7 +524,7 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 
 **Goal:** Implement System Admin hard delete with audit snapshot.
 
-**Dependencies:** P2-04, P1-09.
+**Dependencies:** P2-04, P1-06.
 
 **Deliverables:**
 
@@ -543,7 +589,7 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 
 ---
 
-## 5. Phase 3 — Configuration
+## 6. Phase 3 — Configuration
 
 Phase goal: implement custom field configuration, dropdown options, required fields, field ordering, and register configuration UI.
 
@@ -551,7 +597,7 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 
 **Goal:** Provide configuration data for register configuration screens and risk forms.
 
-**Dependencies:** P1-11, P2-04.
+**Dependencies:** P1-09, P2-04.
 
 **Deliverables:**
 
@@ -653,7 +699,7 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 
 ---
 
-## 6. Phase 4 — Scoring
+## 7. Phase 4 — Scoring
 
 Phase goal: implement likelihood, impact, risk level, matrix configuration, score calculation, and risk level display.
 
@@ -661,7 +707,7 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 **Goal:** Implement likelihood value management.
 
-**Dependencies:** P1-11.
+**Dependencies:** P1-09.
 
 **Deliverables:**
 
@@ -681,7 +727,7 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 **Goal:** Implement impact value management.
 
-**Dependencies:** P1-11.
+**Dependencies:** P1-09.
 
 **Deliverables:**
 
@@ -701,7 +747,7 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 **Goal:** Implement risk level management.
 
-**Dependencies:** P1-11.
+**Dependencies:** P1-09.
 
 **Deliverables:**
 
@@ -777,7 +823,7 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 ---
 
-## 7. Phase 5 — Reviews and Dashboard
+## 8. Phase 5 — Reviews and Dashboard
 
 Phase goal: implement review flow, review history, last/next review dates, overdue indicators, My Work dashboard, and register admin summaries.
 
@@ -848,7 +894,7 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 **Goal:** Implement audit log routes.
 
-**Dependencies:** P1-09, P1-10, P2/P3/P4/P5 audit-producing routes.
+**Dependencies:** P1-06, P1-07, P2/P3/P4/P5 audit-producing routes.
 
 **Deliverables:**
 
@@ -891,7 +937,7 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ---
 
-## 8. Phase 6 — Hardening
+## 9. Phase 6 — Hardening
 
 Phase goal: close testing gaps, improve usability, seed realistic demo data, verify permissions/audit/security, and prepare MVP for use.
 
@@ -1040,10 +1086,11 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ---
 
-## 9. Cross-Phase Dependencies
+## 10. Cross-Phase Dependencies
 
 Some work spans phases and should be tracked carefully:
 
+- environment/bootstrap work is completed in Phase 0 and is prerequisite to every product phase;
 - audit service starts in Phase 1 but coverage is completed in Phase 6;
 - permission service starts in Phase 1 but must be used by every later feature;
 - custom field validation begins in Phase 2 and is completed in Phase 3;
@@ -1053,12 +1100,12 @@ Some work spans phases and should be tracked carefully:
 
 ---
 
-## 10. MVP Acceptance Mapping
+## 11. MVP Acceptance Mapping
 
 | MVP success criterion | Primary tickets |
 |---|---|
-| System Admin can create users and registers | P1-08, P1-11, P1-14 |
-| System Admin assigns Register Admins | P1-12, P1-14 |
+| System Admin can create users and registers | P1-08, P1-09, P1-12 |
+| System Admin assigns Register Admins | P1-10, P1-12 |
 | Register Admin configures usable assigned register | P3-01 to P3-05, P4-01 to P4-06 |
 | Register Admin defines fields, scoring values, and matrix | P3-02, P3-03, P4-01 to P4-04 |
 | Authorised users create/update permitted risk fields | P2-03, P2-05, P2-08 |
@@ -1066,12 +1113,12 @@ Some work spans phases and should be tracked carefully:
 | Risk Owners find owned risks | P2-02, P5-03, P5-05 |
 | Risk Owners complete reviews | P5-01, P5-05 |
 | Register Admins see overdue risks | P5-02, P5-03, P5-05 |
-| Key changes visible in audit history | P1-09, P5-04, P6-03 |
+| Key changes visible in audit history | P1-06, P5-04, P6-03 |
 | Risk data exports to CSV | P2-07, P2-08 |
 
 ---
 
-## 11. Backlog Governance
+## 12. Backlog Governance
 
 Before starting an implementation ticket:
 
