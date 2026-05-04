@@ -40,7 +40,8 @@ Phase 0 covers:
 - repository and package foundation;
 - local environment configuration;
 - Docker and local PostgreSQL runtime;
-- basic scripts for typecheck, tests, linting, and formatting where practical.
+- basic scripts for typecheck, tests, linting, and formatting where practical;
+- minimal GitHub Actions CI for repository quality checks.
 
 Phase 0 does not cover:
 
@@ -59,6 +60,7 @@ The authoritative ticket details live in [Implementation_Backlog.md](Implementat
 - P0-02 - Local Environment Configuration
 - P0-03 - Docker and Local Runtime
 - P0-04 - Development Scripts and Quality Gates
+- P0-05 - GitHub Actions CI
 
 ---
 
@@ -76,10 +78,11 @@ The authoritative ticket details live in [Implementation_Backlog.md](Implementat
 - Required local environment variables are documented in `.env.example`.
 - Docker Compose can start the app and database services.
 - Basic quality scripts exist and can be run by later phases.
+- A minimal GitHub Actions workflow runs repository quality checks without secrets.
 - No real secrets are committed.
 
 ---
 
 ## 8. Handoff to Phase 1
 
-Phase 1 may begin when an empty PostgreSQL database can be started locally and the backend/frontend project shells can be typechecked.
+Phase 1 may begin when an empty PostgreSQL database can be started locally, the backend/frontend project shells can be typechecked, and CI can run the same baseline checks.

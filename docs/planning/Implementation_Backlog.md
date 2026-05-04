@@ -135,6 +135,30 @@ Phase goal: create an empty but runnable development environment and project ske
 - failing typecheck/test scripts fail with non-zero exit status;
 - later phase tickets can reference these scripts for verification.
 
+## P0-05 — GitHub Actions CI
+
+**Goal:** Add a minimal GitHub Actions workflow for repository quality checks.
+
+**Dependencies:** P0-04.
+
+**Deliverables:**
+
+- `.github/workflows/ci.yml`;
+- Node 20 setup;
+- dependency install step;
+- backend typecheck step;
+- frontend typecheck step;
+- backend/frontend test steps when real test scripts exist;
+- optional lint/format check steps if scripts are established in P0-04.
+
+**Acceptance criteria:**
+
+- CI runs on pull requests and pushes to the default branch;
+- CI uses the same documented scripts as local development;
+- CI does not require committed secrets;
+- placeholder test scripts are not treated as meaningful coverage;
+- workflow can be extended by later phases without changing the project structure.
+
 ---
 
 ## 4. Phase 1 — Foundation
