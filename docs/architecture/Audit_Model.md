@@ -769,9 +769,12 @@ Implementation requirements:
 
 ## 15. MVP Deferrals
 
-The following audit capabilities are out of scope for MVP:
+Product-level MVP exclusions are authoritative in:
 
-- Risk Response Action audit logs;
+- `docs/product/MVP_Scope.md`
+
+Audit-specific capabilities deferred from MVP are:
+
 - audit logs for child-record Risk Response Actions;
 - full audit export feature;
 - configurable retention policies;
@@ -781,6 +784,6 @@ The following audit capabilities are out of scope for MVP:
 - webhook audit delivery;
 - field-level visibility filtering inside audit event detail;
 - full deleted-object snapshots for objects other than hard-deleted risks;
-- import audit events, because import is deferred.
+- import audit events.
 
 These deferrals should not block implementing the structured audit event model required for MVP.

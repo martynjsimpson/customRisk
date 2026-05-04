@@ -486,13 +486,14 @@ Database encryption at rest, managed key rotation, and dedicated secrets managem
 
 ## 14. MVP Deferrals
 
-The following security capabilities are out of scope for MVP:
+Product-level MVP exclusions are authoritative in:
 
-- SAML authentication;
-- Microsoft Entra ID integration;
+- `docs/product/MVP_Scope.md`
+
+Security-specific capabilities deferred from MVP are:
+
 - MFA;
 - self-service password reset emails;
-- SMTP credential encryption and notification delivery security;
 - SCIM or directory synchronisation;
 - user groups or teams;
 - row-level security in PostgreSQL;

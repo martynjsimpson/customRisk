@@ -289,102 +289,21 @@ app.get('*', (req, res) => {
 
 ## 6. Authentication and Session Management
 
-### 6.1 Local Authentication
+The authoritative MVP security contract is:
 
-| Area | Standard |
-|---|---|
-| Authentication source | Application-managed local authentication |
-| Password hashing | `bcryptjs` |
-| Default cost factor | 12 |
-| User store | PostgreSQL |
+- `Security_Model.md`
 
-Plain-text passwords must never be stored, logged, or returned by the API.
+This Technical Architecture document records only the architectural boundary:
 
-### 6.2 Token Strategy
+- MVP uses application-managed local authentication.
+- Authentication and authorisation are implemented in the Express backend.
+- User, refresh-token, and API-key persistence is in PostgreSQL through Prisma.
+- Password hashing uses the selected backend library from section 3.2.
+- Route-level behaviour is defined in `API_Route_Map.md`.
+- Effective access rules are defined in `Permission_Model.md`.
+- Security audit requirements are defined in `Audit_Model.md` and `Security_Model.md`.
 
-Custom Risk uses:
-
-- Short-lived signed JWT access tokens
-- Rotating opaque refresh tokens
-- API keys for external integrations
-
-| Token | Type | Storage | Expiry | Purpose |
-|---|---|---|---|---|
-| Access token | Signed JWT | Frontend memory only | 60 minutes | Authorises API requests. Sent as `Authorization: Bearer <token>`. |
-| Refresh token | Opaque random string | HttpOnly, Secure, SameSite=Strict cookie plus hashed database record | 30 days | Obtains new access tokens. Never exposed to JavaScript. |
-| API key | Random 32-byte token, base64url encoded with prefix | Hashed database record | Long-lived until revoked | External integrations and scripts. |
-
-### 6.3 Access Token Handling
-
-- Access tokens must be stored in frontend memory only.
-- Access tokens must not be stored in localStorage.
-- Access tokens must not be stored in sessionStorage.
-- Access tokens must be sent using the `Authorization: Bearer <token>` header.
-- On page load, the frontend must call `POST /api/v1/auth/refresh` to obtain a new access token before rendering protected routes.
-
-### 6.4 Refresh Token Rotation
-
-- Each refresh token use must issue a new refresh token.
-- The previous refresh token must be invalidated after successful rotation.
-- Refresh tokens must be stored hashed in the database.
-- The plain refresh token must only be returned at login or rotation.
-- If an already-rotated token is presented, all refresh tokens for that user must be invalidated immediately.
-- Logout must delete the presented refresh token from the database.
-- User deactivation must delete all refresh tokens for that user.
-- Existing access JWTs may remain valid until expiry.
-
-### 6.5 Password Policy
-
-Password requirements:
-
-- Minimum 12 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one digit
-- At least one special character: `!@#$%^&*()_+-=[]{}|;':",.<>?`
-- Must not match the user's email address
-- Must not match the user's display name
-
-Password policy must be validated server-side on create and update. Client-side validation should mirror the server-side rules for user experience only.
-
-### 6.6 Account Lockout
-
-- Maximum failed login attempts: 5
-- Failed attempt window: 15 minutes
-- Lockout duration: 15 minutes
-- Lockout state must be stored in the database.
-- Lockout events must be recorded in the audit log.
-- After the lockout window passes, the attempt counter should reset automatically on the next successful login.
-- MVP relies on time-based lockout expiry rather than manual admin unlock.
-
-### 6.7 Auth Rate Limiting
-
-Apply `express-rate-limit` to:
-
-| Endpoint | Limit |
-|---|---|
-| `POST /api/v1/auth/login` | 10 requests per IP per minute |
-| `POST /api/v1/auth/refresh` | 20 requests per IP per minute |
-
-Rate-limited responses must return HTTP `429 Too Many Requests`.
-
-### 6.8 API Keys for External Integrations
-
-External integrations must use API keys rather than user JWTs.
-
-| Area | Standard |
-|---|---|
-| Storage | Hashed with bcrypt in `api_key` table |
-| Format | Random 32-byte token, base64url-encoded |
-| Prefix | `cr_live_...` or equivalent environment-specific prefix |
-| Scope | Tied to a specific user account |
-| Permission model | Inherits the linked user's permissions |
-| Transport | `Authorization: Bearer <api_key>` |
-| JWT/API key differentiation | Prefix detection |
-| Revocation | Immediate by deleting the API key database record |
-| Audit | Log API key usage with key identifier only; never log the key value |
-
-API key management UI is post-MVP. For MVP, API keys may be created by System Admins directly in the database or via a restricted admin endpoint.
+Do not duplicate password policy, token rotation, cookie settings, rate limits, or API key rules here. Keep those details in `Security_Model.md`.
 
 ---
 
@@ -608,26 +527,16 @@ Each seeded register should contain 8–12 risks with a realistic spread of:
 
 ## 11. Explicitly Deferred for Post-MVP
 
-The following areas must not be implemented in MVP unless a later ADR changes the scope.
+The authoritative MVP exclusion list is in:
+
+- `docs/product/MVP_Scope.md`
+
+Architecture-specific deferrals that are not already governed by MVP product scope:
 
 | Area | Deferred decision |
 |---|---|
-| External auth | SAML 2.0 integration, including Microsoft Entra ID |
-| Email | SMTP configuration and email notification delivery |
-| Notifications | In-app notification centre and notification escalation workflows |
-| Background jobs | Review reminder scheduling and email retry queues |
-| Risk response actions | Child-record Risk Response Actions, Risk Response Owners, and Risk Response Reviews |
-| Advanced scoring | Inherent/residual risk scoring and custom formula builder |
-| Calculated custom fields | Calculated custom fields and formula-derived custom field values |
-| Import | CSV import, import preview/validation/commit flow, column mapping, update/merge mode, and CSV template generation |
-| Configuration lifecycle | Register configuration import/export, templates, template versioning, draft/publish configuration lifecycle, and impact analysis |
-| Reporting | Advanced reporting and saved views |
-| External integrations | Public integration API programme and webhooks beyond the MVP REST API route map |
-| Attachments | Attachments and evidence handling |
-| Field visibility | Full field-level visibility model by role |
 | Caching | Redis or in-process caching layer |
 | Observability | Structured metrics, distributed tracing, health dashboards |
-| API keys UI | Self-service API key management for users |
 | Horizontal scaling | Session affinity and connection pool sizing for multi-instance deployments |
 | Compliance | SOC 2, ISO 27001, GDPR data residency requirements |
 | Mobile | Native mobile app or PWA optimisation |

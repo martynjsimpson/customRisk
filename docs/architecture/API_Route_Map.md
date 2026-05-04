@@ -28,7 +28,7 @@ The API supports:
 - audit log access;
 - dashboard and lookup helper endpoints.
 
-The API is intentionally limited to MVP scope. Deferred PRD capabilities such as SAML, SMTP, notifications, imports, templates, saved views, advanced reporting, attachments, webhooks, and child-record Risk Response Actions are not included.
+The API is intentionally limited to MVP scope. Product-level exclusions are authoritative in `docs/product/MVP_Scope.md`; route namespaces deliberately excluded from MVP are listed in section 25.
 
 ---
 

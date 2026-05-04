@@ -14,7 +14,7 @@ This document defines the permission model for the Custom Risk MVP.
 
 It is the implementation reference for how the backend, frontend, and database model should interpret roles, register assignments, risk ownership, export access, configuration access, and audit visibility.
 
-The model is intentionally limited to MVP scope. Deferred PRD capabilities such as Risk Response Owner permissions, field-level visibility rules, child-record Risk Response Actions, unresolved email-only person assignment, SAML groups, directory synchronisation, templates, and advanced workflow permissions are not included.
+The model is intentionally limited to MVP scope. Product-level exclusions are authoritative in `docs/product/MVP_Scope.md`; permission-specific deferrals are listed in section 14.
 
 ---
 
@@ -537,13 +537,15 @@ The database does not enforce every permission rule. Application service logic m
 
 ## 14. MVP Deferrals
 
-The following permission capabilities are out of scope for MVP:
+Product-level MVP exclusions are authoritative in:
 
-- Risk Response Owner role;
+- `docs/product/MVP_Scope.md`
+
+Permission-specific capabilities deferred from MVP are:
+
 - child-record Risk Response Action permissions;
 - configurable field-level visibility;
 - raw email or unresolved person ownership;
-- SAML or identity-provider group mapping;
 - team/group-based permissions;
 - register templates with inherited permissions;
 - workflow-specific state transition permissions;
