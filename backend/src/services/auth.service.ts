@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import type { Prisma, User } from "@prisma/client";
 
+import { auditActions } from "../audit/auditActions.js";
 import { generateRefreshToken, hashRefreshToken } from "../auth/refreshTokens.js";
 import { signAccessToken } from "../auth/tokens.js";
 import { verifyPassword } from "../auth/password.js";
@@ -9,6 +10,7 @@ import { getJwtRefreshExpiryDays } from "../config/env.js";
 import { logger } from "../config/logger.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
+import { recordAuditEvent } from "./audit.service.js";
 
 const FAILED_LOGIN_LIMIT = 5;
 const FAILED_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -49,7 +51,7 @@ function genericAuthError() {
   return new ApiError(401, "UNAUTHENTICATED", "Invalid email or password");
 }
 
-async function recordAuthAudit(input: {
+async function safeRecordAuthAudit(input: {
   action: string;
   actorUser?: PublicUser | null;
   objectId: string;
@@ -57,19 +59,17 @@ async function recordAuthAudit(input: {
   metadataJson?: Prisma.InputJsonValue;
 }) {
   try {
-    await prisma.auditEvent.create({
-      data: {
-        actorUserId: input.actorUser?.id,
-        actorDisplayName: input.actorUser?.name,
-        actorEmail: input.actorUser?.email,
-        action: input.action,
-        objectType: "AUTH",
-        objectId: input.objectId,
-        objectDisplayName: input.actorUser?.email,
-        scopeType: "SYSTEM",
-        summary: input.summary,
-        metadataJson: input.metadataJson
-      }
+    await recordAuditEvent({
+      action: input.action,
+      actor: input.actorUser
+        ? { id: input.actorUser.id, name: input.actorUser.name, email: input.actorUser.email }
+        : null,
+      objectType: "AUTH",
+      objectId: input.objectId,
+      objectDisplayName: input.actorUser?.email,
+      scopeType: "SYSTEM",
+      summary: input.summary,
+      metadataJson: input.metadataJson
     });
   } catch (error) {
     logger.error({ error, action: input.action }, "Failed to write auth audit event");
@@ -81,8 +81,8 @@ async function registerFailedLogin(user: (PublicUser & {
   lastFailedLoginAt: Date | null;
 }) | null, email: string) {
   if (!user) {
-    await recordAuthAudit({
-      action: "LOGIN_FAILED",
+    await safeRecordAuthAudit({
+      action: auditActions.loginFailed,
       objectId: "auth",
       summary: "Login failed",
       metadataJson: { email }
@@ -109,8 +109,8 @@ async function registerFailedLogin(user: (PublicUser & {
     }
   });
 
-  await recordAuthAudit({
-    action: lockedUntil ? "ACCOUNT_LOCKED" : "LOGIN_FAILED",
+  await safeRecordAuthAudit({
+    action: lockedUntil ? auditActions.accountLocked : auditActions.loginFailed,
     actorUser: user,
     objectId: user.id,
     summary: lockedUntil ? "Account locked after failed login attempts" : "Login failed"
@@ -159,8 +159,8 @@ export async function login(email: string, password: string): Promise<SessionRes
   }
 
   if (user.lockedUntil && user.lockedUntil > now) {
-    await recordAuthAudit({
-      action: "LOGIN_FAILED",
+    await safeRecordAuthAudit({
+      action: auditActions.loginFailed,
       actorUser: user,
       objectId: user.id,
       summary: "Login failed"
@@ -185,8 +185,8 @@ export async function login(email: string, password: string): Promise<SessionRes
     }
   });
 
-  await recordAuthAudit({
-    action: "LOGIN_SUCCEEDED",
+  await safeRecordAuthAudit({
+    action: auditActions.loginSucceeded,
     actorUser: user,
     objectId: user.id,
     summary: "Login succeeded"
@@ -219,8 +219,8 @@ export async function refreshSession(refreshToken: string): Promise<SessionResul
       },
       data: { revokedAt: new Date() }
     });
-    await recordAuthAudit({
-      action: "REFRESH_TOKEN_REUSE_DETECTED",
+    await safeRecordAuthAudit({
+      action: auditActions.refreshTokenReuseDetected,
       actorUser: existingToken.user,
       objectId: existingToken.userId,
       summary: "Refresh token reuse detected"
@@ -281,8 +281,8 @@ export async function logout(userId: string, refreshToken?: string) {
     select: userSelect
   });
 
-  await recordAuthAudit({
-    action: "LOGOUT",
+  await safeRecordAuthAudit({
+    action: auditActions.logout,
     actorUser: user,
     objectId: userId,
     summary: "Logout"
