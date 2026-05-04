@@ -72,6 +72,26 @@ your `.env` values, then make sure `DATABASE_URL` points at that database before
 running Prisma or backend commands. The default example database name is
 `customrisk`.
 
+### Docker runtime
+
+Docker Compose runs the app and PostgreSQL together:
+
+```sh
+docker compose up --build
+```
+
+The `app` service is built from the repository `Dockerfile` using Node 20
+Alpine and is published on port `3000`. The `db` service uses
+`postgres:16-alpine`, publishes PostgreSQL on port `5432`, and stores data in
+the named `pgdata` volume. Compose sets the app container `DATABASE_URL` to use
+the `db` service host.
+
+To stop the stack:
+
+```sh
+docker compose down
+```
+
 ### Package scripts
 
 Run these from the repository root:
