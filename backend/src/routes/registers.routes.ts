@@ -5,6 +5,7 @@ import {
   addRegisterPermissionController,
   getRegisterController,
   getRegisterSummaryController,
+  listRegisterPermissionCandidatesController,
   listRegisterPermissionsController,
   listRegistersController,
   removeRegisterPermissionController,
@@ -45,6 +46,12 @@ export function createRegistersRouter() {
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(listRegisterPermissionsController)
+  );
+  router.get(
+    "/:registerId/permission-candidates",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(listRegisterPermissionCandidatesController)
   );
   router.post(
     "/:registerId/permissions",

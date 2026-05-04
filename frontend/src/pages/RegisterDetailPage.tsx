@@ -20,11 +20,11 @@ import { useParams } from "react-router-dom";
 import {
   addRegisterPermission,
   getRegister,
+  listRegisterPermissionCandidates,
   listRegisterPermissions,
   removeRegisterPermission,
   updateRegister
 } from "../api/registers.api";
-import { listUsers } from "../api/users.api";
 import { usePermissions } from "../hooks/usePermissions";
 
 export function RegisterDetailPage() {
@@ -41,8 +41,12 @@ export function RegisterDetailPage() {
     queryFn: () => listRegisterPermissions(registerId),
     enabled: Boolean(registerId)
   });
-  const usersQuery = useQuery({ queryKey: ["users"], queryFn: listUsers });
   const canManage = isSystemAdmin || registerQuery.data?.effectiveRole === "REGISTER_ADMIN";
+  const usersQuery = useQuery({
+    queryKey: ["register-permission-candidates", registerId],
+    queryFn: () => listRegisterPermissionCandidates(registerId),
+    enabled: Boolean(registerId) && canManage
+  });
 
   const settingsForm = useForm({
     initialValues: {
@@ -169,7 +173,7 @@ export function RegisterDetailPage() {
               <Group align="end">
                 <Select
                   label="User"
-                  data={(usersQuery.data?.data ?? []).map((user) => ({
+                  data={(usersQuery.data ?? []).map((user) => ({
                     value: user.id,
                     label: `${user.name} (${user.email})`
                   }))}

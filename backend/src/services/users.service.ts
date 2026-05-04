@@ -44,6 +44,10 @@ function mapPrismaError(error: unknown): never {
   throw error;
 }
 
+export function auditActionForUserActiveChange(isActive: boolean) {
+  return isActive ? auditActions.userActivated : auditActions.userDeactivated;
+}
+
 export async function listUsers(query: ListUsersQuery) {
   const where: Prisma.UserWhereInput = {
     isActive: query.isActive,
@@ -256,12 +260,54 @@ export async function updateUser(actor: AuthenticatedActor, userId: string, inpu
 }
 
 export async function setUserActive(actor: AuthenticatedActor, userId: string, isActive: boolean) {
-  const user = await getUser(userId);
-  if (user.isActive === isActive) {
-    return user;
+  const existing = await prisma.user.findUnique({
+    where: { id: userId },
+    select: userSelect
+  });
+
+  if (!existing) {
+    throw new ApiError(404, "NOT_FOUND", "User not found");
   }
 
-  return updateUser(actor, userId, { isActive });
+  if (existing.isActive === isActive) {
+    return userResponse(existing);
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({
+      where: { id: userId },
+      data: {
+        isActive,
+        updatedByUserId: actor.id
+      },
+      select: userSelect
+    });
+
+    if (!updated.isActive) {
+      await tx.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() }
+      });
+    }
+
+    await recordAuditEvent(
+      {
+        action: auditActionForUserActiveChange(isActive),
+        actor,
+        objectType: "USER",
+        objectId: updated.id,
+        objectDisplayName: updated.email,
+        scopeType: "SYSTEM",
+        summary: isActive ? "User activated" : "User deactivated",
+        fieldChanges: buildFieldChanges(existing, updated, [
+          { name: "isActive", label: "Active", valueType: "BOOLEAN" }
+        ])
+      },
+      tx
+    );
+
+    return userResponse(updated);
+  });
 }
 
 export async function unlockUser(actor: AuthenticatedActor, userId: string) {

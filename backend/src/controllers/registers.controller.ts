@@ -7,6 +7,7 @@ import {
   getRegisterSummary,
   addRegisterPermission,
   listRegisters,
+  listRegisterPermissionCandidates,
   listRegisterPermissions,
   removeRegisterPermission,
   updateRegister
@@ -65,6 +66,13 @@ export async function listRegisterPermissionsController(
   response: Response
 ) {
   sendData(response, await listRegisterPermissions(request.params.registerId));
+}
+
+export async function listRegisterPermissionCandidatesController(
+  request: Request<RegisterIdParams>,
+  response: Response
+) {
+  sendData(response, await listRegisterPermissionCandidates(request.params.registerId));
 }
 
 export async function addRegisterPermissionController(

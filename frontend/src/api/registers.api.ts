@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import type { UserRecord } from "./users.api";
 
 interface ApiResponse<TData, TMeta = undefined> {
   data: TData;
@@ -87,6 +88,13 @@ export async function updateRegister(registerId: string, input: UpdateRegisterIn
 export async function listRegisterPermissions(registerId: string) {
   const response = await apiClient.get<{ data: RegisterPermission[] }>(
     `/registers/${registerId}/permissions`
+  );
+  return response.data.data;
+}
+
+export async function listRegisterPermissionCandidates(registerId: string) {
+  const response = await apiClient.get<{ data: UserRecord[] }>(
+    `/registers/${registerId}/permission-candidates`
   );
   return response.data.data;
 }

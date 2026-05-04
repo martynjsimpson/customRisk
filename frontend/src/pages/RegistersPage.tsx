@@ -4,6 +4,7 @@ import {
   Checkbox,
   Group,
   Modal,
+  MultiSelect,
   NumberInput,
   Stack,
   Table,
@@ -17,18 +18,25 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { createRegister, listRegisters } from "../api/registers.api";
+import { listUsers } from "../api/users.api";
 import { usePermissions } from "../hooks/usePermissions";
 
 export function RegistersPage() {
   const queryClient = useQueryClient();
   const { isSystemAdmin } = usePermissions();
   const registersQuery = useQuery({ queryKey: ["registers"], queryFn: listRegisters });
+  const usersQuery = useQuery({
+    queryKey: ["users"],
+    queryFn: listUsers,
+    enabled: isSystemAdmin
+  });
   const [opened, { open, close }] = useDisclosure(false);
   const form = useForm({
     initialValues: {
       name: "",
       description: "",
       riskIdPrefix: "",
+      initialRegisterAdminUserIds: [] as string[],
       riskIdZeroPaddingEnabled: false,
       riskIdZeroPaddingWidth: 4
     }
@@ -78,7 +86,7 @@ export function RegistersPage() {
             await createMutation.mutateAsync({
               ...values,
               riskIdPrefix: values.riskIdPrefix || undefined,
-              initialRegisterAdminUserIds: []
+              initialRegisterAdminUserIds: values.initialRegisterAdminUserIds
             });
             close();
             form.reset();
@@ -88,6 +96,15 @@ export function RegistersPage() {
             <TextInput label="Name" required {...form.getInputProps("name")} />
             <Textarea label="Description" {...form.getInputProps("description")} />
             <TextInput label="Risk ID prefix" {...form.getInputProps("riskIdPrefix")} />
+            <MultiSelect
+              label="Register Admins"
+              data={(usersQuery.data?.data ?? []).map((user) => ({
+                value: user.id,
+                label: `${user.name} (${user.email})`
+              }))}
+              searchable
+              {...form.getInputProps("initialRegisterAdminUserIds")}
+            />
             <Checkbox
               label="Zero-pad risk IDs"
               {...form.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}

@@ -30,6 +30,14 @@ const registerSelect = {
   updatedAt: true
 } satisfies Prisma.RegisterSelect;
 
+const permissionCandidateUserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  isActive: true,
+  isSystemAdmin: true
+} satisfies Prisma.UserSelect;
+
 const likelihoodDefaults = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
 const impactDefaults = ["Insignificant", "Minor", "Moderate", "Major", "Severe"];
 const riskLevelDefaults = ["Low", "Medium", "High", "Critical"];
@@ -376,6 +384,19 @@ export async function listRegisterPermissions(registerId: string) {
       }
     },
     orderBy: [{ role: "asc" }, { createdAt: "asc" }]
+  });
+}
+
+export async function listRegisterPermissionCandidates(registerId: string) {
+  return prisma.user.findMany({
+    where: {
+      isActive: true,
+      registerPermissions: {
+        none: { registerId }
+      }
+    },
+    select: permissionCandidateUserSelect,
+    orderBy: [{ name: "asc" }, { email: "asc" }]
   });
 }
 
