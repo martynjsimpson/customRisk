@@ -13,6 +13,16 @@ export const riskIdParamsSchema = z.object({
 const arrayFromQuery = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => (Array.isArray(value) ? value : value === undefined ? undefined : [value]), z.array(schema));
 
+const queryBooleanSchema = z.preprocess((value) => {
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return value;
+}, z.boolean());
+
 export const listRisksQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(25),
@@ -20,9 +30,9 @@ export const listRisksQuerySchema = z.object({
   riskLevelId: z.string().uuid().optional(),
   ownerUserId: z.string().uuid().optional(),
   reviewStatus: z.enum(["NOT_REQUIRED", "NOT_REVIEWED", "NOT_DUE", "DUE_SOON", "OVERDUE"]).optional(),
-  dueForReview: z.coerce.boolean().optional(),
-  overdue: z.coerce.boolean().optional(),
-  includeClosed: z.coerce.boolean().default(false),
+  dueForReview: queryBooleanSchema.optional(),
+  overdue: queryBooleanSchema.optional(),
+  includeClosed: queryBooleanSchema.default(false),
   search: z.string().trim().optional(),
   sortBy: z
     .enum(["riskId", "title", "state", "owner", "riskScore", "riskLevel", "nextReviewDate", "systemUpdatedAt"])

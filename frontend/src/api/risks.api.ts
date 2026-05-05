@@ -48,6 +48,7 @@ export interface RiskListItem {
   impact: RiskOption;
   riskScore: number;
   riskLevel: RiskOption;
+  responseStrategy: RiskOption;
   nextReviewDate: string | null;
   reviewStatus: ReviewStatus;
   isOverdue: boolean;

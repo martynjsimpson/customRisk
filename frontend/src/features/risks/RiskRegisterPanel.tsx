@@ -377,6 +377,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
             <Table.Th>Impact</Table.Th>
             <Table.Th>Score</Table.Th>
             <Table.Th>Level</Table.Th>
+            <Table.Th>Response</Table.Th>
             <Table.Th>Next review</Table.Th>
             <Table.Th>Review</Table.Th>
             <Table.Th />
@@ -393,6 +394,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               <Table.Td>{risk.impact.name}</Table.Td>
               <Table.Td>{risk.riskScore}</Table.Td>
               <Table.Td>{risk.riskLevel.name}</Table.Td>
+              <Table.Td>{risk.responseStrategy.name}</Table.Td>
               <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
               <Table.Td>{statusBadge(risk.reviewStatus)}</Table.Td>
               <Table.Td>
@@ -410,7 +412,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
           ))}
           {riskQuery.data?.data.length === 0 ? (
             <Table.Tr>
-              <Table.Td colSpan={11}><Text c="dimmed">No risks found</Text></Table.Td>
+              <Table.Td colSpan={12}><Text c="dimmed">No risks found</Text></Table.Td>
             </Table.Tr>
           ) : null}
         </Table.Tbody>

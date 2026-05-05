@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import { getRiskReviewStatus } from "../src/services/risks.service.ts";
+import { listRisksQuerySchema } from "../src/validators/risks.schemas.ts";
 
 test("risk list route is mounted under register risk collection", async () => {
   const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
@@ -12,6 +13,12 @@ test("risk list route is mounted under register risk collection", async () => {
   assert.match(routes, /listRisksQuerySchema/);
   assert.match(routes, /requireRegisterAccess\(\)/);
   assert.match(controller, /listRisks\(actorOrThrow\(request\), request\.params\.registerId, request\.query\)/);
+});
+
+test("risk list query parses boolean strings explicitly", () => {
+  assert.equal(listRisksQuerySchema.parse({ includeClosed: "false" }).includeClosed, false);
+  assert.equal(listRisksQuerySchema.parse({ includeClosed: "true" }).includeClosed, true);
+  assert.equal(listRisksQuerySchema.parse({ overdue: "false" }).overdue, false);
 });
 
 test("risk create route is mounted under register risk collection", async () => {

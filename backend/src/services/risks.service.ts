@@ -142,6 +142,7 @@ function mapRiskListItem(
       likelihoodValue: { select: { id: true; name: true } };
       impactValue: { select: { id: true; name: true } };
       riskLevel: { select: { id: true; name: true } };
+      responseStrategy: { select: { id: true; name: true } };
     };
   }>,
   reviewsEnabled: boolean
@@ -162,6 +163,7 @@ function mapRiskListItem(
     impact: risk.impactValue,
     riskScore: decimalToNumber(risk.riskScore),
     riskLevel: risk.riskLevel,
+    responseStrategy: risk.responseStrategy,
     nextReviewDate: toDateOnlyString(risk.nextReviewDate),
     reviewStatus,
     isOverdue: risk.nextReviewDate ? utcDateOnly(risk.nextReviewDate) < utcDateOnly(new Date()) : false,
@@ -482,7 +484,8 @@ export async function listRisks(
         owner: { select: { id: true, name: true, email: true } },
         likelihoodValue: { select: { id: true, name: true } },
         impactValue: { select: { id: true, name: true } },
-        riskLevel: { select: { id: true, name: true } }
+        riskLevel: { select: { id: true, name: true } },
+        responseStrategy: { select: { id: true, name: true } }
       },
       orderBy: buildRiskOrderBy(query),
       skip: (query.page - 1) * query.pageSize,
