@@ -11,7 +11,16 @@ import {
   removeRegisterPermissionController,
   updateRegisterController
 } from "../controllers/registers.controller.js";
-import { getRegisterConfigController, getRiskFormConfigController } from "../controllers/configuration.controller.js";
+import {
+  activateCustomFieldController,
+  createCustomFieldController,
+  deactivateCustomFieldController,
+  getCustomFieldController,
+  getRegisterConfigController,
+  getRiskFormConfigController,
+  listCustomFieldsController,
+  updateCustomFieldController
+} from "../controllers/configuration.controller.js";
 import {
   createRiskController,
   deleteRiskController,
@@ -38,6 +47,11 @@ import {
   registerIdParamsSchema,
   updateRegisterSchema
 } from "../validators/registers.schemas.js";
+import {
+  createCustomFieldSchema,
+  customFieldParamsSchema,
+  updateCustomFieldSchema
+} from "../validators/configuration.schemas.js";
 import {
   createRiskSchema,
   deleteRiskSchema,
@@ -113,6 +127,42 @@ export function createRegistersRouter() {
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterAccess(),
     asyncRoute(getRiskFormConfigController)
+  );
+  router.get(
+    "/:registerId/custom-fields",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(listCustomFieldsController)
+  );
+  router.post(
+    "/:registerId/custom-fields",
+    validateRequest({ params: registerIdParamsSchema, body: createCustomFieldSchema }),
+    requireRegisterManagement(),
+    asyncRoute(createCustomFieldController)
+  );
+  router.get(
+    "/:registerId/custom-fields/:fieldId",
+    validateRequest({ params: customFieldParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(getCustomFieldController)
+  );
+  router.patch(
+    "/:registerId/custom-fields/:fieldId",
+    validateRequest({ params: customFieldParamsSchema, body: updateCustomFieldSchema }),
+    requireRegisterManagement(),
+    asyncRoute(updateCustomFieldController)
+  );
+  router.post(
+    "/:registerId/custom-fields/:fieldId/activate",
+    validateRequest({ params: customFieldParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(activateCustomFieldController)
+  );
+  router.post(
+    "/:registerId/custom-fields/:fieldId/deactivate",
+    validateRequest({ params: customFieldParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(deactivateCustomFieldController)
   );
   router.get(
     "/:registerId/risks/:riskId",

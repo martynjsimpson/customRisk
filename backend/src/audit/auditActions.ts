@@ -20,7 +20,11 @@ export const auditActions = {
   riskCreated: "RISK_CREATED",
   riskUpdated: "RISK_UPDATED",
   riskDeleted: "RISK_DELETED",
-  riskExportGenerated: "RISK_EXPORT_GENERATED"
+  riskExportGenerated: "RISK_EXPORT_GENERATED",
+  customFieldCreated: "CUSTOM_FIELD_CREATED",
+  customFieldUpdated: "CUSTOM_FIELD_UPDATED",
+  customFieldActivated: "CUSTOM_FIELD_ACTIVATED",
+  customFieldDeactivated: "CUSTOM_FIELD_DEACTIVATED"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];
