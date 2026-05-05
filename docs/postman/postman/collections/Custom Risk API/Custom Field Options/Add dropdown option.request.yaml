@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/custom-fields/{{fieldId}}/options"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "label": "IT",
+      "displayOrder": 1,
+      "isActive": true
+    }
+order: 2000

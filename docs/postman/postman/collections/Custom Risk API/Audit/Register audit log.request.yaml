@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/audit"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: pageSize
+    value: "50"
+  - key: action
+    value: RISK_UPDATED
+    disabled: true
+  - key: objectType
+    value: RISK
+    disabled: true
+order: 2000

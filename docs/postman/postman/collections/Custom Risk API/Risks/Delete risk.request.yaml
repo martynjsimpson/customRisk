@@ -1,0 +1,14 @@
+$kind: http-request
+description: System Admin only. Hard delete after audit snapshot is safely written.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/risks/{{riskId}}"
+method: DELETE
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "confirmation": "DELETE",
+      "deletionReason": "Duplicate risk created in error."
+    }
+order: 5000

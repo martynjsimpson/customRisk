@@ -1,0 +1,10 @@
+{
+  "name": "custom-risk-postman-native-git",
+  "generatedAt": "2026-05-05T23:13:46.517672Z",
+  "files": [
+    ".gitignore",
+    "README.md",
+    "postman/collections/custom-risk-api.postman_collection.json",
+    "postman/environments/custom-risk-local.postman_environment.json"
+  ]
+}

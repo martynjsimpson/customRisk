@@ -1,0 +1,5 @@
+$kind: http-request
+description: System Admin only.
+url: "{{baseUrl}}/api/v1/users/{{userId}}/activate"
+method: POST
+order: 5000

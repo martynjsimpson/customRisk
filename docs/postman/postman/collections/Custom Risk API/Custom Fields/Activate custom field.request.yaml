@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/custom-fields/{{fieldId}}/activate"
+method: POST
+order: 5000

@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/custom-fields"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fieldName": "Business Unit",
+      "fieldType": "DROPDOWN",
+      "helpText": "Select the business unit affected by this risk.",
+      "isRequired": true,
+      "displayOrder": 10,
+      "options": [
+        {
+          "label": "IT",
+          "displayOrder": 1
+        },
+        {
+          "label": "Finance",
+          "displayOrder": 2
+        }
+      ]
+    }
+order: 2000

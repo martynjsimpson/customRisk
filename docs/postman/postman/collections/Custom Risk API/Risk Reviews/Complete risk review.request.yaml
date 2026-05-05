@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/risks/{{riskId}}/reviews"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "confirmed": true,
+      "comment": "Reviewed with system owner. Treatment remains on track."
+    }
+order: 2000

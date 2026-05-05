@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/risk-levels"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "High",
+      "description": "Requires active management attention.",
+      "displayOrder": 3,
+      "isActive": true
+    }
+order: 2000

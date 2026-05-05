@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Information Security Risk Register",
+      "description": "Updated description",
+      "riskIdPrefix": "ISEC",
+      "riskIdZeroPaddingEnabled": true,
+      "riskIdZeroPaddingWidth": 4,
+      "reviewsEnabled": true,
+      "defaultReviewFrequencyMonths": 12,
+      "reviewAttestationText": "I confirm that I have reviewed this risk.",
+      "allowViewerExport": false
+    }
+order: 4000

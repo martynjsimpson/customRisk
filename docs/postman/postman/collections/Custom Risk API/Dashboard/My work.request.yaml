@@ -1,0 +1,5 @@
+$kind: http-request
+description: Combined role-aware dashboard.
+url: "{{baseUrl}}/api/v1/dashboard/my-work"
+method: GET
+order: 1000

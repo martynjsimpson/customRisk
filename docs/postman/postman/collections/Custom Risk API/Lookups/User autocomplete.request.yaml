@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/lookups/users"
+method: GET
+queryParams:
+  search: ali
+  activeOnly: "true"
+  page: "1"
+  pageSize: "10"
+order: 1000

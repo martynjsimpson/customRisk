@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/risks"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Unsupported operating system on legacy server",
+      "description": "Legacy server is no longer receiving vendor security updates.",
+      "state": "DRAFT",
+      "ownerUserId": "{{userId}}",
+      "createdDate": "2026-05-04",
+      "likelihoodValueId": "{{likelihoodId}}",
+      "impactValueId": "{{impactId}}",
+      "responseStrategyId": "00000000-0000-0000-0000-000000000000",
+      "responseAction": "Plan migration to a supported platform.",
+      "customFields": [
+        {
+          "customFieldDefinitionId": "{{fieldId}}",
+          "value": "IT"
+        }
+      ]
+    }
+order: 2000

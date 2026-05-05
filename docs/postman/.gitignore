@@ -1,0 +1,4 @@
+# Keep local runtime/secrets out of Git
+*.local.json
+.postman/.tmp/
+.postman/logs/

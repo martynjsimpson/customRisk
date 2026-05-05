@@ -1,0 +1,5 @@
+$kind: http-request
+description: Return current user and effective permission summary.
+url: "{{baseUrl}}/api/v1/auth/me"
+method: GET
+order: 2000

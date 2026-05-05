@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: pageSize
+    value: "25"
+  - key: search
+    value: security
+    disabled: true
+  - key: sortBy
+    value: name
+    disabled: true
+  - key: sortDir
+    value: asc
+    disabled: true
+order: 1000

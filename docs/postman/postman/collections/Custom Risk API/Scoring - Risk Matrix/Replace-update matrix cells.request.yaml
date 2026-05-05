@@ -1,0 +1,20 @@
+$kind: http-request
+name: Replace/update matrix cells
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/matrix"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "cells": [
+        {
+          "likelihoodValueId": "{{likelihoodId}}",
+          "impactValueId": "{{impactId}}",
+          "riskLevelId": "{{riskLevelId}}"
+        }
+      ],
+      "recalculateExistingRisks": true
+    }
+order: 2000
