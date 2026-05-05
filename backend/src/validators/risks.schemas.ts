@@ -10,6 +10,26 @@ export const riskIdParamsSchema = z.object({
   riskId: z.string().uuid()
 });
 
+const arrayFromQuery = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((value) => (Array.isArray(value) ? value : value === undefined ? undefined : [value]), z.array(schema));
+
+export const listRisksQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+  state: arrayFromQuery(z.enum(["DRAFT", "OPEN", "CLOSED"])).optional(),
+  riskLevelId: z.string().uuid().optional(),
+  ownerUserId: z.string().uuid().optional(),
+  reviewStatus: z.enum(["NOT_REQUIRED", "NOT_REVIEWED", "NOT_DUE", "DUE_SOON", "OVERDUE"]).optional(),
+  dueForReview: z.coerce.boolean().optional(),
+  overdue: z.coerce.boolean().optional(),
+  includeClosed: z.coerce.boolean().default(false),
+  search: z.string().trim().optional(),
+  sortBy: z
+    .enum(["riskId", "title", "state", "owner", "riskScore", "riskLevel", "nextReviewDate", "systemUpdatedAt"])
+    .default("riskId"),
+  sortDir: z.enum(["asc", "desc"]).default("asc")
+});
+
 export const riskCustomFieldValueSchema = z.object({
   customFieldDefinitionId: z.string().uuid(),
   textValue: z.string().trim().optional(),
@@ -34,5 +54,6 @@ export const createRiskSchema = z.object({
 });
 
 export type RiskIdParams = z.infer<typeof riskIdParamsSchema>;
+export type ListRisksQuery = z.infer<typeof listRisksQuerySchema>;
 export type RiskCustomFieldValueBody = z.infer<typeof riskCustomFieldValueSchema>;
 export type CreateRiskBody = z.infer<typeof createRiskSchema>;

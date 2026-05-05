@@ -13,6 +13,7 @@ import { calculateNextReviewDate, resolveRiskScoring } from "./scoring.service.j
 import { recordAuditEvent } from "./audit.service.js";
 import type {
   CreateRiskBody,
+  ListRisksQuery,
   RiskCustomFieldValueBody
 } from "../validators/risks.schemas.js";
 
@@ -20,6 +21,217 @@ type RiskClient = typeof prisma | Prisma.TransactionClient;
 
 function utcDateOnly(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function toDateOnlyString(date: Date | null) {
+  return date ? date.toISOString().slice(0, 10) : null;
+}
+
+function decimalToNumber(value: Prisma.Decimal.Value) {
+  return new Prisma.Decimal(value).toNumber();
+}
+
+export function getRiskReviewStatus(input: {
+  reviewsEnabled: boolean;
+  lastReviewedAt: Date | null;
+  nextReviewDate: Date | null;
+  today?: Date;
+}) {
+  if (!input.reviewsEnabled) {
+    return "NOT_REQUIRED";
+  }
+
+  if (!input.lastReviewedAt) {
+    return "NOT_REVIEWED";
+  }
+
+  if (!input.nextReviewDate) {
+    return "NOT_DUE";
+  }
+
+  const today = utcDateOnly(input.today ?? new Date());
+  const nextReviewDate = utcDateOnly(input.nextReviewDate);
+  const dueSoonLimit = new Date(today);
+  dueSoonLimit.setUTCDate(dueSoonLimit.getUTCDate() + 30);
+
+  if (nextReviewDate < today) {
+    return "OVERDUE";
+  }
+
+  if (nextReviewDate <= dueSoonLimit) {
+    return "DUE_SOON";
+  }
+
+  return "NOT_DUE";
+}
+
+function buildRiskOrderBy(query: ListRisksQuery): Prisma.RiskOrderByWithRelationInput[] {
+  const direction = query.sortDir;
+
+  switch (query.sortBy) {
+    case "title":
+      return [{ title: direction }, { riskSequence: "asc" }];
+    case "state":
+      return [{ state: direction }, { riskSequence: "asc" }];
+    case "owner":
+      return [{ owner: { name: direction } }, { riskSequence: "asc" }];
+    case "riskScore":
+      return [{ riskScore: direction }, { riskSequence: "asc" }];
+    case "riskLevel":
+      return [{ riskLevel: { displayOrder: direction } }, { riskSequence: "asc" }];
+    case "nextReviewDate":
+      return [{ nextReviewDate: direction }, { riskSequence: "asc" }];
+    case "systemUpdatedAt":
+      return [{ systemUpdatedAt: direction }, { riskSequence: "asc" }];
+    case "riskId":
+    default:
+      return [{ riskSequence: direction }];
+  }
+}
+
+function applyReviewFilters(where: Prisma.RiskWhereInput, query: ListRisksQuery, reviewsEnabled: boolean) {
+  const today = utcDateOnly(new Date());
+  const dueSoonLimit = new Date(today);
+  dueSoonLimit.setUTCDate(dueSoonLimit.getUTCDate() + 30);
+
+  if (query.overdue) {
+    where.nextReviewDate = { lt: today };
+  } else if (query.dueForReview) {
+    where.nextReviewDate = { lte: dueSoonLimit };
+  }
+
+  if (!query.reviewStatus) {
+    return;
+  }
+
+  if (query.reviewStatus === "NOT_REQUIRED") {
+    where.id = reviewsEnabled ? "__no_risks_when_reviews_enabled__" : where.id;
+    return;
+  }
+
+  if (!reviewsEnabled) {
+    where.id = "__no_risks_when_reviews_disabled__";
+    return;
+  }
+
+  if (query.reviewStatus === "NOT_REVIEWED") {
+    where.lastReviewedAt = null;
+    return;
+  }
+
+  where.lastReviewedAt = { not: null };
+
+  if (query.reviewStatus === "OVERDUE") {
+    where.nextReviewDate = { lt: today };
+  } else if (query.reviewStatus === "DUE_SOON") {
+    where.nextReviewDate = { gte: today, lte: dueSoonLimit };
+  } else if (query.reviewStatus === "NOT_DUE") {
+    where.OR = [
+      { nextReviewDate: null },
+      { nextReviewDate: { gt: dueSoonLimit } }
+    ];
+  }
+}
+
+function mapRiskListItem(
+  risk: Prisma.RiskGetPayload<{
+    include: {
+      owner: { select: { id: true; name: true; email: true } };
+      likelihoodValue: { select: { id: true; name: true } };
+      impactValue: { select: { id: true; name: true } };
+      riskLevel: { select: { id: true; name: true } };
+    };
+  }>,
+  reviewsEnabled: boolean
+) {
+  const reviewStatus = getRiskReviewStatus({
+    reviewsEnabled,
+    lastReviewedAt: risk.lastReviewedAt,
+    nextReviewDate: risk.nextReviewDate
+  });
+
+  return {
+    id: risk.id,
+    displayRiskId: risk.displayRiskId,
+    title: risk.title,
+    state: risk.state,
+    owner: risk.owner,
+    likelihood: risk.likelihoodValue,
+    impact: risk.impactValue,
+    riskScore: decimalToNumber(risk.riskScore),
+    riskLevel: risk.riskLevel,
+    nextReviewDate: toDateOnlyString(risk.nextReviewDate),
+    reviewStatus,
+    isOverdue: risk.nextReviewDate ? utcDateOnly(risk.nextReviewDate) < utcDateOnly(new Date()) : false,
+    systemUpdatedAt: risk.systemUpdatedAt
+  };
+}
+
+export async function listRisks(
+  actor: AuthenticatedActor,
+  registerId: string,
+  query: ListRisksQuery
+) {
+  const register = await prisma.register.findUnique({
+    where: { id: registerId },
+    select: { id: true, reviewsEnabled: true }
+  });
+
+  if (!register) {
+    throw new ApiError(404, "NOT_FOUND", "Register not found");
+  }
+
+  const role = await getEffectiveRegisterRole(actor, registerId);
+  if (role === "NONE") {
+    throw new ApiError(404, "NOT_FOUND", "Register not found");
+  }
+
+  const where: Prisma.RiskWhereInput = {
+    registerId,
+    state: query.includeClosed ? undefined : { not: "CLOSED" },
+    riskLevelId: query.riskLevelId,
+    ownerUserId: query.ownerUserId,
+    OR: query.search
+      ? [
+          { displayRiskId: { contains: query.search, mode: "insensitive" } },
+          { title: { contains: query.search, mode: "insensitive" } },
+          { description: { contains: query.search, mode: "insensitive" } }
+        ]
+      : undefined
+  };
+
+  if (query.state && query.state.length > 0) {
+    where.state = query.includeClosed
+      ? { in: query.state }
+      : { in: query.state.filter((state) => state !== "CLOSED") };
+  }
+
+  if (role === "RISK_OWNER") {
+    where.ownerUserId = actor.id;
+  }
+
+  applyReviewFilters(where, query, register.reviewsEnabled);
+
+  const [risks, total] = await Promise.all([
+    prisma.risk.findMany({
+      where,
+      include: {
+        owner: { select: { id: true, name: true, email: true } },
+        likelihoodValue: { select: { id: true, name: true } },
+        impactValue: { select: { id: true, name: true } },
+        riskLevel: { select: { id: true, name: true } }
+      },
+      orderBy: buildRiskOrderBy(query),
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize
+    }),
+    prisma.risk.count({ where })
+  ]);
+
+  return {
+    data: risks.map((risk) => mapRiskListItem(risk, register.reviewsEnabled)),
+    meta: { total, page: query.page, pageSize: query.pageSize }
+  };
 }
 
 function countProvidedValues(value: RiskCustomFieldValueBody) {
