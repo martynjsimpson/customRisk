@@ -167,6 +167,82 @@ function mapRiskListItem(
   };
 }
 
+function mapCustomFieldValue(
+  value: Prisma.RiskCustomFieldValueGetPayload<{
+    include: {
+      customFieldDefinition: true;
+      dropdownOption: true;
+      personUser: { select: { id: true; name: true; email: true; isActive: true } };
+    };
+  }>
+) {
+  return {
+    id: value.id,
+    customFieldDefinition: value.customFieldDefinition,
+    textValue: value.textValue,
+    numberValue: value.numberValue ? decimalToNumber(value.numberValue) : null,
+    booleanValue: value.booleanValue,
+    dateValue: toDateOnlyString(value.dateValue),
+    personUser: value.personUser,
+    dropdownOption: value.dropdownOption
+  };
+}
+
+function mapRiskDetail(
+  risk: Prisma.RiskGetPayload<{
+    include: {
+      owner: { select: { id: true; name: true; email: true; isActive: true } };
+      likelihoodValue: true;
+      impactValue: true;
+      riskLevel: true;
+      responseStrategy: true;
+      customFieldValues: {
+        include: {
+          customFieldDefinition: true;
+          dropdownOption: true;
+          personUser: { select: { id: true; name: true; email: true; isActive: true } };
+        };
+      };
+      lastReviewedBy: { select: { id: true; name: true; email: true } };
+      systemCreatedBy: { select: { id: true; name: true; email: true } };
+      systemUpdatedBy: { select: { id: true; name: true; email: true } };
+    };
+  }>,
+  reviewsEnabled: boolean
+) {
+  return {
+    id: risk.id,
+    registerId: risk.registerId,
+    displayRiskId: risk.displayRiskId,
+    riskSequence: risk.riskSequence,
+    title: risk.title,
+    description: risk.description,
+    state: risk.state,
+    owner: risk.owner,
+    createdDate: toDateOnlyString(risk.createdDate),
+    likelihood: risk.likelihoodValue,
+    impact: risk.impactValue,
+    riskScore: decimalToNumber(risk.riskScore),
+    riskLevel: risk.riskLevel,
+    responseStrategy: risk.responseStrategy,
+    responseAction: risk.responseAction,
+    customFields: risk.customFieldValues.map(mapCustomFieldValue),
+    lastReviewedAt: risk.lastReviewedAt,
+    lastReviewedBy: risk.lastReviewedBy,
+    nextReviewDate: toDateOnlyString(risk.nextReviewDate),
+    reviewStatus: getRiskReviewStatus({
+      reviewsEnabled,
+      lastReviewedAt: risk.lastReviewedAt,
+      nextReviewDate: risk.nextReviewDate
+    }),
+    isOverdue: risk.nextReviewDate ? utcDateOnly(risk.nextReviewDate) < utcDateOnly(new Date()) : false,
+    systemCreatedAt: risk.systemCreatedAt,
+    systemCreatedBy: risk.systemCreatedBy,
+    systemUpdatedAt: risk.systemUpdatedAt,
+    systemUpdatedBy: risk.systemUpdatedBy
+  };
+}
+
 export async function listRisks(
   actor: AuthenticatedActor,
   registerId: string,
@@ -232,6 +308,37 @@ export async function listRisks(
     data: risks.map((risk) => mapRiskListItem(risk, register.reviewsEnabled)),
     meta: { total, page: query.page, pageSize: query.pageSize }
   };
+}
+
+export async function getRiskDetail(_actor: AuthenticatedActor, registerId: string, riskId: string) {
+  const risk = await prisma.risk.findFirst({
+    where: { id: riskId, registerId },
+    include: {
+      register: { select: { reviewsEnabled: true } },
+      owner: { select: { id: true, name: true, email: true, isActive: true } },
+      likelihoodValue: true,
+      impactValue: true,
+      riskLevel: true,
+      responseStrategy: true,
+      customFieldValues: {
+        include: {
+          customFieldDefinition: true,
+          dropdownOption: true,
+          personUser: { select: { id: true, name: true, email: true, isActive: true } }
+        },
+        orderBy: { customFieldDefinition: { displayOrder: "asc" } }
+      },
+      lastReviewedBy: { select: { id: true, name: true, email: true } },
+      systemCreatedBy: { select: { id: true, name: true, email: true } },
+      systemUpdatedBy: { select: { id: true, name: true, email: true } }
+    }
+  });
+
+  if (!risk) {
+    throw new ApiError(404, "NOT_FOUND", "Risk not found");
+  }
+
+  return mapRiskDetail(risk, risk.register.reviewsEnabled);
 }
 
 function countProvidedValues(value: RiskCustomFieldValueBody) {

@@ -11,11 +11,16 @@ import {
   removeRegisterPermissionController,
   updateRegisterController
 } from "../controllers/registers.controller.js";
-import { createRiskController, listRisksController } from "../controllers/risks.controller.js";
+import {
+  createRiskController,
+  getRiskDetailController,
+  listRisksController
+} from "../controllers/risks.controller.js";
 import { authenticate } from "../middleware/authenticate.js";
 import {
   requireRegisterAccess,
   requireRegisterManagement,
+  requireRiskView,
   requireSystemAdmin
 } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
@@ -27,7 +32,7 @@ import {
   registerIdParamsSchema,
   updateRegisterSchema
 } from "../validators/registers.schemas.js";
-import { createRiskSchema, listRisksQuerySchema } from "../validators/risks.schemas.js";
+import { createRiskSchema, listRisksQuerySchema, riskIdParamsSchema } from "../validators/risks.schemas.js";
 
 type AsyncHandler = (request: Request<any, any, any, any>, response: Response, next: NextFunction) => unknown;
 
@@ -78,6 +83,12 @@ export function createRegistersRouter() {
     validateRequest({ params: registerIdParamsSchema, body: createRiskSchema }),
     requireRegisterAccess(),
     asyncRoute(createRiskController)
+  );
+  router.get(
+    "/:registerId/risks/:riskId",
+    validateRequest({ params: riskIdParamsSchema }),
+    requireRiskView(),
+    asyncRoute(getRiskDetailController)
   );
   router.get(
     "/:registerId/summary",

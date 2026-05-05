@@ -23,6 +23,18 @@ test("risk create route is mounted under register risk collection", async () => 
   assert.match(controller, /createRisk\(actorOrThrow\(request\), request\.params\.registerId, request\.body\)/);
 });
 
+test("risk detail route uses risk view permission and controller", async () => {
+  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
+  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+
+  assert.match(routes, /"\/:registerId\/risks\/:riskId"/);
+  assert.match(routes, /requireRiskView\(\)/);
+  assert.match(controller, /getRiskDetail\(actorOrThrow\(request\), request\.params\.registerId, request\.params\.riskId\)/);
+  assert.match(service, /customFieldValues:\s*\{\n\s*include:/);
+  assert.match(service, /reviewStatus: getRiskReviewStatus/);
+});
+
 test("risk review status follows MVP display rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 
