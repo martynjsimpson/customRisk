@@ -30,7 +30,10 @@ export const auditActions = {
   customFieldOptionDeactivated: "CUSTOM_FIELD_OPTION_DEACTIVATED",
   likelihoodValueCreated: "LIKELIHOOD_VALUE_CREATED",
   likelihoodValueUpdated: "LIKELIHOOD_VALUE_UPDATED",
-  likelihoodValueDeactivated: "LIKELIHOOD_VALUE_DEACTIVATED"
+  likelihoodValueDeactivated: "LIKELIHOOD_VALUE_DEACTIVATED",
+  impactValueCreated: "IMPACT_VALUE_CREATED",
+  impactValueUpdated: "IMPACT_VALUE_UPDATED",
+  impactValueDeactivated: "IMPACT_VALUE_DEACTIVATED"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];

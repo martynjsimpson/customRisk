@@ -5,18 +5,22 @@ import {
   activateCustomField,
   createCustomField,
   createCustomFieldOption,
+  createImpactValue,
   createLikelihoodValue,
   deactivateCustomField,
   deactivateCustomFieldOption,
+  deactivateImpactValue,
   deactivateLikelihoodValue,
   getCustomField,
   listCustomFields,
   listCustomFieldOptions,
+  listImpactValues,
   listLikelihoodValues,
   getRegisterConfig,
   getRiskFormConfig,
   updateCustomField,
   updateCustomFieldOption,
+  updateImpactValue,
   updateLikelihoodValue
 } from "../services/configuration.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
@@ -24,12 +28,15 @@ import { sendData } from "../utils/apiResponse.js";
 import type {
   CreateCustomFieldBody,
   CreateCustomFieldOptionBody,
+  CreateImpactValueBody,
   CreateLikelihoodValueBody,
   CustomFieldOptionParams,
   CustomFieldParams,
+  ImpactParams,
   LikelihoodParams,
   UpdateCustomFieldBody,
   UpdateCustomFieldOptionBody,
+  UpdateImpactValueBody,
   UpdateLikelihoodValueBody
 } from "../validators/configuration.schemas.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
@@ -193,6 +200,53 @@ export async function deactivateLikelihoodValueController(
       actorOrThrow(request),
       request.params.registerId,
       request.params.likelihoodId
+    )
+  );
+}
+
+export async function listImpactValuesController(
+  request: Request<{ registerId: string }>,
+  response: Response
+) {
+  sendData(response, await listImpactValues(request.params.registerId));
+}
+
+export async function createImpactValueController(
+  request: Request<{ registerId: string }, unknown, CreateImpactValueBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await createImpactValue(actorOrThrow(request), request.params.registerId, request.body),
+    201
+  );
+}
+
+export async function updateImpactValueController(
+  request: Request<ImpactParams, unknown, UpdateImpactValueBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await updateImpactValue(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.impactId,
+      request.body
+    )
+  );
+}
+
+export async function deactivateImpactValueController(
+  request: Request<ImpactParams>,
+  response: Response
+) {
+  sendData(
+    response,
+    await deactivateImpactValue(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.impactId
     )
   );
 }

@@ -15,18 +15,22 @@ import {
   activateCustomFieldController,
   createCustomFieldController,
   createCustomFieldOptionController,
+  createImpactValueController,
   createLikelihoodValueController,
   deactivateCustomFieldController,
   deactivateCustomFieldOptionController,
+  deactivateImpactValueController,
   deactivateLikelihoodValueController,
   getCustomFieldController,
   getRegisterConfigController,
   getRiskFormConfigController,
   listCustomFieldOptionsController,
   listCustomFieldsController,
+  listImpactValuesController,
   listLikelihoodValuesController,
   updateCustomFieldController,
   updateCustomFieldOptionController,
+  updateImpactValueController,
   updateLikelihoodValueController
 } from "../controllers/configuration.controller.js";
 import {
@@ -58,12 +62,15 @@ import {
 import {
   createCustomFieldSchema,
   createCustomFieldOptionSchema,
+  createImpactValueSchema,
   createLikelihoodValueSchema,
   customFieldOptionParamsSchema,
   customFieldParamsSchema,
+  impactParamsSchema,
   likelihoodParamsSchema,
   updateCustomFieldSchema,
   updateCustomFieldOptionSchema,
+  updateImpactValueSchema,
   updateLikelihoodValueSchema
 } from "../validators/configuration.schemas.js";
 import {
@@ -225,6 +232,30 @@ export function createRegistersRouter() {
     validateRequest({ params: likelihoodParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(deactivateLikelihoodValueController)
+  );
+  router.get(
+    "/:registerId/impact-values",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterAccess(),
+    asyncRoute(listImpactValuesController)
+  );
+  router.post(
+    "/:registerId/impact-values",
+    validateRequest({ params: registerIdParamsSchema, body: createImpactValueSchema }),
+    requireRegisterManagement(),
+    asyncRoute(createImpactValueController)
+  );
+  router.patch(
+    "/:registerId/impact-values/:impactId",
+    validateRequest({ params: impactParamsSchema, body: updateImpactValueSchema }),
+    requireRegisterManagement(),
+    asyncRoute(updateImpactValueController)
+  );
+  router.post(
+    "/:registerId/impact-values/:impactId/deactivate",
+    validateRequest({ params: impactParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(deactivateImpactValueController)
   );
   router.get(
     "/:registerId/risks/:riskId",
