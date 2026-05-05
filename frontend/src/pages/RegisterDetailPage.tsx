@@ -25,6 +25,7 @@ import {
   removeRegisterPermission,
   updateRegister
 } from "../api/registers.api";
+import { RiskRegisterPanel } from "../features/risks/RiskRegisterPanel";
 import { usePermissions } from "../hooks/usePermissions";
 
 export function RegisterDetailPage() {
@@ -114,11 +115,15 @@ export function RegisterDetailPage() {
         <Title order={1}>{registerQuery.data?.name ?? "Register"}</Title>
         <Badge variant="light">{registerQuery.data?.effectiveRole}</Badge>
       </Group>
-      <Tabs defaultValue="settings">
+      <Tabs defaultValue="risks">
         <Tabs.List>
+          <Tabs.Tab value="risks">Risks</Tabs.Tab>
           <Tabs.Tab value="settings">Settings</Tabs.Tab>
           {canManage ? <Tabs.Tab value="permissions">Permissions</Tabs.Tab> : null}
         </Tabs.List>
+        <Tabs.Panel value="risks" pt="md">
+          {registerQuery.data ? <RiskRegisterPanel register={registerQuery.data} /> : null}
+        </Tabs.Panel>
         <Tabs.Panel value="settings" pt="md">
           <form
             onSubmit={settingsForm.onSubmit(() => {

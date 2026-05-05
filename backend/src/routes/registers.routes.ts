@@ -11,6 +11,7 @@ import {
   removeRegisterPermissionController,
   updateRegisterController
 } from "../controllers/registers.controller.js";
+import { getRiskFormConfigController } from "../controllers/configuration.controller.js";
 import {
   createRiskController,
   deleteRiskController,
@@ -100,6 +101,12 @@ export function createRegistersRouter() {
     validateRequest({ params: registerIdParamsSchema, query: listRisksQuerySchema }),
     requireExportAccess(),
     asyncRoute(exportRisksController)
+  );
+  router.get(
+    "/:registerId/risk-form-config",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterAccess(),
+    asyncRoute(getRiskFormConfigController)
   );
   router.get(
     "/:registerId/risks/:riskId",
