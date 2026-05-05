@@ -62,7 +62,8 @@ export interface CustomFieldDefinition {
   helpText: string | null;
   isRequired: boolean;
   displayOrder: number;
-  options?: Array<{ id: string; label: string }>;
+  isActive: boolean;
+  options?: Array<{ id: string; label: string; displayOrder?: number; isActive?: boolean }>;
 }
 
 export interface RiskCustomFieldValueInput {

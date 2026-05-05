@@ -26,6 +26,7 @@ import {
   updateRegister
 } from "../api/registers.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
+import { RegisterConfigurationPanel } from "../features/configuration/RegisterConfigurationPanel";
 import { RiskRegisterPanel } from "../features/risks/RiskRegisterPanel";
 import { usePermissions } from "../hooks/usePermissions";
 
@@ -124,6 +125,7 @@ export function RegisterDetailPage() {
         <Tabs.List>
           <Tabs.Tab value="risks">Risks</Tabs.Tab>
           <Tabs.Tab value="settings">Settings</Tabs.Tab>
+          {canManage ? <Tabs.Tab value="configuration">Configuration</Tabs.Tab> : null}
           {canManage ? <Tabs.Tab value="permissions">Permissions</Tabs.Tab> : null}
         </Tabs.List>
         <Tabs.Panel value="risks" pt="md">
@@ -172,6 +174,9 @@ export function RegisterDetailPage() {
               {canManage ? <Button type="submit">Save settings</Button> : null}
             </Stack>
           </form>
+        </Tabs.Panel>
+        <Tabs.Panel value="configuration" pt="md">
+          {canManage ? <RegisterConfigurationPanel registerId={registerId} /> : null}
         </Tabs.Panel>
         <Tabs.Panel value="permissions" pt="md">
           <Stack>

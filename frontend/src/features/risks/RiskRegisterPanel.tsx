@@ -171,6 +171,10 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   });
 
   const defaultState = formConfigQuery.data?.register.defaultNewRiskState ?? "DRAFT";
+  const activeCustomFields = useMemo(
+    () => (formConfigQuery.data?.customFields ?? []).filter((field) => field.isActive),
+    [formConfigQuery.data?.customFields]
+  );
   const form = useForm<RiskFormValues>({ initialValues: emptyValues(defaultState) });
 
   useEffect(() => {
@@ -217,7 +221,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const customFields = (formConfigQuery.data?.customFields ?? []).map((definition) =>
+      const customFields = activeCustomFields.map((definition) =>
         customFieldPayload(definition, customValues[definition.id])
       );
       const payload: SaveRiskInput = {
@@ -461,7 +465,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               {...form.getInputProps("responseStrategyId")}
             />
             <Textarea label="Response action" minRows={2} {...form.getInputProps("responseAction")} />
-            {(formConfigQuery.data?.customFields ?? []).map((field) => (
+            {activeCustomFields.map((field) => (
               <CustomFieldInput
                 key={field.id}
                 field={field}
