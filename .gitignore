@@ -15,3 +15,4 @@ backend/prisma/migrations/dev.db
 .vscode/
 .idea/
 docs/implementation/bugs.md
+.claude/settings.json
