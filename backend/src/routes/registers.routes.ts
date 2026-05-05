@@ -13,6 +13,7 @@ import {
 } from "../controllers/registers.controller.js";
 import {
   createRiskController,
+  deleteRiskController,
   getRiskDetailController,
   listRisksController,
   updateRiskController
@@ -36,6 +37,7 @@ import {
 } from "../validators/registers.schemas.js";
 import {
   createRiskSchema,
+  deleteRiskSchema,
   listRisksQuerySchema,
   riskIdParamsSchema,
   updateRiskSchema
@@ -102,6 +104,12 @@ export function createRegistersRouter() {
     validateRequest({ params: riskIdParamsSchema, body: updateRiskSchema }),
     requireRiskEdit(),
     asyncRoute(updateRiskController)
+  );
+  router.delete(
+    "/:registerId/risks/:riskId",
+    validateRequest({ params: riskIdParamsSchema, body: deleteRiskSchema }),
+    requireSystemAdmin,
+    asyncRoute(deleteRiskController)
   );
   router.get(
     "/:registerId/summary",

@@ -49,6 +49,20 @@ test("risk update route uses risk edit permission and audited service", async ()
   assert.match(service, /fieldChanges: buildRiskUpdateFieldChanges/);
 });
 
+test("risk delete route requires system admin and writes snapshot", async () => {
+  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
+  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+
+  assert.match(routes, /router\.delete\(\n\s+"\/:registerId\/risks\/:riskId"/);
+  assert.match(routes, /body: deleteRiskSchema/);
+  assert.match(routes, /requireSystemAdmin/);
+  assert.match(controller, /deleteRisk\(\n\s+actorOrThrow\(request\)/);
+  assert.match(service, /action: auditActions\.riskDeleted/);
+  assert.match(service, /auditRiskSnapshot\.create/);
+  assert.match(service, /await tx\.risk\.delete/);
+});
+
 test("risk review status follows MVP display rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 

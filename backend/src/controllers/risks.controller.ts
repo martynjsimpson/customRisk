@@ -1,11 +1,18 @@
 import type { Request, Response } from "express";
 
 import { ApiError } from "../errors/apiError.js";
-import { createRisk, getRiskDetail, listRisks, updateRisk } from "../services/risks.service.js";
+import {
+  createRisk,
+  deleteRisk,
+  getRiskDetail,
+  listRisks,
+  updateRisk
+} from "../services/risks.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
   CreateRiskBody,
+  DeleteRiskBody,
   ListRisksQuery,
   RiskIdParams,
   UpdateRiskBody
@@ -49,6 +56,21 @@ export async function updateRiskController(
   sendData(
     response,
     await updateRisk(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.riskId,
+      request.body
+    )
+  );
+}
+
+export async function deleteRiskController(
+  request: Request<RiskIdParams, unknown, DeleteRiskBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await deleteRisk(
       actorOrThrow(request),
       request.params.registerId,
       request.params.riskId,

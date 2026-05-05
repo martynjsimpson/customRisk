@@ -78,8 +78,14 @@ export const updateRiskSchema = z
     customFieldValues: value.customFieldValues ?? value.customFields
   }));
 
+export const deleteRiskSchema = z.object({
+  confirmation: z.literal("DELETE"),
+  deletionReason: z.string().trim().min(1).max(2000).optional()
+});
+
 export type RiskIdParams = z.infer<typeof riskIdParamsSchema>;
 export type ListRisksQuery = z.infer<typeof listRisksQuerySchema>;
 export type RiskCustomFieldValueBody = z.infer<typeof riskCustomFieldValueSchema>;
 export type CreateRiskBody = z.infer<typeof createRiskSchema>;
 export type UpdateRiskBody = z.infer<typeof updateRiskSchema>;
+export type DeleteRiskBody = z.infer<typeof deleteRiskSchema>;
