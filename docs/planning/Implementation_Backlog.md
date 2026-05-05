@@ -1130,6 +1130,36 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ---
 
+## 9. Phase 7 — Miscellaneous Improvements
+
+Phase goal: collect improvement items that are well-defined but were deferred from earlier phases for scope or complexity reasons.
+
+## P7-01 — Live Risk Score Preview in Edit Form
+
+**Goal:** Show the calculated risk score in real time as the user selects Likelihood and Impact values in the risk create/edit form.
+
+**Dependencies:** P2-08, P4-06.
+
+**Deliverables:**
+
+- client-side score calculation using the numeric values for the currently selected Likelihood and Impact options from `formConfigQuery.data`;
+- risk score displayed as a read-only field at display order 750 (between Impact and Response Strategy) on both the create and edit forms;
+- value updates immediately when either Likelihood or Impact selection changes.
+
+**Acceptance criteria:**
+
+- score reflects the selected Likelihood × Impact numeric values before the form is saved;
+- field is non-editable;
+- when neither Likelihood nor Impact is selected the field shows a neutral empty/dash state rather than zero;
+- behavior is consistent between create and edit modes.
+
+**Notes:**
+
+- the numeric values for each Likelihood and Impact option are available on `formConfigQuery.data.likelihoodValues` and `formConfigQuery.data.impactValues` as `numericValue`;
+- this replaces the current behavior where the edit form omits the score entirely (Option B, implemented in the P3-06 fix session).
+
+---
+
 ## 10. Cross-Phase Dependencies
 
 Some work spans phases and should be tracked carefully:

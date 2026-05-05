@@ -334,9 +334,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
           />
         );
       case "riskScore":
-        return editingRiskId && selectedRiskQuery.data ? (
-          <TextInput key={fieldId} label="Risk score (calculated)" value={String(selectedRiskQuery.data.riskScore)} readOnly />
-        ) : null;
+        return null;
       case "responseStrategyId":
         return (
           <Select
