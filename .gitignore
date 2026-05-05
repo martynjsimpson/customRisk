@@ -14,3 +14,4 @@ backend/prisma/migrations/dev.db
 # IDEs
 .vscode/
 .idea/
+docs/implementation/bugs.md
