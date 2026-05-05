@@ -5,25 +5,32 @@ import {
   activateCustomField,
   createCustomField,
   createCustomFieldOption,
+  createLikelihoodValue,
   deactivateCustomField,
   deactivateCustomFieldOption,
+  deactivateLikelihoodValue,
   getCustomField,
   listCustomFields,
   listCustomFieldOptions,
+  listLikelihoodValues,
   getRegisterConfig,
   getRiskFormConfig,
   updateCustomField,
-  updateCustomFieldOption
+  updateCustomFieldOption,
+  updateLikelihoodValue
 } from "../services/configuration.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
   CreateCustomFieldBody,
   CreateCustomFieldOptionBody,
+  CreateLikelihoodValueBody,
   CustomFieldOptionParams,
   CustomFieldParams,
+  LikelihoodParams,
   UpdateCustomFieldBody,
-  UpdateCustomFieldOptionBody
+  UpdateCustomFieldOptionBody,
+  UpdateLikelihoodValueBody
 } from "../validators/configuration.schemas.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
 
@@ -139,6 +146,53 @@ export async function deactivateCustomFieldOptionController(
       request.params.registerId,
       request.params.fieldId,
       request.params.optionId
+    )
+  );
+}
+
+export async function listLikelihoodValuesController(
+  request: Request<{ registerId: string }>,
+  response: Response
+) {
+  sendData(response, await listLikelihoodValues(request.params.registerId));
+}
+
+export async function createLikelihoodValueController(
+  request: Request<{ registerId: string }, unknown, CreateLikelihoodValueBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await createLikelihoodValue(actorOrThrow(request), request.params.registerId, request.body),
+    201
+  );
+}
+
+export async function updateLikelihoodValueController(
+  request: Request<LikelihoodParams, unknown, UpdateLikelihoodValueBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await updateLikelihoodValue(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.likelihoodId,
+      request.body
+    )
+  );
+}
+
+export async function deactivateLikelihoodValueController(
+  request: Request<LikelihoodParams>,
+  response: Response
+) {
+  sendData(
+    response,
+    await deactivateLikelihoodValue(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.likelihoodId
     )
   );
 }

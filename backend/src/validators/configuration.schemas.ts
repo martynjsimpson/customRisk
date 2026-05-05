@@ -59,3 +59,26 @@ export type CreateCustomFieldBody = z.infer<typeof createCustomFieldSchema>;
 export type UpdateCustomFieldBody = z.infer<typeof updateCustomFieldSchema>;
 export type CreateCustomFieldOptionBody = z.infer<typeof createCustomFieldOptionSchema>;
 export type UpdateCustomFieldOptionBody = z.infer<typeof updateCustomFieldOptionSchema>;
+
+export const likelihoodParamsSchema = z.object({
+  registerId: z.string().uuid(),
+  likelihoodId: z.string().uuid()
+});
+
+export const createLikelihoodValueSchema = z.object({
+  name: z.string().trim().min(1),
+  numericValue: z.number().positive(),
+  displayOrder: z.number().int().min(1),
+  isActive: z.boolean().default(true)
+});
+
+export const updateLikelihoodValueSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  numericValue: z.number().positive().optional(),
+  displayOrder: z.number().int().min(1).optional(),
+  isActive: z.boolean().optional()
+});
+
+export type LikelihoodParams = z.infer<typeof likelihoodParamsSchema>;
+export type CreateLikelihoodValueBody = z.infer<typeof createLikelihoodValueSchema>;
+export type UpdateLikelihoodValueBody = z.infer<typeof updateLikelihoodValueSchema>;

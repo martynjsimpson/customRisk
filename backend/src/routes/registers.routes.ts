@@ -15,15 +15,19 @@ import {
   activateCustomFieldController,
   createCustomFieldController,
   createCustomFieldOptionController,
+  createLikelihoodValueController,
   deactivateCustomFieldController,
   deactivateCustomFieldOptionController,
+  deactivateLikelihoodValueController,
   getCustomFieldController,
   getRegisterConfigController,
   getRiskFormConfigController,
   listCustomFieldOptionsController,
   listCustomFieldsController,
+  listLikelihoodValuesController,
   updateCustomFieldController,
-  updateCustomFieldOptionController
+  updateCustomFieldOptionController,
+  updateLikelihoodValueController
 } from "../controllers/configuration.controller.js";
 import {
   createRiskController,
@@ -54,10 +58,13 @@ import {
 import {
   createCustomFieldSchema,
   createCustomFieldOptionSchema,
+  createLikelihoodValueSchema,
   customFieldOptionParamsSchema,
   customFieldParamsSchema,
+  likelihoodParamsSchema,
   updateCustomFieldSchema,
-  updateCustomFieldOptionSchema
+  updateCustomFieldOptionSchema,
+  updateLikelihoodValueSchema
 } from "../validators/configuration.schemas.js";
 import {
   createRiskSchema,
@@ -194,6 +201,30 @@ export function createRegistersRouter() {
     validateRequest({ params: customFieldOptionParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(deactivateCustomFieldOptionController)
+  );
+  router.get(
+    "/:registerId/likelihood-values",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterAccess(),
+    asyncRoute(listLikelihoodValuesController)
+  );
+  router.post(
+    "/:registerId/likelihood-values",
+    validateRequest({ params: registerIdParamsSchema, body: createLikelihoodValueSchema }),
+    requireRegisterManagement(),
+    asyncRoute(createLikelihoodValueController)
+  );
+  router.patch(
+    "/:registerId/likelihood-values/:likelihoodId",
+    validateRequest({ params: likelihoodParamsSchema, body: updateLikelihoodValueSchema }),
+    requireRegisterManagement(),
+    asyncRoute(updateLikelihoodValueController)
+  );
+  router.post(
+    "/:registerId/likelihood-values/:likelihoodId/deactivate",
+    validateRequest({ params: likelihoodParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(deactivateLikelihoodValueController)
   );
   router.get(
     "/:registerId/risks/:riskId",
