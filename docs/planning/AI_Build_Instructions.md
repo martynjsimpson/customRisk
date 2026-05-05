@@ -1,6 +1,6 @@
 # Custom Risk — AI Build Instructions
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Date:** 2026-05-05  
 **Status:** Draft  
 **Applies to:** MVP implementation  
@@ -84,7 +84,9 @@ While implementing:
 
 Before finishing:
 
-- run relevant tests or explain why they could not be run;
+- run `npx tsc --noEmit` in `frontend/` and confirm zero type errors;
+- run `npm test --workspaces --if-present` from the repo root and confirm all tests pass;
+- if either check fails, fix the code or tests before committing — do not commit a broken state;
 - confirm the task did not add out-of-scope MVP features;
 - update docs if implementation intentionally changes a documented decision;
 - summarize changed files and verification.
