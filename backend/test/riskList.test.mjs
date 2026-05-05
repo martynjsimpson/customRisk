@@ -35,6 +35,20 @@ test("risk detail route uses risk view permission and controller", async () => {
   assert.match(service, /reviewStatus: getRiskReviewStatus/);
 });
 
+test("risk update route uses risk edit permission and audited service", async () => {
+  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
+  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+
+  assert.match(routes, /router\.patch\(\n\s+"\/:registerId\/risks\/:riskId"/);
+  assert.match(routes, /requireRiskEdit\(\)/);
+  assert.match(routes, /body: updateRiskSchema/);
+  assert.match(controller, /updateRisk\(\n\s+actorOrThrow\(request\)/);
+  assert.match(service, /Risk Owners cannot edit Created Date/);
+  assert.match(service, /action: auditActions\.riskUpdated/);
+  assert.match(service, /fieldChanges: buildRiskUpdateFieldChanges/);
+});
+
 test("risk review status follows MVP display rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 

@@ -59,7 +59,27 @@ export const createRiskSchema = z
     customFieldValues: value.customFieldValues ?? value.customFields ?? []
   }));
 
+export const updateRiskSchema = z
+  .object({
+    title: z.string().trim().min(1).max(255).optional(),
+    description: z.string().trim().min(1).optional(),
+    state: z.enum(["DRAFT", "OPEN", "CLOSED"]).optional(),
+    ownerUserId: z.string().uuid().optional(),
+    createdDate: dateOnlySchema.optional(),
+    likelihoodValueId: z.string().uuid().optional(),
+    impactValueId: z.string().uuid().optional(),
+    responseStrategyId: z.string().uuid().optional(),
+    responseAction: z.string().trim().nullable().optional(),
+    customFields: z.array(riskCustomFieldValueSchema).optional(),
+    customFieldValues: z.array(riskCustomFieldValueSchema).optional()
+  })
+  .transform((value) => ({
+    ...value,
+    customFieldValues: value.customFieldValues ?? value.customFields
+  }));
+
 export type RiskIdParams = z.infer<typeof riskIdParamsSchema>;
 export type ListRisksQuery = z.infer<typeof listRisksQuerySchema>;
 export type RiskCustomFieldValueBody = z.infer<typeof riskCustomFieldValueSchema>;
 export type CreateRiskBody = z.infer<typeof createRiskSchema>;
+export type UpdateRiskBody = z.infer<typeof updateRiskSchema>;

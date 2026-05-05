@@ -1,4 +1,4 @@
-import { CustomFieldType, Prisma } from "@prisma/client";
+import { CustomFieldType, Prisma, type AuditValueType } from "@prisma/client";
 
 import { auditActions } from "../audit/auditActions.js";
 import { prisma } from "../db/prisma.js";
@@ -14,7 +14,8 @@ import { recordAuditEvent } from "./audit.service.js";
 import type {
   CreateRiskBody,
   ListRisksQuery,
-  RiskCustomFieldValueBody
+  RiskCustomFieldValueBody,
+  UpdateRiskBody
 } from "../validators/risks.schemas.js";
 
 type RiskClient = typeof prisma | Prisma.TransactionClient;
@@ -243,6 +244,74 @@ function mapRiskDetail(
   };
 }
 
+function auditValue(value: unknown): Prisma.InputJsonValue | null {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (value instanceof Prisma.Decimal) {
+    return value.toString();
+  }
+
+  if (value === undefined) {
+    return null;
+  }
+
+  return value as Prisma.InputJsonValue | null;
+}
+
+function buildRiskUpdateFieldChanges(
+  previous: Prisma.RiskGetPayload<{ select: typeof riskAuditSelect }>,
+  next: Prisma.RiskGetPayload<{ select: typeof riskAuditSelect }>
+) {
+  const fields: Array<{
+    name: keyof typeof riskAuditSelect & keyof typeof previous;
+    label: string;
+    valueType: AuditValueType;
+  }> = [
+    { name: "title", label: "Risk Title", valueType: "TEXT" },
+    { name: "description", label: "Risk Description", valueType: "TEXT" },
+    { name: "state", label: "State", valueType: "TEXT" },
+    { name: "ownerUserId", label: "Risk Owner", valueType: "USER" },
+    { name: "createdDate", label: "Created Date", valueType: "DATE" },
+    { name: "likelihoodValueId", label: "Likelihood", valueType: "UUID" },
+    { name: "impactValueId", label: "Impact", valueType: "UUID" },
+    { name: "riskScore", label: "Risk Score", valueType: "NUMBER" },
+    { name: "riskLevelId", label: "Risk Level", valueType: "UUID" },
+    { name: "responseStrategyId", label: "Response Strategy", valueType: "UUID" },
+    { name: "responseAction", label: "Risk Response Action", valueType: "TEXT" },
+    { name: "nextReviewDate", label: "Next Review Date", valueType: "DATE" }
+  ];
+
+  return fields
+    .filter((field) => String(previous[field.name] ?? "") !== String(next[field.name] ?? ""))
+    .map((field) => ({
+      fieldName: field.name,
+      fieldLabel: field.label,
+      previousValue: auditValue(previous[field.name]),
+      newValue: auditValue(next[field.name]),
+      valueType: field.valueType
+    }));
+}
+
+const riskAuditSelect = {
+  id: true,
+  displayRiskId: true,
+  title: true,
+  description: true,
+  state: true,
+  ownerUserId: true,
+  createdDate: true,
+  likelihoodValueId: true,
+  impactValueId: true,
+  riskScore: true,
+  riskLevelId: true,
+  responseStrategyId: true,
+  responseAction: true,
+  nextReviewDate: true,
+  lastReviewedAt: true
+} satisfies Prisma.RiskSelect;
+
 export async function listRisks(
   actor: AuthenticatedActor,
   registerId: string,
@@ -339,6 +408,142 @@ export async function getRiskDetail(_actor: AuthenticatedActor, registerId: stri
   }
 
   return mapRiskDetail(risk, risk.register.reviewsEnabled);
+}
+
+export async function updateRisk(
+  actor: AuthenticatedActor,
+  registerId: string,
+  riskId: string,
+  input: UpdateRiskBody
+) {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.risk.findFirst({
+      where: { id: riskId, registerId },
+      select: riskAuditSelect
+    });
+
+    if (!existing) {
+      throw new ApiError(404, "NOT_FOUND", "Risk not found");
+    }
+
+    const role = await getEffectiveRegisterRole(actor, registerId, tx);
+    if (role === "NONE" || role === "REGISTER_VIEWER") {
+      throw new ApiError(404, "NOT_FOUND", "Risk not found");
+    }
+    if (role === "RISK_OWNER" && existing.ownerUserId !== actor.id) {
+      throw new ApiError(404, "NOT_FOUND", "Risk not found");
+    }
+    if (role === "RISK_OWNER" && input.createdDate !== undefined) {
+      throw new ApiError(403, "FORBIDDEN", "Risk Owners cannot edit Created Date");
+    }
+
+    const register = await tx.register.findUnique({
+      where: { id: registerId },
+      select: { reviewsEnabled: true, defaultReviewFrequencyMonths: true }
+    });
+    if (!register) {
+      throw new ApiError(404, "NOT_FOUND", "Register not found");
+    }
+
+    if (input.ownerUserId) {
+      const owner = await tx.user.findUnique({
+        where: { id: input.ownerUserId },
+        select: { id: true, isActive: true }
+      });
+      if (!owner?.isActive) {
+        throw new ApiError(400, "VALIDATION_ERROR", "Risk owner must be an active local user", {
+          ownerUserId: "Risk owner must be an active local user"
+        });
+      }
+    }
+
+    if (input.responseStrategyId) {
+      const responseStrategy = await tx.responseStrategy.findFirst({
+        where: { id: input.responseStrategyId, registerId, isActive: true },
+        select: { id: true }
+      });
+      if (!responseStrategy) {
+        throw new ApiError(400, "VALIDATION_ERROR", "Response strategy must be active for this register", {
+          responseStrategyId: "Response strategy must be active for this register"
+        });
+      }
+    }
+
+    const likelihoodValueId = input.likelihoodValueId ?? existing.likelihoodValueId;
+    const impactValueId = input.impactValueId ?? existing.impactValueId;
+    const scoring =
+      input.likelihoodValueId || input.impactValueId
+        ? await resolveRiskScoring({ registerId, likelihoodValueId, impactValueId }, tx)
+        : undefined;
+    const createdDate = input.createdDate ? utcDateOnly(input.createdDate) : existing.createdDate;
+    const shouldRecalculateNextReviewDate =
+      input.createdDate !== undefined && existing.lastReviewedAt === null;
+
+    const customFieldValues =
+      input.customFieldValues !== undefined
+        ? await validateCustomFieldValues(registerId, input.customFieldValues, tx)
+        : undefined;
+
+    if (customFieldValues !== undefined) {
+      await tx.riskCustomFieldValue.deleteMany({
+        where: {
+          riskId,
+          customFieldDefinitionId: {
+            in: input.customFieldValues?.map((value) => value.customFieldDefinitionId) ?? []
+          }
+        }
+      });
+    }
+
+    const updated = await tx.risk.update({
+      where: { id: riskId },
+      data: {
+        title: input.title,
+        description: input.description,
+        state: input.state,
+        ownerUserId: input.ownerUserId,
+        createdDate: input.createdDate ? createdDate : undefined,
+        likelihoodValueId: input.likelihoodValueId,
+        impactValueId: input.impactValueId,
+        riskScore: scoring?.riskScore,
+        riskLevelId: scoring?.riskLevelId,
+        responseStrategyId: input.responseStrategyId,
+        responseAction: input.responseAction,
+        nextReviewDate: shouldRecalculateNextReviewDate
+          ? calculateNextReviewDate({
+              reviewsEnabled: register.reviewsEnabled,
+              baseDate: createdDate,
+              defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths
+            })
+          : undefined,
+        systemUpdatedByUserId: actor.id,
+        customFieldValues:
+          customFieldValues && customFieldValues.length > 0
+            ? { createMany: { data: customFieldValues } }
+            : undefined
+      },
+      select: riskAuditSelect
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.riskUpdated,
+        actor,
+        objectType: "RISK",
+        objectId: updated.id,
+        objectDisplayName: updated.displayRiskId,
+        scopeType: "RISK",
+        registerId,
+        riskId: updated.id,
+        displayRiskId: updated.displayRiskId,
+        summary: "Risk updated",
+        fieldChanges: buildRiskUpdateFieldChanges(existing, updated)
+      },
+      tx
+    );
+
+    return getRiskDetail(actor, registerId, riskId);
+  });
 }
 
 function countProvidedValues(value: RiskCustomFieldValueBody) {
