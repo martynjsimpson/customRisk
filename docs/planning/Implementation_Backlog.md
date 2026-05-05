@@ -54,6 +54,8 @@ Phase goal: create an empty but runnable development environment and project ske
 
 ## P0-01 — Repository and Package Foundation
 
+**Status:** Done
+
 **Goal:** Create the monorepo package structure for backend and frontend.
 
 **Dependencies:** Technical Architecture.
@@ -76,6 +78,8 @@ Phase goal: create an empty but runnable development environment and project ske
 
 ## P0-02 — Local Environment Configuration
 
+**Status:** Done
+
 **Goal:** Define the local development environment contract.
 
 **Dependencies:** P0-01.
@@ -95,6 +99,8 @@ Phase goal: create an empty but runnable development environment and project ske
 - local setup instructions identify how to configure database and app services.
 
 ## P0-03 — Docker and Local Runtime
+
+**Status:** Done
 
 **Goal:** Provide local containerised runtime for app and PostgreSQL.
 
@@ -117,6 +123,8 @@ Phase goal: create an empty but runnable development environment and project ske
 
 ## P0-04 — Development Scripts and Quality Gates
 
+**Status:** Done
+
 **Goal:** Provide basic scripts future tickets can rely on.
 
 **Dependencies:** P0-01.
@@ -136,6 +144,8 @@ Phase goal: create an empty but runnable development environment and project ske
 - later phase tickets can reference these scripts for verification.
 
 ## P0-05 — GitHub Actions CI
+
+**Status:** Done
 
 **Goal:** Add a minimal GitHub Actions workflow for repository quality checks.
 
@@ -167,6 +177,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 
 ## P1-01 — Prisma Schema and Initial Migration
 
+**Status:** Done
+
 **Goal:** Implement the drafted MVP Prisma schema.
 
 **Dependencies:** P0-01, P0-03, `backend/prisma/schema.prisma`.
@@ -186,6 +198,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 - no schema changes are made outside Prisma migrations.
 
 ## P1-02 — Backend App Shell
+
+**Status:** Done
 
 **Goal:** Create the Express backend application shell.
 
@@ -209,6 +223,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 
 ## P1-03 — Validation and Error Utilities
 
+**Status:** Done
+
 **Goal:** Establish reusable Zod validation and API error handling.
 
 **Dependencies:** P1-02.
@@ -227,6 +243,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 - tests cover success and failure validation paths.
 
 ## P1-04 — Password and Token Utilities
+
+**Status:** Done
 
 **Goal:** Implement secure password hashing and token helpers.
 
@@ -247,6 +265,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 - unit tests cover password validation and hash verification.
 
 ## P1-05 — Local Authentication Routes
+
+**Status:** Done
 
 **Goal:** Implement login, refresh, logout, and current-user session bootstrap.
 
@@ -276,6 +296,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 
 ## P1-06 — Audit Framework
 
+**Status:** Done
+
 **Goal:** Create reusable audit write/read foundation.
 
 **Dependencies:** P1-01, P1-02.
@@ -297,6 +319,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 
 ## P1-07 — Permission Service
 
+**Status:** Done
+
 **Goal:** Centralise effective permission checks.
 
 **Dependencies:** P1-01, P1-05.
@@ -315,6 +339,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 - `404` is used where revealing existence would be inappropriate.
 
 ## P1-08 — User Management API
+
+**Status:** Done
 
 **Goal:** Implement System Admin user management.
 
@@ -338,6 +364,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 - password values are redacted from audit and logs.
 
 ## P1-09 — Register Foundation API
+
+**Status:** Done
 
 **Goal:** Implement register creation, listing, detail, settings update, and default configuration seeding.
 
@@ -363,6 +391,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 
 ## P1-10 — Register Permission API
 
+**Status:** Done
+
 **Goal:** Implement register-level permission management.
 
 **Dependencies:** P1-07, P1-09.
@@ -382,6 +412,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 - permission changes are audited.
 
 ## P1-11 — Frontend App Shell and Auth UI
+
+**Status:** Done
 
 **Goal:** Create the frontend shell, routing, session bootstrap, and login/logout experience.
 
@@ -406,6 +438,8 @@ Phase goal: establish the product foundation: database schema, backend shell, va
 - access token is kept in memory only.
 
 ## P1-12 — Users and Registers Frontend Foundation
+
+**Status:** Done
 
 **Goal:** Build MVP UI for users and register administration foundation.
 
@@ -436,6 +470,8 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 
 ## P2-01 — Risk Service Foundation
 
+**Status:** Done
+
 **Goal:** Implement core risk service methods and derived values.
 
 **Dependencies:** P1-07, P1-09.
@@ -456,6 +492,8 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 - missing matrix cell blocks risk save.
 
 ## P2-02 — Risk List API
+
+**Status:** Done
 
 **Goal:** Implement register risk table data endpoint.
 
@@ -480,6 +518,8 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 
 ## P2-03 — Risk Create API
 
+**Status:** Done
+
 **Goal:** Implement risk creation.
 
 **Dependencies:** P2-01.
@@ -503,6 +543,8 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 
 ## P2-04 — Risk Detail API
 
+**Status:** Done
+
 **Goal:** Implement risk detail endpoint.
 
 **Dependencies:** P2-02.
@@ -522,6 +564,8 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 - response includes enough data for view/edit forms.
 
 ## P2-05 — Risk Update API
+
+**Status:** Done
 
 **Goal:** Implement risk edit behaviour.
 
@@ -546,6 +590,8 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 
 ## P2-06 — Risk Hard Delete API
 
+**Status:** Done
+
 **Goal:** Implement System Admin hard delete with audit snapshot.
 
 **Dependencies:** P2-04, P1-06.
@@ -566,6 +612,8 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 - delete transaction rolls back if snapshot write fails.
 
 ## P2-07 — CSV Export API
+
+**Status:** Done
 
 **Goal:** Implement filtered risk CSV export.
 
@@ -589,6 +637,8 @@ Phase goal: implement risk records, core risk table/detail/create/edit/delete be
 - export action is audited.
 
 ## P2-08 — Risk Register Frontend
+
+**Status:** Done
 
 **Goal:** Build risk table, create, detail, edit, delete, and export UI.
 
@@ -619,6 +669,8 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 
 ## P3-01 — Register Configuration Bundle API
 
+**Status:** Done
+
 **Goal:** Provide configuration data for register configuration screens and risk forms.
 
 **Dependencies:** P1-09, P2-04.
@@ -635,6 +687,8 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 - permissions follow configuration/register access rules.
 
 ## P3-02 — Custom Field Definition API
+
+**Status:** Done
 
 **Goal:** Implement custom field create/list/detail/update/activate/deactivate.
 
@@ -661,6 +715,8 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 
 ## P3-03 — Dropdown Option API
 
+**Status:** Done
+
 **Goal:** Implement dropdown option management.
 
 **Dependencies:** P3-02.
@@ -679,6 +735,8 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 - option changes are audited.
 
 ## P3-04 — Custom Field Value Validation
+
+**Status:** Done
 
 **Goal:** Complete runtime validation of custom field values on risk create/edit.
 
@@ -701,6 +759,8 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 
 ## P3-05 — Configuration Frontend
 
+**Status:** Done
+
 **Goal:** Build field configuration UI.
 
 **Dependencies:** P3-01 through P3-04.
@@ -722,6 +782,8 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 - configuration changes are audited.
 
 ## P3-06 — Core Field Order Anchors
+
+**Status:** Done
 
 **Goal:** Allow custom fields to be positioned between MVP core risk fields without making core fields fully configurable.
 
@@ -749,6 +811,8 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 ## P4-01 — Likelihood Configuration API
 
+**Status:** Done
+
 **Goal:** Implement likelihood value management.
 
 **Dependencies:** P1-09.
@@ -768,6 +832,8 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 - changes are audited.
 
 ## P4-02 — Impact Configuration API
+
+**Status:** Done
 
 **Goal:** Implement impact value management.
 
@@ -789,6 +855,8 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 ## P4-03 — Risk Level Configuration API
 
+**Status:** Done
+
 **Goal:** Implement risk level management.
 
 **Dependencies:** P1-09.
@@ -807,6 +875,8 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 - changes are audited.
 
 ## P4-04 — Risk Matrix API
+
+**Status:** Planned
 
 **Goal:** Implement matrix viewing and update.
 
@@ -829,6 +899,8 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 ## P4-05 — Scoring Recalculation Behaviour
 
+**Status:** Planned
+
 **Goal:** Ensure score and level recalculation works across risk edits and configuration changes.
 
 **Dependencies:** P2-05, P4-04.
@@ -846,6 +918,8 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 - users cannot directly edit score or level.
 
 ## P4-06 — Scoring Frontend
+
+**Status:** Planned
 
 **Goal:** Build scoring configuration UI and risk level display.
 
@@ -873,6 +947,8 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ## P5-01 — Risk Review API
 
+**Status:** Planned
+
 **Goal:** Implement risk review completion and review history.
 
 **Dependencies:** P2-04, P2-05.
@@ -897,6 +973,8 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ## P5-02 — Review Status and Overdue Logic
 
+**Status:** Planned
+
 **Goal:** Implement review status and overdue filter/count logic.
 
 **Dependencies:** P5-01.
@@ -917,6 +995,8 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ## P5-03 — Dashboard APIs
 
+**Status:** Planned
+
 **Goal:** Implement role-aware dashboard endpoints.
 
 **Dependencies:** P2-02, P5-02.
@@ -935,6 +1015,8 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 - users receive only data they are permitted to access.
 
 ## P5-04 — Audit Read APIs
+
+**Status:** Planned
 
 **Goal:** Implement audit log routes.
 
@@ -957,6 +1039,8 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 - filters work for date, actor, action, object type, register, risk/display ID, and client IP where captured.
 
 ## P5-05 — Dashboard and Review Frontend
+
+**Status:** Planned
 
 **Goal:** Build review and dashboard UI.
 
@@ -987,6 +1071,8 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-01 — Seed and Demo Data
 
+**Status:** Planned
+
 **Goal:** Provide realistic seed data for development and testing.
 
 **Dependencies:** P1-P5 implementation.
@@ -1008,6 +1094,8 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-02 — Permission Test Suite
 
+**Status:** Planned
+
 **Goal:** Add comprehensive permission coverage.
 
 **Dependencies:** P1-P5 implementation.
@@ -1025,6 +1113,8 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 - Register Viewer export permission is covered.
 
 ## P6-03 — Audit Completeness Review
+
+**Status:** Planned
 
 **Goal:** Verify required audit coverage across MVP workflows.
 
@@ -1046,6 +1136,8 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-04 — Validation and Error Handling Hardening
 
+**Status:** Planned
+
 **Goal:** Ensure validation and error responses are consistent.
 
 **Dependencies:** P1-P5 implementation.
@@ -1064,6 +1156,8 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 - frontend displays actionable validation errors.
 
 ## P6-05 — Security Hardening
+
+**Status:** Planned
 
 **Goal:** Verify auth/session/security controls.
 
@@ -1087,6 +1181,8 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-06 — Usability and Responsive Pass
 
+**Status:** Planned
+
 **Goal:** Improve MVP usability for non-risk-specialist users.
 
 **Dependencies:** P1-P5 frontend implementation.
@@ -1107,6 +1203,8 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 - basic responsive layout works.
 
 ## P6-07 — End-to-End Acceptance Scenarios
+
+**Status:** Planned
 
 **Goal:** Verify MVP acceptance scenarios.
 
@@ -1136,6 +1234,8 @@ Phase goal: collect improvement items that are well-defined but were deferred fr
 
 ## P7-01 — Live Risk Score Preview in Edit Form
 
+**Status:** Planned
+
 **Goal:** Show the calculated risk score in real time as the user selects Likelihood and Impact values in the risk create/edit form.
 
 **Dependencies:** P2-08, P4-06.
@@ -1159,6 +1259,8 @@ Phase goal: collect improvement items that are well-defined but were deferred fr
 - this replaces the current behavior where the edit form omits the score entirely (Option B, implemented in the P3-06 fix session).
 
 ## P7-02 — Multi-select Custom Field Type
+
+**Status:** Planned
 
 **Goal:** Add a Multi-select field type to the custom field system, allowing a risk to hold one or more values from a configured option list.
 
@@ -1193,6 +1295,8 @@ Phase goal: collect improvement items that are well-defined but were deferred fr
 
 ## P7-03 — My Profile API
 
+**Status:** Planned
+
 **Goal:** Allow authenticated users to update their own display name and change their own password.
 
 **Dependencies:** P1-05, P1-08.
@@ -1219,6 +1323,8 @@ Phase goal: collect improvement items that are well-defined but were deferred fr
 
 ## P7-04 — My Profile Frontend
 
+**Status:** Planned
+
 **Goal:** Build the user profile page where a user can update their display name and change their password.
 
 **Dependencies:** P7-03, P1-11.
@@ -1240,6 +1346,8 @@ Phase goal: collect improvement items that are well-defined but were deferred fr
 - forms do not expose or log password values.
 
 ## P7-05 — User Preferences API
+
+**Status:** Planned
 
 **Goal:** Add server-side user preference storage to support cross-device display preferences, starting with color scheme.
 
@@ -1265,6 +1373,8 @@ Phase goal: collect improvement items that are well-defined but were deferred fr
 - do not store sensitive values in preferences; the column is not treated as governed data and is not audited.
 
 ## P7-06 — Dark Mode
+
+**Status:** Planned
 
 **Goal:** Allow users to switch between light and dark color schemes, with the preference persisted server-side so it follows them across devices.
 
