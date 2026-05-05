@@ -1158,6 +1158,133 @@ Phase goal: collect improvement items that are well-defined but were deferred fr
 - the numeric values for each Likelihood and Impact option are available on `formConfigQuery.data.likelihoodValues` and `formConfigQuery.data.impactValues` as `numericValue`;
 - this replaces the current behavior where the edit form omits the score entirely (Option B, implemented in the P3-06 fix session).
 
+## P7-02 — Multi-select Custom Field Type
+
+**Goal:** Add a Multi-select field type to the custom field system, allowing a risk to hold one or more values from a configured option list.
+
+**Dependencies:** P3-01 through P3-05 (custom field foundation).
+
+**Deliverables:**
+
+- database migration for multi-select value storage (junction table preferred over array column to preserve referential integrity with dropdown options);
+- `MULTI_SELECT` added to the `CustomFieldType` enum and backend validation;
+- multi-select value create/update/read on risk create and edit endpoints;
+- audit serialization of multi-select values (comma-separated labels or JSON array);
+- CSV export column for multi-select fields (comma-separated values within the cell);
+- `MULTI_SELECT` added to `CustomFieldType` in `configuration.api.ts`;
+- multi-select input component on the risk create/edit form (Mantine `MultiSelect`);
+- multi-select display in the risk detail view (comma-separated labels or tag list);
+- option management in field configuration reuses the existing dropdown option UI.
+
+**Acceptance criteria:**
+
+- Register Admin can create a Multi-select field with one or more options;
+- a risk can save zero, one, or multiple selected values for a Multi-select field;
+- required validation blocks save when no values are selected on a required Multi-select field;
+- existing single-select Dropdown fields are unaffected;
+- multi-select values appear correctly in the detail view, edit form, and CSV export;
+- field configuration changes are audited.
+
+**Notes:**
+
+- this field type was deliberately excluded from MVP scope (MVP_Scope.md section 4.4 lists seven field types; Multi-select is not among them);
+- the data model change (junction table) is the highest-risk part — design the migration carefully to avoid breaking existing custom field value queries;
+- `CustomFieldType` is defined once in `configuration.api.ts` and imported by `risks.api.ts`; add `MULTI_SELECT` only to the canonical definition.
+
+## P7-03 — My Profile API
+
+**Goal:** Allow authenticated users to update their own display name and change their own password.
+
+**Dependencies:** P1-05, P1-08.
+
+**Deliverables:**
+
+- `PATCH /api/v1/users/me` — update own `name`; validates non-empty string;
+- `POST /api/v1/users/me/change-password` — verifies current password with bcrypt before applying new password; enforces password policy; revokes all other active refresh tokens for the user on success;
+- audit events for name change and password change (password values must not appear in audit records).
+
+**Acceptance criteria:**
+
+- authenticated user can update their own name;
+- name change is audited with previous and new value;
+- password change requires correct current password; wrong current password returns a generic auth error;
+- new password must meet the password policy defined in the Security Model;
+- successful password change revokes other active refresh tokens but preserves the current session;
+- password values do not appear in audit logs, response bodies, or server logs;
+- unauthenticated requests are rejected.
+
+**Notes:**
+
+- email change is explicitly out of scope; it involves re-verification and Person Picker link implications that warrant separate consideration.
+
+## P7-04 — My Profile Frontend
+
+**Goal:** Build the user profile page where a user can update their display name and change their password.
+
+**Dependencies:** P7-03, P1-11.
+
+**Deliverables:**
+
+- profile page at `/profile`;
+- name edit form with save action;
+- change password form with current password, new password, and confirm password fields;
+- navigation entry point accessible to all authenticated users (avatar or user menu in the app header);
+- loading, error, and success states for both forms.
+
+**Acceptance criteria:**
+
+- any authenticated user can navigate to their profile page;
+- name update and password change forms submit to the correct API endpoints;
+- change password form validates that new password and confirm password match client-side before submitting;
+- success and error feedback is displayed clearly;
+- forms do not expose or log password values.
+
+## P7-05 — User Preferences API
+
+**Goal:** Add server-side user preference storage to support cross-device display preferences, starting with color scheme.
+
+**Dependencies:** P7-03.
+
+**Deliverables:**
+
+- database migration adding a `preferences` JSONB column to the `user` table (nullable, default `{}`);
+- `GET /api/v1/users/me/preferences` — returns current preferences object;
+- `PATCH /api/v1/users/me/preferences` — merges supplied keys into existing preferences; unknown keys are ignored or rejected; replaces only the supplied keys.
+
+**Acceptance criteria:**
+
+- authenticated user can read and update their preferences;
+- partial updates do not overwrite unrelated preference keys;
+- preferences column is nullable and treats a null value as an empty object;
+- no audit event is required (preferences are non-sensitive display state, not governed data);
+- unauthenticated requests are rejected.
+
+**Notes:**
+
+- the JSONB column approach means new preference keys can be added in future without schema migrations;
+- do not store sensitive values in preferences; the column is not treated as governed data and is not audited.
+
+## P7-06 — Dark Mode
+
+**Goal:** Allow users to switch between light and dark color schemes, with the preference persisted server-side so it follows them across devices.
+
+**Dependencies:** P7-04, P7-05.
+
+**Deliverables:**
+
+- Mantine `ColorSchemeProvider` wired at the app root with initial value read from the preferences API on session bootstrap;
+- color scheme toggle control on the profile page;
+- on toggle: write `{ "colorScheme": "light" | "dark" }` to the preferences API and update the in-memory scheme immediately;
+- sensible default when no preference is stored (follow OS preference via `prefers-color-scheme` media query).
+
+**Acceptance criteria:**
+
+- user can switch between light and dark mode from the profile page;
+- selected color scheme is applied immediately without a page reload;
+- scheme persists across browser sessions and devices;
+- when no preference is stored the app defaults to the user's OS colour scheme preference;
+- toggle is accessible to all authenticated users.
+
 ---
 
 ## 10. Cross-Phase Dependencies

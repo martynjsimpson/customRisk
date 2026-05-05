@@ -278,14 +278,29 @@ A child Risk Response Action has at least:
 * Risk Response: multi-line text
 * Status: configurable dropdown
 
-Default status values:
+Default status values should provide a useful starting point, for example:
 
-* Not Started
+* Planned
 * In Progress
-* Complete
+* Implemented
+* Deferred
 * Cancelled
 
-Register Admins can add fields such as Risk Response Owner, Due Date, Priority, Completion Date, Evidence, and Notes.
+Register Admins can configure the available status values per register, including names, display order, active/inactive state, and whether each status represents an active, completed, paused, cancelled, or failed response state.
+
+The status field should be visible anywhere linked Risk Response Actions are shown, including:
+
+* the Risk detail screen;
+* Risk Response / My Actions views;
+* linked action previews;
+* relevant dashboards and reports;
+* exports where the user has permission to see the action data.
+
+On the Risk detail screen, linked Risk Response Actions should show their current status clearly so that the Risk Owner can understand whether planned controls are still pending, partially underway, implemented, cancelled, or otherwise ineffective. This status context should help the Risk Owner make an informed residual risk assessment, but status alone must not automatically change the risk's residual Likelihood, Impact, Risk Score, or Risk Level.
+
+Status changes must be audited as Risk Response Action field changes and should be visible in Risk Response audit history. Where a status change affects risk-level context, the linked Risk audit/history view should also show that a linked action changed status.
+
+Register Admins can add fields such as Risk Response Owner, Due Date, Priority, Completion Date, Evidence, Category, Affects, and Notes.
 
 ### 9.3 Linking Rules
 
