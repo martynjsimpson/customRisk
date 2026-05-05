@@ -1,16 +1,6 @@
-# Custom Risk MVP Postman Native Git Package
+# Custom Risk Postman Collection
 
-This folder is intended to live at the root of your application Git repository.
-
-## Contents
-
-```text
-postman/
-  collections/
-    custom-risk-mvp-api.postman_collection.json
-  environments/
-    custom-risk-mvp-local.postman_environment.json
-```
+This Postman collection should not be conisdered the authorative design for any API's, rather it should reflect what has been implemented.
 
 ## How to use with Postman local Git support
 
@@ -31,10 +21,3 @@ The collection uses:
 - `{{accessToken}}`, automatically populated by the login request test script when `/auth/login` succeeds
 - UUID placeholders such as `{{registerId}}`, `{{riskId}}`, `{{userId}}`, `{{fieldId}}`, and related route parameters
 
-## Suggested Git usage
-
-Commit the `postman/collections/` files and non-secret environment defaults. Do not commit real bearer tokens, passwords, refresh tokens, or production secrets.
-
-## Source
-
-Generated from `docs/architecture/API_Route_Map.md` / Custom Risk MVP API Route Map v1.0, dated 2026-05-04.
