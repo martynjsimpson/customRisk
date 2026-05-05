@@ -1,22 +1,12 @@
 import { apiClient } from "./client";
 import type { CurrentUser } from "../auth/session";
-
-interface ApiResponse<TData, TMeta = undefined> {
-  data: TData;
-  meta: TMeta;
-}
+import type { ApiResponse, ListMeta } from "./types";
 
 export interface UserRecord extends CurrentUser {
   createdAt: string;
   updatedAt: string;
   failedLoginAttempts: number;
   lockedUntil: string | null;
-}
-
-export interface ListMeta {
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 export interface CreateUserInput {

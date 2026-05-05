@@ -1,7 +1,7 @@
 # Custom Risk — AI Build Instructions
 
-**Version:** 1.1  
-**Date:** 2026-05-04  
+**Version:** 1.2  
+**Date:** 2026-05-05  
 **Status:** Draft  
 **Applies to:** MVP implementation  
 
@@ -76,7 +76,11 @@ While implementing:
 - write audit events where required;
 - when creating or changing frontend UI that calls the backend, display API errors to the user using the app's shared error display pattern, including field-level validation messages where the API returns them;
 - avoid committing secrets or logging sensitive values;
-- do not introduce a new framework, major library, or architectural pattern without approval.
+- do not introduce a new framework, major library, or architectural pattern without approval;
+- before defining any new type, interface, constant, or enumeration in the frontend, search the existing codebase for an equivalent — if one exists, import it rather than redefining it;
+- shared API types (generic response wrappers, pagination shapes, etc.) belong in `frontend/src/api/types.ts` and must be imported from there by all API modules;
+- type unions that are defined in one API module must not be inlined or redeclared in another — import the existing type instead;
+- lists of domain values used in more than one component (field enumerations, status options, ordered field lists, etc.) must be extracted to a single shared constant and imported wherever needed.
 
 Before finishing:
 

@@ -1,9 +1,6 @@
 import { apiClient } from "./client";
 import type { CurrentPermissions, CurrentUser } from "../auth/session";
-
-interface ApiResponse<TData> {
-  data: TData;
-}
+import type { ApiResponse } from "./types";
 
 export interface LoginRequest {
   email: string;

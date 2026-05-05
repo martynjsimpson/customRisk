@@ -1,10 +1,8 @@
 import { apiClient } from "./client";
 import type { UserRecord } from "./users.api";
+import type { ApiResponse, ListMeta } from "./types";
 
-interface ApiResponse<TData, TMeta = undefined> {
-  data: TData;
-  meta: TMeta;
-}
+export type { ListMeta };
 
 export interface RegisterRecord {
   id: string;
@@ -34,12 +32,6 @@ export interface RegisterPermission {
     isActive: boolean;
     isSystemAdmin: boolean;
   };
-}
-
-export interface ListMeta {
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 export interface CreateRegisterInput {

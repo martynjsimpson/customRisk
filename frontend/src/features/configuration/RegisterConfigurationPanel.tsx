@@ -31,6 +31,7 @@ import {
   type CustomFieldType
 } from "../../api/configuration.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { CORE_RISK_FIELDS } from "../risks/coreRiskFields";
 
 interface RegisterConfigurationPanelProps {
   registerId: string;
@@ -44,30 +45,6 @@ const fieldTypeOptions: Array<{ value: CustomFieldType; label: string }> = [
   { value: "DATE", label: "Date" },
   { value: "DROPDOWN", label: "Dropdown" },
   { value: "PERSON_PICKER", label: "Person Picker" }
-];
-
-const coreFieldAnchors = [
-  { id: "core-title", displayOrder: 100, fieldName: "Risk Title", fieldType: "Text", isRequired: true },
-  { id: "core-description", displayOrder: 200, fieldName: "Risk Description", fieldType: "Multi-line text", isRequired: true },
-  { id: "core-state", displayOrder: 300, fieldName: "State", fieldType: "State", isRequired: true },
-  { id: "core-created-date", displayOrder: 400, fieldName: "Created Date", fieldType: "Date", isRequired: true },
-  { id: "core-owner", displayOrder: 500, fieldName: "Risk Owner", fieldType: "Person Picker", isRequired: true },
-  { id: "core-likelihood", displayOrder: 600, fieldName: "Likelihood", fieldType: "Likelihood", isRequired: true },
-  { id: "core-impact", displayOrder: 700, fieldName: "Impact", fieldType: "Impact", isRequired: true },
-  {
-    id: "core-response-strategy",
-    displayOrder: 800,
-    fieldName: "Risk Response Strategy",
-    fieldType: "Response Strategy",
-    isRequired: true
-  },
-  {
-    id: "core-response-action",
-    displayOrder: 900,
-    fieldName: "Risk Response Action",
-    fieldType: "Multi-line text",
-    isRequired: false
-  }
 ];
 
 function parseInitialOptions(value: string) {
@@ -195,7 +172,7 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
   const orderedFieldRows = useMemo(
     () =>
       [
-        ...coreFieldAnchors.map((field) => ({
+        ...CORE_RISK_FIELDS.map((field) => ({
           ...field,
           kind: "core" as const,
           isActive: true

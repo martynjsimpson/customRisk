@@ -1,12 +1,10 @@
 import { apiClient } from "./client";
-import type { ListMeta } from "./registers.api";
-
-interface ApiResponse<TData, TMeta = undefined> {
-  data: TData;
-  meta: TMeta;
-}
+import type { ApiResponse, ListMeta } from "./types";
+import type { CustomFieldType } from "./configuration.api";
 
 export type RiskState = "DRAFT" | "OPEN" | "CLOSED";
+export const RISK_STATES: RiskState[] = ["DRAFT", "OPEN", "CLOSED"];
+
 export type ReviewStatus = "NOT_REQUIRED" | "NOT_REVIEWED" | "NOT_DUE" | "DUE_SOON" | "OVERDUE";
 
 export interface RiskListQuery {
@@ -58,7 +56,7 @@ export interface RiskListItem {
 export interface CustomFieldDefinition {
   id: string;
   fieldName: string;
-  fieldType: "TEXT" | "MULTILINE_TEXT" | "BOOLEAN" | "NUMBER" | "DATE" | "DROPDOWN" | "PERSON_PICKER";
+  fieldType: CustomFieldType;
   helpText: string | null;
   isRequired: boolean;
   displayOrder: number;

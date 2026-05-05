@@ -27,6 +27,7 @@ import {
   getRisk,
   getRiskFormConfig,
   listRisks,
+  RISK_STATES,
   updateRisk,
   type CustomFieldDefinition,
   type RiskDetail,
@@ -37,33 +38,19 @@ import {
 import type { RegisterRecord } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { usePermissions } from "../../hooks/usePermissions";
+import { CORE_RISK_FIELDS, type CoreRiskFieldId } from "./coreRiskFields";
 
 interface RiskRegisterPanelProps {
   register: RegisterRecord;
 }
 
-type CoreRiskFieldId =
-  | "title"
-  | "description"
-  | "state"
-  | "createdDate"
-  | "ownerUserId"
-  | "likelihoodValueId"
-  | "impactValueId"
-  | "responseStrategyId"
-  | "responseAction";
-
-const coreRiskFieldAnchors: Array<{ id: CoreRiskFieldId; displayOrder: number }> = [
-  { id: "title", displayOrder: 100 },
-  { id: "description", displayOrder: 200 },
-  { id: "state", displayOrder: 300 },
-  { id: "createdDate", displayOrder: 400 },
-  { id: "ownerUserId", displayOrder: 500 },
-  { id: "likelihoodValueId", displayOrder: 600 },
-  { id: "impactValueId", displayOrder: 700 },
-  { id: "responseStrategyId", displayOrder: 800 },
-  { id: "responseAction", displayOrder: 900 }
-];
+const REVIEW_STATUS_OPTIONS = [
+  { value: "NOT_REQUIRED", label: "Not required" },
+  { value: "NOT_REVIEWED", label: "Not reviewed" },
+  { value: "NOT_DUE",      label: "Not due" },
+  { value: "DUE_SOON",     label: "Due soon" },
+  { value: "OVERDUE",      label: "Overdue" },
+] as const;
 
 type RiskFormValues = {
   title: string;
@@ -201,7 +188,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   const orderedRiskFormFields = useMemo(
     () =>
       [
-        ...coreRiskFieldAnchors.map((field) => ({ kind: "core" as const, ...field })),
+        ...CORE_RISK_FIELDS.map((field) => ({ kind: "core" as const, ...field })),
         ...activeCustomFields.map((field) => ({
           kind: "custom" as const,
           id: field.id,
@@ -314,7 +301,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       case "description":
         return <Textarea key={fieldId} label="Description" required minRows={3} {...form.getInputProps("description")} />;
       case "state":
-        return <Select key={fieldId} label="State" data={["DRAFT", "OPEN", "CLOSED"]} required {...form.getInputProps("state")} />;
+        return <Select key={fieldId} label="State" data={RISK_STATES} required {...form.getInputProps("state")} />;
       case "createdDate":
         return (
           <TextInput
@@ -410,7 +397,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         <Select
           label="State"
           clearable
-          data={["DRAFT", "OPEN", "CLOSED"]}
+          data={RISK_STATES}
           value={filters.state ?? null}
           onChange={(value) => {
             setPage(1);
@@ -444,13 +431,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         <Select
           label="Review"
           clearable
-          data={[
-            { value: "NOT_REQUIRED", label: "Not required" },
-            { value: "NOT_REVIEWED", label: "Not reviewed" },
-            { value: "NOT_DUE", label: "Not due" },
-            { value: "DUE_SOON", label: "Due soon" },
-            { value: "OVERDUE", label: "Overdue" }
-          ]}
+          data={REVIEW_STATUS_OPTIONS}
           value={filters.reviewStatus ?? null}
           onChange={(value) => {
             setPage(1);
