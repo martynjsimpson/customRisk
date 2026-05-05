@@ -125,6 +125,7 @@ function coreDetailValue(risk: RiskDetail, fieldId: CoreRiskFieldId): string {
     case "ownerUserId":        return risk.owner.name;
     case "likelihoodValueId":  return risk.likelihood.name;
     case "impactValueId":      return risk.impact.name;
+    case "riskScore":          return String(risk.riskScore);
     case "responseStrategyId": return risk.responseStrategy.name;
     case "responseAction":     return risk.responseAction ?? "";
   }
@@ -332,6 +333,10 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
             {...form.getInputProps("impactValueId")}
           />
         );
+      case "riskScore":
+        return editingRiskId && selectedRiskQuery.data ? (
+          <TextInput key={fieldId} label="Risk score (calculated)" value={String(selectedRiskQuery.data.riskScore)} readOnly />
+        ) : null;
       case "responseStrategyId":
         return (
           <Select
@@ -562,7 +567,6 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                       </Table.Tr>
                     )
                   )}
-                <Table.Tr><Table.Th>Score</Table.Th><Table.Td>{selectedRiskQuery.data.riskScore}</Table.Td></Table.Tr>
                 <Table.Tr><Table.Th>Level</Table.Th><Table.Td>{selectedRiskQuery.data.riskLevel.name}</Table.Td></Table.Tr>
                 <Table.Tr><Table.Th>Next review</Table.Th><Table.Td>{selectedRiskQuery.data.nextReviewDate ?? ""}</Table.Td></Table.Tr>
                 <Table.Tr><Table.Th>Created by</Table.Th><Table.Td>{selectedRiskQuery.data.systemCreatedBy.name}</Table.Td></Table.Tr>
