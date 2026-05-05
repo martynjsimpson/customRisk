@@ -91,7 +91,7 @@ function statusBadge(status: string) {
         : status === "NOT_REVIEWED"
           ? "gray"
           : "green";
-  return <Badge color={color} variant="light">{status.replace(/_/g, " ")}</Badge>;
+  return <Badge color={color}>{status.replace(/_/g, " ")}</Badge>;
 }
 
 function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
@@ -449,7 +449,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       </Group>
 
       <ApiErrorAlert error={riskQuery.error} fallback="Unable to load risks" />
-      <Table striped highlightOnHover>
+      <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Risk ID</Table.Th>
@@ -471,7 +471,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
             <Table.Tr key={risk.id}>
               <Table.Td>{risk.displayRiskId}</Table.Td>
               <Table.Td>{risk.title}</Table.Td>
-              <Table.Td><Badge variant="light">{risk.state}</Badge></Table.Td>
+              <Table.Td><Badge>{risk.state}</Badge></Table.Td>
               <Table.Td>{risk.owner.name}</Table.Td>
               <Table.Td>{risk.likelihood.name}</Table.Td>
               <Table.Td>{risk.impact.name}</Table.Td>

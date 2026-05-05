@@ -44,7 +44,7 @@ export function LoginPage() {
       <Stack gap="md">
         <Title order={2}>Log in</Title>
         {error ? (
-          <Alert color="red" variant="light">
+          <Alert color="red">
             {error}
           </Alert>
         ) : null}

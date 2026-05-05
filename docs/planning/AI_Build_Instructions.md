@@ -1,6 +1,6 @@
 # Custom Risk — AI Build Instructions
 
-**Version:** 1.3  
+**Version:** 1.4  
 **Date:** 2026-05-05  
 **Status:** Draft  
 **Applies to:** MVP implementation  
@@ -78,6 +78,8 @@ While implementing:
 - avoid committing secrets or logging sensitive values;
 - do not introduce a new framework, major library, or architectural pattern without approval;
 - before defining any new type, interface, constant, or enumeration in the frontend, search the existing codebase for an equivalent — if one exists, import it rather than redefining it;
+- before using a Mantine component for the first time in a file, check `frontend/src/main.tsx` for theme `defaultProps` that already set the correct variant or size — do not repeat props that are already the default;
+- for context-specific patterns not covered by theme defaults (for example, table row action buttons use `variant="subtle" size="xs"`), check how the same component is used in nearby tables or panels and match that pattern exactly;
 - shared API types (generic response wrappers, pagination shapes, etc.) belong in `frontend/src/api/types.ts` and must be imported from there by all API modules;
 - type unions that are defined in one API module must not be inlined or redeclared in another — import the existing type instead;
 - lists of domain values used in more than one component (field enumerations, status options, ordered field lists, etc.) must be extracted to a single shared constant and imported wherever needed.

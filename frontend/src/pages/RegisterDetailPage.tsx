@@ -118,7 +118,7 @@ export function RegisterDetailPage() {
     <Stack>
       <Group justify="space-between">
         <Title order={1}>{registerQuery.data?.name ?? "Register"}</Title>
-        <Badge variant="light">{registerQuery.data?.effectiveRole}</Badge>
+        <Badge>{registerQuery.data?.effectiveRole}</Badge>
       </Group>
       <ApiErrorAlert error={registerQuery.error} fallback="Unable to load register" />
       <Tabs defaultValue="risks">
@@ -224,7 +224,7 @@ export function RegisterDetailPage() {
                   <Table.Tr key={permission.id}>
                     <Table.Td>{permission.user.name}</Table.Td>
                     <Table.Td>
-                      <Badge variant="light">{permission.role}</Badge>
+                      <Badge>{permission.role}</Badge>
                     </Table.Td>
                     <Table.Td>
                       <Group justify="flex-end">

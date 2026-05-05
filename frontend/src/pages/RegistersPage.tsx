@@ -63,7 +63,7 @@ export function RegistersPage() {
         {isSystemAdmin ? <Button onClick={openCreateModal}>Create register</Button> : null}
       </Group>
       <ApiErrorAlert error={registersQuery.error} fallback="Unable to load registers" />
-      <Table striped highlightOnHover>
+      <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Name</Table.Th>
@@ -81,7 +81,7 @@ export function RegistersPage() {
                 </Button>
               </Table.Td>
               <Table.Td>
-                <Badge variant="light">{register.effectiveRole}</Badge>
+                <Badge>{register.effectiveRole}</Badge>
               </Table.Td>
               <Table.Td>{register.openRisksCount}</Table.Td>
               <Table.Td>{register.overdueRisksCount}</Table.Td>

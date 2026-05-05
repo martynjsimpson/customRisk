@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Badge,
   Button,
   Checkbox,
@@ -90,7 +89,7 @@ export function UsersPage() {
       <ApiErrorAlert error={usersQuery.error} fallback="Unable to load users" />
       <ApiErrorAlert error={activateMutation.error} fallback="Unable to activate user" />
       <ApiErrorAlert error={deactivateMutation.error} fallback="Unable to deactivate user" />
-      <Table striped highlightOnHover>
+      <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Name</Table.Th>
@@ -113,20 +112,12 @@ export function UsersPage() {
               </Table.Td>
               <Table.Td>
                 <Group gap="xs" justify="flex-end">
-                  <ActionIcon variant="subtle" aria-label="Edit user" onClick={() => startEdit(user)}>
-                    E
-                  </ActionIcon>
-                  <ActionIcon
-                    variant="subtle"
-                    aria-label={user.isActive ? "Deactivate user" : "Activate user"}
-                    onClick={() =>
-                      user.isActive
-                        ? deactivateMutation.mutate(user.id)
-                        : activateMutation.mutate(user.id)
-                    }
-                  >
-                    {user.isActive ? "D" : "A"}
-                  </ActionIcon>
+                  <Button variant="subtle" size="xs" onClick={() => startEdit(user)}>Edit</Button>
+                  {user.isActive ? (
+                    <Button variant="subtle" size="xs" color="red" onClick={() => deactivateMutation.mutate(user.id)}>Deactivate</Button>
+                  ) : (
+                    <Button variant="subtle" size="xs" onClick={() => activateMutation.mutate(user.id)}>Activate</Button>
+                  )}
                 </Group>
               </Table.Td>
             </Table.Tr>

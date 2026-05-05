@@ -241,7 +241,7 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load register configuration" />
       <ApiErrorAlert error={activateFieldMutation.error} fallback="Unable to activate field" />
       <ApiErrorAlert error={deactivateFieldMutation.error} fallback="Unable to deactivate field" />
-      <Table striped highlightOnHover>
+      <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Order</Table.Th>
@@ -260,7 +260,7 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
               <Table.Td>{field.kind === "core" ? field.fieldType : field.fieldTypeLabel}</Table.Td>
               <Table.Td>{field.isRequired ? "Yes" : "No"}</Table.Td>
               <Table.Td>
-                <Badge color={field.kind === "core" ? "blue" : field.isActive ? "green" : "gray"} variant="light">
+                <Badge color={field.kind === "core" ? "blue" : field.isActive ? "green" : "gray"}>
                   {field.kind === "core" ? "Core" : field.isActive ? "Active" : "Inactive"}
                 </Badge>
               </Table.Td>
@@ -387,7 +387,7 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
                   <Table.Td>{option.displayOrder}</Table.Td>
                   <Table.Td>{option.label}</Table.Td>
                   <Table.Td>
-                    <Badge color={option.isActive ? "green" : "gray"} variant="light">
+                    <Badge color={option.isActive ? "green" : "gray"}>
                       {option.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </Table.Td>

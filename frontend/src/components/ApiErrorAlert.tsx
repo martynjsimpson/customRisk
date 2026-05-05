@@ -42,7 +42,7 @@ export function ApiErrorAlert({
   const fields = getApiErrorFields(error);
 
   return (
-    <Alert color="red" variant="light">
+    <Alert color="red">
       <Stack gap={4}>
         <Text>{getApiErrorMessage(error, fallback)}</Text>
         {fields
