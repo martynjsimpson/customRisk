@@ -990,7 +990,7 @@ risk.state in ('DRAFT', 'OPEN')
 
 For Risk Owners:
 
-- open risks where `risk.owner_user_id = current_user.id`;
+- open risks where `risk.owner_user_id = current_user.id`; risk-owner-only list queries must not return unassigned or other users' risks in the same register;
 - due soon risks using derived review status;
 - overdue risks using derived review status.
 
@@ -1125,7 +1125,7 @@ The following items record decisions made during MVP consistency review, plus re
 
 3. **Risk review retention after hard delete:** Implementation may cascade-delete or retain review rows, but MVP must store the review history summary in `audit_risk_snapshot` before hard delete.
 
-4. **Response strategy configurability:** Confirmed for MVP: default response strategies are stored per register. A dedicated response-strategy configuration screen is optional and may be deferred, but the data model supports later editing without redesign.
+4. **Response strategy configurability:** Confirmed for MVP: default response strategies are stored per register. Dedicated response-strategy configuration UI/API is deferred for MVP; the data model supports later editing without redesign.
 
 5. **Risk ID formatting:** MVP supports: plain sequence number (no prefix, no padding); prefixed sequence (`{prefix}-{number}`); zero-padded sequence (with or without prefix). Prefix is optional. Zero-padding is optional with a configurable width (default 4). Changing prefix or padding settings does not retroactively alter existing Risk IDs.
 

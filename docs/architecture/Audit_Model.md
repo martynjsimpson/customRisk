@@ -199,10 +199,9 @@ Use the Prisma `AuditObjectType` enum values:
 | `IMPACT_VALUE` | Impact configuration changes. |
 | `RISK_LEVEL` | Risk level configuration changes. |
 | `RISK_MATRIX` | Risk matrix cell changes. |
-| `RESPONSE_STRATEGY` | Response strategy configuration changes. |
+| `RESPONSE_STRATEGY` | Response strategy configuration changes; configuration mutations are deferred from MVP. |
 | `EXPORT` | CSV export events. |
-| `AUTH` | Login, refresh token, logout, lockout, API key authentication events. |
-| `API_KEY` | API key creation, revocation, or usage where applicable. |
+| `AUTH` | Login, refresh token, logout, and lockout events. |
 
 ---
 
@@ -220,11 +219,8 @@ The following action names are the MVP standard. Use exact uppercase snake-case 
 - `ACCOUNT_LOCKED`
 - `ACCOUNT_UNLOCKED`
 - `PERMISSION_DENIED`
-- `API_KEY_CREATED`
-- `API_KEY_REVOKED`
-- `API_KEY_USED`
 
-For MVP, logging every successful refresh or API key use may be noisy. `REFRESH_TOKEN_REUSE_DETECTED`, lockout events, API key creation/revocation, and security-relevant failures are more important than high-volume successful events.
+For MVP, logging every successful refresh may be noisy. `REFRESH_TOKEN_REUSE_DETECTED`, lockout events, and security-relevant failures are more important than high-volume successful events. API-key audit actions are deferred to post-MVP PM13.
 
 ## 6.2 Users and System Roles
 

@@ -13,6 +13,8 @@ This document tells future AI coding sessions how to use the Custom Risk documen
 
 It is not the source of truth for product scope, technical stack, API routes, schema, permissions, audit, or security. It is a routing and governance guide for implementation work.
 
+MVP implementation scope is limited to `docs/planning/Implementation_Backlog.md` Phase 0 through Phase 6. PM-prefixed tickets and any enhancement work formerly tracked as Phase 7 are post-MVP and must not be implemented during MVP unless `docs/product/MVP_Scope.md` and the MVP backlog are explicitly updated.
+
 ---
 
 ## 2. Source-of-Truth Map

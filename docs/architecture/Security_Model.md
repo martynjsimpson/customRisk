@@ -12,7 +12,7 @@
 
 This document defines the security model for the Custom Risk MVP.
 
-It consolidates the authentication, session, password, token, API key, rate limiting, CORS, secret handling, audit, and permission enforcement rules that must be followed during implementation.
+It consolidates the authentication, session, password, token, rate limiting, CORS, secret handling, audit, and permission enforcement rules that must be followed during implementation.
 
 The MVP uses application-managed local authentication. SAML, Microsoft Entra ID, MFA, SMTP credential handling, advanced secrets management, and enterprise identity lifecycle features are deferred.
 
@@ -162,8 +162,7 @@ Password changes may be audited with a redacted field-change value such as:
 The MVP uses:
 
 - short-lived signed JWT access tokens;
-- rotating opaque refresh tokens;
-- API keys for external integrations.
+- rotating opaque refresh tokens.
 
 ## 5.1 Access Tokens
 
@@ -294,25 +293,16 @@ Rate limiting is not a replacement for account lockout. Both controls are requir
 
 ## 7. API Keys
 
-External integrations must use API keys rather than user JWTs.
+API keys and external integration authentication are deferred to post-MVP.
 
-API key standard:
+For MVP:
 
-| Area | Standard |
-|---|---|
-| Token format | Random 32-byte token, base64url encoded |
-| Prefix | `cr_live_...` or environment-specific equivalent |
-| Storage | Hashed in `api_key.key_hash` |
-| User link | `api_key.user_id` |
-| Transport | `Authorization: Bearer <api_key>` |
-| Permission model | Inherits linked user's current permissions |
-| Revocation | Immediate by deleting or revoking API key record |
+- do not implement API-key authentication middleware;
+- do not create API-key management UI or admin endpoints;
+- do not create or seed usable API keys;
+- do not allow `Authorization: Bearer` values other than access JWTs for protected routes.
 
-API keys must be differentiated from JWTs by prefix detection.
-
-API key values must never be logged or stored in plain form after creation. Audit API key usage with a key identifier or prefix only.
-
-API key management UI is post-MVP. For MVP, keys may be created by System Admins directly in the database or through a restricted admin endpoint.
+Post-MVP API-key design should be handled under PM13 in `docs/planning/Post_MVP_Implementation_Backlog.md`.
 
 ---
 
@@ -328,7 +318,6 @@ Backend requirements:
 - field-level edit restrictions must be enforced in risk update services;
 - System Admin status used for sensitive actions should be confirmed against current database state;
 - register permissions and risk ownership must be evaluated from current database state;
-- API keys must use the same permission checks as browser sessions.
 
 Use `404 NOT_FOUND` where returning `403 FORBIDDEN` would reveal the existence of hidden resources.
 
@@ -448,8 +437,7 @@ Required or recommended security audit events:
 - `REGISTER_VIEWER_ADDED`;
 - `REGISTER_VIEWER_REMOVED`;
 - `PERMISSION_DENIED` where practical;
-- `API_KEY_CREATED`;
-- `API_KEY_REVOKED`.
+
 
 Logs and audit records must not contain:
 
@@ -458,8 +446,6 @@ Logs and audit records must not contain:
 - refresh tokens;
 - refresh token hashes;
 - access JWTs;
-- API keys;
-- API key hashes;
 - cookie headers;
 - full request bodies containing credentials.
 
@@ -501,6 +487,6 @@ Security-specific capabilities deferred from MVP are:
 - tamper-evident audit hashing;
 - formal secrets manager integration;
 - configurable password policies;
-- API key self-service UI.
+- API keys and external integration authentication.
 
 These deferrals must be revisited before broader production or enterprise deployment.

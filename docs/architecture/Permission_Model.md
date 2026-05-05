@@ -255,6 +255,8 @@ Register Viewers do not receive audit log access in the MVP.
 
 If a user has multiple permissions, use the highest applicable capability. For example, a Register Viewer who is also the Risk Owner of one risk can view the whole register as a viewer and edit/review only their assigned risk as owner.
 
+Risk-owner-derived register access is container access only. A user who can access a register solely because they own one or more risks must not be able to list or view unassigned risks in that register. Risk list queries must filter to `ownerUserId = actor.userId` unless the actor also has System Admin, Register Admin, or Register Viewer access.
+
 ---
 
 ## 6. Field-Level Edit Rules
@@ -283,7 +285,6 @@ Risk Owners may edit permitted business fields on assigned risks:
 - title;
 - description;
 - state, subject to validation;
-- owner;
 - likelihood;
 - impact;
 - response strategy;
@@ -377,7 +378,7 @@ Implementation standard:
 
 If System Admin status is included in the JWT, services that perform highly sensitive operations should confirm current `user.is_system_admin` from the database.
 
-API keys inherit the permissions of the linked user account and must use the same effective permission checks as browser sessions.
+API keys and external integration authentication are deferred to post-MVP.
 
 ---
 
@@ -390,7 +391,7 @@ After authentication, request context should contain at least:
 ```typescript
 type AuthenticatedActor = {
   userId: string;
-  authMethod: 'jwt' | 'apiKey';
+  authMethod: 'jwt';
 };
 ```
 
@@ -523,7 +524,6 @@ Permission change audit events should be written in the same transaction as the 
 | Viewer export setting | `Register.allowViewerExport` |
 | Audit actor | `AuditEvent.actorUserId` |
 | Permission audit object | `AuditEvent.objectType` and `AuditEvent.action` |
-| API key inherited permission | `ApiKey.userId` linked to `User` |
 
 Database constraints support uniqueness of register permission rows:
 

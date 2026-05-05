@@ -2301,7 +2301,7 @@ Phase goal: expose controlled integration capabilities for external systems whil
 
 **Goal:** Finalise API key persistence and scope model for external integrations.
 
-**Dependencies:** Security Model; MVP API key helper if implemented.
+**Dependencies:** Security Model; API Route Map; Permission Model; Audit Model.
 
 **Deliverables:**
 

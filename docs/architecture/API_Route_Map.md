@@ -55,7 +55,7 @@ CSV export endpoints return `text/csv`.
 Authenticated API requests use:
 
 ```http
-Authorization: Bearer <access_token_or_api_key>
+Authorization: Bearer <access_token>
 ```
 
 Browser sessions use:
@@ -63,7 +63,7 @@ Browser sessions use:
 - short-lived JWT access token in memory;
 - rotating refresh token in an HttpOnly, Secure, SameSite cookie.
 
-External integrations may use API keys in the same bearer header. API keys are differentiated by prefix and validated server-side.
+API keys and external integration authentication are deferred to post-MVP. MVP protected routes accept browser-session access tokens only.
 
 ## 2.4 Success Response Shape
 
@@ -968,32 +968,16 @@ The MVP requires response strategies per register, with default values:
 - Transfer
 - Avoid
 
-A dedicated configuration screen is optional, but the API supports later editing without redesign.
+For MVP, response strategies are seeded with each register and may be listed for risk create/edit forms. Dedicated response strategy configuration routes are post-MVP unless MVP Scope is explicitly updated.
 
 | Method | Route | Purpose | Auth | Audit |
 |---|---|---|---|---|
 | `GET` | `/registers/:registerId/response-strategies` | List response strategies. | Register access | None |
-| `POST` | `/registers/:registerId/response-strategies` | Create response strategy. | System Admin or Register Admin | `RESPONSE_STRATEGY_CREATED` |
-| `PATCH` | `/registers/:registerId/response-strategies/:strategyId` | Update response strategy. | System Admin or Register Admin | `RESPONSE_STRATEGY_UPDATED` |
-| `POST` | `/registers/:registerId/response-strategies/:strategyId/deactivate` | Deactivate response strategy. | System Admin or Register Admin | `RESPONSE_STRATEGY_DEACTIVATED` |
 
-## 17.1 `POST /registers/:registerId/response-strategies`
 
-Request:
+## 17.1 Configuration Deferral
 
-```json
-{
-  "name": "Mitigate",
-  "displayOrder": 2,
-  "isActive": true
-}
-```
-
-Rules:
-
-- name must be unique within register;
-- display order should be unique within register;
-- used response strategies should be deactivated rather than deleted.
+Creating, editing, reordering, or deactivating response strategy values is deferred. The MVP should seed the four default values and expose them as selectable active values.
 
 ---
 
@@ -1008,6 +992,12 @@ Rules:
 | `DELETE` | `/registers/:registerId/risks/:riskId` | Hard delete risk. | System Admin | `RISK_DELETED` plus snapshot |
 
 ## 18.1 `GET /registers/:registerId/risks`
+
+Risk Owner visibility rule:
+
+- If the actor has register-wide access through System Admin, Register Admin, or Register Viewer, return risks according to the query filters.
+- If the actor has access only because they own one or more risks in the register, return only risks where `ownerUserId` equals the actor's user ID.
+- Register access as a container must not be interpreted as permission for a Risk Owner to list every risk in that register.
 
 Query parameters:
 
@@ -1606,6 +1596,8 @@ Do not implement these routes for MVP:
 /reports/advanced
 /attachments
 /configuration-versions
+/api-keys
+/registers/:registerId/response-strategies configuration mutations
 ```
 
 These map to deferred PRD areas and should not be added unless the MVP scope changes.

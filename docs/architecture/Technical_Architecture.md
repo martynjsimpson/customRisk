@@ -297,13 +297,13 @@ This Technical Architecture document records only the architectural boundary:
 
 - MVP uses application-managed local authentication.
 - Authentication and authorisation are implemented in the Express backend.
-- User, refresh-token, and API-key persistence is in PostgreSQL through Prisma.
+- User and refresh-token persistence is in PostgreSQL through Prisma. API-key persistence is deferred to post-MVP.
 - Password hashing uses the selected backend library from section 3.2.
 - Route-level behaviour is defined in `API_Route_Map.md`.
 - Effective access rules are defined in `Permission_Model.md`.
 - Security audit requirements are defined in `Audit_Model.md` and `Security_Model.md`.
 
-Do not duplicate password policy, token rotation, cookie settings, rate limits, or API key rules here. Keep those details in `Security_Model.md`.
+Do not duplicate password policy, token rotation, cookie settings, or rate-limit rules here. Keep those details in `Security_Model.md`.
 
 ---
 
@@ -315,7 +315,7 @@ Do not duplicate password policy, token rotation, cookie settings, rate limits, 
 | Base path | `/api/v1/` |
 | Request body format | JSON |
 | Response body format | JSON |
-| Auth header | `Authorization: Bearer <access_token_or_api_key>` |
+| Auth header | `Authorization: Bearer <access_token>` |
 | Content type | `application/json` |
 | Versioning | Path-based versioning |
 
@@ -552,6 +552,6 @@ The architecture document set for MVP implementation is:
 2. **API Route Map** — Full inventory of REST endpoints, request/response shapes, query parameters, auth requirements, and audit events.
 3. **Permission Model** — Effective permissions, role behaviour, field-level edit restrictions, and backend enforcement rules.
 4. **Audit Model** — Audit event structure, action names, scopes, field changes, snapshots, and audit access rules.
-5. **Security Model** — Authentication, sessions, passwords, API keys, CORS, validation, secrets, and security logging.
+5. **Security Model** — Authentication, sessions, passwords, CORS, validation, secrets, and security logging. API keys are post-MVP.
 6. **Schema** — Reference document pointing to `backend/prisma/schema.prisma` as the canonical drafted Prisma schema.
 7. **Implementation Backlog** — AI-ready build tickets broken down by MVP Scope v1.2 phases, with acceptance criteria derived from the MVP Functional Specification.

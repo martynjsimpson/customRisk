@@ -320,6 +320,7 @@ Reason: inherent/residual risk doubles the scoring surface area and affects form
 ### Defer
 
 - Child-record Risk Response Actions.
+- Risk Response Strategy configuration UI/API beyond seeded default values.
 - Risk Response Action owners.
 - Action statuses.
 - Due dates.

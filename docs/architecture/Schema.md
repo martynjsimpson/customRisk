@@ -18,6 +18,6 @@ The drafted MVP database schema is maintained directly in:
 backend/prisma/schema.prisma
 ```
 
-That Prisma schema is the canonical implementation source for the current as-drafted relational model, including users, sessions, API keys, registers, permissions, risks, reviews, configuration tables, audit tables, and export metadata.
+That Prisma schema is the canonical implementation source for the current as-drafted relational model, including users, sessions, registers, permissions, risks, reviews, configuration tables, audit tables, and export metadata.
 
 Do not duplicate the full schema in this document. Update `backend/prisma/schema.prisma` and the relevant architecture/product documents when the data model changes.

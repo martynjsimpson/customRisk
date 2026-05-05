@@ -49,7 +49,7 @@ Use the following MVP technical stack:
 | Authentication | Application-managed local authentication |
 | Password hashing | `bcryptjs`, cost factor 12 |
 | Browser session model | Short-lived JWT access token plus rotating refresh token |
-| External integrations | API keys, not user JWTs |
+| External integrations | Deferred to post-MVP |
 | Logging | Pino |
 | Validation | Zod |
 | Rate limiting | `express-rate-limit` |
@@ -67,7 +67,7 @@ The stack was selected to support the following goals:
 - Good compatibility with containerised self-hosted deployment
 - Strong relational data modelling
 - Explicit audit and permission behaviour
-- Easy future extension toward SAML, background jobs, observability, and API key management
+- Easy future extension toward SAML, background jobs, observability, and integration/API-key management
 
 ---
 
@@ -245,15 +245,11 @@ This is an accepted tradeoff for stateless access tokens.
 
 If a shorter deactivation window is needed later, the access token expiry can be reduced, for example to 15 minutes, at the cost of more frequent refresh calls.
 
-### 4.17 API Keys for External Integrations
+### 4.17 External Integrations
 
-External systems use API keys rather than user JWTs.
+External integration authentication, including API keys, is deferred to post-MVP.
 
-API keys are more suitable for integrations, reporting tools, and scripts because they are long-lived and can be revoked independently.
-
-API keys inherit the permissions of a linked user account for MVP. This avoids introducing a separate service-account permission model before it is needed.
-
-API key values are stored hashed and are never logged.
+The MVP stack should not implement API-key authentication, API-key management routes, or manual API-key creation helpers. PM13 in the post-MVP backlog will define the API-key persistence, scope, revocation, and audit model.
 
 ### 4.18 REST and Path-Based API Versioning
 
@@ -365,9 +361,7 @@ The local authentication architecture should not prevent future external identit
 - Serving static files from Express is acceptable for MVP but may not be ideal for larger production deployments.
 - Stateless JWT access tokens mean deactivation is not instantaneous for already-issued access tokens.
 - Offset pagination may need replacing if data volumes grow significantly.
-- API keys inherit user permissions rather than using a dedicated service-account model.
-- API key self-service management is deferred.
-- Manual database/admin endpoint API key creation is acceptable only for MVP.
+- External integration authentication, including API keys, is deferred to post-MVP PM13.
 
 ---
 

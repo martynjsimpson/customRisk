@@ -2,14 +2,14 @@
 
 **Status:** Accepted  
 **Date:** 2026-05-05  
-**Applies to:** Custom Risk — post-MVP user profile and preferences (P7-03 to P7-06)  
-**Related documents:** Implementation Backlog (P7-03 to P7-06), MVP Data Model v1.2, PRD v3.2 section 19.1
+**Applies to:** Custom Risk — post-MVP user profile and preferences (PM1-01 to PM1-04)  
+**Related documents:** Post-MVP Implementation Backlog (PM1-01 to PM1-04), MVP Data Model v1.2, PRD v3.2 section 19.1
 
 ---
 
 ## 1. Context
 
-Adding user profile and Dark Mode support (P7-03 to P7-06) requires a decision on where to persist user display preferences such as colour scheme (light/dark).
+Adding user profile and Dark Mode support (PM1-01 to PM1-04) requires a decision on where to persist user display preferences such as colour scheme (light/dark).
 
 Two options were considered:
 
@@ -67,7 +67,7 @@ The initial stored shape is:
 
 ## 5. Consequences
 
-- A Prisma migration must add `preferences Json? @default("{}")` (or equivalent) to the `User` model as part of P7-05.
+- A Prisma migration must add `preferences Json? @default("{}")` (or equivalent) to the `User` model as part of PM1-03.
 - The preferences PATCH endpoint must merge at the key level, not replace the entire object, to prevent one client overwriting preferences set by another.
 - Secrets and sensitive values must not be stored in the preferences column. It is not treated as governed data and is not audited.
 - Table column layout preferences, if implemented, should use `localStorage` keyed by `registerId` and are explicitly out of scope for this decision.
