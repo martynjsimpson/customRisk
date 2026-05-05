@@ -17,10 +17,12 @@ import {
   createCustomFieldOptionController,
   createImpactValueController,
   createLikelihoodValueController,
+  createRiskLevelController,
   deactivateCustomFieldController,
   deactivateCustomFieldOptionController,
   deactivateImpactValueController,
   deactivateLikelihoodValueController,
+  deactivateRiskLevelController,
   getCustomFieldController,
   getRegisterConfigController,
   getRiskFormConfigController,
@@ -28,10 +30,12 @@ import {
   listCustomFieldsController,
   listImpactValuesController,
   listLikelihoodValuesController,
+  listRiskLevelsController,
   updateCustomFieldController,
   updateCustomFieldOptionController,
   updateImpactValueController,
-  updateLikelihoodValueController
+  updateLikelihoodValueController,
+  updateRiskLevelController
 } from "../controllers/configuration.controller.js";
 import {
   createRiskController,
@@ -64,14 +68,17 @@ import {
   createCustomFieldOptionSchema,
   createImpactValueSchema,
   createLikelihoodValueSchema,
+  createRiskLevelSchema,
   customFieldOptionParamsSchema,
   customFieldParamsSchema,
   impactParamsSchema,
   likelihoodParamsSchema,
+  riskLevelParamsSchema,
   updateCustomFieldSchema,
   updateCustomFieldOptionSchema,
   updateImpactValueSchema,
-  updateLikelihoodValueSchema
+  updateLikelihoodValueSchema,
+  updateRiskLevelSchema
 } from "../validators/configuration.schemas.js";
 import {
   createRiskSchema,
@@ -256,6 +263,30 @@ export function createRegistersRouter() {
     validateRequest({ params: impactParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(deactivateImpactValueController)
+  );
+  router.get(
+    "/:registerId/risk-levels",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterAccess(),
+    asyncRoute(listRiskLevelsController)
+  );
+  router.post(
+    "/:registerId/risk-levels",
+    validateRequest({ params: registerIdParamsSchema, body: createRiskLevelSchema }),
+    requireRegisterManagement(),
+    asyncRoute(createRiskLevelController)
+  );
+  router.patch(
+    "/:registerId/risk-levels/:riskLevelId",
+    validateRequest({ params: riskLevelParamsSchema, body: updateRiskLevelSchema }),
+    requireRegisterManagement(),
+    asyncRoute(updateRiskLevelController)
+  );
+  router.post(
+    "/:registerId/risk-levels/:riskLevelId/deactivate",
+    validateRequest({ params: riskLevelParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(deactivateRiskLevelController)
   );
   router.get(
     "/:registerId/risks/:riskId",

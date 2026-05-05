@@ -33,7 +33,10 @@ export const auditActions = {
   likelihoodValueDeactivated: "LIKELIHOOD_VALUE_DEACTIVATED",
   impactValueCreated: "IMPACT_VALUE_CREATED",
   impactValueUpdated: "IMPACT_VALUE_UPDATED",
-  impactValueDeactivated: "IMPACT_VALUE_DEACTIVATED"
+  impactValueDeactivated: "IMPACT_VALUE_DEACTIVATED",
+  riskLevelCreated: "RISK_LEVEL_CREATED",
+  riskLevelUpdated: "RISK_LEVEL_UPDATED",
+  riskLevelDeactivated: "RISK_LEVEL_DEACTIVATED"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];

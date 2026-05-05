@@ -7,21 +7,25 @@ import {
   createCustomFieldOption,
   createImpactValue,
   createLikelihoodValue,
+  createRiskLevel,
   deactivateCustomField,
   deactivateCustomFieldOption,
   deactivateImpactValue,
   deactivateLikelihoodValue,
+  deactivateRiskLevel,
   getCustomField,
   listCustomFields,
   listCustomFieldOptions,
   listImpactValues,
   listLikelihoodValues,
+  listRiskLevels,
   getRegisterConfig,
   getRiskFormConfig,
   updateCustomField,
   updateCustomFieldOption,
   updateImpactValue,
-  updateLikelihoodValue
+  updateLikelihoodValue,
+  updateRiskLevel
 } from "../services/configuration.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { sendData } from "../utils/apiResponse.js";
@@ -30,14 +34,17 @@ import type {
   CreateCustomFieldOptionBody,
   CreateImpactValueBody,
   CreateLikelihoodValueBody,
+  CreateRiskLevelBody,
   CustomFieldOptionParams,
   CustomFieldParams,
   ImpactParams,
   LikelihoodParams,
+  RiskLevelParams,
   UpdateCustomFieldBody,
   UpdateCustomFieldOptionBody,
   UpdateImpactValueBody,
-  UpdateLikelihoodValueBody
+  UpdateLikelihoodValueBody,
+  UpdateRiskLevelBody
 } from "../validators/configuration.schemas.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
 
@@ -247,6 +254,53 @@ export async function deactivateImpactValueController(
       actorOrThrow(request),
       request.params.registerId,
       request.params.impactId
+    )
+  );
+}
+
+export async function listRiskLevelsController(
+  request: Request<{ registerId: string }>,
+  response: Response
+) {
+  sendData(response, await listRiskLevels(request.params.registerId));
+}
+
+export async function createRiskLevelController(
+  request: Request<{ registerId: string }, unknown, CreateRiskLevelBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await createRiskLevel(actorOrThrow(request), request.params.registerId, request.body),
+    201
+  );
+}
+
+export async function updateRiskLevelController(
+  request: Request<RiskLevelParams, unknown, UpdateRiskLevelBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await updateRiskLevel(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.riskLevelId,
+      request.body
+    )
+  );
+}
+
+export async function deactivateRiskLevelController(
+  request: Request<RiskLevelParams>,
+  response: Response
+) {
+  sendData(
+    response,
+    await deactivateRiskLevel(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.riskLevelId
     )
   );
 }

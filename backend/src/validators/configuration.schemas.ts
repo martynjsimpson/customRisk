@@ -105,3 +105,26 @@ export const updateImpactValueSchema = z.object({
 export type ImpactParams = z.infer<typeof impactParamsSchema>;
 export type CreateImpactValueBody = z.infer<typeof createImpactValueSchema>;
 export type UpdateImpactValueBody = z.infer<typeof updateImpactValueSchema>;
+
+export const riskLevelParamsSchema = z.object({
+  registerId: z.string().uuid(),
+  riskLevelId: z.string().uuid()
+});
+
+export const createRiskLevelSchema = z.object({
+  name: z.string().trim().min(1),
+  description: z.string().trim().nullable().optional(),
+  displayOrder: z.number().int().min(1),
+  isActive: z.boolean().default(true)
+});
+
+export const updateRiskLevelSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  description: z.string().trim().nullable().optional(),
+  displayOrder: z.number().int().min(1).optional(),
+  isActive: z.boolean().optional()
+});
+
+export type RiskLevelParams = z.infer<typeof riskLevelParamsSchema>;
+export type CreateRiskLevelBody = z.infer<typeof createRiskLevelSchema>;
+export type UpdateRiskLevelBody = z.infer<typeof updateRiskLevelSchema>;
