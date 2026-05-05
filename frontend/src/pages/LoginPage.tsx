@@ -1,10 +1,10 @@
 import { Alert, Button, PasswordInput, Stack, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { isAxiosError } from "axios";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/session";
+import { getApiErrorMessage } from "../components/ApiErrorAlert";
 
 export function LoginPage() {
   const { accessToken, login } = useAuth();
@@ -35,11 +35,7 @@ export function LoginPage() {
           await login(values.email, values.password);
           navigate("/", { replace: true });
         } catch (caught) {
-          const message =
-            isAxiosError(caught) && caught.response?.data?.error?.message
-              ? caught.response.data.error.message
-              : "Login failed";
-          setError(message);
+          setError(getApiErrorMessage(caught, "Login failed"));
         } finally {
           setIsSubmitting(false);
         }

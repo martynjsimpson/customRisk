@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 
 import { createRegister, listRegisters } from "../api/registers.api";
 import { listUsers } from "../api/users.api";
+import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { usePermissions } from "../hooks/usePermissions";
 
 export function RegistersPage() {
@@ -45,15 +46,23 @@ export function RegistersPage() {
     mutationFn: createRegister,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["registers"] });
+      close();
+      form.reset();
     }
   });
+
+  const openCreateModal = () => {
+    createMutation.reset();
+    open();
+  };
 
   return (
     <Stack>
       <Group justify="space-between">
         <Title order={1}>Registers</Title>
-        {isSystemAdmin ? <Button onClick={open}>Create register</Button> : null}
+        {isSystemAdmin ? <Button onClick={openCreateModal}>Create register</Button> : null}
       </Group>
+      <ApiErrorAlert error={registersQuery.error} fallback="Unable to load registers" />
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -83,16 +92,16 @@ export function RegistersPage() {
       <Modal opened={opened} onClose={close} title="Create register">
         <form
           onSubmit={form.onSubmit(async (values) => {
-            await createMutation.mutateAsync({
+            createMutation.mutate({
               ...values,
               riskIdPrefix: values.riskIdPrefix || undefined,
               initialRegisterAdminUserIds: values.initialRegisterAdminUserIds
             });
-            close();
-            form.reset();
           })}
         >
           <Stack>
+            <ApiErrorAlert error={createMutation.error} fallback="Unable to create register" />
+            <ApiErrorAlert error={usersQuery.error} fallback="Unable to load register admin candidates" />
             <TextInput label="Name" required {...form.getInputProps("name")} />
             <Textarea label="Description" {...form.getInputProps("description")} />
             <TextInput label="Risk ID prefix" {...form.getInputProps("riskIdPrefix")} />

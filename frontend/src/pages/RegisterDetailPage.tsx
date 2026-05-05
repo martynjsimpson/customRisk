@@ -25,6 +25,7 @@ import {
   removeRegisterPermission,
   updateRegister
 } from "../api/registers.api";
+import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { RiskRegisterPanel } from "../features/risks/RiskRegisterPanel";
 import { usePermissions } from "../hooks/usePermissions";
 
@@ -102,7 +103,10 @@ export function RegisterDetailPage() {
   });
   const addPermissionMutation = useMutation({
     mutationFn: () => addRegisterPermission(registerId, permissionForm.values),
-    onSuccess: invalidate
+    onSuccess: async () => {
+      permissionForm.reset();
+      await invalidate();
+    }
   });
   const removePermissionMutation = useMutation({
     mutationFn: (permissionId: string) => removeRegisterPermission(registerId, permissionId),
@@ -115,6 +119,7 @@ export function RegisterDetailPage() {
         <Title order={1}>{registerQuery.data?.name ?? "Register"}</Title>
         <Badge variant="light">{registerQuery.data?.effectiveRole}</Badge>
       </Group>
+      <ApiErrorAlert error={registerQuery.error} fallback="Unable to load register" />
       <Tabs defaultValue="risks">
         <Tabs.List>
           <Tabs.Tab value="risks">Risks</Tabs.Tab>
@@ -131,6 +136,7 @@ export function RegisterDetailPage() {
             })}
           >
             <Stack>
+              <ApiErrorAlert error={updateMutation.error} fallback="Unable to save register settings" />
               <TextInput label="Name" disabled={!canManage} {...settingsForm.getInputProps("name")} />
               <Textarea label="Description" disabled={!canManage} {...settingsForm.getInputProps("description")} />
               <TextInput label="Risk ID prefix" disabled={!canManage} {...settingsForm.getInputProps("riskIdPrefix")} />
@@ -169,10 +175,13 @@ export function RegisterDetailPage() {
         </Tabs.Panel>
         <Tabs.Panel value="permissions" pt="md">
           <Stack>
+            <ApiErrorAlert error={permissionsQuery.error} fallback="Unable to load permissions" />
+            <ApiErrorAlert error={usersQuery.error} fallback="Unable to load permission candidates" />
+            <ApiErrorAlert error={addPermissionMutation.error} fallback="Unable to add permission" />
+            <ApiErrorAlert error={removePermissionMutation.error} fallback="Unable to remove permission" />
             <form
-              onSubmit={permissionForm.onSubmit(async () => {
-                await addPermissionMutation.mutateAsync();
-                permissionForm.reset();
+              onSubmit={permissionForm.onSubmit(() => {
+                addPermissionMutation.mutate();
               })}
             >
               <Group align="end">

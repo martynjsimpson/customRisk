@@ -24,6 +24,7 @@ import {
   updateUser,
   type UserRecord
 } from "../api/users.api";
+import { ApiErrorAlert } from "../components/ApiErrorAlert";
 
 export function UsersPage() {
   const queryClient = useQueryClient();
@@ -43,22 +44,30 @@ export function UsersPage() {
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ["users"] });
   };
-  const createMutation = useMutation({ mutationFn: createUser, onSuccess: invalidate });
+  const closeAndInvalidate = async () => {
+    close();
+    await invalidate();
+  };
+  const createMutation = useMutation({ mutationFn: createUser, onSuccess: closeAndInvalidate });
   const updateMutation = useMutation({
     mutationFn: ({ userId, values }: { userId: string; values: Partial<typeof form.values> }) =>
       updateUser(userId, values),
-    onSuccess: invalidate
+    onSuccess: closeAndInvalidate
   });
   const activateMutation = useMutation({ mutationFn: activateUser, onSuccess: invalidate });
   const deactivateMutation = useMutation({ mutationFn: deactivateUser, onSuccess: invalidate });
 
   const startCreate = () => {
+    createMutation.reset();
+    updateMutation.reset();
     setEditingUser(null);
     form.setValues({ name: "", email: "", password: "", isSystemAdmin: false, isActive: true });
     open();
   };
 
   const startEdit = (user: UserRecord) => {
+    createMutation.reset();
+    updateMutation.reset();
     setEditingUser(user);
     form.setValues({
       name: user.name,
@@ -78,6 +87,9 @@ export function UsersPage() {
           Add user
         </Button>
       </Group>
+      <ApiErrorAlert error={usersQuery.error} fallback="Unable to load users" />
+      <ApiErrorAlert error={activateMutation.error} fallback="Unable to activate user" />
+      <ApiErrorAlert error={deactivateMutation.error} fallback="Unable to deactivate user" />
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -133,14 +145,17 @@ export function UsersPage() {
                     isSystemAdmin: values.isSystemAdmin,
                     isActive: values.isActive
                   };
-              await updateMutation.mutateAsync({ userId: editingUser.id, values: payload });
+              updateMutation.mutate({ userId: editingUser.id, values: payload });
             } else {
-              await createMutation.mutateAsync(values);
+              createMutation.mutate(values);
             }
-            close();
           })}
         >
           <Stack>
+            <ApiErrorAlert
+              error={editingUser ? updateMutation.error : createMutation.error}
+              fallback={editingUser ? "Unable to update user" : "Unable to create user"}
+            />
             <TextInput label="Name" required {...form.getInputProps("name")} />
             <TextInput label="Email" required {...form.getInputProps("email")} />
             <PasswordInput

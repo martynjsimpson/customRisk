@@ -74,6 +74,7 @@ While implementing:
 - enforce permissions in the backend, not only the UI;
 - validate request bodies and query parameters server-side;
 - write audit events where required;
+- when creating or changing frontend UI that calls the backend, display API errors to the user using the app's shared error display pattern, including field-level validation messages where the API returns them;
 - avoid committing secrets or logging sensitive values;
 - do not introduce a new framework, major library, or architectural pattern without approval.
 

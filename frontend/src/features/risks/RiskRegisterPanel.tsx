@@ -35,6 +35,7 @@ import {
   type SaveRiskInput
 } from "../../api/risks.api";
 import type { RegisterRecord } from "../../api/registers.api";
+import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { usePermissions } from "../../hooks/usePermissions";
 
 interface RiskRegisterPanelProps {
@@ -282,6 +283,10 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     return <Loader />;
   }
 
+  if (formConfigQuery.error) {
+    return <ApiErrorAlert error={formConfigQuery.error} fallback="Unable to load risk form configuration" />;
+  }
+
   return (
     <Stack>
       <Group justify="space-between">
@@ -295,6 +300,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
           {canManage ? <Button onClick={openCreate}>Add risk</Button> : null}
         </Group>
       </Group>
+      <ApiErrorAlert error={exportMutation.error} fallback="Unable to export risks" />
 
       <Group align="end">
         <TextInput
@@ -365,7 +371,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         />
       </Group>
 
-      {riskQuery.error ? <Alert color="red">Unable to load risks</Alert> : null}
+      <ApiErrorAlert error={riskQuery.error} fallback="Unable to load risks" />
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -426,7 +432,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       <Modal opened={formOpened} onClose={() => setFormOpened(false)} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
         <form onSubmit={form.onSubmit(() => saveMutation.mutate())}>
           <Stack>
-            {saveMutation.error ? <Alert color="red">Unable to save risk</Alert> : null}
+            <ApiErrorAlert error={saveMutation.error} fallback="Unable to save risk" />
             <TextInput label="Title" required {...form.getInputProps("title")} />
             <Textarea label="Description" required minRows={3} {...form.getInputProps("description")} />
             <Group grow>
@@ -473,6 +479,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       </Modal>
 
       <Modal opened={Boolean(detailRiskId)} onClose={() => setDetailRiskId(null)} title="Risk detail" size="lg">
+        <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk detail" />
         {selectedRiskQuery.data ? (
           <Stack>
             <Group justify="space-between">
@@ -494,14 +501,15 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
             </Table>
             {customFieldDisplay(selectedRiskQuery.data)}
           </Stack>
-        ) : (
+        ) : selectedRiskQuery.isLoading ? (
           <Loader />
-        )}
+        ) : null}
       </Modal>
 
       <Modal opened={Boolean(deleteRiskId)} onClose={() => setDeleteRiskId(null)} title="Delete risk">
         <Stack>
           <Alert color="red">This permanently deletes the risk after writing an audit snapshot.</Alert>
+          <ApiErrorAlert error={deleteMutation.error} fallback="Unable to delete risk" />
           <Textarea
             label="Deletion reason"
             value={deletionReason}
