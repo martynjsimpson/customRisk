@@ -46,6 +46,30 @@ const fieldTypeOptions: Array<{ value: CustomFieldType; label: string }> = [
   { value: "PERSON_PICKER", label: "Person Picker" }
 ];
 
+const coreFieldAnchors = [
+  { id: "core-title", displayOrder: 100, fieldName: "Risk Title", fieldType: "Text", isRequired: true },
+  { id: "core-description", displayOrder: 200, fieldName: "Risk Description", fieldType: "Multi-line text", isRequired: true },
+  { id: "core-state", displayOrder: 300, fieldName: "State", fieldType: "State", isRequired: true },
+  { id: "core-created-date", displayOrder: 400, fieldName: "Created Date", fieldType: "Date", isRequired: true },
+  { id: "core-owner", displayOrder: 500, fieldName: "Risk Owner", fieldType: "Person Picker", isRequired: true },
+  { id: "core-likelihood", displayOrder: 600, fieldName: "Likelihood", fieldType: "Likelihood", isRequired: true },
+  { id: "core-impact", displayOrder: 700, fieldName: "Impact", fieldType: "Impact", isRequired: true },
+  {
+    id: "core-response-strategy",
+    displayOrder: 800,
+    fieldName: "Risk Response Strategy",
+    fieldType: "Response Strategy",
+    isRequired: true
+  },
+  {
+    id: "core-response-action",
+    displayOrder: 900,
+    fieldName: "Risk Response Action",
+    fieldType: "Multi-line text",
+    isRequired: false
+  }
+];
+
 function parseInitialOptions(value: string) {
   return value
     .split("\n")
@@ -168,6 +192,22 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
     () => configQuery.data?.customFields ?? [],
     [configQuery.data?.customFields]
   );
+  const orderedFieldRows = useMemo(
+    () =>
+      [
+        ...coreFieldAnchors.map((field) => ({
+          ...field,
+          kind: "core" as const,
+          isActive: true
+        })),
+        ...fields.map((field) => ({
+          ...field,
+          kind: "custom" as const,
+          fieldTypeLabel: fieldTypeOptions.find((option) => option.value === field.fieldType)?.label ?? field.fieldType
+        }))
+      ].sort((left, right) => left.displayOrder - right.displayOrder || left.fieldName.localeCompare(right.fieldName)),
+    [fields]
+  );
 
   const openCreateField = () => {
     setEditingField(null);
@@ -176,7 +216,7 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
       fieldType: "TEXT",
       helpText: "",
       isRequired: false,
-      displayOrder: (fields.at(-1)?.displayOrder ?? 0) + 10,
+      displayOrder: (orderedFieldRows.at(-1)?.displayOrder ?? 0) + 10,
       isActive: true,
       initialOptionsText: ""
     });
@@ -236,36 +276,40 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {fields.map((field) => (
+          {orderedFieldRows.map((field) => (
             <Table.Tr key={field.id}>
               <Table.Td>{field.displayOrder}</Table.Td>
               <Table.Td>{field.fieldName}</Table.Td>
-              <Table.Td>{fieldTypeOptions.find((option) => option.value === field.fieldType)?.label}</Table.Td>
+              <Table.Td>{field.kind === "core" ? field.fieldType : field.fieldTypeLabel}</Table.Td>
               <Table.Td>{field.isRequired ? "Yes" : "No"}</Table.Td>
               <Table.Td>
-                <Badge color={field.isActive ? "green" : "gray"} variant="light">
-                  {field.isActive ? "Active" : "Inactive"}
+                <Badge color={field.kind === "core" ? "blue" : field.isActive ? "green" : "gray"} variant="light">
+                  {field.kind === "core" ? "Core" : field.isActive ? "Active" : "Inactive"}
                 </Badge>
               </Table.Td>
               <Table.Td>
                 <Group justify="flex-end" gap="xs">
-                  {field.fieldType === "DROPDOWN" ? (
+                  {field.kind === "custom" && field.fieldType === "DROPDOWN" ? (
                     <Button variant="subtle" onClick={() => openOptions(field)}>
                       Options
                     </Button>
                   ) : null}
-                  <Button variant="subtle" onClick={() => openEditField(field)}>
-                    Edit
-                  </Button>
-                  {field.isActive ? (
-                    <Button color="red" variant="subtle" onClick={() => deactivateFieldMutation.mutate(field.id)}>
-                      Deactivate
+                  {field.kind === "custom" ? (
+                    <Button variant="subtle" onClick={() => openEditField(field)}>
+                      Edit
                     </Button>
-                  ) : (
-                    <Button variant="subtle" onClick={() => activateFieldMutation.mutate(field.id)}>
-                      Activate
-                    </Button>
-                  )}
+                  ) : null}
+                  {field.kind === "custom" ? (
+                    field.isActive ? (
+                      <Button color="red" variant="subtle" onClick={() => deactivateFieldMutation.mutate(field.id)}>
+                        Deactivate
+                      </Button>
+                    ) : (
+                      <Button variant="subtle" onClick={() => activateFieldMutation.mutate(field.id)}>
+                        Activate
+                      </Button>
+                    )
+                  ) : null}
                 </Group>
               </Table.Td>
             </Table.Tr>

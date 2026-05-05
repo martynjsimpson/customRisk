@@ -721,6 +721,26 @@ Phase goal: implement custom field configuration, dropdown options, required fie
 - risks cannot save without required custom field values;
 - configuration changes are audited.
 
+## P3-06 — Core Field Order Anchors
+
+**Goal:** Allow custom fields to be positioned between MVP core risk fields without making core fields fully configurable.
+
+**Dependencies:** P3-05.
+
+**Deliverables:**
+
+- show read-only MVP core risk field anchors in Field Configuration;
+- render custom fields among core fields according to `displayOrder`;
+- keep core field names, types, validation, and order non-editable for MVP;
+- avoid schema changes, draft/publish configuration, or full core-field layout configuration.
+
+**Acceptance criteria:**
+
+- Register Admins can see where custom fields will appear relative to core risk fields;
+- custom fields with lower, intermediate, or higher display orders appear before, between, or after core fields on risk forms;
+- core/default field configuration remains read-only;
+- existing custom field create/edit validation and required-field behaviour continue to work.
+
 ---
 
 ## 7. Phase 4 — Scoring

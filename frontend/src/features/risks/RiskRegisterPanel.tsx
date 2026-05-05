@@ -42,6 +42,29 @@ interface RiskRegisterPanelProps {
   register: RegisterRecord;
 }
 
+type CoreRiskFieldId =
+  | "title"
+  | "description"
+  | "state"
+  | "createdDate"
+  | "ownerUserId"
+  | "likelihoodValueId"
+  | "impactValueId"
+  | "responseStrategyId"
+  | "responseAction";
+
+const coreRiskFieldAnchors: Array<{ id: CoreRiskFieldId; displayOrder: number }> = [
+  { id: "title", displayOrder: 100 },
+  { id: "description", displayOrder: 200 },
+  { id: "state", displayOrder: 300 },
+  { id: "createdDate", displayOrder: 400 },
+  { id: "ownerUserId", displayOrder: 500 },
+  { id: "likelihoodValueId", displayOrder: 600 },
+  { id: "impactValueId", displayOrder: 700 },
+  { id: "responseStrategyId", displayOrder: 800 },
+  { id: "responseAction", displayOrder: 900 }
+];
+
 type RiskFormValues = {
   title: string;
   description: string;
@@ -175,6 +198,19 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     () => (formConfigQuery.data?.customFields ?? []).filter((field) => field.isActive),
     [formConfigQuery.data?.customFields]
   );
+  const orderedRiskFormFields = useMemo(
+    () =>
+      [
+        ...coreRiskFieldAnchors.map((field) => ({ kind: "core" as const, ...field })),
+        ...activeCustomFields.map((field) => ({
+          kind: "custom" as const,
+          id: field.id,
+          displayOrder: field.displayOrder,
+          field
+        }))
+      ].sort((left, right) => left.displayOrder - right.displayOrder),
+    [activeCustomFields]
+  );
   const form = useForm<RiskFormValues>({ initialValues: emptyValues(defaultState) });
 
   useEffect(() => {
@@ -270,6 +306,62 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       })),
     [formConfigQuery.data?.users]
   );
+
+  const renderCoreField = (fieldId: CoreRiskFieldId) => {
+    switch (fieldId) {
+      case "title":
+        return <TextInput key={fieldId} label="Title" required {...form.getInputProps("title")} />;
+      case "description":
+        return <Textarea key={fieldId} label="Description" required minRows={3} {...form.getInputProps("description")} />;
+      case "state":
+        return <Select key={fieldId} label="State" data={["DRAFT", "OPEN", "CLOSED"]} required {...form.getInputProps("state")} />;
+      case "createdDate":
+        return (
+          <TextInput
+            key={fieldId}
+            label="Created date"
+            type="date"
+            required
+            disabled={!canManage}
+            {...form.getInputProps("createdDate")}
+          />
+        );
+      case "ownerUserId":
+        return <Select key={fieldId} label="Owner" data={ownerOptions} searchable required {...form.getInputProps("ownerUserId")} />;
+      case "likelihoodValueId":
+        return (
+          <Select
+            key={fieldId}
+            label="Likelihood"
+            data={(formConfigQuery.data?.likelihoodValues ?? []).map((item) => ({ value: item.id, label: item.name }))}
+            required
+            {...form.getInputProps("likelihoodValueId")}
+          />
+        );
+      case "impactValueId":
+        return (
+          <Select
+            key={fieldId}
+            label="Impact"
+            data={(formConfigQuery.data?.impactValues ?? []).map((item) => ({ value: item.id, label: item.name }))}
+            required
+            {...form.getInputProps("impactValueId")}
+          />
+        );
+      case "responseStrategyId":
+        return (
+          <Select
+            key={fieldId}
+            label="Response strategy"
+            data={(formConfigQuery.data?.responseStrategies ?? []).map((item) => ({ value: item.id, label: item.name }))}
+            required
+            {...form.getInputProps("responseStrategyId")}
+          />
+        );
+      case "responseAction":
+        return <Textarea key={fieldId} label="Response action" minRows={2} {...form.getInputProps("responseAction")} />;
+    }
+  };
 
   const openCreate = () => {
     setEditingRiskId(null);
@@ -437,43 +529,19 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         <form onSubmit={form.onSubmit(() => saveMutation.mutate())}>
           <Stack>
             <ApiErrorAlert error={saveMutation.error} fallback="Unable to save risk" />
-            <TextInput label="Title" required {...form.getInputProps("title")} />
-            <Textarea label="Description" required minRows={3} {...form.getInputProps("description")} />
-            <Group grow>
-              <Select label="State" data={["DRAFT", "OPEN", "CLOSED"]} required {...form.getInputProps("state")} />
-              <TextInput label="Created date" type="date" required disabled={!canManage} {...form.getInputProps("createdDate")} />
-            </Group>
-            <Select label="Owner" data={ownerOptions} searchable required {...form.getInputProps("ownerUserId")} />
-            <Group grow>
-              <Select
-                label="Likelihood"
-                data={(formConfigQuery.data?.likelihoodValues ?? []).map((item) => ({ value: item.id, label: item.name }))}
-                required
-                {...form.getInputProps("likelihoodValueId")}
-              />
-              <Select
-                label="Impact"
-                data={(formConfigQuery.data?.impactValues ?? []).map((item) => ({ value: item.id, label: item.name }))}
-                required
-                {...form.getInputProps("impactValueId")}
-              />
-            </Group>
-            <Select
-              label="Response strategy"
-              data={(formConfigQuery.data?.responseStrategies ?? []).map((item) => ({ value: item.id, label: item.name }))}
-              required
-              {...form.getInputProps("responseStrategyId")}
-            />
-            <Textarea label="Response action" minRows={2} {...form.getInputProps("responseAction")} />
-            {activeCustomFields.map((field) => (
-              <CustomFieldInput
-                key={field.id}
-                field={field}
-                users={ownerOptions}
-                value={customValues[field.id]}
-                onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
-              />
-            ))}
+            {orderedRiskFormFields.map((field) =>
+              field.kind === "core" ? (
+                renderCoreField(field.id)
+              ) : (
+                <CustomFieldInput
+                  key={field.id}
+                  field={field.field}
+                  users={ownerOptions}
+                  value={customValues[field.id]}
+                  onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
+                />
+              )
+            )}
             <Group justify="flex-end">
               <Button variant="subtle" onClick={() => setFormOpened(false)}>Cancel</Button>
               <Button type="submit" loading={saveMutation.isPending}>Save</Button>
