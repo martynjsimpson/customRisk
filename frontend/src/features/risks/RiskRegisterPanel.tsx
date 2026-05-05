@@ -116,31 +116,28 @@ function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
   }
 }
 
-function customFieldDisplay(risk: RiskDetail) {
-  if (risk.customFields.length === 0) {
-    return <Text c="dimmed">No custom fields</Text>;
+function coreDetailValue(risk: RiskDetail, fieldId: CoreRiskFieldId): string {
+  switch (fieldId) {
+    case "title":              return risk.title;
+    case "description":        return risk.description;
+    case "state":              return risk.state;
+    case "createdDate":        return risk.createdDate;
+    case "ownerUserId":        return risk.owner.name;
+    case "likelihoodValueId":  return risk.likelihood.name;
+    case "impactValueId":      return risk.impact.name;
+    case "responseStrategyId": return risk.responseStrategy.name;
+    case "responseAction":     return risk.responseAction ?? "";
   }
+}
 
-  return (
-    <Table>
-      <Table.Tbody>
-        {risk.customFields.map((field) => (
-          <Table.Tr key={field.id}>
-            <Table.Th>{field.customFieldDefinition.fieldName}</Table.Th>
-            <Table.Td>
-              {field.textValue ??
-                field.numberValue ??
-                (field.booleanValue === null ? null : field.booleanValue ? "Yes" : "No") ??
-                field.dateValue ??
-                field.personUser?.name ??
-                field.dropdownOption?.label ??
-                ""}
-            </Table.Td>
-          </Table.Tr>
-        ))}
-      </Table.Tbody>
-    </Table>
-  );
+function customDetailValue(field: RiskDetail["customFields"][number]): string {
+  if (field.textValue !== null)    return field.textValue;
+  if (field.numberValue !== null)  return String(field.numberValue);
+  if (field.booleanValue !== null) return field.booleanValue ? "Yes" : "No";
+  if (field.dateValue !== null)    return field.dateValue;
+  if (field.personUser)            return field.personUser.name;
+  if (field.dropdownOption)        return field.dropdownOption.label;
+  return "";
 }
 
 export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
@@ -539,12 +536,32 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               <Title order={3}>{selectedRiskQuery.data.displayRiskId}</Title>
               {statusBadge(selectedRiskQuery.data.reviewStatus)}
             </Group>
-            <Text fw={600}>{selectedRiskQuery.data.title}</Text>
-            <Text>{selectedRiskQuery.data.description}</Text>
             <Table>
               <Table.Tbody>
-                <Table.Tr><Table.Th>Owner</Table.Th><Table.Td>{selectedRiskQuery.data.owner.name}</Table.Td></Table.Tr>
-                <Table.Tr><Table.Th>State</Table.Th><Table.Td>{selectedRiskQuery.data.state}</Table.Td></Table.Tr>
+                {[
+                  ...CORE_RISK_FIELDS.map(f => ({ kind: "core" as const, ...f })),
+                  ...selectedRiskQuery.data.customFields.map(f => ({
+                    kind: "custom" as const,
+                    id: f.id,
+                    displayOrder: f.customFieldDefinition.displayOrder,
+                    fieldName: f.customFieldDefinition.fieldName,
+                    entry: f
+                  }))
+                ]
+                  .sort((a, b) => a.displayOrder - b.displayOrder)
+                  .map(field =>
+                    field.kind === "core" ? (
+                      <Table.Tr key={field.id}>
+                        <Table.Th>{field.fieldName}</Table.Th>
+                        <Table.Td>{coreDetailValue(selectedRiskQuery.data!, field.id)}</Table.Td>
+                      </Table.Tr>
+                    ) : (
+                      <Table.Tr key={field.id}>
+                        <Table.Th>{field.fieldName}</Table.Th>
+                        <Table.Td>{customDetailValue(field.entry)}</Table.Td>
+                      </Table.Tr>
+                    )
+                  )}
                 <Table.Tr><Table.Th>Score</Table.Th><Table.Td>{selectedRiskQuery.data.riskScore}</Table.Td></Table.Tr>
                 <Table.Tr><Table.Th>Level</Table.Th><Table.Td>{selectedRiskQuery.data.riskLevel.name}</Table.Td></Table.Tr>
                 <Table.Tr><Table.Th>Next review</Table.Th><Table.Td>{selectedRiskQuery.data.nextReviewDate ?? ""}</Table.Td></Table.Tr>
@@ -552,7 +569,6 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                 <Table.Tr><Table.Th>Updated</Table.Th><Table.Td>{new Date(selectedRiskQuery.data.systemUpdatedAt).toLocaleString()}</Table.Td></Table.Tr>
               </Table.Tbody>
             </Table>
-            {customFieldDisplay(selectedRiskQuery.data)}
           </Stack>
         ) : selectedRiskQuery.isLoading ? (
           <Loader />
