@@ -8,6 +8,7 @@ import {
   listRisks,
   updateRisk
 } from "../services/risks.service.js";
+import { exportRisksCsv } from "../services/export.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
@@ -77,4 +78,14 @@ export async function deleteRiskController(
       request.body
     )
   );
+}
+
+export async function exportRisksController(
+  request: Request<RegisterIdParams, unknown, unknown, ListRisksQuery>,
+  response: Response
+) {
+  const result = await exportRisksCsv(actorOrThrow(request), request.params.registerId, request.query);
+  response.setHeader("Content-Type", "text/csv; charset=utf-8");
+  response.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+  response.status(200).send(result.csv);
 }

@@ -14,6 +14,7 @@ import {
 import {
   createRiskController,
   deleteRiskController,
+  exportRisksController,
   getRiskDetailController,
   listRisksController,
   updateRiskController
@@ -22,6 +23,7 @@ import { authenticate } from "../middleware/authenticate.js";
 import {
   requireRegisterAccess,
   requireRegisterManagement,
+  requireExportAccess,
   requireRiskEdit,
   requireRiskView,
   requireSystemAdmin
@@ -92,6 +94,12 @@ export function createRegistersRouter() {
     validateRequest({ params: registerIdParamsSchema, body: createRiskSchema }),
     requireRegisterAccess(),
     asyncRoute(createRiskController)
+  );
+  router.get(
+    "/:registerId/risks/export",
+    validateRequest({ params: registerIdParamsSchema, query: listRisksQuerySchema }),
+    requireExportAccess(),
+    asyncRoute(exportRisksController)
   );
   router.get(
     "/:registerId/risks/:riskId",

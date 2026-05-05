@@ -19,7 +19,8 @@ export const auditActions = {
   registerViewerRemoved: "REGISTER_VIEWER_REMOVED",
   riskCreated: "RISK_CREATED",
   riskUpdated: "RISK_UPDATED",
-  riskDeleted: "RISK_DELETED"
+  riskDeleted: "RISK_DELETED",
+  riskExportGenerated: "RISK_EXPORT_GENERATED"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];

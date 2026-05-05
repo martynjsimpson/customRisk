@@ -63,6 +63,18 @@ test("risk delete route requires system admin and writes snapshot", async () => 
   assert.match(service, /await tx\.risk\.delete/);
 });
 
+test("risk export route is mounted before risk detail and audited", async () => {
+  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
+  const service = await readFile(new URL("../src/services/export.service.ts", import.meta.url), "utf8");
+
+  assert.ok(routes.indexOf('"/:registerId/risks/export"') < routes.indexOf('"/:registerId/risks/:riskId"'));
+  assert.match(routes, /requireExportAccess\(\)/);
+  assert.match(controller, /Content-Disposition/);
+  assert.match(service, /exportJob\.create/);
+  assert.match(service, /action: auditActions\.riskExportGenerated/);
+});
+
 test("risk review status follows MVP display rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 
