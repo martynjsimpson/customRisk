@@ -24,7 +24,10 @@ export const auditActions = {
   customFieldCreated: "CUSTOM_FIELD_CREATED",
   customFieldUpdated: "CUSTOM_FIELD_UPDATED",
   customFieldActivated: "CUSTOM_FIELD_ACTIVATED",
-  customFieldDeactivated: "CUSTOM_FIELD_DEACTIVATED"
+  customFieldDeactivated: "CUSTOM_FIELD_DEACTIVATED",
+  customFieldOptionCreated: "CUSTOM_FIELD_OPTION_CREATED",
+  customFieldOptionUpdated: "CUSTOM_FIELD_OPTION_UPDATED",
+  customFieldOptionDeactivated: "CUSTOM_FIELD_OPTION_DEACTIVATED"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];

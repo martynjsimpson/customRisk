@@ -14,12 +14,16 @@ import {
 import {
   activateCustomFieldController,
   createCustomFieldController,
+  createCustomFieldOptionController,
   deactivateCustomFieldController,
+  deactivateCustomFieldOptionController,
   getCustomFieldController,
   getRegisterConfigController,
   getRiskFormConfigController,
+  listCustomFieldOptionsController,
   listCustomFieldsController,
-  updateCustomFieldController
+  updateCustomFieldController,
+  updateCustomFieldOptionController
 } from "../controllers/configuration.controller.js";
 import {
   createRiskController,
@@ -49,8 +53,11 @@ import {
 } from "../validators/registers.schemas.js";
 import {
   createCustomFieldSchema,
+  createCustomFieldOptionSchema,
+  customFieldOptionParamsSchema,
   customFieldParamsSchema,
-  updateCustomFieldSchema
+  updateCustomFieldSchema,
+  updateCustomFieldOptionSchema
 } from "../validators/configuration.schemas.js";
 import {
   createRiskSchema,
@@ -163,6 +170,30 @@ export function createRegistersRouter() {
     validateRequest({ params: customFieldParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(deactivateCustomFieldController)
+  );
+  router.get(
+    "/:registerId/custom-fields/:fieldId/options",
+    validateRequest({ params: customFieldParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(listCustomFieldOptionsController)
+  );
+  router.post(
+    "/:registerId/custom-fields/:fieldId/options",
+    validateRequest({ params: customFieldParamsSchema, body: createCustomFieldOptionSchema }),
+    requireRegisterManagement(),
+    asyncRoute(createCustomFieldOptionController)
+  );
+  router.patch(
+    "/:registerId/custom-fields/:fieldId/options/:optionId",
+    validateRequest({ params: customFieldOptionParamsSchema, body: updateCustomFieldOptionSchema }),
+    requireRegisterManagement(),
+    asyncRoute(updateCustomFieldOptionController)
+  );
+  router.post(
+    "/:registerId/custom-fields/:fieldId/options/:optionId/deactivate",
+    validateRequest({ params: customFieldOptionParamsSchema }),
+    requireRegisterManagement(),
+    asyncRoute(deactivateCustomFieldOptionController)
   );
   router.get(
     "/:registerId/risks/:riskId",

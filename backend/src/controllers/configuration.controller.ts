@@ -1,21 +1,29 @@
 import type { Request, Response } from "express";
 
 import { ApiError } from "../errors/apiError.js";
-import { getRegisterConfig, getRiskFormConfig } from "../services/configuration.service.js";
 import {
   activateCustomField,
   createCustomField,
+  createCustomFieldOption,
   deactivateCustomField,
+  deactivateCustomFieldOption,
   getCustomField,
   listCustomFields,
-  updateCustomField
+  listCustomFieldOptions,
+  getRegisterConfig,
+  getRiskFormConfig,
+  updateCustomField,
+  updateCustomFieldOption
 } from "../services/configuration.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
   CreateCustomFieldBody,
+  CreateCustomFieldOptionBody,
+  CustomFieldOptionParams,
   CustomFieldParams,
-  UpdateCustomFieldBody
+  UpdateCustomFieldBody,
+  UpdateCustomFieldOptionBody
 } from "../validators/configuration.schemas.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
 
@@ -81,5 +89,56 @@ export async function deactivateCustomFieldController(request: Request<CustomFie
   sendData(
     response,
     await deactivateCustomField(actorOrThrow(request), request.params.registerId, request.params.fieldId)
+  );
+}
+
+export async function listCustomFieldOptionsController(request: Request<CustomFieldParams>, response: Response) {
+  sendData(response, await listCustomFieldOptions(request.params.registerId, request.params.fieldId));
+}
+
+export async function createCustomFieldOptionController(
+  request: Request<CustomFieldParams, unknown, CreateCustomFieldOptionBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await createCustomFieldOption(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.fieldId,
+      request.body
+    ),
+    201
+  );
+}
+
+export async function updateCustomFieldOptionController(
+  request: Request<CustomFieldOptionParams, unknown, UpdateCustomFieldOptionBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await updateCustomFieldOption(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.fieldId,
+      request.params.optionId,
+      request.body
+    )
+  );
+}
+
+export async function deactivateCustomFieldOptionController(
+  request: Request<CustomFieldOptionParams>,
+  response: Response
+) {
+  sendData(
+    response,
+    await deactivateCustomFieldOption(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.fieldId,
+      request.params.optionId
+    )
   );
 }

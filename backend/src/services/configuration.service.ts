@@ -4,7 +4,12 @@ import { auditActions } from "../audit/auditActions.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
-import type { CreateCustomFieldBody, UpdateCustomFieldBody } from "../validators/configuration.schemas.js";
+import type {
+  CreateCustomFieldBody,
+  CreateCustomFieldOptionBody,
+  UpdateCustomFieldBody,
+  UpdateCustomFieldOptionBody
+} from "../validators/configuration.schemas.js";
 import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
 
 const registerConfigSelect = {
@@ -38,6 +43,12 @@ const customFieldAuditFields = [
   { name: "isActive", label: "Active", valueType: "BOOLEAN" }
 ] satisfies Array<{ name: "fieldName" | "helpText" | "isRequired" | "displayOrder" | "isActive"; label: string; valueType: AuditValueType }>;
 
+const optionAuditFields = [
+  { name: "label", label: "Label", valueType: "TEXT" },
+  { name: "displayOrder", label: "Display order", valueType: "NUMBER" },
+  { name: "isActive", label: "Active", valueType: "BOOLEAN" }
+] satisfies Array<{ name: "label" | "displayOrder" | "isActive"; label: string; valueType: AuditValueType }>;
+
 async function assertRegisterExists(registerId: string) {
   const register = await prisma.register.findUnique({
     where: { id: registerId },
@@ -59,6 +70,14 @@ function mapCustomFieldPrismaError(error: unknown): never {
   throw error;
 }
 
+function mapCustomFieldOptionPrismaError(error: unknown): never {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    throw new ApiError(409, "CONFLICT", "A dropdown option with this label or display order already exists");
+  }
+
+  throw error;
+}
+
 async function findCustomField(registerId: string, fieldId: string) {
   const field = await prisma.customFieldDefinition.findFirst({
     where: { id: fieldId, registerId },
@@ -72,6 +91,33 @@ async function findCustomField(registerId: string, fieldId: string) {
   return field;
 }
 
+async function findDropdownField(registerId: string, fieldId: string) {
+  const field = await findCustomField(registerId, fieldId);
+  if (field.fieldType !== "DROPDOWN") {
+    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown fields", {
+      fieldId: "Custom field must be a dropdown field"
+    });
+  }
+
+  return field;
+}
+
+async function findCustomFieldOption(registerId: string, fieldId: string, optionId: string) {
+  await findDropdownField(registerId, fieldId);
+  const option = await prisma.customFieldOption.findFirst({
+    where: {
+      id: optionId,
+      customFieldDefinitionId: fieldId
+    }
+  });
+
+  if (!option) {
+    throw new ApiError(404, "NOT_FOUND", "Dropdown option not found");
+  }
+
+  return option;
+}
+
 async function assertDropdownActivationIsValid(fieldId: string, inputOptionsActive = false) {
   const activeOptionCount = await prisma.customFieldOption.count({
     where: { customFieldDefinitionId: fieldId, isActive: true }
@@ -80,6 +126,31 @@ async function assertDropdownActivationIsValid(fieldId: string, inputOptionsActi
   if (activeOptionCount === 0 && !inputOptionsActive) {
     throw new ApiError(400, "VALIDATION_ERROR", "Active dropdown fields require at least one active option", {
       options: "Add at least one active option before activating this dropdown field"
+    });
+  }
+}
+
+async function assertDropdownWillKeepActiveOption(fieldId: string, optionId: string | null = null) {
+  const field = await prisma.customFieldDefinition.findUnique({
+    where: { id: fieldId },
+    select: { isActive: true }
+  });
+
+  if (!field?.isActive) {
+    return;
+  }
+
+  const activeOptionCount = await prisma.customFieldOption.count({
+    where: {
+      customFieldDefinitionId: fieldId,
+      isActive: true,
+      id: optionId ? { not: optionId } : undefined
+    }
+  });
+
+  if (activeOptionCount === 0) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Active dropdown fields require at least one active option", {
+      isActive: "Cannot deactivate the final active option on an active dropdown field"
     });
   }
 }
@@ -314,6 +385,156 @@ async function setCustomFieldActiveState(
             fieldLabel: "Active",
             previousValue: !isActive,
             newValue: isActive,
+            valueType: "BOOLEAN"
+          }
+        ]
+      },
+      tx
+    );
+
+    return updated;
+  });
+}
+
+export async function listCustomFieldOptions(registerId: string, fieldId: string) {
+  await findDropdownField(registerId, fieldId);
+
+  return prisma.customFieldOption.findMany({
+    where: { customFieldDefinitionId: fieldId },
+    orderBy: { displayOrder: "asc" }
+  });
+}
+
+export async function createCustomFieldOption(
+  actor: AuthenticatedActor,
+  registerId: string,
+  fieldId: string,
+  input: CreateCustomFieldOptionBody
+) {
+  const field = await findDropdownField(registerId, fieldId);
+
+  if (!input.isActive) {
+    await assertDropdownWillKeepActiveOption(fieldId);
+  }
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const option = await tx.customFieldOption.create({
+        data: {
+          customFieldDefinitionId: fieldId,
+          label: input.label,
+          displayOrder: input.displayOrder,
+          isActive: input.isActive
+        }
+      });
+
+      await recordAuditEvent(
+        {
+          action: auditActions.customFieldOptionCreated,
+          actor,
+          objectType: "CUSTOM_FIELD_OPTION",
+          objectId: option.id,
+          objectDisplayName: option.label,
+          scopeType: "REGISTER",
+          registerId,
+          summary: "Dropdown option created",
+          metadataJson: {
+            customFieldDefinitionId: field.id,
+            fieldName: field.fieldName,
+            isActive: option.isActive
+          }
+        },
+        tx
+      );
+
+      return option;
+    });
+  } catch (error) {
+    mapCustomFieldOptionPrismaError(error);
+  }
+}
+
+export async function updateCustomFieldOption(
+  actor: AuthenticatedActor,
+  registerId: string,
+  fieldId: string,
+  optionId: string,
+  input: UpdateCustomFieldOptionBody
+) {
+  const existing = await findCustomFieldOption(registerId, fieldId, optionId);
+
+  if (input.isActive === false && existing.isActive) {
+    await assertDropdownWillKeepActiveOption(fieldId, optionId);
+  }
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.customFieldOption.update({
+        where: { id: optionId },
+        data: {
+          label: input.label,
+          displayOrder: input.displayOrder,
+          isActive: input.isActive
+        }
+      });
+
+      await recordAuditEvent(
+        {
+          action: auditActions.customFieldOptionUpdated,
+          actor,
+          objectType: "CUSTOM_FIELD_OPTION",
+          objectId: updated.id,
+          objectDisplayName: updated.label,
+          scopeType: "REGISTER",
+          registerId,
+          summary: "Dropdown option updated",
+          metadataJson: { customFieldDefinitionId: fieldId },
+          fieldChanges: buildFieldChanges(existing, updated, optionAuditFields)
+        },
+        tx
+      );
+
+      return updated;
+    });
+  } catch (error) {
+    mapCustomFieldOptionPrismaError(error);
+  }
+}
+
+export async function deactivateCustomFieldOption(
+  actor: AuthenticatedActor,
+  registerId: string,
+  fieldId: string,
+  optionId: string
+) {
+  const existing = await findCustomFieldOption(registerId, fieldId, optionId);
+  if (existing.isActive) {
+    await assertDropdownWillKeepActiveOption(fieldId, optionId);
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.customFieldOption.update({
+      where: { id: optionId },
+      data: { isActive: false }
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.customFieldOptionDeactivated,
+        actor,
+        objectType: "CUSTOM_FIELD_OPTION",
+        objectId: updated.id,
+        objectDisplayName: updated.label,
+        scopeType: "REGISTER",
+        registerId,
+        summary: "Dropdown option deactivated",
+        metadataJson: { customFieldDefinitionId: fieldId },
+        fieldChanges: [
+          {
+            fieldName: "isActive",
+            fieldLabel: "Active",
+            previousValue: existing.isActive,
+            newValue: false,
             valueType: "BOOLEAN"
           }
         ]
