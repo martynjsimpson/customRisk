@@ -1,10 +1,10 @@
 import type { Request, Response } from "express";
 
 import { ApiError } from "../errors/apiError.js";
-import { listRisks } from "../services/risks.service.js";
+import { createRisk, listRisks } from "../services/risks.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { sendData } from "../utils/apiResponse.js";
-import type { ListRisksQuery } from "../validators/risks.schemas.js";
+import type { CreateRiskBody, ListRisksQuery } from "../validators/risks.schemas.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
 
 function actorOrThrow(request: { actor?: AuthenticatedActor }) {
@@ -21,4 +21,11 @@ export async function listRisksController(
 ) {
   const result = await listRisks(actorOrThrow(request), request.params.registerId, request.query);
   sendData(response, result.data, 200, result.meta);
+}
+
+export async function createRiskController(
+  request: Request<RegisterIdParams, unknown, CreateRiskBody>,
+  response: Response
+) {
+  sendData(response, await createRisk(actorOrThrow(request), request.params.registerId, request.body), 201);
 }

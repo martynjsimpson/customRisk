@@ -14,6 +14,15 @@ test("risk list route is mounted under register risk collection", async () => {
   assert.match(controller, /listRisks\(actorOrThrow\(request\), request\.params\.registerId, request\.query\)/);
 });
 
+test("risk create route is mounted under register risk collection", async () => {
+  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
+
+  assert.match(routes, /router\.post\(\n\s+"\/:registerId\/risks"/);
+  assert.match(routes, /body: createRiskSchema/);
+  assert.match(controller, /createRisk\(actorOrThrow\(request\), request\.params\.registerId, request\.body\)/);
+});
+
 test("risk review status follows MVP display rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 

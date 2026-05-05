@@ -40,18 +40,24 @@ export const riskCustomFieldValueSchema = z.object({
   dropdownOptionId: z.string().uuid().optional()
 });
 
-export const createRiskSchema = z.object({
-  title: z.string().trim().min(1).max(255),
-  description: z.string().trim().min(1),
-  state: z.enum(["DRAFT", "OPEN", "CLOSED"]).optional(),
-  ownerUserId: z.string().uuid(),
-  createdDate: dateOnlySchema.optional(),
-  likelihoodValueId: z.string().uuid(),
-  impactValueId: z.string().uuid(),
-  responseStrategyId: z.string().uuid(),
-  responseAction: z.string().trim().nullable().optional(),
-  customFieldValues: z.array(riskCustomFieldValueSchema).default([])
-});
+export const createRiskSchema = z
+  .object({
+    title: z.string().trim().min(1).max(255),
+    description: z.string().trim().min(1),
+    state: z.enum(["DRAFT", "OPEN", "CLOSED"]).optional(),
+    ownerUserId: z.string().uuid(),
+    createdDate: dateOnlySchema.optional(),
+    likelihoodValueId: z.string().uuid(),
+    impactValueId: z.string().uuid(),
+    responseStrategyId: z.string().uuid(),
+    responseAction: z.string().trim().nullable().optional(),
+    customFields: z.array(riskCustomFieldValueSchema).optional(),
+    customFieldValues: z.array(riskCustomFieldValueSchema).optional()
+  })
+  .transform((value) => ({
+    ...value,
+    customFieldValues: value.customFieldValues ?? value.customFields ?? []
+  }));
 
 export type RiskIdParams = z.infer<typeof riskIdParamsSchema>;
 export type ListRisksQuery = z.infer<typeof listRisksQuerySchema>;
