@@ -875,7 +875,7 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 ## P4-04 — Risk Matrix API
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Implement matrix viewing and update.
 

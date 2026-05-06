@@ -14,6 +14,7 @@ import {
   deactivateLikelihoodValue,
   deactivateRiskLevel,
   getCustomField,
+  getMatrix,
   listCustomFields,
   listCustomFieldOptions,
   listImpactValues,
@@ -25,6 +26,8 @@ import {
   updateCustomFieldOption,
   updateImpactValue,
   updateLikelihoodValue,
+  updateMatrix,
+  updateMatrixCell,
   updateRiskLevel
 } from "../services/configuration.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
@@ -39,11 +42,14 @@ import type {
   CustomFieldParams,
   ImpactParams,
   LikelihoodParams,
+  MatrixCellParams,
   RiskLevelParams,
   UpdateCustomFieldBody,
   UpdateCustomFieldOptionBody,
   UpdateImpactValueBody,
   UpdateLikelihoodValueBody,
+  UpdateMatrixBody,
+  UpdateMatrixCellBody,
   UpdateRiskLevelBody
 } from "../validators/configuration.schemas.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
@@ -301,6 +307,38 @@ export async function deactivateRiskLevelController(
       actorOrThrow(request),
       request.params.registerId,
       request.params.riskLevelId
+    )
+  );
+}
+
+export async function getMatrixController(
+  request: Request<{ registerId: string }>,
+  response: Response
+) {
+  sendData(response, await getMatrix(request.params.registerId));
+}
+
+export async function updateMatrixController(
+  request: Request<{ registerId: string }, unknown, UpdateMatrixBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await updateMatrix(actorOrThrow(request), request.params.registerId, request.body)
+  );
+}
+
+export async function updateMatrixCellController(
+  request: Request<MatrixCellParams, unknown, UpdateMatrixCellBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await updateMatrixCell(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.cellId,
+      request.body
     )
   );
 }

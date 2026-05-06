@@ -128,3 +128,27 @@ export const updateRiskLevelSchema = z.object({
 export type RiskLevelParams = z.infer<typeof riskLevelParamsSchema>;
 export type CreateRiskLevelBody = z.infer<typeof createRiskLevelSchema>;
 export type UpdateRiskLevelBody = z.infer<typeof updateRiskLevelSchema>;
+
+export const matrixCellParamsSchema = z.object({
+  registerId: z.string().uuid(),
+  cellId: z.string().uuid()
+});
+
+const matrixCellInputSchema = z.object({
+  likelihoodValueId: z.string().uuid(),
+  impactValueId: z.string().uuid(),
+  riskLevelId: z.string().uuid()
+});
+
+export const updateMatrixSchema = z.object({
+  cells: z.array(matrixCellInputSchema).min(1),
+  recalculateExistingRisks: z.boolean().default(false)
+});
+
+export const updateMatrixCellSchema = z.object({
+  riskLevelId: z.string().uuid()
+});
+
+export type MatrixCellParams = z.infer<typeof matrixCellParamsSchema>;
+export type UpdateMatrixBody = z.infer<typeof updateMatrixSchema>;
+export type UpdateMatrixCellBody = z.infer<typeof updateMatrixCellSchema>;

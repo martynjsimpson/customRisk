@@ -24,6 +24,7 @@ import {
   deactivateLikelihoodValueController,
   deactivateRiskLevelController,
   getCustomFieldController,
+  getMatrixController,
   getRegisterConfigController,
   getRiskFormConfigController,
   listCustomFieldOptionsController,
@@ -35,6 +36,8 @@ import {
   updateCustomFieldOptionController,
   updateImpactValueController,
   updateLikelihoodValueController,
+  updateMatrixCellController,
+  updateMatrixController,
   updateRiskLevelController
 } from "../controllers/configuration.controller.js";
 import {
@@ -73,11 +76,14 @@ import {
   customFieldParamsSchema,
   impactParamsSchema,
   likelihoodParamsSchema,
+  matrixCellParamsSchema,
   riskLevelParamsSchema,
   updateCustomFieldSchema,
   updateCustomFieldOptionSchema,
   updateImpactValueSchema,
   updateLikelihoodValueSchema,
+  updateMatrixCellSchema,
+  updateMatrixSchema,
   updateRiskLevelSchema
 } from "../validators/configuration.schemas.js";
 import {
@@ -287,6 +293,24 @@ export function createRegistersRouter() {
     validateRequest({ params: riskLevelParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(deactivateRiskLevelController)
+  );
+  router.get(
+    "/:registerId/matrix",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterAccess(),
+    asyncRoute(getMatrixController)
+  );
+  router.put(
+    "/:registerId/matrix",
+    validateRequest({ params: registerIdParamsSchema, body: updateMatrixSchema }),
+    requireRegisterManagement(),
+    asyncRoute(updateMatrixController)
+  );
+  router.patch(
+    "/:registerId/matrix/:cellId",
+    validateRequest({ params: matrixCellParamsSchema, body: updateMatrixCellSchema }),
+    requireRegisterManagement(),
+    asyncRoute(updateMatrixCellController)
   );
   router.get(
     "/:registerId/risks/:riskId",
