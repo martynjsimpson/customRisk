@@ -26,6 +26,7 @@
     "lint": "npm run typecheck",
     "db:migrate": "prisma migrate deploy --schema backend/prisma/schema.prisma",
     "db:setup": "npm run db:migrate && npm run seed:admin",
-    "seed:admin": "npm --workspace @custom-risk/backend run prisma:seed"
+    "seed:admin": "npm --workspace @custom-risk/backend run prisma:seed",
+    "smoke-test": "sh scripts/smoke-test.sh"
   }
 }

@@ -1,5 +1,8 @@
-import express from "express";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import cors from "cors";
+import express from "express";
 import type { Logger } from "pino";
 
 import { getCorsAllowedOrigins } from "./config/env.js";
@@ -35,6 +38,18 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(express.json());
 
   app.use("/api/v1", createApiRouter());
+
+  if (process.env.NODE_ENV === "production") {
+    const publicDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../public");
+    app.use(express.static(publicDir));
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api/")) {
+        next();
+        return;
+      }
+      res.sendFile(join(publicDir, "index.html"));
+    });
+  }
 
   app.use(notFoundHandler());
   app.use(errorHandler(appLogger));
