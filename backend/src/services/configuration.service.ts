@@ -1261,13 +1261,14 @@ async function assertMatrixCellIdsExist(
 }
 
 async function recalculateRiskLevels(
+  actor: AuthenticatedActor,
   registerId: string,
   cells: Array<{ likelihoodValueId: string; impactValueId: string; riskLevelId: string }>,
   tx: Prisma.TransactionClient
 ) {
   const risks = await tx.risk.findMany({
     where: { registerId, state: { not: "CLOSED" } },
-    select: { id: true, likelihoodValueId: true, impactValueId: true, riskLevelId: true }
+    select: { id: true, displayRiskId: true, likelihoodValueId: true, impactValueId: true, riskLevelId: true }
   });
 
   if (risks.length === 0) {
@@ -1284,6 +1285,30 @@ async function recalculateRiskLevels(
         where: { id: risk.id },
         data: { riskLevelId: newRiskLevelId }
       });
+
+      await recordAuditEvent(
+        {
+          action: auditActions.riskUpdated,
+          actor,
+          objectType: "RISK",
+          objectId: risk.id,
+          objectDisplayName: risk.displayRiskId,
+          scopeType: "REGISTER",
+          registerId,
+          summary: "Risk level recalculated due to matrix update",
+          fieldChanges: [
+            {
+              fieldName: "riskLevelId",
+              fieldLabel: "Risk level",
+              previousValue: risk.riskLevelId,
+              newValue: newRiskLevelId,
+              valueType: "UUID"
+            }
+          ]
+        },
+        tx
+      );
+
       updatedCount++;
     }
   }
@@ -1338,7 +1363,7 @@ export async function updateMatrix(
 
     let risksRecalculated = 0;
     if (input.recalculateExistingRisks) {
-      risksRecalculated = await recalculateRiskLevels(registerId, input.cells, tx);
+      risksRecalculated = await recalculateRiskLevels(actor, registerId, input.cells, tx);
     }
 
     await recordAuditEvent(

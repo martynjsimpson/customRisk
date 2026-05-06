@@ -898,7 +898,7 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 ## P4-05 — Scoring Recalculation Behaviour
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Ensure score and level recalculation works across risk edits and configuration changes.
 
