@@ -2,7 +2,7 @@
 
 **Project:** Custom Risk  
 **Document type:** Implementation plan  
-**Status:** Draft  
+**Status:** In progress — Tasks 1–5 complete, Task 6 in progress  
 **Purpose:** Prepare the MVP codebase for a controlled first release and make future development safer, repeatable, and easier to manage.
 
 ---
@@ -37,147 +37,78 @@ The current architecture document describes the MVP runtime as a single **app co
 
 ## 3. Task Sequence
 
-## Task 1 — Confirm the Target Runtime Architecture
+## Task 1 — Confirm the Target Runtime Architecture ✅ DONE
 
 **Objective:** Resolve the architecture expectation before changing Docker, CI, or release workflows.
 
-### Actions
+### Outcome
 
-1. Review the current implementation against the confirmed technical architecture.
-2. Confirm whether the release target is either:
-   - **Option A:** One app container containing the Express backend and compiled React static frontend, plus one PostgreSQL container.
-   - **Option B:** Separate frontend, backend, and PostgreSQL containers.
-3. If Option A is still correct, document that the frontend running locally under Node during development is a dev-only pattern.
-4. If Option B is now preferred, create a new ADR or superseding architecture note before changing the implementation.
-5. Update the README so developers understand the difference between local development mode and release/runtime mode.
-
-### Acceptance criteria
-
-- The release container model is explicitly confirmed.
-- The README clearly explains local development versus release execution.
-- Any architecture change is captured in an ADR before implementation.
-- No CI or release workflow assumes an architecture that conflicts with the documented target.
+Option A confirmed: one app container (Express backend serving compiled React static frontend) plus one PostgreSQL container. No architecture change required. README updated with an explicit "Local development vs release runtime" section documenting that the Vite dev server is a dev-only tool and is not used in the release container.
 
 ---
 
-## Task 2 — Standardise Docker Runtime for Release
+## Task 2 — Standardise Docker Runtime for Release ✅ DONE
 
 **Objective:** Ensure the released product runs according to the confirmed architecture, not the current local development shortcut.
 
-### Actions
+### Outcome
 
-1. Review the root `Dockerfile` and `docker-compose.yml`.
-2. Ensure the production Docker build performs all required steps:
-   - Install frontend dependencies.
-   - Build the React frontend.
-   - Install backend dependencies.
-   - Build the backend TypeScript.
-   - Copy the frontend build output into the backend/runtime image if using the single app-container architecture.
-   - Run the backend from compiled JavaScript, not TypeScript source.
-3. Ensure Express serves the compiled frontend static files in production.
-4. Ensure `docker compose up --build` creates a complete working local release-like environment.
-5. Add or verify a database healthcheck and app dependency on database readiness.
-6. Add a production-oriented compose file if useful, for example `docker-compose.release.yml`, while keeping local development convenient.
+Three fixes applied:
 
-### Acceptance criteria
-
-- A clean checkout can be built and run fully through Docker Compose.
-- The frontend does not need to be run separately through local Node for release execution.
-- PostgreSQL data persists through a named Docker volume.
-- Required environment variables are documented in `.env.example`.
-- The app starts successfully after database healthcheck completion.
+- **`backend/src/app.ts`**: Added `express.static` serving from `./public` and an SPA fallback (`GET *` → `index.html`) active only when `NODE_ENV=production`. API routes (`/api/...`) are excluded from the SPA fallback so unmatched API paths still return JSON 404.
+- **`Dockerfile`**: Added `COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma` to carry the Prisma-generated client into the runtime image. The `--ignore-scripts` flag on runtime `npm ci` was blocking the `@prisma/client` postinstall, meaning the runtime container had no Prisma client and would have failed to connect to the database.
+- **`docker-compose.yml`**: Changed `NODE_ENV` default from `development` to `production` so `docker compose up --build` activates the static-file serving code. Database healthcheck and named `pgdata` volume were already correct.
 
 ---
 
-## Task 3 — Add Runtime Health and Release Smoke Checks
+## Task 3 — Add Runtime Health and Release Smoke Checks ✅ DONE
 
 **Objective:** Provide simple checks that CI and operators can use to verify a built release.
 
-### Actions
+### Outcome
 
-1. Add a lightweight backend health endpoint, for example `GET /api/v1/health`.
-2. Include basic checks such as:
-   - App process is running.
-   - Environment is loaded.
-   - Database connection is reachable.
-3. Avoid exposing sensitive configuration or secrets in the health response.
-4. Add a smoke-test script that can be run after container startup.
-5. Document the health endpoint and smoke-test command in the README.
-
-### Acceptance criteria
-
-- Health endpoint returns a clear success/failure result.
-- Smoke test can be run locally and in CI.
-- No secrets or stack traces are exposed through the health endpoint.
+- **`backend/src/routes/health.routes.ts`**: Enhanced the existing `GET /api/v1/health` endpoint to run `prisma.$queryRaw\`SELECT 1\`` on every request. Returns `{ status: "ok", database: "ok" }` with HTTP 200 when healthy; `{ status: "degraded", database: "unreachable" }` with HTTP 503 when the database cannot be reached. No secrets or stack traces in either response.
+- **`scripts/smoke-test.sh`**: Shell script that curls the health endpoint and exits 0/1 based on HTTP status. Accepts an optional base URL argument.
+- **`package.json`**: Added `npm run smoke-test` shortcut.
+- **`README.md`**: Documented the health endpoint response shapes and the smoke-test command.
 
 ---
 
-## Task 4 — Move to Branch-Based Development
+## Task 4 — Move to Branch-Based Development ✅ DONE
 
 **Objective:** Stop direct work on `main` and protect the release line.
 
-### Actions
+### Outcome
 
-1. Create a default branch workflow:
-   - `main` is always releasable.
-   - Work happens on short-lived feature, fix, chore, or release-prep branches.
-   - Changes are merged through pull requests.
-2. Create branch naming conventions:
-   - `feature/<short-description>`
-   - `fix/<short-description>`
-   - `chore/<short-description>`
-   - `docs/<short-description>`
-   - `release/<version>`
-3. Enable GitHub branch protection for `main`:
-   - Require pull request before merge.
-   - Require CI checks to pass.
-   - Require branch to be up to date before merge where practical.
-   - Block force-pushes.
-   - Block deletion of `main`.
-4. Decide whether to require approving review. For a solo project this can be optional initially, but PRs should still be used to create reviewable checkpoints.
-5. Update the contributor/developer workflow documentation.
-
-### Acceptance criteria
-
-- Direct pushes to `main` are blocked or strongly discouraged.
-- All changes to `main` go through pull requests.
-- Branch naming conventions are documented.
-- Required checks must pass before merge.
+- **`docs/development-workflow.md`**: Created. Covers branching model, branch naming conventions (`feature/`, `fix/`, `chore/`, `docs/`, `release/`), PR expectations, local development startup, Docker release startup, test commands, and release process overview.
+- **GitHub branch protection** enabled on `main`: requires a pull request before merging, blocks force-pushes and branch deletion. Approving review not required (solo project). CI status checks will be added as a required check once Task 6 CI workflows have run (see Task 6).
+- **Decision**: No approving review required for solo project; PRs serve as reviewable checkpoints and audit trail.
 
 ---
 
-## Task 5 — Define Versioning and Release Rules
+## Task 5 — Define Versioning and Release Rules ✅ DONE
 
 **Objective:** Create formal release points with predictable version numbers.
 
-### Actions
+### Outcome
 
-1. Adopt Semantic Versioning:
-   - `MAJOR.MINOR.PATCH`
-   - Start MVP release at `v0.1.0` or `v1.0.0` depending on whether you want MVP to indicate pre-stable or stable.
-2. Recommended approach:
-   - Use `v0.1.0` for the first MVP release if the product is still expected to change quickly.
-   - Move to `v1.0.0` when the API, data model, and deployment model are considered stable.
-3. Add version metadata in a single source of truth, such as the root `package.json` or a dedicated `VERSION` file.
-4. Tag releases from `main` using Git tags, for example `v0.1.0`.
-5. Add a `CHANGELOG.md` using a simple Keep a Changelog style.
-6. Define what increments each version level:
-   - Patch: bug fixes and documentation-only release changes.
-   - Minor: backwards-compatible features.
-   - Major: breaking API, data model, deployment, or migration changes.
-
-### Acceptance criteria
-
-- Versioning approach is documented.
-- First MVP version number is chosen.
-- Releases are associated with immutable Git tags.
-- Changes are captured in `CHANGELOG.md`.
+- **Version**: `v0.1.0` chosen as first MVP release. All three `package.json` files (root, backend, frontend) were already at `0.1.0`. Root `package.json` is the single source of truth.
+- **`CHANGELOG.md`**: Created at repo root using Keep a Changelog format. `[Unreleased]` section lists all MVP features. Will be renamed to `[0.1.0] - <date>` when the release tag is cut.
+- **`docs/release-process.md`**: Created. Covers version increment rules, full release procedure (branch → changelog → PR → merge → tag → confirm CI → verify image), image tagging convention (`latest` not published), and rollback considerations.
+- **`README.md`**: Added versioning section linking to changelog and release process doc.
 
 ---
 
-## Task 6 — Improve CI for Pull Requests
+## Task 6 — Improve CI for Pull Requests 🔄 IN PROGRESS
 
 **Objective:** Ensure code is validated before it reaches `main`.
+
+### Progress notes
+
+- `.github/workflows/ci.yml` updated: two jobs — **Quality Gates** (typecheck, lint, migrations, tests, Prisma schema validation, builds for shared/backend/frontend) and **Docker Build** (builds image, no push). PostgreSQL service added to Quality Gates so database-backed tests run in CI.
+- `.github/pull_request_template.md` created with What/Why/Notes sections and a merge checklist.
+- `backend/test/app.test.mjs` health test updated to accept either 200 (DB available) or 503 (DB unreachable) and validate response shape in both cases.
+- **Pending**: PR needs to be opened, CI run completed, and the Quality Gates + Docker Build checks added as required status checks in GitHub branch protection settings.
 
 ### Actions
 
