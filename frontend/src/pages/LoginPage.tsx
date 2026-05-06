@@ -48,10 +48,20 @@ export function LoginPage() {
             {error}
           </Alert>
         ) : null}
-        <TextInput label="Email" autoComplete="email" {...form.getInputProps("email")} />
+        <TextInput
+          label="Email"
+          autoComplete="username"
+          data-bwignore={null}
+          data-lpignore={null}
+          data-1p-ignore={null}
+          {...form.getInputProps("email")}
+        />
         <PasswordInput
           label="Password"
           autoComplete="current-password"
+          data-bwignore={null}
+          data-lpignore={null}
+          data-1p-ignore={null}
           {...form.getInputProps("password")}
         />
         <Button type="submit" loading={isSubmitting}>

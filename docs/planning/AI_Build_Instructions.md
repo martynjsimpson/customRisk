@@ -82,6 +82,8 @@ While implementing:
 - before defining any new type, interface, constant, or enumeration in the frontend, search the existing codebase for an equivalent — if one exists, import it rather than redefining it;
 - before using a Mantine component for the first time in a file, check `frontend/src/main.tsx` for theme `defaultProps` that already set the correct variant or size — do not repeat props that are already the default;
 - for context-specific patterns not covered by theme defaults (for example, table row action buttons use `variant="subtle" size="xs"`), check how the same component is used in nearby tables or panels and match that pattern exactly;
+- Mantine form input defaults in `frontend/src/main.tsx` include password-manager ignore attributes for app data-entry fields, so Bitwarden and similar clients do not mistake user pickers, owner filters, or admin-created password fields for the active login form;
+- the login page is the exception: its username and password fields must explicitly use credential autocomplete tokens (`username` and `current-password`) and remove the password-manager ignore attributes so password managers only target the actual login fields;
 - shared API types (generic response wrappers, pagination shapes, etc.) belong in `frontend/src/api/types.ts` and must be imported from there by all API modules;
 - type unions that are defined in one API module must not be inlined or redeclared in another — import the existing type instead;
 - lists of domain values used in more than one component (field enumerations, status options, ordered field lists, etc.) must be extracted to a single shared constant and imported wherever needed.

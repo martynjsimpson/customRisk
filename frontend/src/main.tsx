@@ -11,6 +11,13 @@ import "@mantine/notifications/styles.css";
 import { AuthProvider } from "./auth/session";
 import { router } from "./router/routes";
 
+const passwordManagerIgnoreProps = {
+  autoComplete: "off",
+  "data-bwignore": "true",
+  "data-lpignore": "true",
+  "data-1p-ignore": "true"
+};
+
 const theme = createTheme({
   components: {
     Alert: {
@@ -28,6 +35,24 @@ const theme = createTheme({
         striped: true,
         highlightOnHover: true
       }
+    },
+    MultiSelect: {
+      defaultProps: passwordManagerIgnoreProps
+    },
+    NumberInput: {
+      defaultProps: passwordManagerIgnoreProps
+    },
+    PasswordInput: {
+      defaultProps: passwordManagerIgnoreProps
+    },
+    Select: {
+      defaultProps: passwordManagerIgnoreProps
+    },
+    Textarea: {
+      defaultProps: passwordManagerIgnoreProps
+    },
+    TextInput: {
+      defaultProps: passwordManagerIgnoreProps
     }
   }
 });
