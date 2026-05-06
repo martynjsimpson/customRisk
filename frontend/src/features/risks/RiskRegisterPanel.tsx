@@ -650,13 +650,27 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                 <Table.Tbody>
                   {[
                     ...CORE_RISK_FIELDS.map(f => ({ kind: "core" as const, ...f })),
-                    ...selectedRiskQuery.data.customFields.filter(f => f.customFieldDefinition.isActive).map(f => ({
-                      kind: "custom" as const,
-                      id: f.id,
-                      displayOrder: f.customFieldDefinition.displayOrder,
-                      fieldName: f.customFieldDefinition.fieldName,
-                      entry: f
-                    }))
+                    ...activeCustomFields.map(def => {
+                      const entry = selectedRiskQuery.data!.customFields.find(
+                        f => f.customFieldDefinition.id === def.id
+                      );
+                      return {
+                        kind: "custom" as const,
+                        id: def.id,
+                        displayOrder: def.displayOrder,
+                        fieldName: def.fieldName,
+                        entry: entry ?? {
+                          id: def.id,
+                          customFieldDefinition: def,
+                          textValue: null,
+                          numberValue: null,
+                          booleanValue: null,
+                          dateValue: null,
+                          personUser: null,
+                          dropdownOption: null
+                        }
+                      };
+                    })
                   ]
                     .sort((a, b) => a.displayOrder - b.displayOrder)
                     .map(field =>
