@@ -30,6 +30,7 @@ test("audit routes enforce system, register, risk, event, and snapshot access pa
   const indexRoutes = await readFile(new URL("../src/routes/index.ts", import.meta.url), "utf8");
   const auditRoutes = await readFile(new URL("../src/routes/audit.routes.ts", import.meta.url), "utf8");
   const registerRoutes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const riskRoutes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
 
   assert.match(indexRoutes, /router\.use\("\/audit", createAuditRouter\(\)\)/);
   assert.match(auditRoutes, /router\.get\(\n\s+"\/system"/);
@@ -38,8 +39,8 @@ test("audit routes enforce system, register, risk, event, and snapshot access pa
   assert.match(auditRoutes, /"\/events\/:auditEventId"/);
   assert.match(registerRoutes, /"\/:registerId\/audit"/);
   assert.match(registerRoutes, /requireRegisterManagement\(\)/);
-  assert.match(registerRoutes, /"\/:registerId\/risks\/:riskId\/audit"/);
-  assert.match(registerRoutes, /requireRiskView\(\)/);
+  assert.match(riskRoutes, /"\/:registerId\/risks\/:riskId\/audit"/);
+  assert.match(riskRoutes, /requireRiskView\(\)/);
 });
 
 test("audit read service restricts event details and snapshots by scope", async () => {
