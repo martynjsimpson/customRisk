@@ -586,7 +586,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
               <Table.Td>{statusBadge(risk.reviewStatus)}</Table.Td>
               <Table.Td>
-                <Group justify="flex-end" gap="xs">
+                <Group justify="flex-end" gap="xs" wrap="nowrap">
                   {canEditRows && register.reviewsEnabled ? (
                     <Button variant="subtle" size="xs" onClick={() => setReviewRiskId(risk.id)}>Review</Button>
                   ) : null}
