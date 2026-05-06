@@ -22,6 +22,7 @@ Version levels:
 ### Changed
 
 - Added version to the UI
+- fixed broken node post upgrade
 
 ## [0.1.1] - 2026-05-07
 
