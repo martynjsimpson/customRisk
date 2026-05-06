@@ -5,16 +5,16 @@ import { test } from "node:test";
 import { createRiskReviewSchema } from "../src/validators/risks.schemas.ts";
 
 test("risk review routes are mounted before risk detail with view and edit permissions", async () => {
-  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/reviews.controller.ts", import.meta.url), "utf8");
 
   assert.ok(
     routes.indexOf('"/:registerId/risks/:riskId/reviews"') <
       routes.indexOf('"/:registerId/risks/:riskId"')
   );
-  assert.match(routes, /router\.get\(\n\s+"\/:registerId\/risks\/:riskId\/reviews"/);
+  assert.match(routes, /router\.get\(\s*"\/:registerId\/risks\/:riskId\/reviews"/);
   assert.match(routes, /requireRiskView\(\)/);
-  assert.match(routes, /router\.post\(\n\s+"\/:registerId\/risks\/:riskId\/reviews"/);
+  assert.match(routes, /router\.post\(\s*"\/:registerId\/risks\/:riskId\/reviews"/);
   assert.match(routes, /body: createRiskReviewSchema/);
   assert.match(routes, /requireRiskEdit\(\)/);
   assert.match(controller, /listRiskReviews\(\n\s+actorOrThrow\(request\)/);

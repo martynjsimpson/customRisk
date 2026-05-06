@@ -6,7 +6,7 @@ import { getRiskReviewStatus, isRiskOverdue } from "../src/services/risks.servic
 import { listRisksQuerySchema } from "../src/validators/risks.schemas.ts";
 
 test("risk list route is mounted under register risk collection", async () => {
-  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
 
   assert.match(routes, /"\/:registerId\/risks"/);
@@ -22,16 +22,16 @@ test("risk list query parses boolean strings explicitly", () => {
 });
 
 test("risk create route is mounted under register risk collection", async () => {
-  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
 
-  assert.match(routes, /router\.post\(\n\s+"\/:registerId\/risks"/);
+  assert.match(routes, /router\.post\(\s*"\/:registerId\/risks"/);
   assert.match(routes, /body: createRiskSchema/);
   assert.match(controller, /createRisk\(actorOrThrow\(request\), request\.params\.registerId, request\.body\)/);
 });
 
 test("risk detail route uses risk view permission and controller", async () => {
-  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
   const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
 
@@ -43,11 +43,11 @@ test("risk detail route uses risk view permission and controller", async () => {
 });
 
 test("risk update route uses risk edit permission and audited service", async () => {
-  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
   const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
 
-  assert.match(routes, /router\.patch\(\n\s+"\/:registerId\/risks\/:riskId"/);
+  assert.match(routes, /router\.patch\(\s*"\/:registerId\/risks\/:riskId"/);
   assert.match(routes, /requireRiskEdit\(\)/);
   assert.match(routes, /body: updateRiskSchema/);
   assert.match(controller, /updateRisk\(\n\s+actorOrThrow\(request\)/);
@@ -57,11 +57,11 @@ test("risk update route uses risk edit permission and audited service", async ()
 });
 
 test("risk delete route requires system admin and writes snapshot", async () => {
-  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
   const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
 
-  assert.match(routes, /router\.delete\(\n\s+"\/:registerId\/risks\/:riskId"/);
+  assert.match(routes, /router\.delete\(\s*"\/:registerId\/risks\/:riskId"/);
   assert.match(routes, /body: deleteRiskSchema/);
   assert.match(routes, /requireSystemAdmin/);
   assert.match(controller, /deleteRisk\(\n\s+actorOrThrow\(request\)/);
@@ -71,7 +71,7 @@ test("risk delete route requires system admin and writes snapshot", async () => 
 });
 
 test("risk export route is mounted before risk detail and audited", async () => {
-  const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+  const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
   const service = await readFile(new URL("../src/services/export.service.ts", import.meta.url), "utf8");
 
