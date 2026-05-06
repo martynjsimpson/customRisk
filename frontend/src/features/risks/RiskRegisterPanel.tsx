@@ -282,6 +282,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       queryClient.invalidateQueries({ queryKey: ["risk", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["risk-reviews", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["audit", "risk", register.id] }),
+      queryClient.invalidateQueries({ queryKey: ["audit", "register", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["register", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["registers"] }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] })

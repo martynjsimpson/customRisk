@@ -30,6 +30,7 @@ test("risk detail UI includes review action, review history, and risk audit hist
   assert.match(panel, /Audit history/);
   assert.match(panel, /Confirm review/);
   assert.match(panel, /register\.reviewAttestationText/);
+  assert.match(panel, /\["audit", "register", register\.id\]/);
 });
 
 test("register detail exposes register audit tab for managers", async () => {
