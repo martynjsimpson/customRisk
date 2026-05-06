@@ -141,7 +141,7 @@ function mapRiskListItem(
       owner: { select: { id: true; name: true; email: true } };
       likelihoodValue: { select: { id: true; name: true } };
       impactValue: { select: { id: true; name: true } };
-      riskLevel: { select: { id: true; name: true } };
+      riskLevel: { select: { id: true; name: true; color: true } };
       responseStrategy: { select: { id: true; name: true } };
     };
   }>,
@@ -484,7 +484,7 @@ export async function listRisks(
         owner: { select: { id: true, name: true, email: true } },
         likelihoodValue: { select: { id: true, name: true } },
         impactValue: { select: { id: true, name: true } },
-        riskLevel: { select: { id: true, name: true } },
+        riskLevel: { select: { id: true, name: true, color: true } },
         responseStrategy: { select: { id: true, name: true } }
       },
       orderBy: buildRiskOrderBy(query),

@@ -32,6 +32,7 @@ export interface RiskPerson {
 export interface RiskOption {
   id: string;
   name: string;
+  color?: string | null;
   numericValue?: string;
   displayOrder?: number;
 }

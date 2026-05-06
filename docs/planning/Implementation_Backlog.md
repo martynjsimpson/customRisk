@@ -918,7 +918,7 @@ Phase goal: implement likelihood, impact, risk level, matrix configuration, scor
 
 ## P4-06 — Scoring Frontend
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Build scoring configuration UI and risk level display.
 

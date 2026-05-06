@@ -111,9 +111,17 @@ export const riskLevelParamsSchema = z.object({
   riskLevelId: z.string().uuid()
 });
 
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid 6-digit hex color (e.g. #ff0000)")
+  .nullable()
+  .optional();
+
 export const createRiskLevelSchema = z.object({
   name: z.string().trim().min(1),
   description: z.string().trim().nullable().optional(),
+  color: hexColorSchema,
   displayOrder: z.number().int().min(1),
   isActive: z.boolean().default(true)
 });
@@ -121,6 +129,7 @@ export const createRiskLevelSchema = z.object({
 export const updateRiskLevelSchema = z.object({
   name: z.string().trim().min(1).optional(),
   description: z.string().trim().nullable().optional(),
+  color: hexColorSchema,
   displayOrder: z.number().int().min(1).optional(),
   isActive: z.boolean().optional()
 });

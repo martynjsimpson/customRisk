@@ -40,7 +40,13 @@ const permissionCandidateUserSelect = {
 
 const likelihoodDefaults = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
 const impactDefaults = ["Insignificant", "Minor", "Moderate", "Major", "Severe"];
-const riskLevelDefaults = ["Low", "Medium", "High", "Critical"];
+const riskLevelDefaults = ["Low", "Medium", "High", "Critical"] as const;
+const riskLevelDefaultColors = {
+  Low: "#2f9e44",
+  Medium: "#f59f00",
+  High: "#f76707",
+  Critical: "#e03131"
+} satisfies Record<(typeof riskLevelDefaults)[number], string>;
 const responseStrategyDefaults = ["Accept", "Mitigate", "Transfer", "Avoid"];
 const matrixLevelNames = [
   ["Low", "Low", "Low", "Medium", "Medium"],
@@ -179,6 +185,7 @@ export async function createRegister(actor: AuthenticatedActor, input: CreateReg
             data: {
               registerId: register.id,
               name,
+              color: riskLevelDefaultColors[name],
               displayOrder: index + 1
             }
           })

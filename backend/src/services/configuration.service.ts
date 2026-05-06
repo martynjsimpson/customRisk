@@ -989,9 +989,10 @@ export async function deactivateImpactValue(
 const riskLevelAuditFields = [
   { name: "name", label: "Name", valueType: "TEXT" },
   { name: "description", label: "Description", valueType: "TEXT" },
+  { name: "color", label: "Color", valueType: "TEXT" },
   { name: "displayOrder", label: "Display order", valueType: "NUMBER" },
   { name: "isActive", label: "Active", valueType: "BOOLEAN" }
-] satisfies Array<{ name: "name" | "description" | "displayOrder" | "isActive"; label: string; valueType: AuditValueType }>;
+] satisfies Array<{ name: "name" | "description" | "color" | "displayOrder" | "isActive"; label: string; valueType: AuditValueType }>;
 
 function mapRiskLevelPrismaError(error: unknown): never {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -1052,6 +1053,7 @@ export async function createRiskLevel(
           registerId,
           name: input.name,
           description: input.description ?? null,
+          color: input.color ?? null,
           displayOrder: input.displayOrder,
           isActive: input.isActive
         }
@@ -1101,6 +1103,7 @@ export async function updateRiskLevel(
         data: {
           name: input.name,
           description: input.description,
+          color: input.color,
           displayOrder: input.displayOrder,
           isActive: input.isActive
         }
@@ -1328,7 +1331,7 @@ export async function getMatrix(registerId: string) {
       include: {
         likelihoodValue: { select: { id: true, name: true, numericValue: true, displayOrder: true, isActive: true } },
         impactValue: { select: { id: true, name: true, numericValue: true, displayOrder: true, isActive: true } },
-        riskLevel: { select: { id: true, name: true, displayOrder: true, isActive: true } }
+        riskLevel: { select: { id: true, name: true, color: true, displayOrder: true, isActive: true } }
       },
       orderBy: [
         { likelihoodValue: { displayOrder: "asc" } },

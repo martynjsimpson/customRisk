@@ -32,6 +32,7 @@ import {
   type CustomFieldDefinition,
   type RiskDetail,
   type RiskListQuery,
+  type RiskOption,
   type RiskState,
   type SaveRiskInput
 } from "../../api/risks.api";
@@ -92,6 +93,33 @@ function statusBadge(status: string) {
           ? "gray"
           : "green";
   return <Badge color={color}>{status.replace(/_/g, " ")}</Badge>;
+}
+
+function readableTextColor(backgroundColor: string) {
+  const red = parseInt(backgroundColor.slice(1, 3), 16);
+  const green = parseInt(backgroundColor.slice(3, 5), 16);
+  const blue = parseInt(backgroundColor.slice(5, 7), 16);
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+
+  return luminance > 150 ? "#212529" : "#ffffff";
+}
+
+function riskLevelBadge(riskLevel: RiskOption) {
+  if (!riskLevel.color) {
+    return <Badge>{riskLevel.name}</Badge>;
+  }
+
+  return (
+    <Badge
+      style={{
+        backgroundColor: riskLevel.color,
+        color: readableTextColor(riskLevel.color),
+        borderColor: riskLevel.color
+      }}
+    >
+      {riskLevel.name}
+    </Badge>
+  );
 }
 
 function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
@@ -476,7 +504,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               <Table.Td>{risk.likelihood.name}</Table.Td>
               <Table.Td>{risk.impact.name}</Table.Td>
               <Table.Td>{risk.riskScore}</Table.Td>
-              <Table.Td>{risk.riskLevel.name}</Table.Td>
+              <Table.Td>{riskLevelBadge(risk.riskLevel)}</Table.Td>
               <Table.Td>{risk.responseStrategy.name}</Table.Td>
               <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
               <Table.Td>{statusBadge(risk.reviewStatus)}</Table.Td>
@@ -565,7 +593,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                       </Table.Tr>
                     )
                   )}
-                <Table.Tr><Table.Th>Level</Table.Th><Table.Td>{selectedRiskQuery.data.riskLevel.name}</Table.Td></Table.Tr>
+                <Table.Tr><Table.Th>Level</Table.Th><Table.Td>{riskLevelBadge(selectedRiskQuery.data.riskLevel)}</Table.Td></Table.Tr>
                 <Table.Tr><Table.Th>Next review</Table.Th><Table.Td>{selectedRiskQuery.data.nextReviewDate ?? ""}</Table.Td></Table.Tr>
                 <Table.Tr><Table.Th>Created by</Table.Th><Table.Td>{selectedRiskQuery.data.systemCreatedBy.name}</Table.Td></Table.Tr>
                 <Table.Tr><Table.Th>Updated</Table.Th><Table.Td>{new Date(selectedRiskQuery.data.systemUpdatedAt).toLocaleString()}</Table.Td></Table.Tr>

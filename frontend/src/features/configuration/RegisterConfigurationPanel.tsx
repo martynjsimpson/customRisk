@@ -8,6 +8,7 @@ import {
   Select,
   Stack,
   Table,
+  Tabs,
   Textarea,
   TextInput,
   Title
@@ -32,6 +33,7 @@ import {
 } from "../../api/configuration.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { CORE_RISK_FIELDS } from "../risks/coreRiskFields";
+import { ScoringConfigurationPanel } from "./ScoringConfigurationPanel";
 
 interface RegisterConfigurationPanelProps {
   registerId: string;
@@ -233,6 +235,15 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
   }, [editingOption]);
 
   return (
+    <Tabs defaultValue="fields">
+      <Tabs.List>
+        <Tabs.Tab value="fields">Fields</Tabs.Tab>
+        <Tabs.Tab value="scoring">Scoring</Tabs.Tab>
+      </Tabs.List>
+      <Tabs.Panel value="scoring" pt="md">
+        <ScoringConfigurationPanel registerId={registerId} />
+      </Tabs.Panel>
+      <Tabs.Panel value="fields" pt="md">
     <Stack>
       <Group justify="space-between">
         <Title order={2}>Field Configuration</Title>
@@ -414,5 +425,7 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
         </Stack>
       </Modal>
     </Stack>
+      </Tabs.Panel>
+    </Tabs>
   );
 }
