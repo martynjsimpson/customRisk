@@ -11,6 +11,14 @@ Custom Risk is a configurable risk register web application.
 - `scripts/` — local development, database, seed, and maintenance scripts.
 - `tests/` — cross-application API and E2E tests.
 
+## Versioning and releases
+
+This project uses [Semantic Versioning](https://semver.org/). The version in
+the root `package.json` is the single source of truth. Releases are tagged from
+`main` as `v<version>`, for example `v0.1.0`.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history and [docs/release-process.md](docs/release-process.md) for the full release procedure.
+
 ## Local development
 
 Configuration is documented in `.env.example`.
