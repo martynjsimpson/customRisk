@@ -189,65 +189,68 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       />
 
       <ApiErrorAlert error={riskQuery.error} fallback="Unable to load risks" />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Risk ID</Table.Th>
-            <Table.Th>Title</Table.Th>
-            <Table.Th>State</Table.Th>
-            <Table.Th>Owner</Table.Th>
-            <Table.Th>Likelihood</Table.Th>
-            <Table.Th>Impact</Table.Th>
-            <Table.Th>Score</Table.Th>
-            <Table.Th>Level</Table.Th>
-            <Table.Th>Response</Table.Th>
-            <Table.Th>Next review</Table.Th>
-            <Table.Th>Review</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {(riskQuery.data?.data ?? []).map((risk) => (
-            <Table.Tr key={risk.id}>
-              <Table.Td>
-                <Anchor component={Link} to={`?riskId=${risk.id}`} fw={600} onClick={() => openDetail(risk.id)}>
-                  {risk.displayRiskId}
-                </Anchor>
-              </Table.Td>
-              <Table.Td>{risk.title}</Table.Td>
-              <Table.Td><Badge>{risk.state}</Badge></Table.Td>
-              <Table.Td>{risk.owner.name}</Table.Td>
-              <Table.Td>{risk.likelihood.name}</Table.Td>
-              <Table.Td>{risk.impact.name}</Table.Td>
-              <Table.Td>{risk.riskScore}</Table.Td>
-              <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>
-              <Table.Td>{risk.responseStrategy.name}</Table.Td>
-              <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
-              <Table.Td><ReviewStatusBadge status={risk.reviewStatus} /></Table.Td>
-              <Table.Td>
-                <Group justify="flex-end" gap="xs" wrap="nowrap">
-                  {(canManage || (canEditOwnedRows && risk.owner.id === user?.id)) && register.reviewsEnabled ? (
-                    <Button variant="subtle" size="xs" onClick={() => openReview(risk.id)}>Review</Button>
-                  ) : null}
-                  {canManage || (canEditOwnedRows && risk.owner.id === user?.id) ? (
-                    <Button variant="subtle" size="xs" onClick={() => openEdit(risk.id)}>Edit</Button>
-                  ) : null}
-                  {isSystemAdmin ? (
-                    <Button variant="subtle" color="red" size="xs" onClick={() => openDelete(risk.id)}>
-                      Delete
-                    </Button>
-                  ) : null}
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-          {riskQuery.data?.data.length === 0 ? (
+      {riskQuery.isLoading ? <Loader /> : null}
+      <Table.ScrollContainer minWidth={1080}>
+        <Table>
+          <Table.Thead>
             <Table.Tr>
-              <Table.Td colSpan={12}><Text c="dimmed">No risks found</Text></Table.Td>
+              <Table.Th>Risk ID</Table.Th>
+              <Table.Th>Title</Table.Th>
+              <Table.Th>State</Table.Th>
+              <Table.Th>Owner</Table.Th>
+              <Table.Th>Likelihood</Table.Th>
+              <Table.Th>Impact</Table.Th>
+              <Table.Th>Score</Table.Th>
+              <Table.Th>Level</Table.Th>
+              <Table.Th>Response</Table.Th>
+              <Table.Th>Next review</Table.Th>
+              <Table.Th>Review</Table.Th>
+              <Table.Th />
             </Table.Tr>
-          ) : null}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {(riskQuery.data?.data ?? []).map((risk) => (
+              <Table.Tr key={risk.id}>
+                <Table.Td>
+                  <Anchor component={Link} to={`?riskId=${risk.id}`} fw={600} onClick={() => openDetail(risk.id)}>
+                    {risk.displayRiskId}
+                  </Anchor>
+                </Table.Td>
+                <Table.Td>{risk.title}</Table.Td>
+                <Table.Td><Badge>{risk.state}</Badge></Table.Td>
+                <Table.Td>{risk.owner.name}</Table.Td>
+                <Table.Td>{risk.likelihood.name}</Table.Td>
+                <Table.Td>{risk.impact.name}</Table.Td>
+                <Table.Td>{risk.riskScore}</Table.Td>
+                <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>
+                <Table.Td>{risk.responseStrategy.name}</Table.Td>
+                <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
+                <Table.Td><ReviewStatusBadge status={risk.reviewStatus} /></Table.Td>
+                <Table.Td>
+                  <Group justify="flex-end" gap="xs" wrap="nowrap">
+                    {(canManage || (canEditOwnedRows && risk.owner.id === user?.id)) && register.reviewsEnabled ? (
+                      <Button variant="subtle" size="xs" onClick={() => openReview(risk.id)}>Review</Button>
+                    ) : null}
+                    {canManage || (canEditOwnedRows && risk.owner.id === user?.id) ? (
+                      <Button variant="subtle" size="xs" onClick={() => openEdit(risk.id)}>Edit</Button>
+                    ) : null}
+                    {isSystemAdmin ? (
+                      <Button variant="subtle" color="red" size="xs" onClick={() => openDelete(risk.id)}>
+                        Delete
+                      </Button>
+                    ) : null}
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {riskQuery.data?.data.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={12}><Text c="dimmed">No risks match the current filters.</Text></Table.Td>
+              </Table.Tr>
+            ) : null}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
       <Pagination
         value={page}
         total={Math.max(1, Math.ceil((riskQuery.data?.meta.total ?? 0) / (riskQuery.data?.meta.pageSize ?? 25)))}

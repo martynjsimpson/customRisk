@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -21,76 +21,79 @@ export function MyRisksPage() {
     <Stack>
       <Title order={1}>My Risks</Title>
       <ApiErrorAlert error={risksQuery.error} fallback="Unable to load assigned risks" />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Risk</Table.Th>
-            <Table.Th>Register</Table.Th>
-            <Table.Th>Level</Table.Th>
-            <Table.Th>Next review</Table.Th>
-            <Table.Th>Review</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {(risksQuery.data ?? []).map((risk) => (
-            <Table.Tr key={risk.id}>
-              <Table.Td>
-                <Anchor
-                  component={Link}
-                  to={`/registers/${risk.register.id}?riskId=${risk.id}`}
-                  fw={600}
-                >
-                  {risk.displayRiskId}
-                </Anchor>
-                <Text size="sm">{risk.title}</Text>
-              </Table.Td>
-              <Table.Td>{risk.register.name}</Table.Td>
-              <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>
-              <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
-              <Table.Td>{reviewBadge(risk.reviewStatus)}</Table.Td>
-              <Table.Td>
-                <Group justify="flex-end" gap="xs">
-                  <Button
+      {risksQuery.isLoading ? <Loader /> : null}
+      <Table.ScrollContainer minWidth={760}>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Risk</Table.Th>
+              <Table.Th>Register</Table.Th>
+              <Table.Th>Level</Table.Th>
+              <Table.Th>Next review</Table.Th>
+              <Table.Th>Review</Table.Th>
+              <Table.Th />
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {(risksQuery.data ?? []).map((risk) => (
+              <Table.Tr key={risk.id}>
+                <Table.Td>
+                  <Anchor
                     component={Link}
-                    to={`/registers/${risk.register.id}?riskId=${risk.id}&action=review`}
-                    variant="subtle"
-                    size="xs"
+                    to={`/registers/${risk.register.id}?riskId=${risk.id}`}
+                    fw={600}
                   >
-                    Review
-                  </Button>
-                  <Button
-                    component={Link}
-                    to={`/registers/${risk.register.id}?riskId=${risk.id}&action=edit`}
-                    variant="subtle"
-                    size="xs"
-                  >
-                    Edit
-                  </Button>
-                  {isSystemAdmin ? (
+                    {risk.displayRiskId}
+                  </Anchor>
+                  <Text size="sm">{risk.title}</Text>
+                </Table.Td>
+                <Table.Td>{risk.register.name}</Table.Td>
+                <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>
+                <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
+                <Table.Td>{reviewBadge(risk.reviewStatus)}</Table.Td>
+                <Table.Td>
+                  <Group justify="flex-end" gap="xs" wrap="nowrap">
                     <Button
                       component={Link}
-                      to={`/registers/${risk.register.id}?riskId=${risk.id}&action=delete`}
+                      to={`/registers/${risk.register.id}?riskId=${risk.id}&action=review`}
                       variant="subtle"
-                      color="red"
                       size="xs"
                     >
-                      Delete
+                      Review
                     </Button>
-                  ) : null}
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-          {risksQuery.data?.length === 0 ? (
-            <Table.Tr>
-              <Table.Td colSpan={6}>
-                <Text c="dimmed">No risks are assigned to you.</Text>
-              </Table.Td>
-            </Table.Tr>
-          ) : null}
-        </Table.Tbody>
-      </Table>
+                    <Button
+                      component={Link}
+                      to={`/registers/${risk.register.id}?riskId=${risk.id}&action=edit`}
+                      variant="subtle"
+                      size="xs"
+                    >
+                      Edit
+                    </Button>
+                    {isSystemAdmin ? (
+                      <Button
+                        component={Link}
+                        to={`/registers/${risk.register.id}?riskId=${risk.id}&action=delete`}
+                        variant="subtle"
+                        color="red"
+                        size="xs"
+                      >
+                        Delete
+                      </Button>
+                    ) : null}
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {risksQuery.data?.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={6}>
+                  <Text c="dimmed">No risks are assigned to you.</Text>
+                </Table.Td>
+              </Table.Tr>
+            ) : null}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
     </Stack>
   );
 }

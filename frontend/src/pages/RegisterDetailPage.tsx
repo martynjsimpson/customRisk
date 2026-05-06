@@ -2,9 +2,11 @@ import {
   Badge,
   Button,
   Group,
+  Loader,
   Select,
   Stack,
   Table,
+  Text,
   Tabs,
   Title
 } from "@mantine/core";
@@ -78,6 +80,7 @@ export function RegisterDetailPage() {
         <Title order={1}>{registerQuery.data?.name ?? "Register"}</Title>
         <Badge>{registerQuery.data?.effectiveRole}</Badge>
       </Group>
+      {registerQuery.isLoading ? <Loader /> : null}
       <ApiErrorAlert error={registerQuery.error} fallback="Unable to load register" />
       <Tabs defaultValue="risks">
         <Tabs.List>
@@ -122,39 +125,49 @@ export function RegisterDetailPage() {
                   ]}
                   {...permissionForm.getInputProps("role")}
                 />
-                <Button type="submit">Add</Button>
+                <Button type="submit" loading={addPermissionMutation.isPending}>Add</Button>
               </Group>
             </form>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>User</Table.Th>
-                  <Table.Th>Role</Table.Th>
-                  <Table.Th />
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {(permissionsQuery.data ?? []).map((permission) => (
-                  <Table.Tr key={permission.id}>
-                    <Table.Td>{permission.user.name}</Table.Td>
-                    <Table.Td>
-                      <Badge>{permission.role}</Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group justify="flex-end">
-                        <Button
-                          variant="subtle"
-                          color="red"
-                          onClick={() => removePermissionMutation.mutate(permission.id)}
-                        >
-                          Remove
-                        </Button>
-                      </Group>
-                    </Table.Td>
+            {permissionsQuery.isLoading ? <Loader /> : null}
+            <Table.ScrollContainer minWidth={640}>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>User</Table.Th>
+                    <Table.Th>Role</Table.Th>
+                    <Table.Th />
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
+                </Table.Thead>
+                <Table.Tbody>
+                  {(permissionsQuery.data ?? []).map((permission) => (
+                    <Table.Tr key={permission.id}>
+                      <Table.Td>{permission.user.name}</Table.Td>
+                      <Table.Td>
+                        <Badge>{permission.role}</Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group justify="flex-end" wrap="nowrap">
+                          <Button
+                            variant="subtle"
+                            color="red"
+                            onClick={() => removePermissionMutation.mutate(permission.id)}
+                          >
+                            Remove
+                          </Button>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                  {permissionsQuery.data?.length === 0 ? (
+                    <Table.Tr>
+                      <Table.Td colSpan={3}>
+                        <Text c="dimmed">No register permissions have been assigned.</Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  ) : null}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="audit" pt="md">

@@ -3,10 +3,12 @@ import {
   Button,
   Checkbox,
   Group,
+  Loader,
   Modal,
   PasswordInput,
   Stack,
   Table,
+  Text,
   TextInput,
   Title
 } from "@mantine/core";
@@ -89,41 +91,51 @@ export function UsersPage() {
       <ApiErrorAlert error={usersQuery.error} fallback="Unable to load users" />
       <ApiErrorAlert error={activateMutation.error} fallback="Unable to activate user" />
       <ApiErrorAlert error={deactivateMutation.error} fallback="Unable to deactivate user" />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Email</Table.Th>
-            <Table.Th>Roles</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {(usersQuery.data?.data ?? []).map((user) => (
-            <Table.Tr key={user.id}>
-              <Table.Td>{user.name}</Table.Td>
-              <Table.Td>{user.email}</Table.Td>
-              <Table.Td>{user.isSystemAdmin ? <Badge>System Admin</Badge> : null}</Table.Td>
-              <Table.Td>
-                <Badge color={user.isActive ? "green" : "gray"}>
-                  {user.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </Table.Td>
-              <Table.Td>
-                <Group gap="xs" justify="flex-end">
-                  <Button variant="subtle" size="xs" onClick={() => startEdit(user)}>Edit</Button>
-                  {user.isActive ? (
-                    <Button variant="subtle" size="xs" color="red" onClick={() => deactivateMutation.mutate(user.id)}>Deactivate</Button>
-                  ) : (
-                    <Button variant="subtle" size="xs" onClick={() => activateMutation.mutate(user.id)}>Activate</Button>
-                  )}
-                </Group>
-              </Table.Td>
+      {usersQuery.isLoading ? <Loader /> : null}
+      <Table.ScrollContainer minWidth={760}>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Email</Table.Th>
+              <Table.Th>Roles</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th />
             </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {(usersQuery.data?.data ?? []).map((user) => (
+              <Table.Tr key={user.id}>
+                <Table.Td>{user.name}</Table.Td>
+                <Table.Td>{user.email}</Table.Td>
+                <Table.Td>{user.isSystemAdmin ? <Badge>System Admin</Badge> : null}</Table.Td>
+                <Table.Td>
+                  <Badge color={user.isActive ? "green" : "gray"}>
+                    {user.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Group gap="xs" justify="flex-end" wrap="nowrap">
+                    <Button variant="subtle" size="xs" onClick={() => startEdit(user)}>Edit</Button>
+                    {user.isActive ? (
+                      <Button variant="subtle" size="xs" color="red" onClick={() => deactivateMutation.mutate(user.id)}>Deactivate</Button>
+                    ) : (
+                      <Button variant="subtle" size="xs" onClick={() => activateMutation.mutate(user.id)}>Activate</Button>
+                    )}
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {usersQuery.data?.data.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={5}>
+                  <Text c="dimmed">No users found.</Text>
+                </Table.Td>
+              </Table.Tr>
+            ) : null}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
       <Modal opened={opened} onClose={close} title={editingUser ? "Edit user" : "Add user"}>
         <form
           onSubmit={form.onSubmit(async (values) => {
@@ -156,7 +168,7 @@ export function UsersPage() {
             />
             <Checkbox label="System Admin" {...form.getInputProps("isSystemAdmin", { type: "checkbox" })} />
             <Checkbox label="Active" {...form.getInputProps("isActive", { type: "checkbox" })} />
-            <Button type="submit">Save</Button>
+            <Button type="submit" loading={createMutation.isPending || updateMutation.isPending}>Save</Button>
           </Stack>
         </form>
       </Modal>

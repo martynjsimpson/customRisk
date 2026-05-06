@@ -4,11 +4,13 @@ import {
   Button,
   Checkbox,
   Group,
+  Loader,
   Modal,
   MultiSelect,
   NumberInput,
   Stack,
   Table,
+  Text,
   Textarea,
   TextInput,
   Title
@@ -64,36 +66,46 @@ export function RegistersPage() {
         {isSystemAdmin ? <Button onClick={openCreateModal}>Create register</Button> : null}
       </Group>
       <ApiErrorAlert error={registersQuery.error} fallback="Unable to load registers" />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Role</Table.Th>
-            <Table.Th>Open risks</Table.Th>
-            <Table.Th>Overdue</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {(registersQuery.data?.data ?? []).map((register) => (
-            <Table.Tr key={register.id}>
-              <Table.Td>
-                <Anchor
-                  component={Link}
-                  to={`/registers/${register.id}`}
-                  fw={600}
-                >
-                  {register.name}
-                </Anchor>
-              </Table.Td>
-              <Table.Td>
-                <Badge>{register.effectiveRole}</Badge>
-              </Table.Td>
-              <Table.Td>{register.openRisksCount}</Table.Td>
-              <Table.Td>{register.overdueRisksCount}</Table.Td>
+      {registersQuery.isLoading ? <Loader /> : null}
+      <Table.ScrollContainer minWidth={640}>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Role</Table.Th>
+              <Table.Th>Open risks</Table.Th>
+              <Table.Th>Overdue</Table.Th>
             </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {(registersQuery.data?.data ?? []).map((register) => (
+              <Table.Tr key={register.id}>
+                <Table.Td>
+                  <Anchor
+                    component={Link}
+                    to={`/registers/${register.id}`}
+                    fw={600}
+                  >
+                    {register.name}
+                  </Anchor>
+                </Table.Td>
+                <Table.Td>
+                  <Badge>{register.effectiveRole}</Badge>
+                </Table.Td>
+                <Table.Td>{register.openRisksCount}</Table.Td>
+                <Table.Td>{register.overdueRisksCount}</Table.Td>
+              </Table.Tr>
+            ))}
+            {registersQuery.data?.data.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={4}>
+                  <Text c="dimmed">No registers are available for your account.</Text>
+                </Table.Td>
+              </Table.Tr>
+            ) : null}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
       <Modal opened={opened} onClose={close} title="Create register">
         <form
           onSubmit={form.onSubmit(async (values) => {
