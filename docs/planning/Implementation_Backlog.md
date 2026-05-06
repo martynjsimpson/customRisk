@@ -1093,7 +1093,7 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-02 — Permission Test Suite
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Add comprehensive permission coverage.
 
@@ -1113,7 +1113,7 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-03 — Audit Completeness Review
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Verify required audit coverage across MVP workflows.
 
@@ -1135,7 +1135,7 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-04 — Validation and Error Handling Hardening
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Ensure validation and error responses are consistent.
 
@@ -1156,7 +1156,7 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-05 — Security Hardening
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Verify auth/session/security controls.
 
@@ -1180,7 +1180,7 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-06 — Usability and Responsive Pass
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Improve MVP usability for non-risk-specialist users.
 
@@ -1203,7 +1203,7 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-07 — End-to-End Acceptance Scenarios
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Verify MVP acceptance scenarios.
 
