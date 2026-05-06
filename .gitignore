@@ -16,3 +16,4 @@ backend/prisma/migrations/dev.db
 .idea/
 docs/implementation/bugs.md
 .claude/settings.json
+docs/implementation/tweaks.md

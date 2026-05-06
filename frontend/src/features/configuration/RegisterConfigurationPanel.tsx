@@ -34,6 +34,8 @@ import {
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { CORE_RISK_FIELDS } from "../risks/coreRiskFields";
 import { ScoringConfigurationPanel } from "./ScoringConfigurationPanel";
+import { getRegister, updateRegister } from "../../api/registers.api";
+import { usePermissions } from "../../hooks/usePermissions";
 
 interface RegisterConfigurationPanelProps {
   registerId: string;
@@ -102,6 +104,58 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
       queryClient.invalidateQueries({ queryKey: ["custom-field-options", registerId] })
     ]);
   };
+
+  const { isSystemAdmin } = usePermissions();
+  const registerQuery = useQuery({
+    queryKey: ["register", registerId],
+    queryFn: () => getRegister(registerId),
+    enabled: Boolean(registerId)
+  });
+  const canManage = isSystemAdmin || registerQuery.data?.effectiveRole === "REGISTER_ADMIN";
+
+  const settingsForm = useForm({
+    initialValues: {
+      name: "",
+      description: "",
+      riskIdPrefix: "",
+      riskIdZeroPaddingEnabled: false,
+      riskIdZeroPaddingWidth: 4,
+      reviewsEnabled: true,
+      defaultReviewFrequencyMonths: 12,
+      allowViewerExport: false
+    }
+  });
+
+  useEffect(() => {
+    const register = registerQuery.data;
+    if (register) {
+      settingsForm.setValues({
+        name: register.name,
+        description: register.description ?? "",
+        riskIdPrefix: register.riskIdPrefix ?? "",
+        riskIdZeroPaddingEnabled: register.riskIdZeroPaddingEnabled,
+        riskIdZeroPaddingWidth: register.riskIdZeroPaddingWidth,
+        reviewsEnabled: register.reviewsEnabled,
+        defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
+        allowViewerExport: register.allowViewerExport
+      });
+    }
+  }, [registerQuery.data]);
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: () =>
+      updateRegister(registerId, {
+        ...settingsForm.values,
+        riskIdPrefix: settingsForm.values.riskIdPrefix || null
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
+        queryClient.invalidateQueries({ queryKey: ["registers"] }),
+        invalidateConfiguration()
+      ]);
+    }
+  });
 
   const createFieldMutation = useMutation({
     mutationFn: () =>
@@ -235,13 +289,53 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
   }, [editingOption]);
 
   return (
-    <Tabs defaultValue="fields">
+    <Tabs defaultValue="settings">
       <Tabs.List>
+        <Tabs.Tab value="settings">Settings</Tabs.Tab>
         <Tabs.Tab value="fields">Fields</Tabs.Tab>
         <Tabs.Tab value="scoring">Scoring</Tabs.Tab>
       </Tabs.List>
-      <Tabs.Panel value="scoring" pt="md">
-        <ScoringConfigurationPanel registerId={registerId} />
+      <Tabs.Panel value="settings" pt="md">
+        <form onSubmit={settingsForm.onSubmit(() => updateSettingsMutation.mutate())}>
+          <Stack>
+            <ApiErrorAlert error={updateSettingsMutation.error} fallback="Unable to save register settings" />
+            <TextInput label="Name" disabled={!canManage} {...settingsForm.getInputProps("name")} />
+            <Textarea label="Description" disabled={!canManage} {...settingsForm.getInputProps("description")} />
+            <TextInput label="Risk ID prefix" disabled={!canManage} {...settingsForm.getInputProps("riskIdPrefix")} />
+            <Checkbox
+              label="Zero-pad risk IDs"
+              disabled={!canManage}
+              {...settingsForm.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}
+            />
+            <NumberInput
+              label="Padding width"
+              min={2}
+              max={12}
+              disabled={!canManage}
+              {...settingsForm.getInputProps("riskIdZeroPaddingWidth")}
+            />
+            <Checkbox
+              label="Reviews enabled"
+              disabled={!canManage}
+              {...settingsForm.getInputProps("reviewsEnabled", { type: "checkbox" })}
+            />
+            <NumberInput
+              label="Default review frequency months"
+              min={1}
+              max={120}
+              disabled={!canManage}
+              {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
+            />
+            <Checkbox
+              label="Allow Register Viewers to export"
+              disabled={!canManage}
+              {...settingsForm.getInputProps("allowViewerExport", { type: "checkbox" })}
+            />
+            {canManage ? (
+              <Button type="submit" loading={updateSettingsMutation.isPending}>Save settings</Button>
+            ) : null}
+          </Stack>
+        </form>
       </Tabs.Panel>
       <Tabs.Panel value="fields" pt="md">
     <Stack>
@@ -425,6 +519,9 @@ export function RegisterConfigurationPanel({ registerId }: RegisterConfiguration
         </Stack>
       </Modal>
     </Stack>
+      </Tabs.Panel>
+      <Tabs.Panel value="scoring" pt="md">
+        <ScoringConfigurationPanel registerId={registerId} />
       </Tabs.Panel>
     </Tabs>
   );

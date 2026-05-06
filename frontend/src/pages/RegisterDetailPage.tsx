@@ -1,20 +1,15 @@
 import {
   Badge,
   Button,
-  Checkbox,
   Group,
-  NumberInput,
   Select,
   Stack,
   Table,
   Tabs,
-  Textarea,
-  TextInput,
   Title
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 
 import {
@@ -22,8 +17,7 @@ import {
   getRegister,
   listRegisterPermissionCandidates,
   listRegisterPermissions,
-  removeRegisterPermission,
-  updateRegister
+  removeRegisterPermission
 } from "../api/registers.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { RegisterAuditPanel } from "../features/audit/RegisterAuditPanel";
@@ -52,35 +46,6 @@ export function RegisterDetailPage() {
     enabled: Boolean(registerId) && canManage
   });
 
-  const settingsForm = useForm({
-    initialValues: {
-      name: "",
-      description: "",
-      riskIdPrefix: "",
-      riskIdZeroPaddingEnabled: false,
-      riskIdZeroPaddingWidth: 4,
-      reviewsEnabled: true,
-      defaultReviewFrequencyMonths: 12,
-      allowViewerExport: false
-    }
-  });
-
-  useEffect(() => {
-    const register = registerQuery.data;
-    if (register) {
-      settingsForm.setValues({
-        name: register.name,
-        description: register.description ?? "",
-        riskIdPrefix: register.riskIdPrefix ?? "",
-        riskIdZeroPaddingEnabled: register.riskIdZeroPaddingEnabled,
-        riskIdZeroPaddingWidth: register.riskIdZeroPaddingWidth,
-        reviewsEnabled: register.reviewsEnabled,
-        defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
-        allowViewerExport: register.allowViewerExport
-      });
-    }
-  }, [registerQuery.data]);
-
   const permissionForm = useForm({
     initialValues: {
       userId: "",
@@ -95,14 +60,6 @@ export function RegisterDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["registers"] })
     ]);
   };
-  const updateMutation = useMutation({
-    mutationFn: () =>
-      updateRegister(registerId, {
-        ...settingsForm.values,
-        riskIdPrefix: settingsForm.values.riskIdPrefix || null
-      }),
-    onSuccess: invalidate
-  });
   const addPermissionMutation = useMutation({
     mutationFn: () => addRegisterPermission(registerId, permissionForm.values),
     onSuccess: async () => {
@@ -125,57 +82,12 @@ export function RegisterDetailPage() {
       <Tabs defaultValue="risks">
         <Tabs.List>
           <Tabs.Tab value="risks">Risks</Tabs.Tab>
-          <Tabs.Tab value="settings">Settings</Tabs.Tab>
           {canManage ? <Tabs.Tab value="configuration">Configuration</Tabs.Tab> : null}
           {canManage ? <Tabs.Tab value="permissions">Permissions</Tabs.Tab> : null}
           {canManage ? <Tabs.Tab value="audit">Audit</Tabs.Tab> : null}
         </Tabs.List>
         <Tabs.Panel value="risks" pt="md">
           {registerQuery.data ? <RiskRegisterPanel register={registerQuery.data} /> : null}
-        </Tabs.Panel>
-        <Tabs.Panel value="settings" pt="md">
-          <form
-            onSubmit={settingsForm.onSubmit(() => {
-              updateMutation.mutate();
-            })}
-          >
-            <Stack>
-              <ApiErrorAlert error={updateMutation.error} fallback="Unable to save register settings" />
-              <TextInput label="Name" disabled={!canManage} {...settingsForm.getInputProps("name")} />
-              <Textarea label="Description" disabled={!canManage} {...settingsForm.getInputProps("description")} />
-              <TextInput label="Risk ID prefix" disabled={!canManage} {...settingsForm.getInputProps("riskIdPrefix")} />
-              <Checkbox
-                label="Zero-pad risk IDs"
-                disabled={!canManage}
-                {...settingsForm.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}
-              />
-              <NumberInput
-                label="Padding width"
-                min={2}
-                max={12}
-                disabled={!canManage}
-                {...settingsForm.getInputProps("riskIdZeroPaddingWidth")}
-              />
-              <Checkbox
-                label="Reviews enabled"
-                disabled={!canManage}
-                {...settingsForm.getInputProps("reviewsEnabled", { type: "checkbox" })}
-              />
-              <NumberInput
-                label="Default review frequency months"
-                min={1}
-                max={120}
-                disabled={!canManage}
-                {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
-              />
-              <Checkbox
-                label="Allow Register Viewers to export"
-                disabled={!canManage}
-                {...settingsForm.getInputProps("allowViewerExport", { type: "checkbox" })}
-              />
-              {canManage ? <Button type="submit">Save settings</Button> : null}
-            </Stack>
-          </form>
         </Tabs.Panel>
         <Tabs.Panel value="configuration" pt="md">
           {canManage ? <RegisterConfigurationPanel registerId={registerId} /> : null}

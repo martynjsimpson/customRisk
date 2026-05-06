@@ -7,7 +7,7 @@ Area: Frontend
 
 Description: I feel like the "Settings" tab should probably live as a sub-tab of Configuration. i.e. along side Fields and Scoring. The sub-tabs should be in the following order 1. Settings, 2. Fields 3. Scoring.
 
-Status: Planned
+Status: Done
 
 ## T-02
 Area: Frontend
