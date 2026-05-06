@@ -17,6 +17,14 @@ Version levels:
 
 ---
 
+## [0.1.1] - 2026-05-07
+
+### Changed
+
+- Dependency updates: bumped GitHub Actions workflows (checkout, setup-node, Docker actions) and npm packages (pino, express-rate-limit, vite, @tabler/icons-react) to latest patch and minor versions.
+
+---
+
 ## [0.1.0] - 2026-05-06
 
 ### Added
@@ -39,5 +47,6 @@ Version levels:
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/martynjsimpson/customRisk/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/martynjsimpson/customRisk/releases/tag/v0.1.0
