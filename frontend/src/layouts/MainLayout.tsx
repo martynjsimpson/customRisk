@@ -13,6 +13,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/session";
 import { usePermissions } from "../hooks/usePermissions";
+import packageJson from "../../package.json";
 
 const NAV_WIDTH_FULL = 240;
 const NAV_WIDTH_COLLAPSED = 60;
@@ -134,6 +135,11 @@ export function MainLayout() {
             collapsed={collapsed}
             onClick={(e) => { e.preventDefault(); setCollapsed((c) => !c); }}
           />
+          {!collapsed && (
+            <Text size="xs" c="dimmed" ta="center" py={4}>
+              v{packageJson.version}
+            </Text>
+          )}
         </Stack>
       </AppShell.Navbar>
 
