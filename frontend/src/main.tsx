@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { createTheme, MantineProvider } from "@mantine/core";
+import { createTheme, MantineProvider, Modal } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
@@ -58,7 +58,15 @@ const theme = createTheme({
       defaultProps: {
         size: 'md'
       }
-    }
+    },
+    Modal: Modal.extend({
+      styles: (theme) => ({
+        title: {
+          fontSize: theme.fontSizes.xl,
+          fontWeight: 700
+        },
+      })
+    })
   }
 });
 
