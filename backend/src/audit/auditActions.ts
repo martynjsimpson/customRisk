@@ -20,6 +20,8 @@ export const auditActions = {
   riskCreated: "RISK_CREATED",
   riskUpdated: "RISK_UPDATED",
   riskDeleted: "RISK_DELETED",
+  riskReviewed: "RISK_REVIEWED",
+  nextReviewDateUpdated: "NEXT_REVIEW_DATE_UPDATED",
   riskExportGenerated: "RISK_EXPORT_GENERATED",
   customFieldCreated: "CUSTOM_FIELD_CREATED",
   customFieldUpdated: "CUSTOM_FIELD_UPDATED",

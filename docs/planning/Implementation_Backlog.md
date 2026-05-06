@@ -946,7 +946,7 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ## P5-01 — Risk Review API
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Implement risk review completion and review history.
 

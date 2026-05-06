@@ -48,6 +48,10 @@ import {
   listRisksController,
   updateRiskController
 } from "../controllers/risks.controller.js";
+import {
+  completeRiskReviewController,
+  listRiskReviewsController
+} from "../controllers/reviews.controller.js";
 import { authenticate } from "../middleware/authenticate.js";
 import {
   requireRegisterAccess,
@@ -87,6 +91,7 @@ import {
   updateRiskLevelSchema
 } from "../validators/configuration.schemas.js";
 import {
+  createRiskReviewSchema,
   createRiskSchema,
   deleteRiskSchema,
   listRisksQuerySchema,
@@ -311,6 +316,18 @@ export function createRegistersRouter() {
     validateRequest({ params: matrixCellParamsSchema, body: updateMatrixCellSchema }),
     requireRegisterManagement(),
     asyncRoute(updateMatrixCellController)
+  );
+  router.get(
+    "/:registerId/risks/:riskId/reviews",
+    validateRequest({ params: riskIdParamsSchema }),
+    requireRiskView(),
+    asyncRoute(listRiskReviewsController)
+  );
+  router.post(
+    "/:registerId/risks/:riskId/reviews",
+    validateRequest({ params: riskIdParamsSchema, body: createRiskReviewSchema }),
+    requireRiskEdit(),
+    asyncRoute(completeRiskReviewController)
   );
   router.get(
     "/:registerId/risks/:riskId",
