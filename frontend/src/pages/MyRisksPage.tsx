@@ -53,14 +53,6 @@ export function MyRisksPage() {
                 <Group justify="flex-end" gap="xs">
                   <Button
                     component={Link}
-                    to={`/registers/${risk.register.id}?riskId=${risk.id}`}
-                    variant="subtle"
-                    size="xs"
-                  >
-                    Open
-                  </Button>
-                  <Button
-                    component={Link}
                     to={`/registers/${risk.register.id}?riskId=${risk.id}&action=review`}
                     variant="subtle"
                     size="xs"
