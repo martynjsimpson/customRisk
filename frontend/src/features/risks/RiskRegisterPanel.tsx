@@ -650,7 +650,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                 <Table.Tbody>
                   {[
                     ...CORE_RISK_FIELDS.map(f => ({ kind: "core" as const, ...f })),
-                    ...selectedRiskQuery.data.customFields.map(f => ({
+                    ...selectedRiskQuery.data.customFields.filter(f => f.customFieldDefinition.isActive).map(f => ({
                       kind: "custom" as const,
                       id: f.id,
                       displayOrder: f.customFieldDefinition.displayOrder,
