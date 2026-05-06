@@ -1,0 +1,25 @@
+$kind: http-request
+description: System Admin only.
+url: "{{baseUrl}}/api/v1/users"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: pageSize
+    value: "25"
+  - key: search
+    value: alice
+    disabled: true
+  - key: isActive
+    value: "true"
+    disabled: true
+  - key: isSystemAdmin
+    value: "false"
+    disabled: true
+  - key: sortBy
+    value: name
+    disabled: true
+  - key: sortDir
+    value: asc
+    disabled: true
+order: 1000

@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/matrix/{{cellId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "riskLevelId": "{{riskLevelId}}"
+    }
+order: 3000

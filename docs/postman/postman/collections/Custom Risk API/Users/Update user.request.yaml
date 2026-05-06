@@ -1,0 +1,17 @@
+$kind: http-request
+description: System Admin only. Password optional on update.
+url: "{{baseUrl}}/api/v1/users/{{userId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Alice Smith",
+      "email": "alice@example.com",
+      "password": "NewTemporaryPassword123!",
+      "isSystemAdmin": false,
+      "isActive": true
+    }
+order: 4000

@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/custom-fields/{{fieldId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fieldName": "Business Area",
+      "helpText": "Updated help text.",
+      "isRequired": false,
+      "displayOrder": 20,
+      "isActive": true
+    }
+order: 4000

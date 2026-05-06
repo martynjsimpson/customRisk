@@ -1,0 +1,24 @@
+$kind: http-request
+name: Login
+description: Login with email and password. Stores accessToken into collection variables on success.
+url: "{{baseUrl}}/api/v1/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{userName}}",
+      "password": "{{password}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Login succeeded', function () { pm.response.to.have.status(200); });
+      const json = pm.response.json();
+      if (json?.data?.accessToken) { pm.collectionVariables.set('accessToken', json.data.accessToken); }
+    language: text/javascript
+order: 1000

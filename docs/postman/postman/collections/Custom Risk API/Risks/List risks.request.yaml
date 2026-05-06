@@ -1,0 +1,38 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/risks"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: pageSize
+    value: "25"
+  - key: state
+    value: OPEN
+    disabled: true
+  - key: riskLevelId
+    value: "{{riskLevelId}}"
+    disabled: true
+  - key: ownerUserId
+    value: "{{userId}}"
+    disabled: true
+  - key: reviewStatus
+    value: OVERDUE
+    disabled: true
+  - key: dueForReview
+    value: "true"
+    disabled: true
+  - key: overdue
+    value: "true"
+    disabled: true
+  - key: includeClosed
+    value: "false"
+  - key: search
+    value: vendor
+    disabled: true
+  - key: sortBy
+    value: riskScore
+    disabled: true
+  - key: sortDir
+    value: desc
+    disabled: true
+order: 1000

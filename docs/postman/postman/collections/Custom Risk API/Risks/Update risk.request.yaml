@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/risks/{{riskId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Updated title",
+      "description": "Updated description",
+      "state": "OPEN",
+      "ownerUserId": "{{userId}}",
+      "createdDate": "2026-05-04",
+      "likelihoodValueId": "{{likelihoodId}}",
+      "impactValueId": "{{impactId}}",
+      "responseStrategyId": "00000000-0000-0000-0000-000000000000",
+      "responseAction": "Updated response action.",
+      "customFields": [
+        {
+          "customFieldDefinitionId": "{{fieldId}}",
+          "value": true
+        }
+      ]
+    }
+order: 4000

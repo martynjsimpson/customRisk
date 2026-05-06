@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/custom-fields/{{fieldId}}/options/{{optionId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "label": "Technology",
+      "displayOrder": 1,
+      "isActive": true
+    }
+order: 3000

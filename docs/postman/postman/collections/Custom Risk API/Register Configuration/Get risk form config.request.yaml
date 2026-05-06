@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/risk-form-config"
+method: GET
+order: 2000

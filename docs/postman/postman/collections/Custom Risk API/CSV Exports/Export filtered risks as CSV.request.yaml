@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/risks/export"
+method: GET
+headers:
+  Accept: text/csv
+queryParams:
+  - key: state
+    value: OPEN
+  - key: overdue
+    value: "true"
+    disabled: true
+  - key: includeClosed
+    value: "false"
+  - key: search
+    value: vendor
+    disabled: true
+order: 1000

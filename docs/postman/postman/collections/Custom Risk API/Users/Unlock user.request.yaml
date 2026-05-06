@@ -1,0 +1,5 @@
+$kind: http-request
+description: System Admin only. Clears account lockout state.
+url: "{{baseUrl}}/api/v1/users/{{userId}}/unlock"
+method: POST
+order: 7000

@@ -1,0 +1,20 @@
+$kind: http-request
+description: System Admin only. Creates default configuration.
+url: "{{baseUrl}}/api/v1/registers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Information Security Risk Register",
+      "description": "Information security risks",
+      "riskIdPrefix": "ISEC",
+      "riskIdZeroPaddingEnabled": true,
+      "riskIdZeroPaddingWidth": 4,
+      "initialRegisterAdminUserIds": [
+        "{{userId}}"
+      ]
+    }
+order: 2000

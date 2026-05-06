@@ -1,0 +1,5 @@
+$kind: http-request
+description: Risks owned by current user.
+url: "{{baseUrl}}/api/v1/dashboard/my-risks"
+method: GET
+order: 2000

@@ -1,0 +1,36 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/audit/system"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: pageSize
+    value: "50"
+  - key: dateFrom
+    value: 2026-05-01
+    disabled: true
+  - key: dateTo
+    value: 2026-05-31
+    disabled: true
+  - key: actorUserId
+    value: "{{userId}}"
+    disabled: true
+  - key: action
+    value: RISK_UPDATED
+    disabled: true
+  - key: objectType
+    value: RISK
+    disabled: true
+  - key: registerId
+    value: "{{registerId}}"
+    disabled: true
+  - key: riskId
+    value: "{{riskId}}"
+    disabled: true
+  - key: displayRiskId
+    value: ISEC-0001
+    disabled: true
+  - key: ipAddress
+    value: 203.0.113.10
+    disabled: true
+order: 1000

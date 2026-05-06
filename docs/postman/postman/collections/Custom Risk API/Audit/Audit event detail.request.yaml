@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/audit/events/{{auditEventId}}"
+method: GET
+order: 4000

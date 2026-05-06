@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/likelihood-values"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Possible",
+      "numericValue": 3,
+      "displayOrder": 3,
+      "isActive": true
+    }
+order: 2000
