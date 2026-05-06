@@ -9,7 +9,7 @@
     "shared"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19"
   },
   "scripts": {
     "dev:backend": "npm --workspace @custom-risk/backend run dev",
