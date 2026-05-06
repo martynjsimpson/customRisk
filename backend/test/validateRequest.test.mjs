@@ -251,3 +251,31 @@ test("nested field errors use dot-path keys", async () => {
     assert.equal(typeof body.error.fields["address.city"], "string");
   });
 });
+
+test("malformed JSON returns standard validation error without stack trace", async () => {
+  const schema = z.object({ name: z.string() });
+  const app = makeApp("post", "/test", [validateRequest({ body: schema })], (_req, res) => {
+    res.json({ ok: true });
+  });
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/test`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{invalid-json"
+    });
+
+    assert.equal(response.status, 400);
+    const body = await response.json();
+    assert.deepEqual(body, {
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid JSON request body",
+        fields: {
+          body: "Request body must be valid JSON"
+        }
+      }
+    });
+    assert.doesNotMatch(JSON.stringify(body), /stack|SyntaxError|Unexpected token/);
+  });
+});

@@ -28,6 +28,18 @@ export function getApiErrorFields(error: unknown) {
   return error.response?.data?.error?.fields;
 }
 
+export function formatApiErrorFieldName(field: string) {
+  if (field === "_root" || field === "body") {
+    return "Request";
+  }
+
+  return field
+    .replace(/\.(\d+)(?=\.|$)/g, " $1")
+    .replace(/\./g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 export function ApiErrorAlert({
   error,
   fallback
@@ -46,11 +58,13 @@ export function ApiErrorAlert({
       <Stack gap={4}>
         <Text>{getApiErrorMessage(error, fallback)}</Text>
         {fields
-          ? Object.entries(fields).map(([field, message]) => (
-              <Text key={field} size="sm">
-                {field}: {message}
-              </Text>
-            ))
+          ? Object.entries(fields)
+              .sort(([left], [right]) => left.localeCompare(right))
+              .map(([field, message]) => (
+                <Text key={field} size="sm">
+                  {formatApiErrorFieldName(field)}: {message}
+                </Text>
+              ))
           : null}
       </Stack>
     </Alert>
