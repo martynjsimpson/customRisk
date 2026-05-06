@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import { getMyWork, type DashboardRisk } from "../api/dashboard.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import { RiskLevelBadge } from "../components/RiskLevelBadge/RiskLevelBadge";
+
 
 function reviewBadge(status: string) {
   const color = status === "OVERDUE" ? "red" : status === "DUE_SOON" ? "yellow" : "gray";
@@ -22,6 +24,7 @@ function RiskTable({ risks }: { risks: DashboardRisk[] }) {
         <Table.Tr>
           <Table.Th>Risk</Table.Th>
           <Table.Th>Register</Table.Th>
+          <Table.Th>Risk Level</Table.Th>
           <Table.Th>Next Review Date</Table.Th>
           <Table.Th>Review Status</Table.Th>
         </Table.Tr>
@@ -40,6 +43,7 @@ function RiskTable({ risks }: { risks: DashboardRisk[] }) {
               <Text size="sm">{risk.title}</Text>
             </Table.Td>
             <Table.Td>{risk.register.name}</Table.Td>
+            <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>
             <Table.Td>{risk.nextReviewDate}</Table.Td>
             <Table.Td>{reviewBadge(risk.reviewStatus)}</Table.Td>
           </Table.Tr>
