@@ -21,16 +21,18 @@ test("frontend exposes dashboard, my risks, and audit routes", async () => {
 });
 
 test("risk detail UI includes review action, review history, and risk audit history", async () => {
+  const detailModal = await readFile(new URL("../src/features/risks/RiskDetailModal.tsx", import.meta.url), "utf8");
+  const reviewModal = await readFile(new URL("../src/features/risks/ReviewModal.tsx", import.meta.url), "utf8");
   const panel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
 
-  assert.match(panel, /completeRiskReview/);
-  assert.match(panel, /listRiskReviews/);
-  assert.match(panel, /listRiskAudit/);
-  assert.match(panel, /Review history/);
-  assert.match(panel, /Audit history/);
-  assert.match(panel, /Confirm review/);
-  assert.match(panel, /register\.reviewAttestationText/);
-  assert.match(panel, /\["audit", "register", register\.id\]/);
+  assert.match(detailModal, /listRiskReviews/);
+  assert.match(detailModal, /listRiskAudit/);
+  assert.match(detailModal, /Review history/);
+  assert.match(detailModal, /Audit history/);
+  assert.match(detailModal, /\["audit", "risk", registerId, riskId\]/);
+  assert.match(reviewModal, /completeRiskReview/);
+  assert.match(reviewModal, /Confirm review/);
+  assert.match(reviewModal, /register\.reviewAttestationText/);
   assert.match(panel, /searchParams\.get\("riskId"\)/);
   assert.match(panel, /action === "review"/);
   assert.match(panel, /action === "edit"/);

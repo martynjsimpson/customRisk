@@ -27,6 +27,7 @@ test("API-backed UI surfaces use shared API error display", async () => {
   const registerDetailPage = await readFile(new URL("../src/pages/RegisterDetailPage.tsx", import.meta.url), "utf8");
   const usersPage = await readFile(new URL("../src/pages/UsersPage.tsx", import.meta.url), "utf8");
   const riskPanel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
+  const riskFormModal = await readFile(new URL("../src/features/risks/RiskFormModal.tsx", import.meta.url), "utf8");
 
   assert.match(component, /getApiErrorMessage/);
   assert.match(component, /getApiErrorFields/);
@@ -36,5 +37,5 @@ test("API-backed UI surfaces use shared API error display", async () => {
   assert.match(registerDetailPage, /<ApiErrorAlert error=\{registerQuery\.error\}/);
   assert.match(usersPage, /<ApiErrorAlert error=\{usersQuery\.error\}/);
   assert.match(riskPanel, /<ApiErrorAlert error=\{riskQuery\.error\}/);
-  assert.match(riskPanel, /<ApiErrorAlert error=\{saveMutation\.error\}/);
+  assert.match(riskFormModal, /<ApiErrorAlert error=\{saveMutation\.error\}/);
 });
