@@ -1070,7 +1070,7 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 ## P6-01 — Seed and Demo Data
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Provide realistic seed data for development and testing.
 

@@ -51,6 +51,7 @@ Then update `.env` with local-only values. Required variables are listed in
 - `CORS_ALLOWED_ORIGINS` - comma-separated browser origins allowed to call the API.
 - `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_LOGIN` - auth rate-limit settings.
 - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, `SEED_ADMIN_PASSWORD` - local/dev System Admin bootstrap account.
+- `SEED_DEMO_USER_PASSWORD` - optional local/dev password for seeded demo users Alice, Bob, and Carol.
 
 Use placeholders only in `.env.example`. Real JWT secrets, database passwords,
 and seed passwords belong in your uncommitted `.env` or runtime environment.
@@ -109,8 +110,8 @@ Run these from the repository root:
 - `npm run lint` - run the current baseline lint gate, which is TypeScript typechecking.
 - `npm run build` - build all workspace packages that define a build script.
 - `npm run db:migrate` - apply committed Prisma migrations to the configured database.
-- `npm run db:setup` - apply migrations, then create or update the local System Admin account.
-- `npm run seed:admin` - create or update the local System Admin account from `.env`.
+- `npm run db:setup` - apply migrations, then create or update the local seed data.
+- `npm run seed:admin` - create or update the local seed data from `.env`.
 
 The backend and frontend are separate TypeScript packages under npm workspaces.
 The shared package is available for API DTOs, enums, and schemas that should not
@@ -124,7 +125,18 @@ Apply migrations and create the first local System Admin:
 npm run db:setup
 ```
 
-The setup flow uses `DATABASE_URL`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, and
-`SEED_ADMIN_PASSWORD` from `.env`. It is safe to rerun; it keeps the account
-active, grants System Admin, clears lockout state, and updates the password to
-the current `SEED_ADMIN_PASSWORD`.
+The setup flow uses `DATABASE_URL`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`,
+`SEED_ADMIN_PASSWORD`, and optional `SEED_DEMO_USER_PASSWORD` from `.env`. It is
+safe to rerun; it keeps the System Admin account active, grants System Admin,
+clears lockout state, updates the admin password to the current
+`SEED_ADMIN_PASSWORD`, and refreshes the demo registers, configuration,
+permissions, and risks.
+
+The demo users are:
+
+- Alice Register Admin: `alice@example.com`
+- Bob Risk Owner: `bob@example.com`
+- Carol Viewer: `carol@example.com`
+
+Set `SEED_DEMO_USER_PASSWORD` to make those demo accounts login-capable. When it
+is omitted, the seed creates them with random non-printed passwords.
