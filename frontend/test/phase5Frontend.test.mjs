@@ -49,7 +49,7 @@ test("my risks rows link to permitted register risk actions", async () => {
   assert.match(page, /action=review/);
   assert.match(page, /action=edit/);
   assert.match(page, /action=delete/);
-  assert.match(page, /Open\s+<\/Button>/);
+  assert.match(page, /<Anchor/);
   assert.match(page, /Review\s+<\/Button>/);
   assert.match(page, /Edit\s+<\/Button>/);
   assert.match(page, /Delete\s+<\/Button>/);
