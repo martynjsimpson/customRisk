@@ -33,3 +33,10 @@ export function getRateLimitWindowMs(): number {
 export function getRateLimitMaxLogin(): number {
   return Number.parseInt(optional("RATE_LIMIT_MAX_LOGIN", "10"), 10);
 }
+
+export function getCorsAllowedOrigins(): string[] {
+  return optional("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
