@@ -15,7 +15,8 @@ import {
   Text,
   Textarea,
   TextInput,
-  Title
+  Title,
+  useModalsStack
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -178,6 +179,8 @@ function customDetailValue(field: RiskDetail["customFields"][number]): string {
 }
 
 export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
+  const stack = useModalsStack(['edit-risk', 'open-risk', 'review-risk', 'delete-risk']);
+
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isSystemAdmin } = usePermissions();
@@ -609,156 +612,169 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         total={Math.max(1, Math.ceil((riskQuery.data?.meta.total ?? 0) / (riskQuery.data?.meta.pageSize ?? 25)))}
         onChange={setPage}
       />
+      <Modal.Stack>
+        <Modal {...stack.register('edit-risk')} opened={formOpened} onClose={() => setFormOpened(false)} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
+          <form onSubmit={form.onSubmit(() => saveMutation.mutate())}>
+            <Stack>
+              <ApiErrorAlert error={saveMutation.error} fallback="Unable to save risk" />
+              {orderedRiskFormFields.map((field) =>
+                field.kind === "core" ? (
+                  renderCoreField(field.id)
+                ) : (
+                  <CustomFieldInput
+                    key={field.id}
+                    field={field.field}
+                    users={ownerOptions}
+                    value={customValues[field.id]}
+                    onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
+                  />
+                )
+              )}
+              <Group justify="flex-end">
+                <Button variant="subtle" onClick={() => setFormOpened(false)}>Cancel</Button>
+                <Button type="submit" loading={saveMutation.isPending}>Save</Button>
+              </Group>
+            </Stack>
+          </form>
+        </Modal>
 
-      <Modal opened={formOpened} onClose={() => setFormOpened(false)} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
-        <form onSubmit={form.onSubmit(() => saveMutation.mutate())}>
-          <Stack>
-            <ApiErrorAlert error={saveMutation.error} fallback="Unable to save risk" />
-            {orderedRiskFormFields.map((field) =>
-              field.kind === "core" ? (
-                renderCoreField(field.id)
-              ) : (
-                <CustomFieldInput
-                  key={field.id}
-                  field={field.field}
-                  users={ownerOptions}
-                  value={customValues[field.id]}
-                  onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
-                />
-              )
-            )}
-            <Group justify="flex-end">
-              <Button variant="subtle" onClick={() => setFormOpened(false)}>Cancel</Button>
-              <Button type="submit" loading={saveMutation.isPending}>Save</Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
-
-      <Modal opened={Boolean(detailRiskId)} onClose={() => setDetailRiskId(null)} title="Risk detail" size="lg">
-        <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk detail" />
-        {selectedRiskQuery.data ? (
-          <Stack>
-            <Group justify="space-between">
-              <Title order={3}>{selectedRiskQuery.data.displayRiskId}</Title>
-              {statusBadge(selectedRiskQuery.data.reviewStatus)}
-            </Group>
-            <Table>
-              <Table.Tbody>
-                {[
-                  ...CORE_RISK_FIELDS.map(f => ({ kind: "core" as const, ...f })),
-                  ...selectedRiskQuery.data.customFields.map(f => ({
-                    kind: "custom" as const,
-                    id: f.id,
-                    displayOrder: f.customFieldDefinition.displayOrder,
-                    fieldName: f.customFieldDefinition.fieldName,
-                    entry: f
-                  }))
-                ]
-                  .sort((a, b) => a.displayOrder - b.displayOrder)
-                  .map(field =>
-                    field.kind === "core" ? (
-                      <Table.Tr key={field.id}>
-                        <Table.Th>{field.fieldName}</Table.Th>
-                        <Table.Td>{coreDetailValue(selectedRiskQuery.data!, field.id)}</Table.Td>
-                      </Table.Tr>
-                    ) : (
-                      <Table.Tr key={field.id}>
-                        <Table.Th>{field.fieldName}</Table.Th>
-                        <Table.Td>{customDetailValue(field.entry)}</Table.Td>
-                      </Table.Tr>
-                    )
-                  )}
-                <Table.Tr><Table.Th>Level</Table.Th><Table.Td>{riskLevelBadge(selectedRiskQuery.data.riskLevel)}</Table.Td></Table.Tr>
-                <Table.Tr><Table.Th>Next review</Table.Th><Table.Td>{selectedRiskQuery.data.nextReviewDate ?? ""}</Table.Td></Table.Tr>
-                <Table.Tr><Table.Th>Created by</Table.Th><Table.Td>{selectedRiskQuery.data.systemCreatedBy.name}</Table.Td></Table.Tr>
-                <Table.Tr><Table.Th>Updated</Table.Th><Table.Td>{new Date(selectedRiskQuery.data.systemUpdatedAt).toLocaleString()}</Table.Td></Table.Tr>
-              </Table.Tbody>
-            </Table>
-            <Title order={4}>Review history</Title>
-            <ApiErrorAlert error={reviewHistoryQuery.error} fallback="Unable to load review history" />
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Reviewed</Table.Th>
-                  <Table.Th>Reviewer</Table.Th>
-                  <Table.Th>Comment</Table.Th>
-                  <Table.Th>Next review</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {(reviewHistoryQuery.data ?? []).map((review) => (
-                  <Table.Tr key={review.id}>
-                    <Table.Td>{new Date(review.reviewedAt).toLocaleString()}</Table.Td>
-                    <Table.Td>{review.reviewedBy.name}</Table.Td>
-                    <Table.Td>{review.comment ?? ""}</Table.Td>
-                    <Table.Td>{review.calculatedNextReviewDate}</Table.Td>
-                  </Table.Tr>
-                ))}
-                {reviewHistoryQuery.data?.length === 0 ? (
+        <Modal {...stack.register('open-risk')} opened={Boolean(detailRiskId)} onClose={() => setDetailRiskId(null)} title="Risk Detail" size="lg">
+          <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk detail" />
+          {selectedRiskQuery.data ? (
+            <Stack>
+              <Group justify="space-between">
+                <Title order={3}>{selectedRiskQuery.data.displayRiskId}</Title>
+                {statusBadge(selectedRiskQuery.data.reviewStatus)}
+              </Group>
+              <Table>
+                <Table.Tbody>
+                  {[
+                    ...CORE_RISK_FIELDS.map(f => ({ kind: "core" as const, ...f })),
+                    ...selectedRiskQuery.data.customFields.map(f => ({
+                      kind: "custom" as const,
+                      id: f.id,
+                      displayOrder: f.customFieldDefinition.displayOrder,
+                      fieldName: f.customFieldDefinition.fieldName,
+                      entry: f
+                    }))
+                  ]
+                    .sort((a, b) => a.displayOrder - b.displayOrder)
+                    .map(field =>
+                      field.kind === "core" ? (
+                        <Table.Tr key={field.id}>
+                          <Table.Th>{field.fieldName}</Table.Th>
+                          <Table.Td>{coreDetailValue(selectedRiskQuery.data!, field.id)}</Table.Td>
+                        </Table.Tr>
+                      ) : (
+                        <Table.Tr key={field.id}>
+                          <Table.Th>{field.fieldName}</Table.Th>
+                          <Table.Td>{customDetailValue(field.entry)}</Table.Td>
+                        </Table.Tr>
+                      )
+                    )}
+                  <Table.Tr><Table.Th>Level</Table.Th><Table.Td>{riskLevelBadge(selectedRiskQuery.data.riskLevel)}</Table.Td></Table.Tr>
+                  <Table.Tr><Table.Th>Next review</Table.Th><Table.Td>{selectedRiskQuery.data.nextReviewDate ?? ""}</Table.Td></Table.Tr>
+                  <Table.Tr><Table.Th>Created by</Table.Th><Table.Td>{selectedRiskQuery.data.systemCreatedBy.name}</Table.Td></Table.Tr>
+                  <Table.Tr><Table.Th>Updated</Table.Th><Table.Td>{new Date(selectedRiskQuery.data.systemUpdatedAt).toLocaleString()}</Table.Td></Table.Tr>
+                </Table.Tbody>
+              </Table>
+              <Title order={4}>Actions</Title>
+              <Group justify="flex-start" gap="xs">
+                    {canEditRows && register.reviewsEnabled ? (
+                      <Button variant="subtle" size="xs" onClick={() => setReviewRiskId(selectedRiskQuery.data.id)}>Review</Button>
+                    ) : null}
+                    {canEditRows ? <Button variant="subtle" size="xs" onClick={() => openEdit(selectedRiskQuery.data.id)}>Edit</Button> : null}
+                    {isSystemAdmin ? (
+                      <Button variant="subtle" color="red" size="xs" onClick={() => setDeleteRiskId(selectedRiskQuery.data.id)}>
+                        Delete
+                      </Button>
+                    ) : null}
+                  </Group>
+              <Title order={4}>Review history</Title>
+              <ApiErrorAlert error={reviewHistoryQuery.error} fallback="Unable to load review history" />
+              <Table>
+                <Table.Thead>
                   <Table.Tr>
-                    <Table.Td colSpan={4}><Text c="dimmed">No reviews recorded.</Text></Table.Td>
+                    <Table.Th>Reviewed</Table.Th>
+                    <Table.Th>Reviewer</Table.Th>
+                    <Table.Th>Comment</Table.Th>
+                    <Table.Th>Next review</Table.Th>
                   </Table.Tr>
-                ) : null}
-              </Table.Tbody>
-            </Table>
-            <Title order={4}>Audit history</Title>
-            <ApiErrorAlert error={riskAuditQuery.error} fallback="Unable to load risk audit history" />
-            <AuditEventTable events={riskAuditQuery.data?.data ?? []} />
+                </Table.Thead>
+                <Table.Tbody>
+                  {(reviewHistoryQuery.data ?? []).map((review) => (
+                    <Table.Tr key={review.id}>
+                      <Table.Td>{new Date(review.reviewedAt).toLocaleString()}</Table.Td>
+                      <Table.Td>{review.reviewedBy.name}</Table.Td>
+                      <Table.Td>{review.comment ?? ""}</Table.Td>
+                      <Table.Td>{review.calculatedNextReviewDate}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                  {reviewHistoryQuery.data?.length === 0 ? (
+                    <Table.Tr>
+                      <Table.Td colSpan={4}><Text c="dimmed">No reviews recorded.</Text></Table.Td>
+                    </Table.Tr>
+                  ) : null}
+                </Table.Tbody>
+              </Table>
+              <Title order={4}>Audit history</Title>
+              <ApiErrorAlert error={riskAuditQuery.error} fallback="Unable to load risk audit history" />
+              <AuditEventTable events={riskAuditQuery.data?.data ?? []} />
+            </Stack>
+          ) : selectedRiskQuery.isLoading ? (
+            <Loader />
+          ) : null}
+        </Modal>
+
+        <Modal {...stack.register('review-risk')} opened={Boolean(reviewRiskId)} onClose={() => setReviewRiskId(null)} title="Review risk">
+          <Stack>
+            <ApiErrorAlert error={reviewMutation.error} fallback="Unable to complete review" />
+            <Alert>
+              {register.reviewsEnabled
+                ? register.reviewAttestationText
+                : "Reviews are disabled for this register."}
+            </Alert>
+            <Textarea
+              label="Comment"
+              value={reviewComment}
+              onChange={(event) => setReviewComment(event.currentTarget.value)}
+            />
+            <Checkbox
+              label="Confirm review"
+              checked={reviewConfirmed}
+              onChange={(event) => setReviewConfirmed(event.currentTarget.checked)}
+            />
+            <Group justify="flex-end">
+              <Button variant="subtle" onClick={() => setReviewRiskId(null)}>Cancel</Button>
+              <Button
+                disabled={!reviewConfirmed}
+                loading={reviewMutation.isPending}
+                onClick={() => reviewMutation.mutate()}
+              >
+                Complete review
+              </Button>
+            </Group>
           </Stack>
-        ) : selectedRiskQuery.isLoading ? (
-          <Loader />
-        ) : null}
-      </Modal>
+        </Modal>
 
-      <Modal opened={Boolean(reviewRiskId)} onClose={() => setReviewRiskId(null)} title="Review risk">
-        <Stack>
-          <ApiErrorAlert error={reviewMutation.error} fallback="Unable to complete review" />
-          <Alert>
-            {register.reviewsEnabled
-              ? register.reviewAttestationText
-              : "Reviews are disabled for this register."}
-          </Alert>
-          <Textarea
-            label="Comment"
-            value={reviewComment}
-            onChange={(event) => setReviewComment(event.currentTarget.value)}
-          />
-          <Checkbox
-            label="Confirm review"
-            checked={reviewConfirmed}
-            onChange={(event) => setReviewConfirmed(event.currentTarget.checked)}
-          />
-          <Group justify="flex-end">
-            <Button variant="subtle" onClick={() => setReviewRiskId(null)}>Cancel</Button>
-            <Button
-              disabled={!reviewConfirmed}
-              loading={reviewMutation.isPending}
-              onClick={() => reviewMutation.mutate()}
-            >
-              Complete review
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      <Modal opened={Boolean(deleteRiskId)} onClose={() => setDeleteRiskId(null)} title="Delete risk">
-        <Stack>
-          <Alert color="red">This permanently deletes the risk after writing an audit snapshot.</Alert>
-          <ApiErrorAlert error={deleteMutation.error} fallback="Unable to delete risk" />
-          <Textarea
-            label="Deletion reason"
-            value={deletionReason}
-            onChange={(event) => setDeletionReason(event.currentTarget.value)}
-          />
-          <Group justify="flex-end">
-            <Button variant="subtle" onClick={() => setDeleteRiskId(null)}>Cancel</Button>
-            <Button color="red" loading={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
-              Delete
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        <Modal {...stack.register('delete-risk')} opened={Boolean(deleteRiskId)} onClose={() => setDeleteRiskId(null)} title="Delete risk">
+          <Stack>
+            <Alert color="red">This permanently deletes the risk after writing an audit snapshot.</Alert>
+            <ApiErrorAlert error={deleteMutation.error} fallback="Unable to delete risk" />
+            <Textarea
+              label="Deletion reason"
+              value={deletionReason}
+              onChange={(event) => setDeletionReason(event.currentTarget.value)}
+            />
+            <Group justify="flex-end">
+              <Button variant="subtle" onClick={() => setDeleteRiskId(null)}>Cancel</Button>
+              <Button color="red" loading={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
+                Delete
+              </Button>
+            </Group>
+          </Stack>
+        </Modal>
+      </Modal.Stack>
     </Stack>
   );
 }

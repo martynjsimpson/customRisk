@@ -22,29 +22,26 @@ function RiskTable({ risks }: { risks: DashboardRisk[] }) {
         <Table.Tr>
           <Table.Th>Risk</Table.Th>
           <Table.Th>Register</Table.Th>
-          <Table.Th>Review</Table.Th>
-          <Table.Th />
+          <Table.Th>Next Review Date</Table.Th>
+          <Table.Th>Review Status</Table.Th>
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
         {risks.map((risk) => (
           <Table.Tr key={risk.id}>
             <Table.Td>
-              <Text fw={600}>{risk.displayRiskId}</Text>
+              <Anchor
+                  component={Link}
+                  to={`/registers/${risk.register.id}?riskId=${risk.id}`}
+                  fw={600}
+                >
+                  {risk.displayRiskId}
+                </Anchor>
               <Text size="sm">{risk.title}</Text>
             </Table.Td>
             <Table.Td>{risk.register.name}</Table.Td>
+            <Table.Td>{risk.nextReviewDate}</Table.Td>
             <Table.Td>{reviewBadge(risk.reviewStatus)}</Table.Td>
-            <Table.Td>
-              <Button
-                component={Link}
-                to={`/registers/${risk.register.id}`}
-                variant="subtle"
-                size="xs"
-              >
-                Open
-              </Button>
-            </Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>
@@ -90,14 +87,13 @@ export function HomePage() {
         <Stack>
           <Group justify="space-between">
             <Title order={2}>My overdue risks</Title>
-            <Button component={Link} to="/my-risks" variant="subtle" size="xs">My risks</Button>
           </Group>
           <RiskTable risks={dashboardQuery.data?.myOverdueRisks ?? []} />
         </Stack>
       </Paper>
       <Paper withBorder p="md" radius="sm">
         <Stack>
-          <Title order={2}>My risks due soon</Title>
+          <Title order={2}>My risks due review soon</Title>
           <RiskTable risks={dashboardQuery.data?.myDueSoonRisks ?? []} />
         </Stack>
       </Paper>
@@ -139,7 +135,6 @@ export function HomePage() {
           <Stack>
             <Group justify="space-between">
               <Title order={2}>Recent audit activity</Title>
-              <Button component={Link} to="/audit" variant="subtle" size="xs">Audit</Button>
             </Group>
             <Table>
               <Table.Tbody>
