@@ -13,6 +13,7 @@ import type { RegisterRecord } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { ReviewStatusBadge } from "../../components/ReviewStatusBadge/ReviewStatusBadge";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge/RiskLevelBadge";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { usePermissions } from "../../hooks/usePermissions";
 import { RiskDetailModal } from "./RiskDetailModal";
 import { RiskFilters } from "./RiskFilters";
@@ -41,9 +42,10 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   const [detailRiskId, setDetailRiskId] = useState<string | null>(null);
   const [reviewRiskId, setReviewRiskId] = useState<string | null>(null);
   const [deleteRiskId, setDeleteRiskId] = useState<string | null>(null);
+  const { user } = useCurrentUser();
 
   const canManage = isSystemAdmin || register.effectiveRole === "REGISTER_ADMIN";
-  const canEditRows = canManage || register.effectiveRole === "RISK_OWNER";
+  const canEditOwnedRows = Boolean(user);
   const canExport =
     canManage || (register.effectiveRole === "REGISTER_VIEWER" && register.allowViewerExport);
 
@@ -56,6 +58,11 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     queryFn: () => listRisks(register.id, { ...filters, page }),
     placeholderData: (previous) => previous
   });
+  const selectedRisk = useMemo(
+    () => (riskQuery.data?.data ?? []).find((risk) => risk.id === detailRiskId),
+    [detailRiskId, riskQuery.data?.data]
+  );
+  const canEditSelectedRisk = Boolean(canManage || (user && selectedRisk?.owner.id === user.id));
 
   const invalidateRisks = async () => {
     await Promise.all([
@@ -99,10 +106,13 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       return;
     }
 
-    if (action === "review" && canEditRows && register.reviewsEnabled) {
+    const requestedRisk = (riskQuery.data?.data ?? []).find((risk) => risk.id === riskId);
+    const canEditRequestedRisk = Boolean(canManage || (user && requestedRisk?.owner.id === user.id));
+
+    if (action === "review" && canEditRequestedRisk && register.reviewsEnabled) {
       setReviewRiskId(riskId);
       setSearchParams({}, { replace: true });
-    } else if (action === "edit" && canEditRows) {
+    } else if (action === "edit" && canEditRequestedRisk) {
       setEditingRiskId(riskId);
       setFormOpened(true);
       setSearchParams({}, { replace: true });
@@ -113,7 +123,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       setDetailRiskId(riskId);
       setSearchParams({}, { replace: true });
     }
-  }, [canEditRows, isSystemAdmin, register.reviewsEnabled, searchParams, setSearchParams]);
+  }, [canManage, isSystemAdmin, register.reviewsEnabled, riskQuery.data?.data, searchParams, setSearchParams, user]);
 
   const openCreate = () => {
     setDetailRiskId(null);
@@ -216,10 +226,12 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               <Table.Td><ReviewStatusBadge status={risk.reviewStatus} /></Table.Td>
               <Table.Td>
                 <Group justify="flex-end" gap="xs" wrap="nowrap">
-                  {canEditRows && register.reviewsEnabled ? (
+                  {(canManage || (canEditOwnedRows && risk.owner.id === user?.id)) && register.reviewsEnabled ? (
                     <Button variant="subtle" size="xs" onClick={() => openReview(risk.id)}>Review</Button>
                   ) : null}
-                  {canEditRows ? <Button variant="subtle" size="xs" onClick={() => openEdit(risk.id)}>Edit</Button> : null}
+                  {canManage || (canEditOwnedRows && risk.owner.id === user?.id) ? (
+                    <Button variant="subtle" size="xs" onClick={() => openEdit(risk.id)}>Edit</Button>
+                  ) : null}
                   {isSystemAdmin ? (
                     <Button variant="subtle" color="red" size="xs" onClick={() => openDelete(risk.id)}>
                       Delete
@@ -261,8 +273,8 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         riskId={detailRiskId}
         formConfig={formConfig}
         opened={Boolean(detailRiskId)}
-        canReview={canEditRows && register.reviewsEnabled}
-        canEditRows={canEditRows}
+        canReview={canEditSelectedRisk && register.reviewsEnabled}
+        canEditRows={canEditSelectedRisk}
         canDelete={isSystemAdmin}
         onClose={() => setDetailRiskId(null)}
         onRequestEdit={openEdit}
