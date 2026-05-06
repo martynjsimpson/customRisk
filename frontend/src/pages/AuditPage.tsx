@@ -1,11 +1,19 @@
-import { Badge, Stack, Table, Text, Title } from "@mantine/core";
+import { Badge, Pagination, Stack, Table, Text, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { listSystemAudit } from "../api/audit.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 
+const PAGE_SIZE = 25;
+
 export function AuditPage() {
-  const auditQuery = useQuery({ queryKey: ["audit", "system"], queryFn: () => listSystemAudit() });
+  const [page, setPage] = useState(1);
+  const auditQuery = useQuery({
+    queryKey: ["audit", "system", page],
+    queryFn: () => listSystemAudit({ page, pageSize: PAGE_SIZE }),
+    placeholderData: (previous) => previous
+  });
 
   return (
     <Stack>
@@ -40,6 +48,11 @@ export function AuditPage() {
           ) : null}
         </Table.Tbody>
       </Table>
+      <Pagination
+        value={page}
+        total={Math.max(1, Math.ceil((auditQuery.data?.meta.total ?? 0) / PAGE_SIZE))}
+        onChange={setPage}
+      />
     </Stack>
   );
 }
