@@ -2,7 +2,7 @@
 
 **Project:** Custom Risk  
 **Document type:** Implementation plan  
-**Status:** In progress — Tasks 1–5 complete, Task 6 in progress  
+**Status:** In progress — Tasks 1–7 complete, next: Task 8  
 **Purpose:** Prepare the MVP codebase for a controlled first release and make future development safer, repeatable, and easier to manage.
 
 ---
@@ -99,16 +99,16 @@ Three fixes applied:
 
 ---
 
-## Task 6 — Improve CI for Pull Requests 🔄 IN PROGRESS
+## Task 6 — Improve CI for Pull Requests ✅ DONE
 
 **Objective:** Ensure code is validated before it reaches `main`.
 
-### Progress notes
+### Outcome
 
-- `.github/workflows/ci.yml` updated: two jobs — **Quality Gates** (typecheck, lint, migrations, tests, Prisma schema validation, builds for shared/backend/frontend) and **Docker Build** (builds image, no push). PostgreSQL service added to Quality Gates so database-backed tests run in CI.
-- `.github/pull_request_template.md` created with What/Why/Notes sections and a merge checklist.
-- `backend/test/app.test.mjs` health test updated to accept either 200 (DB available) or 503 (DB unreachable) and validate response shape in both cases.
-- **Pending**: PR needs to be opened, CI run completed, and the Quality Gates + Docker Build checks added as required status checks in GitHub branch protection settings.
+- **`.github/workflows/ci.yml`**: Two jobs — **Quality Gates** (typecheck, lint, migrations, tests, Prisma schema validation, builds for shared/backend/frontend) and **Docker Build** (builds image, no push). PostgreSQL 16 service added to Quality Gates so database-backed tests run against a real database in CI.
+- **`.github/pull_request_template.md`**: Created with What/Why/Notes sections and a merge checklist covering CI, typecheck, tests, migrations, env vars, docs, and changelog.
+- **`backend/test/app.test.mjs`**: Health test updated to accept either 200 (DB available) or 503 (DB unreachable) and validate response shape in both cases.
+- **GitHub branch protection**: Quality Gates and Docker Build added as required status checks on `main`.
 
 ### Actions
 
@@ -135,33 +135,13 @@ Three fixes applied:
 
 ---
 
-## Task 7 — Add Main-Branch Container Build and Publish
+## Task 7 — Add Main-Branch Container Build and Publish ✅ DONE
 
 **Objective:** Build and publish container images automatically when changes land on `main`.
 
-### Actions
+### Outcome
 
-1. Create a GitHub Actions workflow triggered on pushes to `main`.
-2. Run the full validation suite before publishing.
-3. Build the production Docker image.
-4. Publish the image to a container registry, such as GitHub Container Registry.
-5. Apply image tags such as:
-   - `main`
-   - Git commit SHA, for example `sha-<shortsha>`
-   - Version tag when the workflow is triggered by a release tag.
-6. Ensure registry credentials use GitHub Actions secrets or `GITHUB_TOKEN`, not committed credentials.
-7. Add metadata labels to the image:
-   - Source repository.
-   - Commit SHA.
-   - Version.
-   - Build date.
-
-### Acceptance criteria
-
-- Every successful merge to `main` produces a traceable image.
-- Image tags allow rollback to a specific commit.
-- No image is published if validation fails.
-- Container registry authentication is handled securely.
+- **`.github/workflows/main-image.yml`**: Created. Triggers via `workflow_run` after CI completes successfully on `main` (avoiding duplicate quality runs) and also via `workflow_dispatch` for manual triggers. Publishes to `ghcr.io/<owner>/customrisk` using `GITHUB_TOKEN` with `packages: write`. Tags every successful main-branch image with `main` and `sha-<shortsha>`. Adds `org.opencontainers.image.revision` label with the full commit SHA. Repository name is lowercased before use in the image reference. Version tags are left entirely to Task 8's release workflow.
 
 ---
 
