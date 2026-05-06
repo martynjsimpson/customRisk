@@ -15,6 +15,24 @@ jobs:
     name: Quality Gates
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ci
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -40,6 +58,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Apply database migrations
+        run: npm run db:migrate
+
       - name: Test backend
         run: npm run test:backend
 
@@ -51,8 +72,6 @@ jobs:
 
       - name: Validate Prisma schema
         run: npm --workspace @custom-risk/backend exec -- prisma validate
-        env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
       - name: Build shared
         run: npm run build --workspace @custom-risk/shared

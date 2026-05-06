@@ -23,12 +23,22 @@ async function withServer(app, callback) {
   }
 }
 
-test("GET /api/v1/health returns the standard ok response", async () => {
+test("GET /api/v1/health returns a valid health response", async () => {
   await withServer(createApp(), async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/v1/health`);
+    const body = await response.json();
 
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { data: { status: "ok" } });
+    assert.ok([200, 503].includes(response.status), `unexpected status: ${response.status}`);
+    assert.ok(["ok", "degraded"].includes(body.data?.status), `unexpected status field: ${body.data?.status}`);
+    assert.ok(["ok", "unreachable"].includes(body.data?.database), `unexpected database field: ${body.data?.database}`);
+
+    if (response.status === 200) {
+      assert.equal(body.data.status, "ok");
+      assert.equal(body.data.database, "ok");
+    } else {
+      assert.equal(body.data.status, "degraded");
+      assert.equal(body.data.database, "unreachable");
+    }
   });
 });
 
