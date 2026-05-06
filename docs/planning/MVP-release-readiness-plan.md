@@ -2,7 +2,7 @@
 
 **Project:** Custom Risk  
 **Document type:** Implementation plan  
-**Status:** In progress — Tasks 1–8 complete, next: Task 9  
+**Status:** Complete — all 12 tasks done  
 **Purpose:** Prepare the MVP codebase for a controlled first release and make future development safer, repeatable, and easier to manage.
 
 ---
@@ -155,122 +155,54 @@ Three fixes applied:
 
 ---
 
-## Task 9 — Add Database Migration Safety to the Release Process
+## Task 9 — Add Database Migration Safety to the Release Process ✅ DONE
 
 **Objective:** Make schema changes safer as the product evolves.
 
-### Actions
+### Outcome
 
-1. Confirm that Prisma migrations are the only accepted database schema change mechanism.
-2. Add migration checks to CI.
-3. Document the local migration workflow:
-   - Create migration.
-   - Review generated SQL where relevant.
-   - Apply locally.
-   - Test app behaviour.
-   - Commit migration files.
-4. Document the release migration workflow:
-   - Back up production/self-hosted database before applying migrations.
-   - Apply migrations using a controlled command.
-   - Verify app health after migration.
-5. Avoid automatic destructive migrations during container startup unless deliberately accepted.
-6. Add guidance for rollback where database migrations are involved, noting that code rollback may not be sufficient after schema changes.
-
-### Acceptance criteria
-
-- Migration files are committed and reviewed.
-- CI catches missing or invalid Prisma migration state where practical.
-- Release notes identify migrations requiring operator attention.
-- README documents migration apply and rollback considerations.
+- **`docs/development-workflow.md`**: Expanded the database migrations section with the full local workflow (generate, review SQL, apply, commit) and a `--create-only` option for pre-review. Removed the stale forward reference to Task 9. Added link to release-process.md for production guidance.
+- **`docs/release-process.md`**: Added a "Database migrations" section covering the required pre-migration database backup, two methods for applying migrations to a self-hosted deployment, health-check verification step, and a note to call out migrations explicitly in GitHub Release notes. Migrations do not run on container startup (Dockerfile confirmed — Decision 4).
 
 ---
 
-## Task 10 — Add Environment and Secret Handling Checks
+## Task 10 — Add Environment and Secret Handling Checks ✅ DONE
 
 **Objective:** Prevent accidental release of development-only settings or secrets.
 
-### Actions
+### Outcome
 
-1. Review all environment variables used by frontend, backend, Docker, and CI.
-2. Update `.env.example` with all required variables and safe example values.
-3. Ensure real `.env` files are ignored by Git.
-4. Add a README section explaining required production variables.
-5. Confirm production CORS settings do not use wildcard origins.
-6. Add a secret scanning/prevention step if available through GitHub settings or tooling.
-7. Confirm generated container images do not bake in secrets.
-
-### Acceptance criteria
-
-- `.env.example` is complete and safe to commit.
-- No real secrets exist in repository history to the best of current knowledge.
-- Production secrets are supplied at runtime, not build time.
-- CORS and auth secrets are explicitly configured for release.
+- **`.env.example`**: Already complete with all required variables and safe placeholder values. No changes needed.
+- **`.gitignore`**: Already ignores `.env` and `.env.local`. No changes needed.
+- **CORS wildcard check**: `app.ts` already throws at startup if `CORS_ALLOWED_ORIGINS` contains `*` in production. No changes needed.
+- **`README.md`**: Added "Production environment variables" section — table of every variable requiring a non-default production value, with requirement notes. Added note on generating secure JWT secrets. Added "Secret scanning" section directing to GitHub Settings → Security → Secret scanning.
+- **Container image secrets**: Confirmed the Dockerfile does not bake in secrets; all secrets are supplied at runtime via environment variables.
 
 ---
 
-## Task 11 — Add Repository Hygiene and Developer Guardrails
+## Task 11 — Add Repository Hygiene and Developer Guardrails ✅ DONE
 
 **Objective:** Reduce avoidable mistakes during future development.
 
-### Actions
+### Outcome
 
-1. Add or standardise formatting and linting commands.
-2. Consider adding pre-commit hooks with Husky/lint-staged if they do not slow development too much.
-3. Add a `CONTRIBUTING.md` or `docs/development-workflow.md` covering:
-   - Branching model.
-   - PR expectations.
-   - Local development startup.
-   - Docker release-like startup.
-   - Test commands.
-   - Release process.
-4. Add issue and PR templates:
-   - Feature request.
-   - Bug fix.
-   - Release checklist.
-5. Add dependency update workflow guidance, either manual or using a tool such as Dependabot.
-6. Add a `CODEOWNERS` file only if useful. For a solo project, this may be unnecessary.
-
-### Acceptance criteria
-
-- New work has a documented path from branch to PR to merge.
-- Common commands are discoverable.
-- PRs have a checklist for tests, migrations, docs, and release impact.
-- Dependency update expectations are documented.
+- **`docs/development-workflow.md`**: Already exists and covers branching, PR expectations, local and Docker startup, test commands, release process, and migration commands. Stale "see Task 9" reference removed.
+- **`.github/pull_request_template.md`**: Already exists (created in Task 6).
+- **`.github/ISSUE_TEMPLATE/bug_report.md`**: Created with Description, Steps to reproduce, Expected/Actual behaviour, Environment, and Additional context sections.
+- **`.github/ISSUE_TEMPLATE/feature_request.md`**: Created with Problem, Proposed solution, Alternatives, and Additional context sections.
+- **`.github/dependabot.yml`**: Created. Configures weekly Dependabot PRs for npm (grouped into dev and production dependency groups) and GitHub Actions, both targeting Monday, capped at 5 open PRs per ecosystem.
+- **Pre-commit hooks**: Skipped. For a solo project with fast CI, Husky/lint-staged adds friction without clear benefit. Can be added later if needed.
+- **`CODEOWNERS`**: Skipped — not useful for a solo project.
 
 ---
 
-## Task 12 — Create MVP Release Checklist
+## Task 12 — Create MVP Release Checklist ✅ DONE
 
 **Objective:** Provide a final go/no-go checklist for the first MVP release.
 
-### Actions
+### Outcome
 
-Create a release checklist covering:
-
-1. Architecture alignment confirmed.
-2. Docker release build works from clean checkout.
-3. `docker compose up --build` works.
-4. Health endpoint passes.
-5. Seed/demo data workflow works.
-6. Prisma migrations apply cleanly.
-7. Frontend build passes.
-8. Backend build passes.
-9. Tests pass.
-10. CI pull request workflow passes.
-11. `main` branch workflow publishes a commit image.
-12. Version tag workflow publishes a versioned release image.
-13. Changelog updated.
-14. README updated.
-15. `.env.example` updated.
-16. No known secrets committed.
-17. Known MVP limitations documented.
-18. First release tag created.
-
-### Acceptance criteria
-
-- Checklist exists in the repo.
-- The first MVP release is not tagged until checklist items are complete or explicitly waived.
-- Any waived item is documented with a reason.
+- **`docs/mvp-release-checklist.md`**: Created. Covers architecture and runtime verification, database migrations, build and test validation, CI and release workflow confirmation, version and changelog update, documentation and environment review, and the final release tag and publish steps. Includes a "Waived items" table for any explicitly skipped items.
 
 ---
 
