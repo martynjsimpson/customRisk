@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-import { getRiskReviewStatus } from "../src/services/risks.service.ts";
+import { getRiskReviewStatus, isRiskOverdue } from "../src/services/risks.service.ts";
 import { listRisksQuerySchema } from "../src/validators/risks.schemas.ts";
 
 test("risk list route is mounted under register risk collection", async () => {
@@ -130,4 +130,49 @@ test("risk review status follows MVP display rules", () => {
     }),
     "NOT_DUE"
   );
+});
+
+test("risk overdue helper follows operational overdue rules", () => {
+  const today = new Date("2026-05-05T00:00:00.000Z");
+
+  assert.equal(
+    isRiskOverdue({
+      reviewsEnabled: true,
+      nextReviewDate: new Date("2026-05-01T00:00:00.000Z"),
+      state: "OPEN",
+      today
+    }),
+    true
+  );
+  assert.equal(
+    isRiskOverdue({
+      reviewsEnabled: true,
+      nextReviewDate: new Date("2026-05-01T00:00:00.000Z"),
+      state: "CLOSED",
+      today
+    }),
+    false
+  );
+  assert.equal(
+    isRiskOverdue({
+      reviewsEnabled: false,
+      nextReviewDate: new Date("2026-05-01T00:00:00.000Z"),
+      state: "OPEN",
+      today
+    }),
+    false
+  );
+});
+
+test("review filters and register counts use shared overdue rules", async () => {
+  const riskService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  const registerService = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
+  const reviewStatusService = await readFile(new URL("../src/services/reviewStatus.service.ts", import.meta.url), "utf8");
+
+  assert.match(reviewStatusService, /dueSoonWindowDays = 30/);
+  assert.match(riskService, /query\.overdue/);
+  assert.match(riskService, /where\.id = "__no_risks_when_reviews_disabled__"/);
+  assert.match(riskService, /isRiskOverdue/);
+  assert.match(registerService, /state: \{ not: "CLOSED" \}/);
+  assert.match(registerService, /register: \{ reviewsEnabled: true \}/);
 });

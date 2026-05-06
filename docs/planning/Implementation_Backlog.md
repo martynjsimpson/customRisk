@@ -972,7 +972,7 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ## P5-02 — Review Status and Overdue Logic
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Implement review status and overdue filter/count logic.
 

@@ -11,6 +11,12 @@ import {
 import type { AuthenticatedActor } from "../types/express.js";
 import { calculateNextReviewDate, resolveRiskScoring } from "./scoring.service.js";
 import { recordAuditEvent } from "./audit.service.js";
+import {
+  getDueSoonLimit,
+  getRiskReviewStatus,
+  isRiskOverdue,
+  utcDateOnly
+} from "./reviewStatus.service.js";
 import type {
   CreateRiskBody,
   DeleteRiskBody,
@@ -21,10 +27,6 @@ import type {
 
 type RiskClient = typeof prisma | Prisma.TransactionClient;
 
-function utcDateOnly(date: Date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
-
 function toDateOnlyString(date: Date | null) {
   return date ? date.toISOString().slice(0, 10) : null;
 }
@@ -32,40 +34,7 @@ function toDateOnlyString(date: Date | null) {
 function decimalToNumber(value: Prisma.Decimal.Value) {
   return new Prisma.Decimal(value).toNumber();
 }
-
-export function getRiskReviewStatus(input: {
-  reviewsEnabled: boolean;
-  lastReviewedAt: Date | null;
-  nextReviewDate: Date | null;
-  today?: Date;
-}) {
-  if (!input.reviewsEnabled) {
-    return "NOT_REQUIRED";
-  }
-
-  if (!input.lastReviewedAt) {
-    return "NOT_REVIEWED";
-  }
-
-  if (!input.nextReviewDate) {
-    return "NOT_DUE";
-  }
-
-  const today = utcDateOnly(input.today ?? new Date());
-  const nextReviewDate = utcDateOnly(input.nextReviewDate);
-  const dueSoonLimit = new Date(today);
-  dueSoonLimit.setUTCDate(dueSoonLimit.getUTCDate() + 30);
-
-  if (nextReviewDate < today) {
-    return "OVERDUE";
-  }
-
-  if (nextReviewDate <= dueSoonLimit) {
-    return "DUE_SOON";
-  }
-
-  return "NOT_DUE";
-}
+export { getRiskReviewStatus, isRiskOverdue } from "./reviewStatus.service.js";
 
 function buildRiskOrderBy(query: ListRisksQuery): Prisma.RiskOrderByWithRelationInput[] {
   const direction = query.sortDir;
@@ -93,8 +62,12 @@ function buildRiskOrderBy(query: ListRisksQuery): Prisma.RiskOrderByWithRelation
 
 function applyReviewFilters(where: Prisma.RiskWhereInput, query: ListRisksQuery, reviewsEnabled: boolean) {
   const today = utcDateOnly(new Date());
-  const dueSoonLimit = new Date(today);
-  dueSoonLimit.setUTCDate(dueSoonLimit.getUTCDate() + 30);
+  const dueSoonLimit = getDueSoonLimit(today);
+
+  if (!reviewsEnabled && (query.overdue || query.dueForReview)) {
+    where.id = "__no_risks_when_reviews_disabled__";
+    return;
+  }
 
   if (query.overdue) {
     where.nextReviewDate = { lt: today };
@@ -166,7 +139,11 @@ function mapRiskListItem(
     responseStrategy: risk.responseStrategy,
     nextReviewDate: toDateOnlyString(risk.nextReviewDate),
     reviewStatus,
-    isOverdue: risk.nextReviewDate ? utcDateOnly(risk.nextReviewDate) < utcDateOnly(new Date()) : false,
+    isOverdue: isRiskOverdue({
+      reviewsEnabled,
+      nextReviewDate: risk.nextReviewDate,
+      state: risk.state
+    }),
     systemUpdatedAt: risk.systemUpdatedAt
   };
 }
@@ -239,7 +216,11 @@ function mapRiskDetail(
       lastReviewedAt: risk.lastReviewedAt,
       nextReviewDate: risk.nextReviewDate
     }),
-    isOverdue: risk.nextReviewDate ? utcDateOnly(risk.nextReviewDate) < utcDateOnly(new Date()) : false,
+    isOverdue: isRiskOverdue({
+      reviewsEnabled,
+      nextReviewDate: risk.nextReviewDate,
+      state: risk.state
+    }),
     systemCreatedAt: risk.systemCreatedAt,
     systemCreatedBy: risk.systemCreatedBy,
     systemUpdatedAt: risk.systemUpdatedAt,

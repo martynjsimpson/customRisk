@@ -6,6 +6,7 @@ import { ApiError } from "../errors/apiError.js";
 import { getEffectiveRegisterRole, listAccessibleRegisterIds } from "../permissions/registerAccess.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
+import { utcDateOnly } from "./reviewStatus.service.js";
 import type {
   CreateRegisterPermissionBody,
   CreateRegisterBody,
@@ -68,13 +69,15 @@ async function decorateRegister(
   register: Prisma.RegisterGetPayload<{ select: typeof registerSelect }>,
   actor: AuthenticatedActor
 ) {
+  const today = utcDateOnly(new Date());
   const [openRisksCount, overdueRisksCount, effectiveRole] = await Promise.all([
     prisma.risk.count({ where: { registerId: register.id, state: "OPEN" } }),
     prisma.risk.count({
       where: {
         registerId: register.id,
         state: { not: "CLOSED" },
-        nextReviewDate: { lt: new Date() }
+        nextReviewDate: { lt: today },
+        register: { reviewsEnabled: true }
       }
     }),
     getEffectiveRegisterRole(actor, register.id)
@@ -346,13 +349,15 @@ export async function updateRegister(
 }
 
 export async function getRegisterSummary(registerId: string) {
+  const today = utcDateOnly(new Date());
   const [openRisks, overdueRisks, risksByLevel] = await Promise.all([
     prisma.risk.count({ where: { registerId, state: "OPEN" } }),
     prisma.risk.count({
       where: {
         registerId,
         state: { not: "CLOSED" },
-        nextReviewDate: { lt: new Date() }
+        nextReviewDate: { lt: today },
+        register: { reviewsEnabled: true }
       }
     }),
     prisma.risk.groupBy({
