@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Group, Stack, Table, Text, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -34,7 +34,13 @@ export function MyRisksPage() {
           {(risksQuery.data ?? []).map((risk) => (
             <Table.Tr key={risk.id}>
               <Table.Td>
-                <Text fw={600}>{risk.displayRiskId}</Text>
+                <Anchor
+                  component={Link}
+                  to={`/registers/${risk.register.id}?riskId=${risk.id}`}
+                  fw={600}
+                >
+                  {risk.displayRiskId}
+                </Anchor>
                 <Text size="sm">{risk.title}</Text>
               </Table.Td>
               <Table.Td>{risk.register.name}</Table.Td>

@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Paper, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Group, Paper, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -111,20 +111,22 @@ export function HomePage() {
                   <Table.Th>Register</Table.Th>
                   <Table.Th>Open risks</Table.Th>
                   <Table.Th>Overdue reviews</Table.Th>
-                  <Table.Th />
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {dashboardQuery.data!.adminRegisterSummaries.map((summary) => (
                   <Table.Tr key={summary.register.id}>
-                    <Table.Td>{summary.register.name}</Table.Td>
+                    <Table.Td>
+                      <Anchor
+                        component={Link}
+                        to={`/registers/${summary.register.id}`}
+                        fw={600}
+                      >
+                      {summary.register.name}
+                      </Anchor>
+                    </Table.Td>
                     <Table.Td>{summary.openRisks}</Table.Td>
                     <Table.Td>{summary.overdueReviews}</Table.Td>
-                    <Table.Td>
-                      <Button component={Link} to={`/registers/${summary.register.id}`} variant="subtle" size="xs">
-                        Open
-                      </Button>
-                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
@@ -144,7 +146,7 @@ export function HomePage() {
                 {dashboardQuery.data!.recentAuditActivity.map((event) => (
                   <Table.Tr key={event.id}>
                     <Table.Td>{new Date(event.occurredAt).toLocaleString()}</Table.Td>
-                    <Table.Td>{event.action}</Table.Td>
+                    <Table.Td><Badge>{event.action}</Badge></Table.Td>
                     <Table.Td>{event.summary}</Table.Td>
                   </Table.Tr>
                 ))}

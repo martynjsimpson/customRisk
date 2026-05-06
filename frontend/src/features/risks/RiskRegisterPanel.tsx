@@ -1,4 +1,5 @@
 import {
+  Anchor,
   Alert,
   Badge,
   Button,
@@ -45,6 +46,8 @@ import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { AuditEventTable } from "../audit/AuditEventTable";
 import { usePermissions } from "../../hooks/usePermissions";
 import { CORE_RISK_FIELDS, type CoreRiskFieldId } from "./coreRiskFields";
+import { Link } from "react-router-dom";
+
 
 interface RiskRegisterPanelProps {
   register: RegisterRecord;
@@ -560,7 +563,15 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         <Table.Tbody>
           {(riskQuery.data?.data ?? []).map((risk) => (
             <Table.Tr key={risk.id}>
-              <Table.Td>{risk.displayRiskId}</Table.Td>
+              <Table.Td>
+                <Anchor
+                  component={Link}
+                  to={`?riskId=${risk.id}`}
+                  fw={600}
+                >
+                  {risk.displayRiskId}
+                </Anchor>
+              </Table.Td>
               <Table.Td>{risk.title}</Table.Td>
               <Table.Td><Badge>{risk.state}</Badge></Table.Td>
               <Table.Td>{risk.owner.name}</Table.Td>
@@ -573,7 +584,6 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               <Table.Td>{statusBadge(risk.reviewStatus)}</Table.Td>
               <Table.Td>
                 <Group justify="flex-end" gap="xs">
-                  <Button variant="subtle" size="xs" onClick={() => setDetailRiskId(risk.id)}>Open</Button>
                   {canEditRows && register.reviewsEnabled ? (
                     <Button variant="subtle" size="xs" onClick={() => setReviewRiskId(risk.id)}>Review</Button>
                   ) : null}

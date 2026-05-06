@@ -43,6 +43,7 @@ test("my risks rows link to permitted register risk actions", async () => {
   assert.match(page, /usePermissions/);
   assert.match(page, /isSystemAdmin \?/);
   assert.match(page, /\?riskId=\$\{risk\.id\}`/);
+  assert.match(page, /\{risk\.displayRiskId\}/);
   assert.match(page, /action=review/);
   assert.match(page, /action=edit/);
   assert.match(page, /action=delete/);

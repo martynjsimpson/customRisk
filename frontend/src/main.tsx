@@ -53,6 +53,11 @@ const theme = createTheme({
     },
     TextInput: {
       defaultProps: passwordManagerIgnoreProps
+    },
+    Anchor: {
+      defaultProps: {
+        size: 'md'
+      }
     }
   }
 });

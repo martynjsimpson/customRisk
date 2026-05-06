@@ -1,4 +1,5 @@
 import {
+  Anchor,
   Badge,
   Button,
   Checkbox,
@@ -76,9 +77,13 @@ export function RegistersPage() {
           {(registersQuery.data?.data ?? []).map((register) => (
             <Table.Tr key={register.id}>
               <Table.Td>
-                <Button component={Link} to={`/registers/${register.id}`} variant="subtle" px={0}>
+                <Anchor
+                  component={Link}
+                  to={`/registers/${register.id}`}
+                  fw={600}
+                >
                   {register.name}
-                </Button>
+                </Anchor>
               </Table.Td>
               <Table.Td>
                 <Badge>{register.effectiveRole}</Badge>
