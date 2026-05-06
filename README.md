@@ -201,3 +201,36 @@ The demo users are:
 
 Set `SEED_DEMO_USER_PASSWORD` to make those demo accounts login-capable. When it
 is omitted, the seed creates them with random non-printed passwords.
+
+## Production environment variables
+
+The following variables must be changed from their development defaults before
+deploying to a production or shared environment.
+
+| Variable | Production requirement |
+|---|---|
+| `NODE_ENV` | Must be `production` |
+| `DATABASE_URL` | Point at the production PostgreSQL instance |
+| `JWT_ACCESS_SECRET` | Random value of at least 256 bits — never reuse the dev value |
+| `JWT_REFRESH_SECRET` | Random value of at least 256 bits — never reuse the dev value |
+| `BCRYPT_COST_FACTOR` | Use `12` or higher |
+| `CORS_ALLOWED_ORIGINS` | Set to the exact origin(s) of your deployment — wildcards are rejected at startup when `NODE_ENV=production` |
+| `POSTGRES_PASSWORD` | A strong, unique password |
+| `SEED_ADMIN_PASSWORD` | A strong password; this is the initial System Admin credential |
+| `SEED_DEMO_USER_PASSWORD` | Omit in production, or set to a strong password if demo users are needed |
+| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_LOGIN` | Review and tighten for your expected traffic |
+
+Supply all secrets at runtime via environment variables or a secrets manager.
+Do not bake secrets into container images or commit them to the repository.
+
+Generate secure JWT secrets with:
+
+```sh
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+## Secret scanning
+
+GitHub secret scanning is available under **Settings → Security → Secret scanning**
+for this repository. Enable it to be alerted if a secret pattern is accidentally
+committed.

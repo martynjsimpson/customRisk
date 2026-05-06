@@ -105,6 +105,53 @@ npm run smoke-test
 
 ---
 
+## Database migrations
+
+Migrations do not run automatically on container startup. Apply them explicitly
+as part of the release procedure.
+
+### Before applying migrations
+
+1. Back up the database before any release that includes schema changes:
+   ```sh
+   pg_dump -U <user> -h <host> <database> > backup-$(date +%Y%m%d-%H%M%S).sql
+   ```
+2. Confirm the migration files look correct — review the SQL in
+   `backend/prisma/migrations/` before deploying.
+
+### Applying migrations on a self-hosted deployment
+
+Set `DATABASE_URL` to your production connection string, then run:
+
+```sh
+DATABASE_URL=<production-url> npm run db:migrate
+```
+
+Alternatively, exec into the running container:
+
+```sh
+docker compose exec app node_modules/.bin/prisma migrate deploy --schema backend/prisma/schema.prisma
+```
+
+### Verifying after migration
+
+Check the health endpoint immediately after applying migrations:
+
+```sh
+npm run smoke-test          # against localhost:3000
+# or
+curl https://<your-host>/api/v1/health
+```
+
+A healthy response confirms the app connected to the migrated database.
+
+### Release notes
+
+If a release includes Prisma migrations, note it explicitly in the GitHub
+Release so operators know to apply migrations and take a backup before upgrading.
+
+---
+
 ## Rollback
 
 To roll back to a previous version, deploy the container image for that version

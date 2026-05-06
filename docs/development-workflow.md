@@ -132,13 +132,34 @@ High-level steps:
 
 ## Database migrations
 
-Prisma migrations are the only permitted mechanism for schema changes.
+Prisma migrations are the only permitted mechanism for schema changes. Never
+alter the database schema manually outside of Prisma migrations.
+
+### Local migration workflow
+
+1. Make model changes in `backend/prisma/schema.prisma`.
+2. Generate the migration file:
+   ```sh
+   npm --workspace @custom-risk/backend exec -- prisma migrate dev --name <description>
+   ```
+3. Review the generated SQL in `backend/prisma/migrations/<timestamp>_<description>/migration.sql`.
+4. Apply and verify the app works locally.
+5. Commit the new migration file alongside the schema change.
 
 ```sh
 npm run db:migrate    # apply committed migrations to the configured database
 npm run db:setup      # apply migrations and refresh seed data (local only)
 ```
 
-Never alter the database schema manually outside Prisma migrations.
+### Creating migrations without applying them
 
-See the release readiness plan (Task 9) for production migration safety guidelines.
+To generate a migration file without applying it (for review before applying):
+
+```sh
+npm --workspace @custom-risk/backend exec -- prisma migrate dev --create-only --name <description>
+```
+
+### Production migration workflow
+
+See [release-process.md](release-process.md) for the full procedure, including
+the required database backup step before applying migrations to production.
