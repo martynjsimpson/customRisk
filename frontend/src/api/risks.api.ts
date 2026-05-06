@@ -1,6 +1,6 @@
 import { apiClient } from "./client";
 import type { ApiResponse, ListMeta } from "./types";
-import type { CustomFieldType } from "./configuration.api";
+import type { CustomFieldType } from "./customFields.api";
 
 export type RiskState = "DRAFT" | "OPEN" | "CLOSED";
 export const RISK_STATES: RiskState[] = ["DRAFT", "OPEN", "CLOSED"];

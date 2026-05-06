@@ -26,10 +26,7 @@ test("core risk fields are defined once in a shared constant", async () => {
 });
 
 test("configuration panel renders core field anchors from the shared constant", async () => {
-  const panel = await readFile(
-    new URL("../src/features/configuration/RegisterConfigurationPanel.tsx", import.meta.url),
-    "utf8"
-  );
+  const panel = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
 
   // Imports the shared constant — not a local copy
   assert.match(panel, /import.*CORE_RISK_FIELDS.*from.*coreRiskFields/);
@@ -40,10 +37,7 @@ test("configuration panel renders core field anchors from the shared constant", 
 });
 
 test("configuration panel marks core fields as read-only and custom fields as editable", async () => {
-  const panel = await readFile(
-    new URL("../src/features/configuration/RegisterConfigurationPanel.tsx", import.meta.url),
-    "utf8"
-  );
+  const panel = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
 
   // Core badge shown for core fields
   assert.match(panel, /field\.kind === "core".*Core/s);
@@ -54,10 +48,7 @@ test("configuration panel marks core fields as read-only and custom fields as ed
 });
 
 test("risk form renders custom fields interleaved with core fields by displayOrder", async () => {
-  const panel = await readFile(
-    new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url),
-    "utf8"
-  );
+  const panel = await readFile(new URL("../src/features/risks/RiskFormModal.tsx", import.meta.url), "utf8");
 
   // Imports the shared constant
   assert.match(panel, /import.*CORE_RISK_FIELDS.*from.*coreRiskFields/);
