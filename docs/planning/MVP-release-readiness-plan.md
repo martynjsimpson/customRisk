@@ -2,7 +2,7 @@
 
 **Project:** Custom Risk  
 **Document type:** Implementation plan  
-**Status:** In progress — Tasks 1–7 complete, next: Task 8  
+**Status:** In progress — Tasks 1–8 complete, next: Task 9  
 **Purpose:** Prepare the MVP codebase for a controlled first release and make future development safer, repeatable, and easier to manage.
 
 ---
@@ -145,36 +145,13 @@ Three fixes applied:
 
 ---
 
-## Task 8 — Add Formal Release Workflow
+## Task 8 — Add Formal Release Workflow ✅ DONE
 
 **Objective:** Create intentional, versioned releases rather than treating every commit as a product release.
 
-### Actions
+### Outcome
 
-1. Create a release workflow triggered by Git tags matching `v*.*.*`.
-2. On tag creation:
-   - Run the full validation suite.
-   - Build the production Docker image.
-   - Publish versioned container tags.
-   - Create or update a GitHub Release.
-   - Include changelog notes.
-3. Tag container images with:
-   - Exact version, for example `v0.1.0`.
-   - Major/minor alias if useful, for example `v0.1`.
-   - `latest` only if you are comfortable with it always pointing to the newest stable release.
-4. Document the release procedure:
-   - Update changelog.
-   - Merge release prep PR.
-   - Tag from `main`.
-   - Confirm workflow completes.
-   - Verify the published image can run.
-
-### Acceptance criteria
-
-- Versioned GitHub Releases are created from tags.
-- Versioned container images are published from the same commit as the Git tag.
-- Release notes are generated or copied from the changelog.
-- `latest` usage is explicitly decided and documented.
+- **`.github/workflows/release.yml`**: Created. Triggered by `v*.*.*` tags. Three sequential jobs: **Quality Gates** (full validation suite including PostgreSQL service and migrations, identical to ci.yml since ci.yml does not trigger on tags), **Publish Release Image** (builds and pushes versioned Docker images to `ghcr.io`), **Create GitHub Release** (uses `gh release create --generate-notes --latest`). Image tags use semver patterns: `{{version}}` (e.g. `0.1.0`) and `{{major}}.{{minor}}` (e.g. `0.1`). `latest` Docker tag is not published (Decision 3). Release notes are auto-generated from merged PRs by the GitHub CLI.
 
 ---
 
