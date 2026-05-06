@@ -31,6 +31,25 @@ test("risk detail UI includes review action, review history, and risk audit hist
   assert.match(panel, /Confirm review/);
   assert.match(panel, /register\.reviewAttestationText/);
   assert.match(panel, /\["audit", "register", register\.id\]/);
+  assert.match(panel, /searchParams\.get\("riskId"\)/);
+  assert.match(panel, /action === "review"/);
+  assert.match(panel, /action === "edit"/);
+  assert.match(panel, /action === "delete"/);
+});
+
+test("my risks rows link to permitted register risk actions", async () => {
+  const page = await readFile(new URL("../src/pages/MyRisksPage.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /usePermissions/);
+  assert.match(page, /isSystemAdmin \?/);
+  assert.match(page, /\?riskId=\$\{risk\.id\}`/);
+  assert.match(page, /action=review/);
+  assert.match(page, /action=edit/);
+  assert.match(page, /action=delete/);
+  assert.match(page, /Open\s+<\/Button>/);
+  assert.match(page, /Review\s+<\/Button>/);
+  assert.match(page, /Edit\s+<\/Button>/);
+  assert.match(page, /Delete\s+<\/Button>/);
 });
 
 test("register detail exposes register audit tab for managers", async () => {

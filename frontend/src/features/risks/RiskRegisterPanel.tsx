@@ -19,6 +19,7 @@ import {
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   createRisk,
@@ -175,6 +176,7 @@ function customDetailValue(field: RiskDetail["customFields"][number]): string {
 
 export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isSystemAdmin } = usePermissions();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<RiskListQuery>({
@@ -242,6 +244,32 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     [activeCustomFields]
   );
   const form = useForm<RiskFormValues>({ initialValues: emptyValues(defaultState) });
+
+  useEffect(() => {
+    const riskId = searchParams.get("riskId");
+    const action = searchParams.get("action");
+
+    if (!riskId) {
+      return;
+    }
+
+    if (action === "review" && canEditRows && register.reviewsEnabled) {
+      setReviewRiskId(riskId);
+      setReviewConfirmed(false);
+      setReviewComment("");
+      setSearchParams({}, { replace: true });
+    } else if (action === "edit" && canEditRows) {
+      setEditingRiskId(riskId);
+      setFormOpened(true);
+      setSearchParams({}, { replace: true });
+    } else if (action === "delete" && isSystemAdmin) {
+      setDeleteRiskId(riskId);
+      setSearchParams({}, { replace: true });
+    } else if (!action) {
+      setDetailRiskId(riskId);
+      setSearchParams({}, { replace: true });
+    }
+  }, [canEditRows, isSystemAdmin, register.reviewsEnabled, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!formOpened || !editingRiskId || !selectedRiskQuery.data) {

@@ -1,9 +1,10 @@
-import { Badge, Button, Stack, Table, Text, Title } from "@mantine/core";
+import { Badge, Button, Group, Stack, Table, Text, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { getMyRisks } from "../api/dashboard.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
+import { usePermissions } from "../hooks/usePermissions";
 
 function reviewBadge(status: string) {
   const color = status === "OVERDUE" ? "red" : status === "DUE_SOON" ? "yellow" : "gray";
@@ -11,6 +12,7 @@ function reviewBadge(status: string) {
 }
 
 export function MyRisksPage() {
+  const { isSystemAdmin } = usePermissions();
   const risksQuery = useQuery({ queryKey: ["dashboard", "my-risks"], queryFn: getMyRisks });
 
   return (
@@ -40,9 +42,43 @@ export function MyRisksPage() {
               <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
               <Table.Td>{reviewBadge(risk.reviewStatus)}</Table.Td>
               <Table.Td>
-                <Button component={Link} to={`/registers/${risk.register.id}`} variant="subtle" size="xs">
-                  Open
-                </Button>
+                <Group justify="flex-end" gap="xs">
+                  <Button
+                    component={Link}
+                    to={`/registers/${risk.register.id}?riskId=${risk.id}`}
+                    variant="subtle"
+                    size="xs"
+                  >
+                    Open
+                  </Button>
+                  <Button
+                    component={Link}
+                    to={`/registers/${risk.register.id}?riskId=${risk.id}&action=review`}
+                    variant="subtle"
+                    size="xs"
+                  >
+                    Review
+                  </Button>
+                  <Button
+                    component={Link}
+                    to={`/registers/${risk.register.id}?riskId=${risk.id}&action=edit`}
+                    variant="subtle"
+                    size="xs"
+                  >
+                    Edit
+                  </Button>
+                  {isSystemAdmin ? (
+                    <Button
+                      component={Link}
+                      to={`/registers/${risk.register.id}?riskId=${risk.id}&action=delete`}
+                      variant="subtle"
+                      color="red"
+                      size="xs"
+                    >
+                      Delete
+                    </Button>
+                  ) : null}
+                </Group>
               </Table.Td>
             </Table.Tr>
           ))}
