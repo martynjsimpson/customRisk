@@ -1,6 +1,10 @@
 import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
 
 import {
+  listRegisterAuditController,
+  listRiskAuditController
+} from "../controllers/audit.controller.js";
+import {
   createRegisterController,
   addRegisterPermissionController,
   getRegisterController,
@@ -62,6 +66,7 @@ import {
   requireSystemAdmin
 } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
+import { auditQuerySchema } from "../validators/audit.schemas.js";
 import {
   createRegisterSchema,
   createRegisterPermissionSchema,
@@ -330,6 +335,12 @@ export function createRegistersRouter() {
     asyncRoute(completeRiskReviewController)
   );
   router.get(
+    "/:registerId/risks/:riskId/audit",
+    validateRequest({ params: riskIdParamsSchema, query: auditQuerySchema }),
+    requireRiskView(),
+    asyncRoute(listRiskAuditController)
+  );
+  router.get(
     "/:registerId/risks/:riskId",
     validateRequest({ params: riskIdParamsSchema }),
     requireRiskView(),
@@ -352,6 +363,12 @@ export function createRegistersRouter() {
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterAccess(),
     asyncRoute(getRegisterSummaryController)
+  );
+  router.get(
+    "/:registerId/audit",
+    validateRequest({ params: registerIdParamsSchema, query: auditQuerySchema }),
+    requireRegisterManagement(),
+    asyncRoute(listRegisterAuditController)
   );
   router.get(
     "/:registerId",

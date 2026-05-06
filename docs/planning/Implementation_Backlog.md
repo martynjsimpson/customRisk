@@ -1015,7 +1015,7 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ## P5-04 — Audit Read APIs
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Implement audit log routes.
 

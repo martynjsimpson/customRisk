@@ -7,6 +7,12 @@ import type {
 
 import type { AuditAction } from "../audit/auditActions.js";
 import { getAuditClient, safeAuditValue, type PrismaAuditClient } from "../audit/auditWriter.js";
+import { prisma } from "../db/prisma.js";
+import { ApiError } from "../errors/apiError.js";
+import { canManageRegister } from "../permissions/registerAccess.js";
+import { canViewRisk } from "../permissions/riskAccess.js";
+import type { AuthenticatedActor } from "../types/express.js";
+import type { AuditQuery } from "../validators/audit.schemas.js";
 
 export interface AuditActorInput {
   id?: string | null;
@@ -45,6 +51,161 @@ export interface AuditQueryInput {
   action?: string;
   page?: number;
   pageSize?: number;
+}
+
+function endOfDate(date: Date) {
+  const end = new Date(date);
+  end.setUTCHours(23, 59, 59, 999);
+  return end;
+}
+
+function buildAuditWhere(input: Partial<AuditQuery> = {}): Prisma.AuditEventWhereInput {
+  return {
+    occurredAt:
+      input.dateFrom || input.dateTo
+        ? {
+            gte: input.dateFrom,
+            lte: input.dateTo ? endOfDate(input.dateTo) : undefined
+          }
+        : undefined,
+    actorUserId: input.actorUserId,
+    action: input.action,
+    objectType: input.objectType,
+    registerId: input.registerId,
+    riskId: input.riskId,
+    displayRiskId: input.displayRiskId,
+    metadataJson: input.ipAddress
+      ? {
+          path: ["ipAddress"],
+          equals: input.ipAddress
+        }
+      : undefined
+  };
+}
+
+function mapAuditEvent(event: Prisma.AuditEventGetPayload<{ include: { fieldChanges: true; riskSnapshot: true } }>) {
+  return {
+    id: event.id,
+    occurredAt: event.occurredAt,
+    actor: event.actorUserId
+      ? {
+          id: event.actorUserId,
+          name: event.actorDisplayName,
+          email: event.actorEmail
+        }
+      : null,
+    action: event.action,
+    objectType: event.objectType,
+    objectId: event.objectId,
+    objectDisplayName: event.objectDisplayName,
+    scopeType: event.scopeType,
+    registerId: event.registerId,
+    riskId: event.riskId,
+    displayRiskId: event.displayRiskId,
+    summary: event.summary,
+    metadataJson: event.metadataJson,
+    fieldChanges: event.fieldChanges,
+    hasSnapshot: Boolean(event.riskSnapshot)
+  };
+}
+
+async function assertCanReadAuditEvent(actor: AuthenticatedActor, event: {
+  scopeType: AuditScopeType;
+  registerId: string | null;
+  riskId: string | null;
+}) {
+  if (actor.isSystemAdmin) {
+    return;
+  }
+
+  if (event.scopeType === "SYSTEM") {
+    throw new ApiError(404, "NOT_FOUND", "Audit event not found");
+  }
+
+  if (event.scopeType === "RISK" && event.registerId && event.riskId) {
+    if (await canViewRisk(actor, event.registerId, event.riskId)) {
+      return;
+    }
+    throw new ApiError(404, "NOT_FOUND", "Audit event not found");
+  }
+
+  if (event.registerId && (await canManageRegister(actor, event.registerId))) {
+    return;
+  }
+
+  throw new ApiError(404, "NOT_FOUND", "Audit event not found");
+}
+
+export async function listSystemAuditEvents(actor: AuthenticatedActor, query: AuditQuery) {
+  if (!actor.isSystemAdmin) {
+    throw new ApiError(403, "FORBIDDEN", "System Admin permission is required");
+  }
+
+  return listAuditEvents(query);
+}
+
+export async function listRegisterAuditEvents(
+  _actor: AuthenticatedActor,
+  registerId: string,
+  query: AuditQuery
+) {
+  return listAuditEvents({
+    ...query,
+    registerId
+  });
+}
+
+export async function listRiskAuditEvents(
+  _actor: AuthenticatedActor,
+  registerId: string,
+  riskId: string,
+  query: AuditQuery
+) {
+  return listAuditEvents({
+    ...query,
+    registerId,
+    riskId
+  });
+}
+
+export async function getAuditEvent(actor: AuthenticatedActor, auditEventId: string) {
+  const event = await prisma.auditEvent.findUnique({
+    where: { id: auditEventId },
+    include: { fieldChanges: true, riskSnapshot: true }
+  });
+
+  if (!event) {
+    throw new ApiError(404, "NOT_FOUND", "Audit event not found");
+  }
+
+  await assertCanReadAuditEvent(actor, event);
+  return mapAuditEvent(event);
+}
+
+export async function getAuditEventSnapshot(actor: AuthenticatedActor, auditEventId: string) {
+  const event = await prisma.auditEvent.findUnique({
+    where: { id: auditEventId },
+    include: { riskSnapshot: true }
+  });
+
+  if (!event?.riskSnapshot) {
+    throw new ApiError(404, "NOT_FOUND", "Audit snapshot not found");
+  }
+
+  if (!actor.isSystemAdmin && !(await canManageRegister(actor, event.riskSnapshot.registerId))) {
+    throw new ApiError(404, "NOT_FOUND", "Audit snapshot not found");
+  }
+
+  return {
+    id: event.riskSnapshot.id,
+    auditEventId: event.riskSnapshot.auditEventId,
+    riskInternalId: event.riskSnapshot.riskInternalId,
+    registerId: event.riskSnapshot.registerId,
+    displayRiskId: event.riskSnapshot.displayRiskId,
+    snapshotJson: event.riskSnapshot.snapshotJson,
+    deletionReason: event.riskSnapshot.deletionReason,
+    createdAt: event.riskSnapshot.createdAt
+  };
 }
 
 export async function recordAuditEvent(input: RecordAuditEventInput, client?: PrismaAuditClient) {
@@ -122,18 +283,15 @@ export async function listAuditEvents(input: AuditQueryInput = {}, client?: Pris
   const page = input.page ?? 1;
   const pageSize = input.pageSize ?? 25;
   const where: Prisma.AuditEventWhereInput = {
-    scopeType: input.scopeType,
-    registerId: input.registerId,
-    riskId: input.riskId,
-    actorUserId: input.actorUserId,
-    action: input.action
+    ...buildAuditWhere(input as AuditQuery),
+    scopeType: input.scopeType
   };
 
   const auditClient = getAuditClient(client);
   const [data, total] = await Promise.all([
     auditClient.auditEvent.findMany({
       where,
-      include: { fieldChanges: true },
+      include: { fieldChanges: true, riskSnapshot: true },
       orderBy: { occurredAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize
@@ -142,7 +300,7 @@ export async function listAuditEvents(input: AuditQueryInput = {}, client?: Pris
   ]);
 
   return {
-    data,
+    data: data.map(mapAuditEvent),
     meta: { total, page, pageSize }
   };
 }

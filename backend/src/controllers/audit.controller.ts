@@ -1,0 +1,70 @@
+import type { Request, Response } from "express";
+
+import { ApiError } from "../errors/apiError.js";
+import {
+  getAuditEvent,
+  getAuditEventSnapshot,
+  listRegisterAuditEvents,
+  listRiskAuditEvents,
+  listSystemAuditEvents
+} from "../services/audit.service.js";
+import type { AuthenticatedActor } from "../types/express.js";
+import { sendData } from "../utils/apiResponse.js";
+import type { AuditEventParams, AuditQuery } from "../validators/audit.schemas.js";
+import type { RiskIdParams } from "../validators/risks.schemas.js";
+import type { RegisterIdParams } from "../validators/registers.schemas.js";
+
+function actorOrThrow(request: { actor?: AuthenticatedActor }) {
+  if (!request.actor) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
+  }
+
+  return request.actor;
+}
+
+export async function listSystemAuditController(
+  request: Request<Record<string, string>, unknown, unknown, AuditQuery>,
+  response: Response
+) {
+  const result = await listSystemAuditEvents(actorOrThrow(request), request.query);
+  sendData(response, result.data, 200, result.meta);
+}
+
+export async function listRegisterAuditController(
+  request: Request<RegisterIdParams, unknown, unknown, AuditQuery>,
+  response: Response
+) {
+  const result = await listRegisterAuditEvents(
+    actorOrThrow(request),
+    request.params.registerId,
+    request.query
+  );
+  sendData(response, result.data, 200, result.meta);
+}
+
+export async function listRiskAuditController(
+  request: Request<RiskIdParams, unknown, unknown, AuditQuery>,
+  response: Response
+) {
+  const result = await listRiskAuditEvents(
+    actorOrThrow(request),
+    request.params.registerId,
+    request.params.riskId,
+    request.query
+  );
+  sendData(response, result.data, 200, result.meta);
+}
+
+export async function getAuditEventController(
+  request: Request<AuditEventParams>,
+  response: Response
+) {
+  sendData(response, await getAuditEvent(actorOrThrow(request), request.params.auditEventId));
+}
+
+export async function getAuditEventSnapshotController(
+  request: Request<AuditEventParams>,
+  response: Response
+) {
+  sendData(response, await getAuditEventSnapshot(actorOrThrow(request), request.params.auditEventId));
+}
