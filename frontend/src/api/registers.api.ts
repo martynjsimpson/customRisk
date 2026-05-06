@@ -13,6 +13,7 @@ export interface RegisterRecord {
   riskIdZeroPaddingWidth: number;
   reviewsEnabled: boolean;
   defaultReviewFrequencyMonths: number;
+  reviewAttestationText: string;
   allowViewerExport: boolean;
   effectiveRole: "SYSTEM_ADMIN" | "REGISTER_ADMIN" | "REGISTER_VIEWER" | "RISK_OWNER" | "NONE";
   openRisksCount: number;

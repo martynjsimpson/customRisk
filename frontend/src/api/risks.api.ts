@@ -114,6 +114,15 @@ export interface RiskDetail extends RiskListItem {
   systemUpdatedBy: RiskPerson;
 }
 
+export interface RiskReview {
+  id: string;
+  reviewedBy: RiskPerson;
+  reviewedAt: string;
+  comment: string | null;
+  attestationText: string;
+  calculatedNextReviewDate: string;
+}
+
 export interface SaveRiskInput {
   title: string;
   description: string;
@@ -182,4 +191,23 @@ export async function exportRisks(registerId: string, query: RiskListQuery) {
   const disposition = response.headers["content-disposition"] as string | undefined;
   const filename = disposition?.match(/filename="([^"]+)"/)?.[1] ?? "risk-register.csv";
   return { blob: response.data as Blob, filename };
+}
+
+export async function listRiskReviews(registerId: string, riskId: string) {
+  const response = await apiClient.get<{ data: RiskReview[] }>(
+    `/registers/${registerId}/risks/${riskId}/reviews`
+  );
+  return response.data.data;
+}
+
+export async function completeRiskReview(
+  registerId: string,
+  riskId: string,
+  input: { confirmed: true; comment?: string }
+) {
+  const response = await apiClient.post<{ data: RiskReview }>(
+    `/registers/${registerId}/risks/${riskId}/reviews`,
+    input
+  );
+  return response.data.data;
 }

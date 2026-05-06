@@ -2,8 +2,10 @@ import { createBrowserRouter } from "react-router-dom";
 
 import { AuthLayout } from "../layouts/AuthLayout";
 import { MainLayout } from "../layouts/MainLayout";
+import { AuditPage } from "../pages/AuditPage";
 import { HomePage } from "../pages/HomePage";
 import { LoginPage } from "../pages/LoginPage";
+import { MyRisksPage } from "../pages/MyRisksPage";
 import { RegisterDetailPage } from "../pages/RegisterDetailPage";
 import { RegistersPage } from "../pages/RegistersPage";
 import { UsersPage } from "../pages/UsersPage";
@@ -32,6 +34,14 @@ export const router = createBrowserRouter([
           {
             path: "/registers",
             element: <RegistersPage />
+          },
+          {
+            path: "/my-risks",
+            element: <MyRisksPage />
+          },
+          {
+            path: "/audit",
+            element: <AuditPage />
           },
           {
             path: "/registers/:registerId",

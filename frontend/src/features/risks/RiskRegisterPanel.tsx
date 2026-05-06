@@ -24,8 +24,10 @@ import {
   createRisk,
   deleteRisk,
   exportRisks,
+  completeRiskReview,
   getRisk,
   getRiskFormConfig,
+  listRiskReviews,
   listRisks,
   RISK_STATES,
   updateRisk,
@@ -36,8 +38,10 @@ import {
   type RiskState,
   type SaveRiskInput
 } from "../../api/risks.api";
+import { listRiskAudit } from "../../api/audit.api";
 import type { RegisterRecord } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { AuditEventTable } from "../audit/AuditEventTable";
 import { usePermissions } from "../../hooks/usePermissions";
 import { CORE_RISK_FIELDS, type CoreRiskFieldId } from "./coreRiskFields";
 
@@ -183,6 +187,9 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   const [formOpened, setFormOpened] = useState(false);
   const [editingRiskId, setEditingRiskId] = useState<string | null>(null);
   const [detailRiskId, setDetailRiskId] = useState<string | null>(null);
+  const [reviewRiskId, setReviewRiskId] = useState<string | null>(null);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [reviewComment, setReviewComment] = useState("");
   const [deleteRiskId, setDeleteRiskId] = useState<string | null>(null);
   const [deletionReason, setDeletionReason] = useState("");
   const [customValues, setCustomValues] = useState<Record<string, unknown>>({});
@@ -204,6 +211,16 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     queryKey: ["risk", register.id, detailRiskId ?? editingRiskId],
     queryFn: () => getRisk(register.id, (detailRiskId ?? editingRiskId)!),
     enabled: Boolean(detailRiskId || editingRiskId)
+  });
+  const reviewHistoryQuery = useQuery({
+    queryKey: ["risk-reviews", register.id, detailRiskId],
+    queryFn: () => listRiskReviews(register.id, detailRiskId!),
+    enabled: Boolean(detailRiskId)
+  });
+  const riskAuditQuery = useQuery({
+    queryKey: ["audit", "risk", register.id, detailRiskId],
+    queryFn: () => listRiskAudit(register.id, detailRiskId!),
+    enabled: Boolean(detailRiskId)
   });
 
   const defaultState = formConfigQuery.data?.register.defaultNewRiskState ?? "DRAFT";
@@ -263,8 +280,11 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["risks", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["risk", register.id] }),
+      queryClient.invalidateQueries({ queryKey: ["risk-reviews", register.id] }),
+      queryClient.invalidateQueries({ queryKey: ["audit", "risk", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["register", register.id] }),
-      queryClient.invalidateQueries({ queryKey: ["registers"] })
+      queryClient.invalidateQueries({ queryKey: ["registers"] }),
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] })
     ]);
   };
 
@@ -308,6 +328,20 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       anchor.download = filename;
       anchor.click();
       URL.revokeObjectURL(url);
+    }
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: () =>
+      completeRiskReview(register.id, reviewRiskId!, {
+        confirmed: true,
+        comment: reviewComment || undefined
+      }),
+    onSuccess: async () => {
+      setReviewRiskId(null);
+      setReviewConfirmed(false);
+      setReviewComment("");
+      await invalidateRisks();
     }
   });
 
@@ -511,6 +545,9 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               <Table.Td>
                 <Group justify="flex-end" gap="xs">
                   <Button variant="subtle" size="xs" onClick={() => setDetailRiskId(risk.id)}>Open</Button>
+                  {canEditRows && register.reviewsEnabled ? (
+                    <Button variant="subtle" size="xs" onClick={() => setReviewRiskId(risk.id)}>Review</Button>
+                  ) : null}
                   {canEditRows ? <Button variant="subtle" size="xs" onClick={() => openEdit(risk.id)}>Edit</Button> : null}
                   {isSystemAdmin ? (
                     <Button variant="subtle" color="red" size="xs" onClick={() => setDeleteRiskId(risk.id)}>
@@ -599,10 +636,71 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                 <Table.Tr><Table.Th>Updated</Table.Th><Table.Td>{new Date(selectedRiskQuery.data.systemUpdatedAt).toLocaleString()}</Table.Td></Table.Tr>
               </Table.Tbody>
             </Table>
+            <Title order={4}>Review history</Title>
+            <ApiErrorAlert error={reviewHistoryQuery.error} fallback="Unable to load review history" />
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Reviewed</Table.Th>
+                  <Table.Th>Reviewer</Table.Th>
+                  <Table.Th>Comment</Table.Th>
+                  <Table.Th>Next review</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {(reviewHistoryQuery.data ?? []).map((review) => (
+                  <Table.Tr key={review.id}>
+                    <Table.Td>{new Date(review.reviewedAt).toLocaleString()}</Table.Td>
+                    <Table.Td>{review.reviewedBy.name}</Table.Td>
+                    <Table.Td>{review.comment ?? ""}</Table.Td>
+                    <Table.Td>{review.calculatedNextReviewDate}</Table.Td>
+                  </Table.Tr>
+                ))}
+                {reviewHistoryQuery.data?.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td colSpan={4}><Text c="dimmed">No reviews recorded.</Text></Table.Td>
+                  </Table.Tr>
+                ) : null}
+              </Table.Tbody>
+            </Table>
+            <Title order={4}>Audit history</Title>
+            <ApiErrorAlert error={riskAuditQuery.error} fallback="Unable to load risk audit history" />
+            <AuditEventTable events={riskAuditQuery.data?.data ?? []} />
           </Stack>
         ) : selectedRiskQuery.isLoading ? (
           <Loader />
         ) : null}
+      </Modal>
+
+      <Modal opened={Boolean(reviewRiskId)} onClose={() => setReviewRiskId(null)} title="Review risk">
+        <Stack>
+          <ApiErrorAlert error={reviewMutation.error} fallback="Unable to complete review" />
+          <Alert>
+            {register.reviewsEnabled
+              ? register.reviewAttestationText
+              : "Reviews are disabled for this register."}
+          </Alert>
+          <Textarea
+            label="Comment"
+            value={reviewComment}
+            onChange={(event) => setReviewComment(event.currentTarget.value)}
+          />
+          <Checkbox
+            label="Confirm review"
+            checked={reviewConfirmed}
+            onChange={(event) => setReviewConfirmed(event.currentTarget.checked)}
+          />
+          <Group justify="flex-end">
+            <Button variant="subtle" onClick={() => setReviewRiskId(null)}>Cancel</Button>
+            <Button
+              disabled={!reviewConfirmed}
+              loading={reviewMutation.isPending}
+              onClick={() => reviewMutation.mutate()}
+            >
+              Complete review
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
 
       <Modal opened={Boolean(deleteRiskId)} onClose={() => setDeleteRiskId(null)} title="Delete risk">

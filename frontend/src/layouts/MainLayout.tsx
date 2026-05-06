@@ -30,12 +30,26 @@ export function MainLayout() {
           label="Home"
           active={location.pathname === "/"}
         />
+        <NavLink
+          component={Link}
+          to="/my-risks"
+          label="My Risks"
+          active={location.pathname.startsWith("/my-risks")}
+        />
         {hasRegisterAccess ? (
           <NavLink
             component={Link}
             to="/registers"
             label="Registers"
             active={location.pathname.startsWith("/registers")}
+          />
+        ) : null}
+        {isSystemAdmin ? (
+          <NavLink
+            component={Link}
+            to="/audit"
+            label="Audit"
+            active={location.pathname.startsWith("/audit")}
           />
         ) : null}
         {isSystemAdmin ? (

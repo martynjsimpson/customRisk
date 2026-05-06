@@ -1039,7 +1039,7 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ## P5-05 — Dashboard and Review Frontend
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Build review and dashboard UI.
 
