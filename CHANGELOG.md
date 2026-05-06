@@ -15,6 +15,10 @@ Version levels:
 
 ## [Unreleased]
 
+---
+
+## [0.1.0] - 2026-05-06
+
 ### Added
 
 - Risk register core: create, view, update, and delete risks within registers.
@@ -35,4 +39,5 @@ Version levels:
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/HEAD...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/martynjsimpson/customRisk/releases/tag/v0.1.0

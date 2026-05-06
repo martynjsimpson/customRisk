@@ -50,6 +50,7 @@
 - [ ] `docs/release-process.md` reviewed and accurate.
 - [ ] No real secrets exist in the repository to the best of current knowledge.
 - [ ] GitHub secret scanning is enabled (Settings → Security → Secret scanning).
+- [ ] Update LICENSES file with a suitable open source license (to be determined)
 
 ## Release
 
