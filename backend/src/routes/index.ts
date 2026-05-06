@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { createAuthRouter } from "./auth.routes.js";
+import { createDashboardRouter } from "./dashboard.routes.js";
 import { createHealthRouter } from "./health.routes.js";
 import { createRegistersRouter } from "./registers.routes.js";
 import { createUsersRouter } from "./users.routes.js";
@@ -10,6 +11,7 @@ export function createApiRouter() {
 
   router.use(createHealthRouter());
   router.use("/auth", createAuthRouter());
+  router.use("/dashboard", createDashboardRouter());
   router.use("/registers", createRegistersRouter());
   router.use("/users", createUsersRouter());
 

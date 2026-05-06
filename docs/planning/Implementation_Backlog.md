@@ -994,7 +994,7 @@ Phase goal: implement review flow, review history, last/next review dates, overd
 
 ## P5-03 — Dashboard APIs
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Implement role-aware dashboard endpoints.
 
