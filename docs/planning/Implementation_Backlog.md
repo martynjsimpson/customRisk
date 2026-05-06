@@ -1086,7 +1086,7 @@ Phase goal: close testing gaps, improve usability, seed realistic demo data, ver
 
 **Acceptance criteria:**
 
-- seed script creates a System Admin from `SEED_ADMIN_PASSWORD`;
+- seed script creates a System Admin from `SEED_ADMIN_PASSWORD` (already implemented);
 - seed passwords are not hardcoded;
 - demo registers include varied states, levels, owners, and review dates;
 - seeded data supports dashboard/filter testing.
