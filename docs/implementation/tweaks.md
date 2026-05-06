@@ -13,3 +13,15 @@ Status: Done
 Area: Frontend
 
 Description: The left nav-bar should be collapsible/ shrinkable to allow for more screen real estate. Each nav item should be given an icon that makes sense and add a button to allow the nav to be switched between full mode (showing icon and label) and minimal (just icon + tooltip).
+
+Status: Done
+
+Icons assigned:
+- Home → IconHome
+- My Risks → IconShield
+- Registers → IconBook
+- Audit → IconHistory
+- Users → IconUsers
+- Toggle → IconLayoutSidebarLeftCollapse / IconLayoutSidebarLeftExpand
+
+Full mode: 240px wide, icon + label. Collapsed mode: 60px wide, icon only with right-side Tooltip. Toggle button sits at the bottom of the sidebar with its own tooltip.
