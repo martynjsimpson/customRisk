@@ -2,19 +2,27 @@ import { Router, type NextFunction, type Request, type RequestHandler, type Resp
 
 import {
   activateUserController,
+  changeMyPasswordController,
   createUserController,
   deactivateUserController,
+  getMyPreferencesController,
   getUserController,
   listUsersController,
   unlockUserController,
+  updateMyPreferencesController,
+  updateMyProfileController,
   updateUserController
 } from "../controllers/users.controller.js";
 import { authenticate } from "../middleware/authenticate.js";
+import { requireFeature } from "../middleware/requireFeature.js";
 import { requireSystemAdmin } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
+  changePasswordSchema,
   createUserSchema,
   listUsersQuerySchema,
+  updateMyProfileSchema,
+  updatePreferencesSchema,
   updateUserSchema,
   userIdParamsSchema
 } from "../validators/users.schemas.js";
@@ -30,6 +38,34 @@ function asyncRoute(handler: AsyncHandler): RequestHandler {
 export function createUsersRouter() {
   const router = Router();
 
+  // Self-service /me routes — any authenticated user
+  router.patch(
+    "/me",
+    authenticate,
+    validateRequest({ body: updateMyProfileSchema }),
+    asyncRoute(updateMyProfileController)
+  );
+  router.post(
+    "/me/change-password",
+    authenticate,
+    validateRequest({ body: changePasswordSchema }),
+    asyncRoute(changeMyPasswordController)
+  );
+  router.get(
+    "/me/preferences",
+    authenticate,
+    requireFeature("userPreferences"),
+    asyncRoute(getMyPreferencesController)
+  );
+  router.patch(
+    "/me/preferences",
+    authenticate,
+    requireFeature("userPreferences"),
+    validateRequest({ body: updatePreferencesSchema }),
+    asyncRoute(updateMyPreferencesController)
+  );
+
+  // Admin-only routes
   router.use(authenticate, requireSystemAdmin);
   router.get("/", validateRequest({ query: listUsersQuerySchema }), asyncRoute(listUsersController));
   router.post("/", validateRequest({ body: createUserSchema }), asyncRoute(createUserController));

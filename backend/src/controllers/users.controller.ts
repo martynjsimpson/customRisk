@@ -2,17 +2,24 @@ import type { Request, Response } from "express";
 
 import { ApiError } from "../errors/apiError.js";
 import {
+  changeMyPassword,
   createUser,
+  getMyPreferences,
   getUser,
   listUsers,
   setUserActive,
   unlockUser,
+  updateMyPreferences,
+  updateMyProfile,
   updateUser
 } from "../services/users.service.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
+  ChangePasswordBody,
   CreateUserBody,
   ListUsersQuery,
+  UpdateMyProfileBody,
+  UpdatePreferencesBody,
   UpdateUserBody,
   UserIdParams
 } from "../validators/users.schemas.js";
@@ -61,4 +68,30 @@ export async function deactivateUserController(request: Request<UserIdParams>, r
 
 export async function unlockUserController(request: Request<UserIdParams>, response: Response) {
   sendData(response, await unlockUser(actorOrThrow(request), request.params.userId));
+}
+
+export async function updateMyProfileController(
+  request: Request<Record<string, string>, unknown, UpdateMyProfileBody>,
+  response: Response
+) {
+  sendData(response, await updateMyProfile(actorOrThrow(request), request.body));
+}
+
+export async function changeMyPasswordController(
+  request: Request<Record<string, string>, unknown, ChangePasswordBody>,
+  response: Response
+) {
+  await changeMyPassword(actorOrThrow(request), request.body);
+  sendData(response, { success: true });
+}
+
+export async function getMyPreferencesController(request: Request, response: Response) {
+  sendData(response, await getMyPreferences(actorOrThrow(request).id));
+}
+
+export async function updateMyPreferencesController(
+  request: Request<Record<string, string>, unknown, UpdatePreferencesBody>,
+  response: Response
+) {
+  sendData(response, await updateMyPreferences(actorOrThrow(request), request.body));
 }

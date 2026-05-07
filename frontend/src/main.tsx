@@ -9,6 +9,7 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 
 import { AuthProvider } from "./auth/session";
+import { ColorSchemeSync } from "./components/ColorSchemeSync";
 import { router } from "./router/routes";
 
 const passwordManagerIgnoreProps = {
@@ -74,10 +75,11 @@ const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} defaultColorScheme="auto">
       <Notifications />
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <ColorSchemeSync />
           <RouterProvider router={router} />
         </AuthProvider>
       </QueryClientProvider>
