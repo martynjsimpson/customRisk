@@ -49,6 +49,19 @@ Phases 1, 2, 3, 4, 5, 6, 9, 10, and 11 can run at the same time. Risk attachment
 - attachment metadata is stored separately from business objects;
 - size/type limits are enforced server-side.
 
+**Notes:**
+
+The attachment storage backend decision is resolved — see `docs/decisions/ADR-0006-attachment-storage.md`. The PM0-02 Phase 12 section contains the schema additions and environment variable definitions.
+
+Summary of the decision:
+
+- **Storage backend:** local filesystem via a named Docker volume (`attachments`, mounted at `/app/storage`). A `StorageProvider` TypeScript interface abstracts the backend so a future S3-compatible implementation can be swapped in (Phase 14) without changing upload/download logic.
+- **Storage keys:** UUIDs, never original filenames. Original filenames are stored only in the `Attachment` metadata table. This prevents path traversal, collisions, and filename leakage.
+- **Downloads:** proxied through Express. The download endpoint verifies permissions, looks up the `storageKey`, and streams the file with correct `Content-Disposition` and `Content-Type` headers. No signed URL redirect is used at this stage.
+- **Link tables:** three separate typed tables (`RiskAttachment`, `ActionAttachment`, `ReviewAttachment`) rather than a single polymorphic `attachment_link` table. This keeps Prisma relations explicit and avoids runtime type-checking on the `objectType` discriminator.
+- **Soft delete:** `Attachment.deletedAt` tombstone. Physical file deletion is handled by the cleanup job in PM12-06, not at delete-request time.
+- **Size and type limits** are enforced server-side via `ATTACHMENT_MAX_SIZE_MB` and `ATTACHMENT_ALLOWED_MIME_TYPES` environment variables.
+
 ## PM12-02 — Attachment Upload and Download API
 
 **Status:** Planned

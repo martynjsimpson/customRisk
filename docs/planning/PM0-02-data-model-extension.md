@@ -101,17 +101,35 @@ Per PM0-01 backlog governance: identify migration and backfill requirements befo
 
 ### Phase 2 — Person Identity Expansion (PM2-01 to PM2-04)
 
-**Table changes:**
-- `risk_custom_field_value.person_email`: already exists and is nullable. Post-MVP application logic may populate it for unresolved email person picker values.
-- `risk`: add `owner_email` column (`String`, nullable) to support a future email-only Risk Owner before a user account exists. `owner_user_id` remains required for MVP-created risks; post-MVP the service layer decides which field is active based on whether the email is resolved.
+**Decided approach — Normalised `person_reference` table**
 
-**Optionally, a `person_reference` table may be introduced** if normalised linking is preferred over per-column email fields. Decision to be made during PM2-01. If introduced, it should backfill from all existing `risk.owner_user_id` and `risk_custom_field_value.person_user_id` values to create normalised person reference rows. Existing FK columns remain valid; person references are supplementary.
+The per-column email field approach (adding `owner_email` to `risk` etc.) was considered and rejected. The normalised model was chosen. Full decision rationale is in `docs/decisions/ADR-0005-person-reference-model.md`.
 
-**Migration type:** Additive nullable columns. Safe.
+**New table:**
 
-**Backfill for `owner_email`:** When column is added, a backfill should set `owner_email = user.email` for all existing risks so the denormalised value is consistent. This makes display and search consistent regardless of whether `owner_user_id` resolves.
+```prisma
+model PersonReference {
+  id          String    @id @default(uuid())
+  email       String    @unique   // normalised lowercase, always present
+  userId      String?             // populated once a matching user account exists
+  user        User?     @relation(fields: [userId], references: [id])
+  displayName String?             // cached for unresolved; user.name takes precedence when resolved
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+```
 
-**Rollback:** Drop the nullable column. If a `person_reference` table is added, drop it and its FKs. Existing MVP data is unaffected.
+**Changes to existing tables:**
+- `risk`: add `owner_person_id` (nullable FK → `PersonReference`). The existing `owner_user_id` column is **retained unchanged** — it is the MVP field and must not be removed. New Phase 2+ risk owner assignments use `owner_person_id`; existing MVP records keep `owner_user_id` as their authoritative field.
+- `risk_custom_field_value`: add `person_id` (nullable FK → `PersonReference`). The existing `person_user_id` and `person_email` columns are retained and deprecated in place per §3.4 (no destructive column removal at Phase 2). New person picker values use `person_id`; existing resolved-user values keep `person_user_id`.
+
+**Service layer rule:** prefer `owner_person_id` / `person_id` when set (Phase 2+ style); fall back to `owner_user_id` / `person_user_id` for MVP records that have not been migrated. After the full backfill below, this fallback exists only as a rollback safety net.
+
+**Migration type:** One new table; two new nullable FK columns (one on `risk`, one on `risk_custom_field_value`). No changes to existing columns. Safe.
+
+**Backfill:** For every distinct user referenced in `risk.owner_user_id`, create a `PersonReference` row (`email = user.email`, `userId = user.id`, `resolvedAt = now()`), then set `risk.owner_person_id` to that row. Repeat for every distinct `person_user_id` in `risk_custom_field_value`, upserting `PersonReference` by email and setting `risk_custom_field_value.person_id`. Because the product is single-tenant with low record counts this backfill can run in a single script pass without batching.
+
+**Rollback:** Drop `owner_person_id` from `risk`, drop `person_id` from `risk_custom_field_value`, drop the `PersonReference` table. Existing MVP data in `owner_user_id` and `person_user_id` is fully intact.
 
 ---
 
@@ -141,28 +159,58 @@ Per PM0-01 backlog governance: identify migration and backfill requirements befo
 
 This is the most structurally significant post-MVP phase. It adds versioning on top of the MVP register configuration model.
 
-**New tables:**
-- `register_config_version` — version number, status (`DRAFT`, `PUBLISHED`), register FK, actor, published-at timestamp.
-- Configuration versioning approach: two options.
+**Decided approach — Hybrid: JSON snapshot for draft/history, relational tables for live config**
 
-**Option A — Version pointer on existing tables (recommended for simplicity):**  
-Add a `config_version_id` FK to `register_config_version` on each configuration table (`custom_field_definition`, `likelihood_value`, `impact_value`, `risk_level`, `risk_matrix_cell`, `response_strategy`). A published version has config rows with its version ID. A draft clones or modifies rows with the draft version ID.
+The version-pointer and snapshot storage decision has been resolved. The hybrid approach below was chosen over Option A (FK on every config table) and Option B (pure JSON snapshot). Full decision rationale is in `docs/decisions/ADR-0004-config-version-storage.md`.
 
-**Option B — Separate versioned snapshots:**  
-Store configuration as a JSON snapshot per version. Simpler to snapshot; harder to query individual field values for validation.
+**How it works:**
 
-**Decision to be made during PM4-01.** Either option must satisfy: existing MVP configuration rows are tagged as version 1 (published) for every register, and the live risk form always reads from the current published version.
+- The existing MVP config tables (`custom_field_definition`, `likelihood_value`, `impact_value`, `risk_level`, `risk_matrix_cell`, `response_strategy`, `custom_field_option`) remain unchanged and always hold the **currently published** configuration. No `config_version_id` FK is added to these tables.
+- A `register_config_version` table holds both draft and published version records. Each version row stores `snapshot_json` — a complete JSONB snapshot of the register configuration at that point in time.
+- The `register` table gains two nullable FK columns pointing into `register_config_version`: `current_config_version_id` (latest published) and `draft_config_version_id` (in-progress draft, null when no draft exists).
+- **Creating a draft:** clone the current published snapshot into a new `DRAFT`-status version row.
+- **Editing the draft:** update `snapshot_json` on the draft version row.
+- **Publishing:** in a single transaction — write the draft `snapshot_json` back to the relational config tables, set the version status to `PUBLISHED`, set `publishedAt`, update `register.current_config_version_id`, and null out `register.draft_config_version_id`.
+- **Historical record:** published version rows are immutable after publish; `snapshot_json` is never changed once a version is published.
+
+**Prisma schema additions:**
+
+```prisma
+model RegisterConfigVersion {
+  id              String              @id @default(uuid())
+  registerId      String
+  register        Register            @relation(fields: [registerId], references: [id])
+  versionNumber   Int
+  status          ConfigVersionStatus // DRAFT | PUBLISHED
+  snapshotJson    Json                // complete config snapshot
+  createdByUserId String
+  createdAt       DateTime            @default(now())
+  publishedAt     DateTime?
+}
+
+enum ConfigVersionStatus {
+  DRAFT
+  PUBLISHED
+}
+```
+
+**Changes to `register`:**
+
+```prisma
+currentConfigVersionId  String?   // FK → RegisterConfigVersion (latest PUBLISHED)
+draftConfigVersionId    String?   // FK → RegisterConfigVersion (current DRAFT, nullable)
+```
 
 **New tables for templates (PM4-08 to PM4-11):**
 - `register_template` — template name, description, owner (System Admin), created/updated metadata.
-- `register_template_version` — version number, status, snapshot or config version reference.
+- `register_template_version` — version snapshot stored as `snapshot_json`; same shape as `RegisterConfigVersion.snapshotJson`. Templates are naturally portable because the snapshot format is the same.
 
-**Migration type:** New tables; potentially new FKs on existing configuration tables (Option A).
+**Migration type:** Two new tables (`register_config_version`, `register_template`, `register_template_version`); two new nullable FK columns on `register`. No changes to existing MVP config tables.
 
 **Critical backfill — Phase 4 has the only mandatory backfill:**  
-When Phase 4 migrations run, a backfill must create an initial `register_config_version` record for every existing register, mark it as `PUBLISHED`, and (if Option A) tag all existing configuration rows with that version ID. This backfill must run and be verified before the draft/publish application logic is deployed. The existing MVP configuration tables must not be truncated or modified structurally before this backfill completes.
+When Phase 4 migrations run, a backfill must create an initial `register_config_version` record (status=`PUBLISHED`, versionNumber=1) for every existing register, populate its `snapshot_json` from the current relational config tables, and set `register.current_config_version_id` to that row. This backfill must run and be verified before the draft/publish application logic is deployed.
 
-**Rollback:** Phase 4 rollback is complex if the versioning FK (Option A) has been applied to existing configuration rows. A rollback plan must be documented before Phase 4 migration is written. The general approach: keep the version-ID columns nullable so that MVP configuration rows with `config_version_id = null` remain readable by the pre-Phase-4 code path during a rollback window.
+**Rollback:** Low-to-medium risk under the hybrid approach. The relational config tables are unchanged by the migration itself (only written during publish). Rolling back means dropping the two new FK columns on `register` and dropping the new tables. Existing MVP configuration data is fully intact because it was never structurally modified — only snapshotted.
 
 ---
 
@@ -294,15 +342,70 @@ When Phase 4 migrations run, a backfill must create an initial `register_config_
 
 ### Phase 12 — Attachments and Evidence (PM12-01 to PM12-06)
 
-**New tables:**
-- `attachment` — file metadata, type, size, storage reference.
-- `attachment_link` — polymorphic link to `risk`, `risk_response_action`, or `risk_review` (or separate typed tables to avoid polymorphism).
+**Decided approach — Local filesystem with `StorageProvider` abstraction**
 
-**Migration type:** New tables. The storage backend decision (filesystem, object storage) does not affect the schema for metadata.
+The attachment storage backend decision has been resolved. Full rationale is in `docs/decisions/ADR-0006-attachment-storage.md`.
+
+Storage keys are UUIDs (never original filenames). Files are streamed through Express on download; permissions are verified before any bytes leave the server.
+
+**New tables:**
+
+```prisma
+model Attachment {
+  id               String    @id @default(uuid())
+  storageKey       String    @unique  // UUID-based key; maps to file on disk or object key
+  originalName     String             // display name from upload
+  mimeType         String
+  sizeBytes        Int
+  uploadedByUserId String
+  createdAt        DateTime  @default(now())
+  deletedAt        DateTime?          // soft-delete tombstone
+}
+
+// Separate typed link tables — no polymorphism
+model RiskAttachment {
+  id           String     @id @default(uuid())
+  attachmentId String
+  attachment   Attachment @relation(fields: [attachmentId], references: [id])
+  riskId       String
+  risk         Risk       @relation(fields: [riskId], references: [id])
+}
+
+model ActionAttachment {
+  id           String             @id @default(uuid())
+  attachmentId String
+  attachment   Attachment         @relation(fields: [attachmentId], references: [id])
+  actionId     String
+  action       RiskResponseAction @relation(fields: [actionId], references: [id])
+}
+
+model ReviewAttachment {
+  id           String     @id @default(uuid())
+  attachmentId String
+  attachment   Attachment @relation(fields: [attachmentId], references: [id])
+  reviewId     String
+  review       RiskReview @relation(fields: [reviewId], references: [id])
+}
+```
+
+**`AuditObjectType` enum:** add `ATTACHMENT`.
+
+**Docker Compose:** add a named `attachments` volume mounted at `/app/storage` in the app container. See `docs/architecture/technical-architecture.md` §5.1.
+
+**New environment variables:**
+
+```ini
+ATTACHMENT_STORAGE_PROVIDER=local
+ATTACHMENT_STORAGE_LOCAL_PATH=/app/storage/attachments
+ATTACHMENT_MAX_SIZE_MB=25
+ATTACHMENT_ALLOWED_MIME_TYPES=application/pdf,image/jpeg,image/png,image/gif,image/webp,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+```
+
+**Migration type:** Four new tables; one new `AuditObjectType` enum value. No changes to existing tables.
 
 **Backfill:** None.
 
-**Rollback:** Drop tables. Orphaned files on disk/object storage need a separate cleanup job.
+**Rollback:** Drop the four new tables and the `ATTACHMENT` enum value (enum removal requires a type migration — do not add it until Phase 12 is ready to ship, consistent with §3.2). Delete any files written under `ATTACHMENT_STORAGE_LOCAL_PATH`. Existing data unaffected.
 
 ---
 
@@ -361,9 +464,9 @@ When Phase 4 migrations run, a backfill must create an initial `register_config_
 | Phase | Rollback risk | Rollback approach |
 |---|---|---|
 | 1 — Preferences | Low. Column is nullable JSONB. | Drop `user.preferences` column. No data loss if preferences have not been written. |
-| 2 — Person identity | Low. Nullable column additions. | Drop `owner_email` and any `person_reference` table. |
+| 2 — Person identity | Low. New table; two nullable FK columns. Existing `owner_user_id` and `person_user_id` untouched. | Drop `person_reference` table; drop `risk.owner_person_id` and `risk_custom_field_value.person_id`. No existing MVP data affected. |
 | 3 — Auth | Low–medium. New tables only. | Drop new tables. No effect on existing local auth. |
-| 4 — Config versioning | **High.** Backfill modifies all register configuration rows. | Keep `config_version_id` nullable so MVP code path can run without version IDs. Rollback plan must be documented before migration is written. |
+| 4 — Config versioning | **Low–medium.** Hybrid approach: new tables and two nullable FKs on `register`; existing config tables are not structurally changed by the migration. The backfill only writes new rows and updates `register` FKs — it does not modify existing config rows. | Drop the two new FK columns on `register`, drop `register_config_version` and template tables. Existing config tables are unaffected. |
 | 5 — Advanced fields | Medium. Enum value additions are irreversible. | New columns are droppable. Cannot un-add `MULTI_SELECT`/`CALCULATED` enum values without a type migration. Gate enum additions with feature flag. |
 | 6 — Advanced scoring | Low. All nullable columns. | Drop columns. Existing standard-mode risks are unaffected. |
 | 7 — Child actions | Low. New tables, defaulted column on `register`. | Drop tables, drop `response_action_mode` column (safe if no registers have been switched). |
@@ -378,9 +481,9 @@ When Phase 4 migrations run, a backfill must create an initial `register_config_
 | Phase | Backfill required | Description |
 |---|---|---|
 | 1 | No | `preferences` defaults to null. |
-| 2 | Optional | If `owner_email` is added: set to `user.email` for all existing risks via a data migration script. |
+| 2 | Yes | Create `PersonReference` rows for all existing user references in `risk.owner_user_id` and `risk_custom_field_value.person_user_id`; populate `owner_person_id` and `person_id` FKs accordingly. Single-pass script; low volume. |
 | 3 | No | New auth tables start empty. `mfa_enabled` defaults to false. |
-| **4** | **Yes — critical** | Create a `register_config_version` (status=PUBLISHED, version=1) for every existing register. Tag all existing configuration rows with that version ID (Option A). This is the only mandatory backfill in the post-MVP plan. |
+| **4** | **Yes — critical** | For every existing register: create a `register_config_version` row (status=`PUBLISHED`, versionNumber=1), populate its `snapshot_json` from the current relational config tables, and set `register.current_config_version_id` to that row. Existing config table rows are not modified. This is the only mandatory backfill in the post-MVP plan. |
 | 5 | Partial | `validation_mode`: backfill to `BLOCK` where `is_required=true`, `ALLOW` otherwise. All other columns default to null. |
 | 6 | No | All new columns default to null or false. Existing registers stay in standard mode. |
 | 7 | No | `response_action_mode` defaults to `SIMPLE`. Existing `risk.response_action` text is preserved. |

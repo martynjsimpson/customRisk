@@ -46,6 +46,19 @@ Phases 1, 4, 7, 9, 10, and 12 can run at the same time.
 - unresolved email values can be stored without creating user accounts;
 - duplicate person records for the same normalised email are prevented or merged safely.
 
+**Notes:**
+
+The person reference storage design is resolved — use the normalised `person_reference` table approach. See `docs/decisions/ADR-0005-person-reference-model.md`. The PM0-02 Phase 2 section contains the schema additions and backfill requirements.
+
+Summary of the decision:
+
+- A new `PersonReference` table is the canonical representation of any person (resolved user, unresolved email, future SAML/external user). It has a unique `email` field, a nullable `userId` FK that is populated once a matching account exists, and a nullable `displayName` for unresolved entries.
+- `risk` gains `ownerPersonId` (nullable FK → `PersonReference`). The existing `ownerUserId` is **not removed** — MVP records keep it as their authoritative field. New Phase 2+ assignments use `ownerPersonId`.
+- `risk_custom_field_value` gains `personId` (nullable FK → `PersonReference`). Existing `personUserId` and `personEmail` columns are retained and deprecated in place.
+- **Service layer rule:** prefer `ownerPersonId` / `personId` when set; fall back to `ownerUserId` / `personUserId` for unbackfilled MVP records.
+- **Backfill:** for every user currently referenced in `owner_user_id` or `person_user_id`, create a `PersonReference` row and populate the new FK columns. Single-pass, low volume.
+- Phase 3 SAML linking (PM3-04) and Phase 7 Risk Response Owner (PM7-04) reuse the same `PersonReference` FK pattern.
+
 ## PM2-02 — Email-Only Person Picker Backend Support
 
 **Status:** Planned

@@ -204,7 +204,8 @@ src/
 | Local/self-hosted orchestration | Docker Compose |
 | App runtime image | Node 20 Alpine |
 | Database image | `postgres:16-alpine` |
-| Database persistence | Named Docker volume |
+| Database persistence | Named Docker volume (`pgdata`) |
+| Attachment file storage | Named Docker volume (`attachments`), added in Phase 12 |
 | Frontend serving | Express static file serving |
 | Public app port | `3000` |
 
@@ -241,6 +242,7 @@ services:
 
 volumes:
   pgdata:
+  attachments:  # added in Phase 12 — see ADR-0006 and docs/decisions/ADR-0006-attachment-storage.md
 ```
 
 ### 5.2 Multi-Stage Dockerfile Outline

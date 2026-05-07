@@ -44,6 +44,21 @@ Phases 1, 2, 3, 7, 9, 10, and 12 can run at the same time.
 - each register has exactly one active published configuration;
 - draft versions can exist without affecting live risk forms.
 
+**Notes:**
+
+Version-pointer and snapshot storage design is resolved — see `docs/decisions/ADR-0004-config-version-storage.md`. The PM0-02 Phase 4 section contains the corresponding schema additions and backfill requirements.
+
+Summary of the decision:
+
+- The existing MVP config tables (`custom_field_definition`, `likelihood_value`, etc.) remain unchanged and always hold the live published configuration. No `config_version_id` FK is added to them.
+- A new `register_config_version` table stores both draft and published versions. Each row has a `snapshot_json` JSONB column containing the complete register config at that point.
+- `register` gains two nullable FKs: `current_config_version_id` (latest published) and `draft_config_version_id` (in-progress draft).
+- **Draft:** clone the published snapshot into a new `DRAFT` version row. Editing a draft updates `snapshot_json` on that row.
+- **Publish:** single transaction — write `snapshot_json` back to the relational config tables, mark the version `PUBLISHED`, update `register.current_config_version_id`, clear `draft_config_version_id`.
+- **Published versions are immutable** once published. Templates reuse the same `snapshot_json` shape.
+
+The mandatory backfill: for every existing register, create a version 1 `PUBLISHED` row, populate its `snapshot_json` from the current relational config, and set `register.current_config_version_id`. Run and verify this backfill before deploying the draft/publish application logic.
+
 ## PM4-02 — Draft Configuration Editing API
 
 **Status:** Planned
