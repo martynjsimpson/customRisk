@@ -2,17 +2,21 @@ import type { Request, Response } from "express";
 
 import { ApiError } from "../errors/apiError.js";
 import {
+  changeOwnPassword,
   createUser,
   getUser,
   listUsers,
   setUserActive,
   unlockUser,
+  updateOwnProfile,
   updateUser
 } from "../services/users.service.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
+  ChangeOwnPasswordBody,
   CreateUserBody,
   ListUsersQuery,
+  UpdateOwnProfileBody,
   UpdateUserBody,
   UserIdParams
 } from "../validators/users.schemas.js";
@@ -42,6 +46,36 @@ export async function createUserController(
 
 export async function getUserController(request: Request<UserIdParams>, response: Response) {
   sendData(response, await getUser(request.params.userId));
+}
+
+function getRefreshToken(request: Request) {
+  const cookieHeader = request.headers.cookie;
+  if (!cookieHeader) {
+    return undefined;
+  }
+
+  for (const part of cookieHeader.split(";")) {
+    const [rawName, ...rawValue] = part.trim().split("=");
+    if (rawName === "refreshToken" && rawValue.length > 0) {
+      return decodeURIComponent(rawValue.join("="));
+    }
+  }
+
+  return undefined;
+}
+
+export async function updateOwnProfileController(
+  request: Request<Record<string, string>, unknown, UpdateOwnProfileBody>,
+  response: Response
+) {
+  sendData(response, await updateOwnProfile(actorOrThrow(request), request.body));
+}
+
+export async function changeOwnPasswordController(
+  request: Request<Record<string, string>, unknown, ChangeOwnPasswordBody>,
+  response: Response
+) {
+  sendData(response, await changeOwnPassword(actorOrThrow(request), request.body, getRefreshToken(request)));
 }
 
 export async function updateUserController(

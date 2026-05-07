@@ -1,20 +1,24 @@
 import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
 
 import {
+  changeOwnPasswordController,
   activateUserController,
   createUserController,
   deactivateUserController,
   getUserController,
   listUsersController,
   unlockUserController,
+  updateOwnProfileController,
   updateUserController
 } from "../controllers/users.controller.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { requireSystemAdmin } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
+  changeOwnPasswordSchema,
   createUserSchema,
   listUsersQuerySchema,
+  updateOwnProfileSchema,
   updateUserSchema,
   userIdParamsSchema
 } from "../validators/users.schemas.js";
@@ -29,6 +33,14 @@ function asyncRoute(handler: AsyncHandler): RequestHandler {
 
 export function createUsersRouter() {
   const router = Router();
+
+  router.patch("/me", authenticate, validateRequest({ body: updateOwnProfileSchema }), asyncRoute(updateOwnProfileController));
+  router.post(
+    "/me/change-password",
+    authenticate,
+    validateRequest({ body: changeOwnPasswordSchema }),
+    asyncRoute(changeOwnPasswordController)
+  );
 
   router.use(authenticate, requireSystemAdmin);
   router.get("/", validateRequest({ query: listUsersQuerySchema }), asyncRoute(listUsersController));

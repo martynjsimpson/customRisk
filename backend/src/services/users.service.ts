@@ -1,12 +1,19 @@
 import { Prisma } from "@prisma/client";
 
 import { auditActions } from "../audit/auditActions.js";
-import { hashPassword, validatePasswordPolicy } from "../auth/password.js";
+import { hashPassword, validatePasswordPolicy, verifyPassword } from "../auth/password.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent, type AuditFieldChangeInput } from "./audit.service.js";
-import type { CreateUserBody, ListUsersQuery, UpdateUserBody } from "../validators/users.schemas.js";
+import { revokeOtherRefreshTokens } from "./auth.service.js";
+import type {
+  ChangeOwnPasswordBody,
+  CreateUserBody,
+  ListUsersQuery,
+  UpdateOwnProfileBody,
+  UpdateUserBody
+} from "../validators/users.schemas.js";
 
 const userSelect = {
   id: true,
@@ -257,6 +264,117 @@ export async function updateUser(actor: AuthenticatedActor, userId: string, inpu
   } catch (error) {
     mapPrismaError(error);
   }
+}
+
+export async function updateOwnProfile(actor: AuthenticatedActor, input: UpdateOwnProfileBody) {
+  const existing = await prisma.user.findUnique({
+    where: { id: actor.id },
+    select: userSelect
+  });
+
+  if (!existing || !existing.isActive) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
+  }
+
+  if (existing.name === input.name) {
+    return userResponse(existing);
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({
+      where: { id: actor.id },
+      data: {
+        name: input.name,
+        updatedByUserId: actor.id
+      },
+      select: userSelect
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.userDisplayNameUpdated,
+        actor: {
+          ...actor,
+          name: updated.name
+        },
+        objectType: "USER",
+        objectId: updated.id,
+        objectDisplayName: updated.email,
+        scopeType: "SYSTEM",
+        summary: "User updated own display name",
+        fieldChanges: buildFieldChanges(existing, updated, [{ name: "name", label: "Name", valueType: "TEXT" }])
+      },
+      tx
+    );
+
+    return userResponse(updated);
+  });
+}
+
+export async function changeOwnPassword(
+  actor: AuthenticatedActor,
+  input: ChangeOwnPasswordBody,
+  currentRefreshToken?: string
+) {
+  const existing = await prisma.user.findUnique({
+    where: { id: actor.id },
+    select: {
+      ...userSelect,
+      passwordHash: true
+    }
+  });
+
+  if (!existing || !existing.isActive) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
+  }
+
+  const passwordMatches = await verifyPassword(input.currentPassword, existing.passwordHash);
+  if (!passwordMatches) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Current password is incorrect");
+  }
+
+  const policyError = passwordPolicyError(input.newPassword, existing.email, existing.name);
+  if (policyError) {
+    throw policyError;
+  }
+
+  const nextHash = await hashPassword(input.newPassword);
+
+  if (await verifyPassword(input.newPassword, existing.passwordHash)) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Password does not meet policy", {
+      newPassword: "New password must be different from your current password"
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: actor.id },
+      data: {
+        passwordHash: nextHash,
+        updatedByUserId: actor.id
+      }
+    });
+
+    const revokedSessionCount = await revokeOtherRefreshTokens(actor.id, currentRefreshToken, tx);
+
+    await recordAuditEvent(
+      {
+        action: auditActions.userPasswordChanged,
+        actor,
+        objectType: "USER",
+        objectId: existing.id,
+        objectDisplayName: existing.email,
+        scopeType: "SYSTEM",
+        summary: "User changed own password",
+        metadataJson: {
+          revokedOtherSessions: revokedSessionCount
+        }
+      },
+      tx
+    );
+
+    return { success: true };
+  });
 }
 
 export async function setUserActive(actor: AuthenticatedActor, userId: string, isActive: boolean) {

@@ -7,6 +7,8 @@ export const auditActions = {
   accountUnlocked: "ACCOUNT_UNLOCKED",
   userCreated: "USER_CREATED",
   userUpdated: "USER_UPDATED",
+  userDisplayNameUpdated: "USER_DISPLAY_NAME_UPDATED",
+  userPasswordChanged: "USER_PASSWORD_CHANGED",
   userActivated: "USER_ACTIVATED",
   userDeactivated: "USER_DEACTIVATED",
   systemAdminGranted: "SYSTEM_ADMIN_GRANTED",

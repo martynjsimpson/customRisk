@@ -6,7 +6,7 @@ import { getCurrentSession, login, logout, refreshSession } from "../services/au
 import type { LoginRequestBody } from "../validators/auth.schemas.js";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
-const AUTH_COOKIE_PATH = "/api/v1/auth";
+const AUTH_COOKIE_PATH = "/api/v1";
 
 function parseCookies(cookieHeader: string | undefined) {
   const cookies = new Map<string, string>();

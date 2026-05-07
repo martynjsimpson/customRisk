@@ -290,6 +290,25 @@ export async function logout(userId: string, refreshToken?: string) {
   });
 }
 
+export async function revokeOtherRefreshTokens(
+  userId: string,
+  currentRefreshToken?: string,
+  client: typeof prisma | Prisma.TransactionClient = prisma
+) {
+  const currentTokenHash = currentRefreshToken ? hashRefreshToken(currentRefreshToken) : null;
+
+  const result = await client.refreshToken.updateMany({
+    where: {
+      userId,
+      revokedAt: null,
+      tokenHash: currentTokenHash ? { not: currentTokenHash } : undefined
+    },
+    data: { revokedAt: new Date() }
+  });
+
+  return result.count;
+}
+
 export async function getCurrentSession(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
