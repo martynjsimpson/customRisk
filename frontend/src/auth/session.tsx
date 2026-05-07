@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { getCurrentUser, login as loginRequest, logout as logoutRequest, refreshSession } from "../api/auth.api";
+import { getMyPreferences } from "../api/preferences.api";
 
 export interface CurrentUser {
   id: string;
@@ -16,6 +17,10 @@ export interface CurrentPermissions {
     registerId: string;
     role: "REGISTER_ADMIN" | "REGISTER_VIEWER";
   }>;
+}
+
+export interface UserPreferences {
+  colorScheme?: "light" | "dark" | "auto";
 }
 
 export interface EnabledFeatures {
@@ -35,6 +40,8 @@ interface AuthContextValue {
   user: CurrentUser | null;
   permissions: CurrentPermissions | null;
   enabledFeatures: EnabledFeatures | null;
+  preferences: UserPreferences | null;
+  setPreferences: (prefs: UserPreferences | null) => void;
   isBootstrapping: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -54,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [permissions, setPermissions] = useState<CurrentPermissions | null>(null);
   const [enabledFeatures, setEnabledFeatures] = useState<EnabledFeatures | null>(null);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const setAccessToken = useCallback((token: string | null) => {
@@ -78,12 +86,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPermissions(session.permissions);
           setEnabledFeatures(session.enabledFeatures);
         }
+        if (!cancelled && session.enabledFeatures.userPreferences) {
+          try {
+            const prefs = await getMyPreferences();
+            if (!cancelled) setPreferences(prefs);
+          } catch {
+            // Preference load failure must not block the app
+          }
+        }
       } catch {
         if (!cancelled) {
           setAccessToken(null);
           setUser(null);
           setPermissions(null);
           setEnabledFeatures(null);
+          setPreferences(null);
         }
       } finally {
         if (!cancelled) {
@@ -107,6 +124,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session.user);
       setPermissions(session.permissions);
       setEnabledFeatures(session.enabledFeatures);
+      if (session.enabledFeatures.userPreferences) {
+        try {
+          const prefs = await getMyPreferences();
+          setPreferences(prefs);
+        } catch {
+          // non-fatal
+        }
+      }
     },
     [setAccessToken]
   );
@@ -119,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setPermissions(null);
       setEnabledFeatures(null);
+      setPreferences(null);
     }
   }, [setAccessToken]);
 
@@ -128,12 +154,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       permissions,
       enabledFeatures,
+      preferences,
+      setPreferences,
       isBootstrapping,
       login,
       logout,
       setAccessToken
     }),
-    [accessToken, enabledFeatures, isBootstrapping, login, logout, permissions, setAccessToken, user]
+    [accessToken, enabledFeatures, isBootstrapping, login, logout, permissions, preferences, setAccessToken, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

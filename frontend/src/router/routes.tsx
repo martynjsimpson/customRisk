@@ -6,6 +6,7 @@ import { AuditPage } from "../pages/AuditPage";
 import { HomePage } from "../pages/HomePage";
 import { LoginPage } from "../pages/LoginPage";
 import { MyRisksPage } from "../pages/MyRisksPage";
+import { ProfilePage } from "../pages/ProfilePage";
 import { RegisterDetailPage } from "../pages/RegisterDetailPage";
 import { RegistersPage } from "../pages/RegistersPage";
 import { UsersPage } from "../pages/UsersPage";
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
           {
             path: "/users",
             element: <UsersPage />
+          },
+          {
+            path: "/profile",
+            element: <ProfilePage />
           }
         ]
       }

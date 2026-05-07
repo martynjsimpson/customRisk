@@ -89,6 +89,8 @@ model User {
   isSystemAdmin  Boolean @default(false) @map("is_system_admin")
   isActive       Boolean @default(true) @map("is_active")
 
+  preferences Json? @map("preferences") @db.JsonB
+
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   lastFailedLoginAt   DateTime? @map("last_failed_login_at") @db.Timestamptz(6)
   lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(6)

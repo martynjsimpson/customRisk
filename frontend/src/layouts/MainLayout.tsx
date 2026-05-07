@@ -6,6 +6,7 @@ import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
   IconShield,
+  IconUser,
   IconUsers
 } from "@tabler/icons-react";
 import { useState } from "react";
@@ -127,6 +128,13 @@ export function MainLayout() {
           ) : null}
         </Stack>
         <Stack gap={0} pt="xs" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
+          <NavItem
+            to="/profile"
+            label={user?.name ?? "Profile"}
+            icon={<IconUser size={18} />}
+            active={location.pathname === "/profile"}
+            collapsed={collapsed}
+          />
           <NavItem
             to="#"
             label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
