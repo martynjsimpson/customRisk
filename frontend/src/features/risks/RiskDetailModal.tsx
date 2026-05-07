@@ -40,6 +40,7 @@ function customDetailValue(field: RiskDetail["customFields"][number]): string {
   if (field.numberValue !== null) return String(field.numberValue);
   if (field.booleanValue !== null) return field.booleanValue ? "Yes" : "No";
   if (field.dateValue !== null) return field.dateValue;
+  if (field.person) return field.person.displayName;
   if (field.personUser) return field.personUser.name;
   if (field.dropdownOption) return field.dropdownOption.label;
   return "";
@@ -122,6 +123,7 @@ export function RiskDetailModal({
                         numberValue: null,
                         booleanValue: null,
                         dateValue: null,
+                        person: null,
                         personUser: null,
                         dropdownOption: null
                       }

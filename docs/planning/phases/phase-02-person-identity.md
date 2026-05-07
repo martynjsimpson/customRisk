@@ -1,6 +1,6 @@
 # Phase 2 — Person Identity Expansion
 
-**Status:** Planned
+**Status:** Done
 
 Phase goal: move beyond MVP local-user-only person assignment and support unresolved email assignment, later linking, and richer person-picker behaviour.
 

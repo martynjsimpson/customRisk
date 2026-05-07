@@ -6,6 +6,7 @@ import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent, type AuditFieldChangeInput } from "./audit.service.js";
+import { linkPersonReferenceToUser } from "./personReference.service.js";
 import type {
   ChangePasswordBody,
   CreateUserBody,
@@ -149,6 +150,22 @@ export async function createUser(actor: AuthenticatedActor, input: CreateUserBod
           tx
         );
       }
+
+      // Link any existing unresolved PersonReference for this email to the new user account
+      await tx.personReference.upsert({
+        where: { email: user.email.toLowerCase() },
+        create: {
+          email: user.email.toLowerCase(),
+          userId: user.id,
+          displayName: user.name,
+          resolvedAt: new Date()
+        },
+        update: {
+          userId: user.id,
+          displayName: user.name,
+          resolvedAt: new Date()
+        }
+      });
 
       return userResponse(user);
     });

@@ -36,8 +36,8 @@ Ticket IDs use the format `PM{phase}-{number}` (e.g. `PM3-02`).
 | Phase | Theme | Status | Tickets | File |
 |---:|---|---|---|---|
 | 0 | Post-MVP Baseline and Design Controls | Done | PM0-01 to PM0-05 | [phase-00-baseline.md](phases/phase-00-baseline.md) |
-| 1 | User Experience, Profile, and Preferences | Planned | PM1-01 to PM1-05 | [phase-01-profile-preferences.md](phases/phase-01-profile-preferences.md) |
-| 2 | Person Identity Expansion | Planned | PM2-01 to PM2-05 | [phase-02-person-identity.md](phases/phase-02-person-identity.md) |
+| 1 | User Experience, Profile, and Preferences | Done | PM1-01 to PM1-05 | [phase-01-profile-preferences.md](phases/phase-01-profile-preferences.md) |
+| 2 | Person Identity Expansion | Done | PM2-01 to PM2-05 | [phase-02-person-identity.md](phases/phase-02-person-identity.md) |
 | 3 | Enterprise Authentication and Account Recovery | Planned | PM3-01 to PM3-08 | [phase-03-enterprise-auth.md](phases/phase-03-enterprise-auth.md) |
 | 4 | Configuration Lifecycle and Templates | Planned | PM4-01 to PM4-11 | [phase-04-config-lifecycle.md](phases/phase-04-config-lifecycle.md) |
 | 5 | Advanced Field Model | Planned | PM5-01 to PM5-10 | [phase-05-advanced-fields.md](phases/phase-05-advanced-fields.md) |
