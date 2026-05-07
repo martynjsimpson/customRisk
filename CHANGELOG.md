@@ -17,6 +17,29 @@ Version levels:
 
 ---
 
+## [0.1.3] - 2026-05-07
+
+### Added
+
+- **Self-service profile:** authenticated users can update their own display name at `PATCH /api/v1/users/me`.
+- **Self-service password change:** authenticated users can change their own password at `POST /api/v1/users/me/change-password`; current password is verified, the new password is validated against the password policy, and all active sessions are revoked on success.
+- **User preferences API** _(requires `FEATURE_USER_PREFERENCES=true`)_: `GET` and `PATCH /api/v1/users/me/preferences` store a per-user preferences object in the database; partial updates preserve unset keys.
+- **Dark mode / colour scheme** _(requires `FEATURE_USER_PREFERENCES=true`)_: users can choose Light, Dark, or Auto (follows OS) on their profile page; the selection is persisted server-side and applied on next login.
+- **Profile page:** `/profile` route accessible to all authenticated users, containing the name, password, and (when enabled) appearance sections; linked from the sidebar.
+- **Feature flag infrastructure** _(PM0-05)_: `FEATURE_*` environment variables gate incomplete post-MVP features; `requireFeature` middleware returns 404 on disabled backend routes; `useFeatureFlags` hook gates frontend UI; `GET /api/v1/auth/me` now includes an `enabledFeatures` map.
+- **Post-MVP baseline governance docs** _(PM0-01 to PM0-04)_: data model extension plan, API versioning rules, audit and permission extension plan.
+
+### Changed
+
+- `GET /api/v1/auth/me` response now includes an `enabledFeatures` object listing the current state of all `FEATURE_*` flags; the field is always present and defaults to all `false`.
+- Session bootstrap fetches user preferences immediately after login when `FEATURE_USER_PREFERENCES` is enabled, applying the saved colour scheme before the first page render.
+
+### Migration
+
+- Added nullable `preferences jsonb` column to the `user` table (`20260507000000_add_user_preferences`). Run `prisma migrate deploy` (production) or `prisma migrate dev` (local) before starting the new version.
+
+---
+
 ## [0.1.2] - 2026-05-07
 
 ### Changed
