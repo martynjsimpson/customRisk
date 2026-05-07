@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --project tsconfig.json && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test test",
+    "test": "node --test 'test/**/*.test.mjs'",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {

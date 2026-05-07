@@ -10,7 +10,7 @@
     "prebuild": "npm run prisma:generate",
     "build": "tsc --project tsconfig.json",
     "pretest": "npm run prisma:generate",
-    "test": "node --import tsx --test test",
+    "test": "node --import tsx --test 'test/**/*.test.mjs'",
     "pretypecheck": "npm run prisma:generate",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "prisma:generate": "prisma generate",

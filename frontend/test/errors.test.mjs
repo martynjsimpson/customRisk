@@ -2,22 +2,21 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-test("Register Admin permission UI uses register-scoped user candidates", async () => {
-  const api = await readFile(new URL("../src/api/registers.api.ts", import.meta.url), "utf8");
-  const page = await readFile(new URL("../src/pages/RegisterDetailPage.tsx", import.meta.url), "utf8");
+test("shared API error alert renders actionable field-level validation messages", async () => {
+  const alert = await readFile(new URL("../src/components/ApiErrorAlert.tsx", import.meta.url), "utf8");
+  const riskForm = await readFile(new URL("../src/features/risks/RiskFormModal.tsx", import.meta.url), "utf8");
+  const usersPage = await readFile(new URL("../src/pages/UsersPage.tsx", import.meta.url), "utf8");
 
-  assert.match(api, /listRegisterPermissionCandidates/);
-  assert.match(api, /\/registers\/\$\{registerId\}\/permission-candidates/);
-  assert.match(page, /listRegisterPermissionCandidates\(registerId\)/);
-  assert.doesNotMatch(page, /from "\.\.\/api\/users\.api"/);
-});
+  assert.match(alert, /getApiErrorMessage/);
+  assert.match(alert, /getApiErrorFields/);
+  assert.match(alert, /formatApiErrorFieldName/);
+  assert.match(alert, /field === "_root" \|\| field === "body"/);
+  assert.match(alert, /Object\.entries\(fields\)/);
+  assert.match(alert, /\.sort\(\(\[left\], \[right\]\) => left\.localeCompare\(right\)\)/);
+  assert.match(alert, /formatApiErrorFieldName\(field\)/);
 
-test("create register UI can submit initial Register Admin assignments", async () => {
-  const page = await readFile(new URL("../src/pages/RegistersPage.tsx", import.meta.url), "utf8");
-
-  assert.match(page, /MultiSelect/);
-  assert.match(page, /initialRegisterAdminUserIds:\s*\[\]\s*as string\[\]/);
-  assert.match(page, /initialRegisterAdminUserIds:\s*values\.initialRegisterAdminUserIds/);
+  assert.match(riskForm, /<ApiErrorAlert error=\{saveMutation\.error\} fallback="Unable to save risk" \/>/);
+  assert.match(usersPage, /<ApiErrorAlert[\s\S]*error=\{editingUser \? updateMutation\.error : createMutation\.error\}/);
 });
 
 test("API-backed UI surfaces use shared API error display", async () => {

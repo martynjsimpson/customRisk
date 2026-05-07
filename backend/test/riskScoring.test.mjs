@@ -10,35 +10,19 @@ import { updateRiskSchema } from "../src/validators/risks.schemas.ts";
 
 test("risk ID formatting follows prefix and zero-padding settings", () => {
   assert.equal(
-    formatRiskId(1, {
-      riskIdPrefix: null,
-      riskIdZeroPaddingEnabled: false,
-      riskIdZeroPaddingWidth: 4
-    }),
+    formatRiskId(1, { riskIdPrefix: null, riskIdZeroPaddingEnabled: false, riskIdZeroPaddingWidth: 4 }),
     "1"
   );
   assert.equal(
-    formatRiskId(42, {
-      riskIdPrefix: "RISK",
-      riskIdZeroPaddingEnabled: false,
-      riskIdZeroPaddingWidth: 4
-    }),
+    formatRiskId(42, { riskIdPrefix: "RISK", riskIdZeroPaddingEnabled: false, riskIdZeroPaddingWidth: 4 }),
     "RISK-42"
   );
   assert.equal(
-    formatRiskId(42, {
-      riskIdPrefix: null,
-      riskIdZeroPaddingEnabled: true,
-      riskIdZeroPaddingWidth: 4
-    }),
+    formatRiskId(42, { riskIdPrefix: null, riskIdZeroPaddingEnabled: true, riskIdZeroPaddingWidth: 4 }),
     "0042"
   );
   assert.equal(
-    formatRiskId(1, {
-      riskIdPrefix: "SEC",
-      riskIdZeroPaddingEnabled: true,
-      riskIdZeroPaddingWidth: 4
-    }),
+    formatRiskId(1, { riskIdPrefix: "SEC", riskIdZeroPaddingEnabled: true, riskIdZeroPaddingWidth: 4 }),
     "SEC-0001"
   );
 });

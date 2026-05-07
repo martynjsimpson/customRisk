@@ -2,13 +2,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-import { auditActionForUserActiveChange } from "../src/services/users.service.ts";
-
-test("user activation helpers emit explicit audit action names", () => {
-  assert.equal(auditActionForUserActiveChange(true), "USER_ACTIVATED");
-  assert.equal(auditActionForUserActiveChange(false), "USER_DEACTIVATED");
-});
-
 test("register management exposes a scoped permission candidate route", async () => {
   const routes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/registers.controller.ts", import.meta.url), "utf8");

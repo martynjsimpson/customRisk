@@ -2,24 +2,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-test("frontend exposes dashboard, my risks, and audit routes", async () => {
-  const routes = await readFile(new URL("../src/router/routes.tsx", import.meta.url), "utf8");
-  const layout = await readFile(new URL("../src/layouts/MainLayout.tsx", import.meta.url), "utf8");
-  const dashboardApi = await readFile(new URL("../src/api/dashboard.api.ts", import.meta.url), "utf8");
-  const auditApi = await readFile(new URL("../src/api/audit.api.ts", import.meta.url), "utf8");
-
-  assert.match(routes, /path: "\/my-risks"/);
-  assert.match(routes, /path: "\/audit"/);
-  assert.match(layout, /to="\/my-risks"/);
-  assert.match(layout, /to="\/audit"/);
-  assert.match(dashboardApi, /\/dashboard\/my-work/);
-  assert.match(dashboardApi, /\/dashboard\/my-risks/);
-  assert.match(dashboardApi, /\/dashboard\/admin-summary/);
-  assert.match(auditApi, /\/audit\/system/);
-  assert.match(auditApi, /\/registers\/\$\{registerId\}\/audit/);
-  assert.match(auditApi, /\/registers\/\$\{registerId\}\/risks\/\$\{riskId\}\/audit/);
-});
-
 test("risk detail UI includes review action, review history, and risk audit history", async () => {
   const detailModal = await readFile(new URL("../src/features/risks/RiskDetailModal.tsx", import.meta.url), "utf8");
   const reviewModal = await readFile(new URL("../src/features/risks/ReviewModal.tsx", import.meta.url), "utf8");
@@ -53,13 +35,4 @@ test("my risks rows link to permitted register risk actions", async () => {
   assert.match(page, /Review\s+<\/Button>/);
   assert.match(page, /Edit\s+<\/Button>/);
   assert.match(page, /Delete\s+<\/Button>/);
-});
-
-test("register detail exposes register audit tab for managers", async () => {
-  const page = await readFile(new URL("../src/pages/RegisterDetailPage.tsx", import.meta.url), "utf8");
-  const panel = await readFile(new URL("../src/features/audit/RegisterAuditPanel.tsx", import.meta.url), "utf8");
-
-  assert.match(page, /value="audit"/);
-  assert.match(page, /RegisterAuditPanel/);
-  assert.match(panel, /listRegisterAudit/);
 });

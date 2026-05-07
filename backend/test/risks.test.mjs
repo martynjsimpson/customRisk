@@ -86,12 +86,7 @@ test("risk review status follows MVP display rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 
   assert.equal(
-    getRiskReviewStatus({
-      reviewsEnabled: false,
-      lastReviewedAt: null,
-      nextReviewDate: null,
-      today
-    }),
+    getRiskReviewStatus({ reviewsEnabled: false, lastReviewedAt: null, nextReviewDate: null, today }),
     "NOT_REQUIRED"
   );
   assert.equal(
@@ -136,30 +131,15 @@ test("risk overdue helper follows operational overdue rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 
   assert.equal(
-    isRiskOverdue({
-      reviewsEnabled: true,
-      nextReviewDate: new Date("2026-05-01T00:00:00.000Z"),
-      state: "OPEN",
-      today
-    }),
+    isRiskOverdue({ reviewsEnabled: true, nextReviewDate: new Date("2026-05-01T00:00:00.000Z"), state: "OPEN", today }),
     true
   );
   assert.equal(
-    isRiskOverdue({
-      reviewsEnabled: true,
-      nextReviewDate: new Date("2026-05-01T00:00:00.000Z"),
-      state: "CLOSED",
-      today
-    }),
+    isRiskOverdue({ reviewsEnabled: true, nextReviewDate: new Date("2026-05-01T00:00:00.000Z"), state: "CLOSED", today }),
     false
   );
   assert.equal(
-    isRiskOverdue({
-      reviewsEnabled: false,
-      nextReviewDate: new Date("2026-05-01T00:00:00.000Z"),
-      state: "OPEN",
-      today
-    }),
+    isRiskOverdue({ reviewsEnabled: false, nextReviewDate: new Date("2026-05-01T00:00:00.000Z"), state: "OPEN", today }),
     false
   );
 });
