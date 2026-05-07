@@ -10,6 +10,10 @@ function optional(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
+function optionalBoolean(key: string): boolean {
+  return process.env[key]?.toLowerCase() === "true";
+}
+
 export function getJwtAccessSecret(): string {
   return required("JWT_ACCESS_SECRET");
 }
@@ -39,4 +43,8 @@ export function getCorsAllowedOrigins(): string[] {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+}
+
+export function getOptionalFeatureFlag(key: string): boolean {
+  return optionalBoolean(key);
 }

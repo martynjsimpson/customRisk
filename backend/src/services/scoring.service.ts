@@ -64,13 +64,11 @@ export async function resolveRiskScoring(
       },
       select: { id: true, numericValue: true }
     }),
-    client.riskMatrixCell.findUnique({
+    client.riskMatrixCell.findFirst({
       where: {
-        registerId_likelihoodValueId_impactValueId: {
-          registerId: input.registerId,
-          likelihoodValueId: input.likelihoodValueId,
-          impactValueId: input.impactValueId
-        }
+        registerId: input.registerId,
+        likelihoodValueId: input.likelihoodValueId,
+        impactValueId: input.impactValueId
       },
       include: {
         riskLevel: {
