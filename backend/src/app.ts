@@ -41,7 +41,8 @@ export function createApp(options: CreateAppOptions = {}) {
 
     response.once("finish", () => {
       const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
-      recordHttpRequest(request.method, request.path, response.statusCode, durationMs);
+      const requestPath = request.originalUrl.split("?", 1)[0] ?? request.path;
+      recordHttpRequest(request.method, requestPath, response.statusCode, durationMs);
     });
 
     next();
