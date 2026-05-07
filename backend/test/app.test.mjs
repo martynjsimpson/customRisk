@@ -31,6 +31,10 @@ test("GET /api/v1/health returns a valid health response", async () => {
     assert.ok([200, 503].includes(response.status), `unexpected status: ${response.status}`);
     assert.ok(["ok", "degraded"].includes(body.data?.status), `unexpected status field: ${body.data?.status}`);
     assert.ok(["ok", "unreachable"].includes(body.data?.database), `unexpected database field: ${body.data?.database}`);
+    assert.equal(typeof body.data?.uptimeSeconds, "number");
+    assert.equal(body.data?.observability?.metricsPath, "/api/v1/health/metrics");
+    assert.equal(Array.isArray(body.data?.observability?.notes), true);
+    assert.equal(Array.isArray(body.data?.observability?.recommendedAlerts), true);
 
     if (response.status === 200) {
       assert.equal(body.data.status, "ok");
@@ -39,6 +43,29 @@ test("GET /api/v1/health returns a valid health response", async () => {
       assert.equal(body.data.status, "degraded");
       assert.equal(body.data.database, "unreachable");
     }
+  });
+});
+
+test("GET /api/v1/health/metrics returns operator-safe metrics text", async () => {
+  await withServer(createApp(), async (baseUrl) => {
+    const healthResponse = await fetch(`${baseUrl}/api/v1/health`);
+    const metricsResponse = await fetch(`${baseUrl}/api/v1/health/metrics`);
+    const metricsText = await metricsResponse.text();
+
+    assert.ok([200, 503].includes(metricsResponse.status), `unexpected status: ${metricsResponse.status}`);
+    assert.match(metricsResponse.headers.get("content-type") ?? "", /^text\/plain/);
+    assert.match(metricsText, /custom_risk_process_uptime_seconds/);
+    assert.match(metricsText, /custom_risk_health_status\{component="app",status="ok"\} 1/);
+    assert.match(metricsText, /custom_risk_http_requests_total/);
+    assert.match(metricsText, /custom_risk_http_request_errors_total/);
+    assert.match(metricsText, /custom_risk_http_request_duration_ms_total/);
+    assert.match(
+      metricsText,
+      new RegExp(
+        `custom_risk_http_requests_total\\{method="GET",route_group="health",status_code="${healthResponse.status}",status_class="${Math.floor(healthResponse.status / 100)}xx"\\} 1`
+      )
+    );
+    assert.doesNotMatch(metricsText, /Sensitive internal detail/);
   });
 });
 

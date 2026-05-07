@@ -8,6 +8,7 @@ import type { Logger } from "pino";
 import { getCorsAllowedOrigins } from "./config/env.js";
 import { logger as defaultLogger } from "./config/logger.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { recordHttpRequest } from "./observability/metrics.js";
 import { createApiRouter } from "./routes/index.js";
 
 export interface CreateAppOptions {
@@ -35,6 +36,16 @@ export function createApp(options: CreateAppOptions = {}) {
       callback(null, false);
     }
   }));
+  app.use((request, response, next) => {
+    const startedAt = process.hrtime.bigint();
+
+    response.once("finish", () => {
+      const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+      recordHttpRequest(request.method, request.path, response.statusCode, durationMs);
+    });
+
+    next();
+  });
   app.use(express.json());
 
   app.use("/api/v1", createApiRouter());

@@ -5,6 +5,7 @@ import type { Prisma, User } from "@prisma/client";
 import { auditActions } from "../audit/auditActions.js";
 import { generateRefreshToken, hashRefreshToken } from "../auth/refreshTokens.js";
 import { signAccessToken } from "../auth/tokens.js";
+import { featureFlags } from "../config/featureFlags.js";
 import { verifyPassword } from "../auth/password.js";
 import { getJwtRefreshExpiryDays } from "../config/env.js";
 import { logger } from "../config/logger.js";
@@ -312,6 +313,7 @@ export async function getCurrentSession(userId: string) {
     permissions: {
       isSystemAdmin: user.isSystemAdmin,
       registerRoles: user.registerPermissions
-    }
+    },
+    enabledFeatures: featureFlags
   };
 }
