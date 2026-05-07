@@ -1,4 +1,5 @@
 import { Button, Group, Loader, Modal, Stack, Table, Text, Title } from "@mantine/core";
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { getRisk, listRiskReviews, type RiskDetail, type RiskFormConfig } from "../../api/risks.api";
@@ -10,7 +11,7 @@ import { CORE_RISK_FIELDS } from "./coreRiskFields";
 import { ReviewStatusBadge } from "../../components/ReviewStatusBadge/ReviewStatusBadge";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge/RiskLevelBadge";
 
-function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[number]["id"]): string {
+function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[number]["id"]): ReactNode {
   switch (fieldId) {
     case "title":
       return risk.title;
@@ -28,10 +29,18 @@ function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[nu
       return risk.impact.name;
     case "riskScore":
       return String(risk.riskScore);
+    case "riskLevelId":
+      return <RiskLevelBadge riskLevel={risk.riskLevel} />;
     case "responseStrategyId":
       return risk.responseStrategy.name;
     case "responseAction":
       return risk.responseAction ?? "";
+    case "nextReviewDate":
+      return risk.nextReviewDate ?? "";
+    case "systemCreatedBy":
+      return risk.systemCreatedBy.name;
+    case "systemUpdatedAt":
+      return new Date(risk.systemUpdatedAt).toLocaleString();
   }
 }
 
@@ -40,6 +49,7 @@ function customDetailValue(field: RiskDetail["customFields"][number]): string {
   if (field.numberValue !== null) return String(field.numberValue);
   if (field.booleanValue !== null) return field.booleanValue ? "Yes" : "No";
   if (field.dateValue !== null) return field.dateValue;
+  if (field.person) return field.person.displayName;
   if (field.personUser) return field.personUser.name;
   if (field.dropdownOption) return field.dropdownOption.label;
   return "";
@@ -122,6 +132,7 @@ export function RiskDetailModal({
                         numberValue: null,
                         booleanValue: null,
                         dateValue: null,
+                        person: null,
                         personUser: null,
                         dropdownOption: null
                       }
@@ -142,15 +153,6 @@ export function RiskDetailModal({
                     </Table.Tr>
                   )
                 )}
-              <Table.Tr>
-                <Table.Th>Level</Table.Th>
-                <Table.Td>
-                  <RiskLevelBadge riskLevel={selectedRiskQuery.data.riskLevel} />
-                </Table.Td>
-              </Table.Tr>
-              <Table.Tr><Table.Th>Next review</Table.Th><Table.Td>{selectedRiskQuery.data.nextReviewDate ?? ""}</Table.Td></Table.Tr>
-              <Table.Tr><Table.Th>Created by</Table.Th><Table.Td>{selectedRiskQuery.data.systemCreatedBy.name}</Table.Td></Table.Tr>
-              <Table.Tr><Table.Th>Updated</Table.Th><Table.Td>{new Date(selectedRiskQuery.data.systemUpdatedAt).toLocaleString()}</Table.Td></Table.Tr>
             </Table.Tbody>
           </Table>
           <Title order={4}>Actions</Title>

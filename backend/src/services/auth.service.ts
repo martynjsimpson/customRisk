@@ -7,10 +7,12 @@ import { generateRefreshToken, hashRefreshToken } from "../auth/refreshTokens.js
 import { signAccessToken } from "../auth/tokens.js";
 import { verifyPassword } from "../auth/password.js";
 import { getJwtRefreshExpiryDays } from "../config/env.js";
+import { featureFlags } from "../config/featureFlags.js";
 import { logger } from "../config/logger.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import { recordAuditEvent } from "./audit.service.js";
+import { linkPersonReferenceToUser } from "./personReference.service.js";
 
 const FAILED_LOGIN_LIMIT = 5;
 const FAILED_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -185,6 +187,9 @@ export async function login(email: string, password: string): Promise<SessionRes
     }
   });
 
+  // Ensure any unresolved PersonReference for this email is linked to the user
+  await linkPersonReferenceToUser(user.id, normalisedEmail);
+
   await safeRecordAuthAudit({
     action: auditActions.loginSucceeded,
     actorUser: user,
@@ -312,6 +317,7 @@ export async function getCurrentSession(userId: string) {
     permissions: {
       isSystemAdmin: user.isSystemAdmin,
       registerRoles: user.registerPermissions
-    }
+    },
+    enabledFeatures: { ...featureFlags }
   };
 }

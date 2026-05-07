@@ -1,12 +1,20 @@
 import { Prisma } from "@prisma/client";
 
 import { auditActions } from "../audit/auditActions.js";
-import { hashPassword, validatePasswordPolicy } from "../auth/password.js";
+import { hashPassword, validatePasswordPolicy, verifyPassword } from "../auth/password.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent, type AuditFieldChangeInput } from "./audit.service.js";
-import type { CreateUserBody, ListUsersQuery, UpdateUserBody } from "../validators/users.schemas.js";
+import { linkPersonReferenceToUser } from "./personReference.service.js";
+import type {
+  ChangePasswordBody,
+  CreateUserBody,
+  ListUsersQuery,
+  UpdateMyProfileBody,
+  UpdatePreferencesBody,
+  UpdateUserBody
+} from "../validators/users.schemas.js";
 
 const userSelect = {
   id: true,
@@ -142,6 +150,22 @@ export async function createUser(actor: AuthenticatedActor, input: CreateUserBod
           tx
         );
       }
+
+      // Link any existing unresolved PersonReference for this email to the new user account
+      await tx.personReference.upsert({
+        where: { email: user.email.toLowerCase() },
+        create: {
+          email: user.email.toLowerCase(),
+          userId: user.id,
+          displayName: user.name,
+          resolvedAt: new Date()
+        },
+        update: {
+          userId: user.id,
+          displayName: user.name,
+          resolvedAt: new Date()
+        }
+      });
 
       return userResponse(user);
     });
@@ -307,6 +331,163 @@ export async function setUserActive(actor: AuthenticatedActor, userId: string, i
     );
 
     return userResponse(updated);
+  });
+}
+
+export async function updateMyProfile(actor: AuthenticatedActor, input: UpdateMyProfileBody) {
+  const existing = await prisma.user.findUnique({
+    where: { id: actor.id },
+    select: userSelect
+  });
+
+  if (!existing || !existing.isActive) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({
+      where: { id: actor.id },
+      data: { name: input.name, updatedByUserId: actor.id },
+      select: userSelect
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.profileUpdated,
+        actor,
+        objectType: "USER",
+        objectId: actor.id,
+        objectDisplayName: actor.email,
+        scopeType: "SYSTEM",
+        summary: "Profile updated",
+        fieldChanges: buildFieldChanges(existing, updated, [
+          { name: "name", label: "Name", valueType: "TEXT" }
+        ])
+      },
+      tx
+    );
+
+    return userResponse(updated);
+  });
+}
+
+export async function changeMyPassword(actor: AuthenticatedActor, input: ChangePasswordBody) {
+  const user = await prisma.user.findUnique({
+    where: { id: actor.id },
+    select: { ...userSelect, passwordHash: true }
+  });
+
+  if (!user || !user.isActive) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
+  }
+
+  const currentPasswordMatches = await verifyPassword(input.currentPassword, user.passwordHash);
+  if (!currentPasswordMatches) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Current password is incorrect", {
+      currentPassword: "Current password is incorrect"
+    });
+  }
+
+  const policyErrors = validatePasswordPolicy(input.newPassword, user.email, user.name);
+  if (policyErrors.length > 0) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Password does not meet policy", {
+      newPassword: policyErrors.join("; ")
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: actor.id },
+      data: {
+        passwordHash: await hashPassword(input.newPassword),
+        updatedByUserId: actor.id
+      }
+    });
+
+    await tx.refreshToken.updateMany({
+      where: { userId: actor.id, revokedAt: null },
+      data: { revokedAt: new Date() }
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.passwordChanged,
+        actor,
+        objectType: "USER",
+        objectId: actor.id,
+        objectDisplayName: actor.email,
+        scopeType: "SYSTEM",
+        summary: "Password changed",
+        fieldChanges: [
+          {
+            fieldName: "password",
+            fieldLabel: "Password",
+            previousValue: "[REDACTED]",
+            newValue: "[REDACTED]",
+            valueType: "TEXT"
+          }
+        ]
+      },
+      tx
+    );
+  });
+}
+
+export async function getMyPreferences(userId: string): Promise<UpdatePreferencesBody> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { preferences: true }
+  });
+
+  if (!user) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
+  }
+
+  const prefs = user.preferences;
+  if (!prefs || typeof prefs !== "object" || Array.isArray(prefs)) {
+    return {};
+  }
+
+  return prefs as UpdatePreferencesBody;
+}
+
+export async function updateMyPreferences(actor: AuthenticatedActor, input: UpdatePreferencesBody) {
+  const user = await prisma.user.findUnique({
+    where: { id: actor.id },
+    select: { preferences: true }
+  });
+
+  if (!user) {
+    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
+  }
+
+  const existing = (user.preferences && typeof user.preferences === "object" && !Array.isArray(user.preferences))
+    ? user.preferences as Record<string, unknown>
+    : {};
+
+  const merged = { ...existing, ...input };
+
+  return prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: actor.id },
+      data: { preferences: merged }
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.preferencesUpdated,
+        actor,
+        objectType: "USER",
+        objectId: actor.id,
+        objectDisplayName: actor.email,
+        scopeType: "SYSTEM",
+        summary: "Preferences updated",
+        metadataJson: { preferences: merged }
+      },
+      tx
+    );
+
+    return merged as UpdatePreferencesBody;
   });
 }
 

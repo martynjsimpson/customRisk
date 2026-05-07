@@ -1,6 +1,6 @@
 {
   "name": "@custom-risk/backend",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "type": "module",
   "main": "dist/server.js",
@@ -10,7 +10,7 @@
     "prebuild": "npm run prisma:generate",
     "build": "tsc --project tsconfig.json",
     "pretest": "npm run prisma:generate",
-    "test": "node --import tsx --test test",
+    "test": "find test -name '*.test.mjs' | sort | xargs node --import tsx --test",
     "pretypecheck": "npm run prisma:generate",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "prisma:generate": "prisma generate",

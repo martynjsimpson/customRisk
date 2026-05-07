@@ -24,7 +24,8 @@ import type {
   ListRisksQuery,
   UpdateRiskBody
 } from "../validators/risks.schemas.js";
-import { validateCustomFieldValues } from "./customFields.service.js";
+import { validateCustomFieldValues } from "./customFieldValues.service.js";
+import { formatPersonDisplay, personReferenceSelect, resolvePersonInput } from "./personReference.service.js";
 
 type RiskClient = typeof prisma | Prisma.TransactionClient;
 
@@ -155,6 +156,7 @@ function mapCustomFieldValue(
       customFieldDefinition: true;
       dropdownOption: true;
       personUser: { select: { id: true; name: true; email: true; isActive: true } };
+      person: { select: typeof personReferenceSelect };
     };
   }>
 ) {
@@ -165,6 +167,7 @@ function mapCustomFieldValue(
     numberValue: value.numberValue ? decimalToNumber(value.numberValue) : null,
     booleanValue: value.booleanValue,
     dateValue: toDateOnlyString(value.dateValue),
+    person: value.person ? formatPersonDisplay(value.person) : null,
     personUser: value.personUser,
     dropdownOption: value.dropdownOption
   };
@@ -174,6 +177,7 @@ function mapRiskDetail(
   risk: Prisma.RiskGetPayload<{
     include: {
       owner: { select: { id: true; name: true; email: true; isActive: true } };
+      ownerPerson: { select: typeof personReferenceSelect };
       likelihoodValue: true;
       impactValue: true;
       riskLevel: true;
@@ -183,6 +187,7 @@ function mapRiskDetail(
           customFieldDefinition: true;
           dropdownOption: true;
           personUser: { select: { id: true; name: true; email: true; isActive: true } };
+          person: { select: typeof personReferenceSelect };
         };
       };
       lastReviewedBy: { select: { id: true; name: true; email: true } };
@@ -201,6 +206,7 @@ function mapRiskDetail(
     description: risk.description,
     state: risk.state,
     owner: risk.owner,
+    ownerPerson: risk.ownerPerson ? formatPersonDisplay(risk.ownerPerson) : null,
     createdDate: toDateOnlyString(risk.createdDate),
     likelihood: risk.likelihoodValue,
     impact: risk.impactValue,
@@ -257,7 +263,8 @@ function buildRiskUpdateFieldChanges(
     { name: "title", label: "Risk Title", valueType: "TEXT" },
     { name: "description", label: "Risk Description", valueType: "TEXT" },
     { name: "state", label: "State", valueType: "TEXT" },
-    { name: "ownerUserId", label: "Risk Owner", valueType: "USER" },
+    { name: "ownerUserId", label: "Risk Owner (legacy)", valueType: "USER" },
+    { name: "ownerPersonId", label: "Risk Owner", valueType: "UUID" },
     { name: "createdDate", label: "Created Date", valueType: "DATE" },
     { name: "likelihoodValueId", label: "Likelihood", valueType: "UUID" },
     { name: "impactValueId", label: "Impact", valueType: "UUID" },
@@ -286,6 +293,7 @@ const riskAuditSelect = {
   description: true,
   state: true,
   ownerUserId: true,
+  ownerPersonId: true,
   createdDate: true,
   likelihoodValueId: true,
   impactValueId: true,
@@ -371,6 +379,7 @@ export async function getRiskDetail(_actor: AuthenticatedActor, registerId: stri
     include: {
       register: { select: { reviewsEnabled: true } },
       owner: { select: { id: true, name: true, email: true, isActive: true } },
+      ownerPerson: { select: personReferenceSelect },
       likelihoodValue: true,
       impactValue: true,
       riskLevel: true,
@@ -379,7 +388,8 @@ export async function getRiskDetail(_actor: AuthenticatedActor, registerId: stri
         include: {
           customFieldDefinition: true,
           dropdownOption: true,
-          personUser: { select: { id: true, name: true, email: true, isActive: true } }
+          personUser: { select: { id: true, name: true, email: true, isActive: true } },
+          person: { select: personReferenceSelect }
         },
         orderBy: { customFieldDefinition: { displayOrder: "asc" } }
       },
@@ -431,6 +441,7 @@ export async function updateRisk(
       throw new ApiError(404, "NOT_FOUND", "Register not found");
     }
 
+    let newOwnerPersonId: string | undefined;
     if (input.ownerUserId) {
       const owner = await tx.user.findUnique({
         where: { id: input.ownerUserId },
@@ -441,6 +452,7 @@ export async function updateRisk(
           ownerUserId: "Risk owner must be an active local user"
         });
       }
+      newOwnerPersonId = await resolvePersonInput({ type: "user", userId: input.ownerUserId }, tx);
     }
 
     if (input.responseStrategyId) {
@@ -488,6 +500,7 @@ export async function updateRisk(
         description: input.description,
         state: input.state,
         ownerUserId: input.ownerUserId,
+        ownerPersonId: newOwnerPersonId,
         createdDate: input.createdDate ? createdDate : undefined,
         likelihoodValueId: input.likelihoodValueId,
         impactValueId: input.impactValueId,
@@ -559,7 +572,8 @@ export async function deleteRisk(
           include: {
             customFieldDefinition: true,
             dropdownOption: true,
-            personUser: { select: { id: true, name: true, email: true, isActive: true } }
+            personUser: { select: { id: true, name: true, email: true, isActive: true } },
+            person: { select: personReferenceSelect }
           }
         },
         reviews: {
@@ -645,6 +659,8 @@ export async function createRisk(
       });
     }
 
+    const ownerPersonId = await resolvePersonInput({ type: "user", userId: input.ownerUserId }, tx);
+
     const responseStrategy = await tx.responseStrategy.findFirst({
       where: { id: input.responseStrategyId, registerId, isActive: true },
       select: { id: true }
@@ -684,6 +700,7 @@ export async function createRisk(
       description: input.description,
       state: input.state ?? register.defaultNewRiskState,
       owner: { connect: { id: input.ownerUserId } },
+      ownerPerson: { connect: { id: ownerPersonId } },
       createdDate,
       likelihoodValue: { connect: { id: input.likelihoodValueId } },
       impactValue: { connect: { id: input.impactValueId } },

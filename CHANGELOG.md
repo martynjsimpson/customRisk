@@ -17,6 +17,35 @@ Version levels:
 
 ---
 
+## [0.1.3] - 2026-05-07
+
+### Added
+
+- Profile page: users can update their display name and change their password from a new profile page, linked from the sidebar.
+- Password change: the current password is verified before accepting a new one, and all active sessions are signed out on success.
+- User preferences _(requires `FEATURE_USER_PREFERENCES=true`)_: per-user preferences are stored server-side and restored on login.
+- Color scheme _(requires `FEATURE_USER_PREFERENCES=true`)_: users can choose Light, Dark, or Auto (follows OS) from their profile page.
+- Feature flags: `FEATURE_*` environment variables let operators gate incomplete features; disabled features are hidden in the UI and return 404 from the API.
+- Email-only person assignment: Person Picker fields now accept an email address for someone who does not yet have an account; the value is saved and shown with an "Unresolved" badge until they register.
+- Person search: typing in a Person Picker field searches existing users by name or email; free-text email entry is available where the field allows it.
+- Automatic person linking: when a user registers or logs in, any unresolved person assignments that match their email are automatically resolved to their account.
+- Unresolved persons list: system administrators can view all unresolved person assignments across the register for data quality review.
+
+### Changed
+
+- Color scheme preference is applied before the first page render so there is no flash of the wrong theme on login.
+
+### Fixed
+
+- "Level", "Next Review", "Created By", and "Updated" were missing from the Fields configuration screen and ignored the field display order. All four now appear in configuration and respect the display order in both the Edit and Detail risk views.
+
+### Migration
+
+- Run `prisma migrate deploy` before starting the new version; two schema migrations are included.
+- After migrating, run the person-reference backfill script once to link existing risk owner and person-picker assignments to the updated data model.
+
+---
+
 ## [0.1.2] - 2026-05-07
 
 ### Changed

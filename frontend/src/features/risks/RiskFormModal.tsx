@@ -26,6 +26,7 @@ import {
 } from "../../api/risks.api";
 import type { RegisterRecord } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { PersonPicker } from "../../components/PersonPicker";
 import { CORE_RISK_FIELDS, type CoreRiskFieldId } from "./coreRiskFields";
 
 interface RiskFormModalProps {
@@ -84,7 +85,7 @@ function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
     case "DATE":
       return { customFieldDefinitionId: definition.id, dateValue: String(value) };
     case "PERSON_PICKER":
-      return { customFieldDefinitionId: definition.id, personUserId: String(value) };
+      return { customFieldDefinitionId: definition.id, personEmail: String(value) };
     case "DROPDOWN":
       return { customFieldDefinitionId: definition.id, dropdownOptionId: String(value) };
   }
@@ -145,6 +146,14 @@ function renderCoreField({
       );
     case "riskScore":
       return null;
+    case "riskLevelId":
+      return null;
+    case "nextReviewDate":
+      return null;
+    case "systemCreatedBy":
+      return null;
+    case "systemUpdatedAt":
+      return null;
     case "responseStrategyId":
       return (
         <Select
@@ -162,36 +171,42 @@ function renderCoreField({
 
 function CustomFieldInput({
   field,
-  users,
   value,
   onChange
 }: {
   field: CustomFieldDefinition;
-  users: Array<{ value: string; label: string }>;
   value: unknown;
   onChange: (value: unknown) => void;
 }) {
-  const label = field.isRequired ? `${field.fieldName} *` : field.fieldName;
+  const label = field.fieldName;
 
   if (field.fieldType === "MULTILINE_TEXT") {
-    return <Textarea label={label} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
+    return <Textarea label={label} required={field.isRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
   }
   if (field.fieldType === "NUMBER") {
-    return <NumberInput label={label} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
+    return <NumberInput label={label} required={field.isRequired} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
   }
   if (field.fieldType === "BOOLEAN") {
     return <Checkbox label={label} checked={Boolean(value)} onChange={(event) => onChange(event.currentTarget.checked)} />;
   }
   if (field.fieldType === "DATE") {
-    return <TextInput label={label} type="date" value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
+    return <TextInput label={label} required={field.isRequired} type="date" value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
   }
   if (field.fieldType === "PERSON_PICKER") {
-    return <Select label={label} searchable data={users} value={String(value ?? "") || null} onChange={onChange} />;
+    return (
+      <PersonPicker
+        label={label}
+        required={field.isRequired}
+        value={String(value ?? "")}
+        onChange={onChange}
+      />
+    );
   }
   if (field.fieldType === "DROPDOWN") {
     return (
       <Select
         label={label}
+        required={field.isRequired}
         data={(field.options ?? []).map((option) => ({ value: option.id, label: option.label }))}
         value={String(value ?? "") || null}
         onChange={onChange}
@@ -199,7 +214,7 @@ function CustomFieldInput({
     );
   }
 
-  return <TextInput label={label} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
+  return <TextInput label={label} required={field.isRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
 }
 
 export function RiskFormModal({
@@ -274,7 +289,8 @@ export function RiskFormModal({
               field.numberValue ??
               field.booleanValue ??
               field.dateValue ??
-              field.personUser?.id ??
+              field.person?.email ??
+              field.personUser?.email ??
               field.dropdownOption?.id ??
               ""
           ])
@@ -323,7 +339,6 @@ export function RiskFormModal({
               <CustomFieldInput
                 key={field.id}
                 field={field.field}
-                users={ownerOptions}
                 value={customValues[field.id]}
                 onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
               />

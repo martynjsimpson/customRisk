@@ -30,7 +30,23 @@ export const updateUserSchema = z.object({
   isActive: z.boolean().optional()
 });
 
+export const updateMyProfileSchema = z.object({
+  name: z.string().trim().min(1)
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(1)
+});
+
+export const updatePreferencesSchema = z.object({
+  colorScheme: z.enum(["light", "dark", "auto"]).optional()
+});
+
 export type UserIdParams = z.infer<typeof userIdParamsSchema>;
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
 export type CreateUserBody = z.infer<typeof createUserSchema>;
 export type UpdateUserBody = z.infer<typeof updateUserSchema>;
+export type UpdateMyProfileBody = z.infer<typeof updateMyProfileSchema>;
+export type ChangePasswordBody = z.infer<typeof changePasswordSchema>;
+export type UpdatePreferencesBody = z.infer<typeof updatePreferencesSchema>;

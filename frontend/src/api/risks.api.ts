@@ -1,6 +1,8 @@
 import { apiClient } from "./client";
 import type { ApiResponse, ListMeta } from "./types";
 import type { CustomFieldType } from "./customFields.api";
+import type { PersonDisplay } from "./persons.api";
+export type { PersonDisplay } from "./persons.api";
 
 export type RiskState = "DRAFT" | "OPEN" | "CLOSED";
 export const RISK_STATES: RiskState[] = ["DRAFT", "OPEN", "CLOSED"];
@@ -72,6 +74,7 @@ export interface RiskCustomFieldValueInput {
   booleanValue?: boolean;
   dateValue?: string;
   personUserId?: string;
+  personEmail?: string;
   dropdownOptionId?: string;
 }
 
@@ -94,6 +97,7 @@ export interface RiskDetail extends RiskListItem {
   registerId: string;
   riskSequence: number;
   description: string;
+  ownerPerson: PersonDisplay | null;
   createdDate: string;
   responseStrategy: RiskOption;
   responseAction: string | null;
@@ -104,6 +108,7 @@ export interface RiskDetail extends RiskListItem {
     numberValue: number | null;
     booleanValue: boolean | null;
     dateValue: string | null;
+    person: PersonDisplay | null;
     personUser: RiskPerson | null;
     dropdownOption: { id: string; label: string } | null;
   }>;

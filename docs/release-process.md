@@ -38,7 +38,7 @@ Update `version` in the root `package.json`:
 { "version": "0.1.0" }
 ```
 
-Update the same version in `backend/package.json` and `frontend/package.json`
+Update the same version in `backend/package.json` and `frontend/package.json` and `shared/package.json`
 to keep all packages in sync.
 
 ### 3. Update the changelog

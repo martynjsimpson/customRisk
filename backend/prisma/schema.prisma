@@ -81,6 +81,23 @@ enum ExportJobStatus {
   FAILED
 }
 
+model PersonReference {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String    @unique
+  userId      String?   @unique @map("user_id") @db.Uuid
+  displayName String?   @map("display_name")
+  resolvedAt  DateTime? @map("resolved_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation("PersonReferenceUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  ownerRisks         Risk[]               @relation("RiskOwnerPerson")
+  customFieldValues  RiskCustomFieldValue[] @relation("RiskCustomFieldPersonReference")
+
+  @@index([userId])
+  @@map("person_reference")
+}
+
 model User {
   id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name           String
@@ -88,6 +105,8 @@ model User {
   passwordHash   String  @map("password_hash")
   isSystemAdmin  Boolean @default(false) @map("is_system_admin")
   isActive       Boolean @default(true) @map("is_active")
+
+  preferences Json? @map("preferences") @db.JsonB
 
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   lastFailedLoginAt   DateTime? @map("last_failed_login_at") @db.Timestamptz(6)
@@ -128,6 +147,8 @@ model User {
   apiKeysCreated ApiKey[] @relation("ApiKeyCreatedBy")
 
   exportJobs ExportJob[] @relation("ExportJobRequestedBy")
+
+  personReference PersonReference? @relation("PersonReferenceUser")
 
   @@index([isActive])
   @@index([isSystemAdmin])
@@ -249,7 +270,8 @@ model Risk {
   description   String    @db.Text
   state         RiskState @default(DRAFT)
 
-  ownerUserId String @map("owner_user_id") @db.Uuid
+  ownerUserId    String  @map("owner_user_id") @db.Uuid
+  ownerPersonId  String? @map("owner_person_id") @db.Uuid
   createdDate DateTime @map("created_date") @db.Date
 
   likelihoodValueId  String  @map("likelihood_value_id") @db.Uuid
@@ -270,6 +292,7 @@ model Risk {
 
   register         Register         @relation(fields: [registerId], references: [id], onDelete: Cascade)
   owner            User             @relation("RiskOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  ownerPerson      PersonReference? @relation("RiskOwnerPerson", fields: [ownerPersonId], references: [id], onDelete: SetNull)
   likelihoodValue  LikelihoodValue  @relation("RiskLikelihood", fields: [likelihoodValueId], references: [id], onDelete: Restrict)
   impactValue      ImpactValue      @relation("RiskImpact", fields: [impactValueId], references: [id], onDelete: Restrict)
   riskLevel        RiskLevel        @relation("RiskRiskLevel", fields: [riskLevelId], references: [id], onDelete: Restrict)
@@ -472,6 +495,7 @@ model RiskCustomFieldValue {
   dateValue        DateTime? @map("date_value") @db.Date
   personUserId     String?   @map("person_user_id") @db.Uuid
   personEmail      String?   @map("person_email")
+  personId         String?   @map("person_id") @db.Uuid
   dropdownOptionId String?   @map("dropdown_option_id") @db.Uuid
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -481,12 +505,14 @@ model RiskCustomFieldValue {
   register              Register              @relation(fields: [registerId], references: [id], onDelete: Cascade)
   customFieldDefinition CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
   personUser            User?                 @relation("RiskCustomFieldPersonUser", fields: [personUserId], references: [id], onDelete: Restrict)
+  person                PersonReference?      @relation("RiskCustomFieldPersonReference", fields: [personId], references: [id], onDelete: SetNull)
   dropdownOption        CustomFieldOption?    @relation(fields: [dropdownOptionId], references: [id], onDelete: Restrict)
 
   @@unique([riskId, customFieldDefinitionId])
   @@index([registerId, customFieldDefinitionId])
   @@index([dropdownOptionId])
   @@index([personUserId])
+  @@index([personId])
   @@map("risk_custom_field_value")
 }
 

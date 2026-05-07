@@ -7,8 +7,12 @@ export type CoreRiskFieldId =
   | "likelihoodValueId"
   | "impactValueId"
   | "riskScore"
+  | "riskLevelId"
   | "responseStrategyId"
-  | "responseAction";
+  | "responseAction"
+  | "nextReviewDate"
+  | "systemCreatedBy"
+  | "systemUpdatedAt";
 
 export interface CoreRiskField {
   id: CoreRiskFieldId;
@@ -27,6 +31,10 @@ export const CORE_RISK_FIELDS: CoreRiskField[] = [
   { id: "likelihoodValueId",  displayOrder: 600, fieldName: "Likelihood",             fieldType: "Likelihood",        isRequired: true  },
   { id: "impactValueId",      displayOrder: 700, fieldName: "Impact",                 fieldType: "Impact",            isRequired: true  },
   { id: "riskScore",          displayOrder: 750, fieldName: "Risk Score",              fieldType: "Number (calculated)", isRequired: false },
-  { id: "responseStrategyId", displayOrder: 800, fieldName: "Risk Response Strategy", fieldType: "Response Strategy", isRequired: true  },
-  { id: "responseAction",     displayOrder: 900, fieldName: "Risk Response Action",   fieldType: "Multi-line text",   isRequired: false },
+  { id: "riskLevelId",        displayOrder: 760, fieldName: "Level",                  fieldType: "Level",               isRequired: false },
+  { id: "responseStrategyId", displayOrder: 800, fieldName: "Risk Response Strategy", fieldType: "Response Strategy",   isRequired: true  },
+  { id: "responseAction",     displayOrder: 900, fieldName: "Risk Response Action",   fieldType: "Multi-line text",     isRequired: false },
+  { id: "nextReviewDate",     displayOrder: 910, fieldName: "Next Review",            fieldType: "Date",                isRequired: false },
+  { id: "systemCreatedBy",    displayOrder: 950, fieldName: "Created By",             fieldType: "Person",              isRequired: false },
+  { id: "systemUpdatedAt",    displayOrder: 960, fieldName: "Updated",               fieldType: "Date",                isRequired: false },
 ];

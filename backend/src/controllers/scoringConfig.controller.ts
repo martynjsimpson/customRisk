@@ -1,22 +1,9 @@
 import type { Request, Response } from "express";
 
-import {
-  createImpactValue,
-  createLikelihoodValue,
-  createRiskLevel,
-  deactivateImpactValue,
-  deactivateLikelihoodValue,
-  deactivateRiskLevel,
-  getMatrix,
-  listImpactValues,
-  listLikelihoodValues,
-  listRiskLevels,
-  updateImpactValue,
-  updateLikelihoodValue,
-  updateMatrix,
-  updateMatrixCell,
-  updateRiskLevel
-} from "../services/scoringConfig.service.js";
+import { createImpactValue, deactivateImpactValue, listImpactValues, updateImpactValue } from "../services/impactValues.service.js";
+import { createLikelihoodValue, deactivateLikelihoodValue, listLikelihoodValues, updateLikelihoodValue } from "../services/likelihoodValues.service.js";
+import { getMatrix, updateMatrix, updateMatrixCell } from "../services/matrix.service.js";
+import { createRiskLevel, deactivateRiskLevel, listRiskLevels, updateRiskLevel } from "../services/riskLevels.service.js";
 import { actorOrThrow } from "../utils/actorOrThrow.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
