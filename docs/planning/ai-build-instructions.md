@@ -1,19 +1,19 @@
 # Custom Risk — AI Build Instructions
 
-**Version:** 1.4  
-**Date:** 2026-05-05  
-**Status:** Draft  
-**Applies to:** MVP implementation  
+**Version:** 2.0  
+**Date:** 2026-05-07  
+**Status:** Active  
+**Applies to:** Post-MVP implementation (MVP complete at v0.1.2)
 
 ---
 
 ## 1. Purpose
 
-This document tells future AI coding sessions how to use the Custom Risk documentation set without duplicating it.
+This document tells AI coding sessions how to use the Custom Risk documentation set without duplicating it.
 
 It is not the source of truth for product scope, technical stack, API routes, schema, permissions, audit, or security. It is a routing and governance guide for implementation work.
 
-MVP implementation scope is limited to `docs/planning/Implementation_Backlog.md` Phase 0 through Phase 6. PM-prefixed tickets and any enhancement work formerly tracked as Phase 7 are post-MVP and must not be implemented during MVP unless `docs/product/MVP_Scope.md` and the MVP backlog are explicitly updated.
+Post-MVP implementation scope is defined by `docs/planning/post-mvp-backlog.md`. Ticket IDs use `PM{phase}-{number}` format. Do not implement PM-prefixed features unless they are the active ticket for the session.
 
 ---
 
@@ -23,19 +23,23 @@ Use the following documents as authoritative:
 
 | Topic | Authoritative document |
 |---|---|
-| MVP scope and exclusions | `docs/product/MVP_Scope.md` |
-| User-facing behaviour, screens, validation, acceptance criteria | `docs/product/MVP_Functional_Spec.md` |
-| Logical data model, derived values, seed data, transaction boundaries | `docs/product/MVP_Data_Model.md` |
-| Long-term product intent | `docs/product/PRD.md` |
-| Runtime, frameworks, deployment, repo structure | `docs/architecture/Technical_Architecture.md` |
-| REST routes, request/response shapes, route-level auth, route audit events | `docs/architecture/API_Route_Map.md` |
-| Permission rules and effective access | `docs/architecture/Permission_Model.md` |
-| Audit event model and audit access | `docs/architecture/Audit_Model.md` |
-| Authentication, sessions, passwords, tokens, CORS, secret handling | `docs/architecture/Security_Model.md` |
-| Drafted Prisma schema reference | `docs/architecture/Schema.md` and `backend/prisma/schema.prisma` |
-| Ticket breakdown | `docs/planning/Implementation_Backlog.md` |
-| Phase execution detail | `docs/planning/Phase_*.md` |
-| Reusable AI prompt patterns | `docs/prompts/Prompt_Templates.md` |
+| Long-term product intent | `docs/product/prd.md` |
+| MVP scope and exclusions (historical reference) | `docs/product/mvp-scope.md` |
+| MVP user-facing behaviour, screens, acceptance criteria | `docs/product/mvp-functional-spec.md` |
+| MVP logical data model, seed data, transaction boundaries | `docs/product/mvp-data-model.md` |
+| Post-MVP scope baseline and PRD-to-phase map | `docs/planning/PM0-01-scope-baseline.md` |
+| Post-MVP data model extension plan | `docs/planning/PM0-02-data-model-extension.md` |
+| Post-MVP API versioning and compatibility rules | `docs/planning/PM0-03-api-versioning-compatibility.md` |
+| Post-MVP audit and permission extension plan | `docs/planning/PM0-04-audit-permission-extension.md` |
+| Post-MVP feature flag and migration toggle plan | `docs/planning/PM0-05-feature-flag-migration-toggles.md` |
+| Post-MVP backlog index, sequencing, and acceptance mapping | `docs/planning/post-mvp-backlog.md` |
+| Post-MVP phase tickets (one file per phase) | `docs/planning/phases/phase-NN-*.md` |
+| Runtime, frameworks, deployment, repo structure | `docs/architecture/technical-architecture.md` |
+| REST routes, request/response shapes, route-level auth | `docs/architecture/api-route-map.md` |
+| Permission rules and effective access | `docs/architecture/permission-model.md` |
+| Audit event model and audit access | `docs/architecture/audit-model.md` |
+| Authentication, sessions, passwords, tokens, CORS, secrets | `docs/architecture/security-model.md` |
+| Canonical Prisma schema | `backend/prisma/schema.prisma` |
 
 If this document appears to conflict with an authoritative document, use the authoritative document and update this file only if the guidance itself is wrong.
 
@@ -45,14 +49,14 @@ If this document appears to conflict with an authoritative document, use the aut
 
 When documents overlap, use this order:
 
-1. MVP Functional Specification for user-facing behaviour.
-2. MVP Scope for what is in or out.
+1. Post-MVP backlog and PM-prefixed scope docs for what is in or out.
+2. MVP Functional Specification for existing user-facing behaviour.
 3. Architecture documents for implementation contracts.
-4. MVP Data Model for logical data rules and transactions.
-5. PRD for long-term intent only where MVP documents are silent.
+4. MVP Data Model and PM0-02 extension plan for data rules and transactions.
+5. PRD for long-term intent only where other documents are silent.
 6. Current codebase for implementation state.
 
-Do not use the PRD to pull post-MVP capabilities into MVP unless a later approved planning document explicitly changes scope.
+Do not use the PRD to pull unapproved post-MVP capabilities into a session.
 
 ---
 
@@ -60,13 +64,13 @@ Do not use the PRD to pull post-MVP capabilities into MVP unless a later approve
 
 Before starting an implementation task:
 
-1. Identify the relevant backlog ticket or phase section.
+1. Identify the relevant PM-prefixed backlog ticket.
 2. Read the source documents listed for that topic in section 2.
-3. Confirm the task does not require an MVP-excluded feature from `MVP_Scope.md`.
-4. Identify required permission checks from `Permission_Model.md`.
-5. Identify required audit events from `Audit_Model.md` and `API_Route_Map.md`.
-6. Identify relevant security rules from `Security_Model.md`.
-7. Identify transaction requirements from `MVP_Data_Model.md`.
+3. Confirm the task does not require features not yet phased or deliberately non-goal (see PM0-01).
+4. Identify required permission checks from `permission-model.md`.
+5. Identify required audit events from `audit-model.md` and `api-route-map.md`.
+6. Identify relevant security rules from `security-model.md`.
+7. Identify schema additions or backfill requirements from `PM0-02-data-model-extension.md`.
 8. Identify tests required by the backlog ticket.
 
 While implementing:
@@ -93,7 +97,7 @@ Before finishing:
 - run `npx tsc --noEmit` in `frontend/` and confirm zero type errors;
 - run `npm test --workspaces --if-present` from the repo root and confirm all tests pass;
 - if either check fails, fix the code or tests before committing — do not commit a broken state;
-- confirm the task did not add out-of-scope MVP features;
+- confirm the task did not add out-of-scope or unapproved features;
 - update docs if implementation intentionally changes a documented decision;
 - summarize changed files and verification.
 
@@ -103,15 +107,14 @@ Before finishing:
 
 Stop and ask for clarification before implementing when:
 
-- the requested feature is excluded by `MVP_Scope.md`;
-- the request changes security, audit, permission, schema, or token behaviour;
+- the requested feature is not in the active PM ticket or is a non-goal per PM0-01;
+- the request changes security, audit, permission, schema, or token behaviour in ways not covered by the PM ticket;
 - the request requires a new major dependency or framework;
-- the request would alter the drafted Prisma schema beyond the current implementation plan;
+- the request would alter the Prisma schema in a way not covered by PM0-02;
 - the permission model is ambiguous for the requested workflow;
 - the audit requirement conflicts with secret-redaction or privacy rules;
 - a route would reveal hidden resource existence;
-- a feature requires background jobs, email delivery, imports, templates, attachments, webhooks, or advanced reporting;
-- a frontend workflow requires a screen not present in the MVP screen inventory.
+- a feature requires background jobs, email delivery, SMTP credentials, or external integrations not covered by the active ticket.
 
 ---
 
@@ -121,11 +124,12 @@ Avoid copying long lists from authoritative docs into planning or prompt docs.
 
 Use references instead:
 
-- refer to `MVP_Scope.md` for exclusions instead of repeating the full exclusion list;
-- refer to `Technical_Architecture.md` for stack details instead of repeating library versions;
-- refer to `API_Route_Map.md` for routes instead of copying route inventories;
-- refer to `Permission_Model.md`, `Audit_Model.md`, and `Security_Model.md` for policy details;
-- refer to `MVP_Data_Model.md` for derived values and transactions.
+- refer to `prd.md` for long-term product intent;
+- refer to `mvp-scope.md` for MVP exclusions instead of repeating the full exclusion list;
+- refer to `technical-architecture.md` for stack details instead of repeating library versions;
+- refer to `api-route-map.md` for routes instead of copying route inventories;
+- refer to `permission-model.md`, `audit-model.md`, and `security-model.md` for policy details;
+- refer to `mvp-data-model.md` and `PM0-02-data-model-extension.md` for data rules.
 
 Short summaries are acceptable when they help the reader understand a ticket, but the detailed rule should live in only one authoritative document.
 
@@ -142,5 +146,5 @@ A task is done when:
 - required transactions protect related writes;
 - tests cover the main happy path and important failure paths;
 - frontend UI, if included, is role-aware and handles loading/error/empty states;
-- no out-of-scope MVP feature was introduced;
+- no out-of-scope feature was introduced;
 - docs are updated if implementation intentionally changed a documented decision.
