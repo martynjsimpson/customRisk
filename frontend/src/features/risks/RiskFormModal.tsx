@@ -146,6 +146,14 @@ function renderCoreField({
       );
     case "riskScore":
       return null;
+    case "riskLevelId":
+      return null;
+    case "nextReviewDate":
+      return null;
+    case "systemCreatedBy":
+      return null;
+    case "systemUpdatedAt":
+      return null;
     case "responseStrategyId":
       return (
         <Select
