@@ -24,7 +24,7 @@ import type {
   ListRisksQuery,
   UpdateRiskBody
 } from "../validators/risks.schemas.js";
-import { validateCustomFieldValues } from "./customFields.service.js";
+import { validateCustomFieldValues } from "./customFieldValues.service.js";
 import { formatPersonDisplay, personReferenceSelect, resolvePersonInput } from "./personReference.service.js";
 
 type RiskClient = typeof prisma | Prisma.TransactionClient;

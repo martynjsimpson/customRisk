@@ -49,8 +49,16 @@ test("key MVP mutating workflows write audit events and field changes where requ
   const registers = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
   const risks = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
   const reviews = await readFile(new URL("../src/services/reviews.service.ts", import.meta.url), "utf8");
-  const customFields = await readFile(new URL("../src/services/customFields.service.ts", import.meta.url), "utf8");
-  const scoring = await readFile(new URL("../src/services/scoringConfig.service.ts", import.meta.url), "utf8");
+  const customFields = [
+    await readFile(new URL("../src/services/customFields.service.ts", import.meta.url), "utf8"),
+    await readFile(new URL("../src/services/customFieldValues.service.ts", import.meta.url), "utf8")
+  ].join("\n");
+  const scoring = [
+    await readFile(new URL("../src/services/likelihoodValues.service.ts", import.meta.url), "utf8"),
+    await readFile(new URL("../src/services/impactValues.service.ts", import.meta.url), "utf8"),
+    await readFile(new URL("../src/services/riskLevels.service.ts", import.meta.url), "utf8"),
+    await readFile(new URL("../src/services/matrix.service.ts", import.meta.url), "utf8")
+  ].join("\n");
   const exports = await readFile(new URL("../src/services/export.service.ts", import.meta.url), "utf8");
 
   assert.match(users, /action: auditActions\.userCreated/);
