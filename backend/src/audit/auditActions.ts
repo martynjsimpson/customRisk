@@ -42,7 +42,9 @@ export const auditActions = {
   riskMatrixUpdated: "RISK_MATRIX_UPDATED",
   profileUpdated: "PROFILE_UPDATED",
   passwordChanged: "PASSWORD_CHANGED",
-  preferencesUpdated: "PREFERENCES_UPDATED"
+  preferencesUpdated: "PREFERENCES_UPDATED",
+  personReferenceLinked: "PERSON_REFERENCE_LINKED",
+  personReferenceCreated: "PERSON_REFERENCE_CREATED"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];

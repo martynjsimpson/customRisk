@@ -12,6 +12,7 @@ import type {
 } from "../validators/customFields.schemas.js";
 import type { RiskCustomFieldValueBody } from "../validators/risks.schemas.js";
 import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
+import { resolvePersonInput, upsertPersonReference } from "./personReference.service.js";
 
 type CustomFieldClient = typeof prisma | Prisma.TransactionClient;
 
@@ -183,7 +184,7 @@ function countProvidedValues(value: RiskCustomFieldValueBody) {
     value.numberValue,
     value.booleanValue,
     value.dateValue,
-    value.personUserId,
+    value.personUserId ?? value.personEmail,
     value.dropdownOptionId
   ].filter((entry) => entry !== undefined && entry !== null && entry !== "").length;
 }
@@ -207,7 +208,7 @@ function hasValueForType(
     case "DATE":
       return value.dateValue !== undefined;
     case "PERSON_PICKER":
-      return Boolean(value.personUserId);
+      return Boolean(value.personUserId) || ("personEmail" in value && Boolean((value as RiskCustomFieldValueBody).personEmail));
     case "DROPDOWN":
       return Boolean(value.dropdownOptionId);
   }
@@ -216,7 +217,8 @@ function hasValueForType(
 function buildCustomFieldCreateInput(
   registerId: string,
   definition: { id: string; fieldType: CustomFieldType },
-  value: RiskCustomFieldValueBody
+  value: RiskCustomFieldValueBody,
+  resolvedPersonId?: string
 ): Prisma.RiskCustomFieldValueCreateManyRiskInput {
   return {
     registerId,
@@ -228,7 +230,7 @@ function buildCustomFieldCreateInput(
     numberValue: definition.fieldType === "NUMBER" ? value.numberValue : undefined,
     booleanValue: definition.fieldType === "BOOLEAN" ? value.booleanValue : undefined,
     dateValue: definition.fieldType === "DATE" ? value.dateValue : undefined,
-    personUserId: definition.fieldType === "PERSON_PICKER" ? value.personUserId : undefined,
+    personId: definition.fieldType === "PERSON_PICKER" ? resolvedPersonId : undefined,
     dropdownOptionId: definition.fieldType === "DROPDOWN" ? value.dropdownOptionId : undefined
   };
 }
@@ -241,7 +243,9 @@ type ExistingCustomFieldValue = Prisma.RiskCustomFieldValueGetPayload<{
     booleanValue: true;
     dateValue: true;
     personUserId: true;
+    personId: true;
     dropdownOptionId: true;
+    person: { select: { email: true } };
   };
 }>;
 
@@ -273,6 +277,13 @@ function customFieldValueMatchesExisting(
     case "DATE":
       return dateValuesMatch(value.dateValue, existing.dateValue);
     case "PERSON_PICKER":
+      // New-style record (personId set): compare submitted email against PersonReference email
+      if (existing.person) {
+        const submittedEmail = ("personEmail" in value ? (value as RiskCustomFieldValueBody).personEmail : undefined)
+          ?? undefined;
+        return submittedEmail !== undefined && submittedEmail.toLowerCase() === existing.person.email;
+      }
+      // Old-style MVP record: compare personUserId directly
       return Boolean(value.personUserId && value.personUserId === existing.personUserId);
     case "DROPDOWN":
       return Boolean(value.dropdownOptionId && value.dropdownOptionId === existing.dropdownOptionId);
@@ -309,7 +320,9 @@ export async function validateCustomFieldValues(
           booleanValue: true,
           dateValue: true,
           personUserId: true,
-          dropdownOptionId: true
+          personId: true,
+          dropdownOptionId: true,
+          person: { select: { email: true } }
         }
       })
     : [];
@@ -378,17 +391,12 @@ export async function validateCustomFieldValues(
       }
     });
 
+  // Validate personUserId values (must be active local users)
   const personUserIds = values.flatMap((value) => {
-    if (!value.personUserId) {
-      return [];
-    }
-
+    if (!value.personUserId) return [];
     const definition = definitionsById.get(value.customFieldDefinitionId);
     const existing = existingValuesByDefinitionId.get(value.customFieldDefinitionId);
-    if (definition && customFieldValueMatchesExisting(definition.fieldType, value, existing)) {
-      return [];
-    }
-
+    if (definition && customFieldValueMatchesExisting(definition.fieldType, value, existing)) return [];
     return [value.personUserId];
   });
   const uniquePersonUserIds = [...new Set(personUserIds)];
@@ -400,6 +408,16 @@ export async function validateCustomFieldValues(
       fields.personUserId = "Person picker values must reference active local users";
     }
   }
+
+  // Validate personEmail values (email format already enforced by Zod)
+  values.forEach((value, i) => {
+    if (!value.personEmail) return;
+    const definition = definitionsById.get(value.customFieldDefinitionId);
+    if (!definition || definition.fieldType !== "PERSON_PICKER") return;
+    if (value.personUserId) {
+      fields[`customFieldValues.${i}`] = "Provide either personUserId or personEmail, not both";
+    }
+  });
 
   const dropdownOptionIds = values.flatMap((value) => {
     if (!value.dropdownOptionId) {
@@ -453,6 +471,22 @@ export async function validateCustomFieldValues(
     throw new ApiError(400, "VALIDATION_ERROR", "Custom field values are invalid", fields);
   }
 
+  // Resolve PersonReferences for all PERSON_PICKER values
+  const resolvedPersonIds = new Map<string, string>();
+  for (const value of values) {
+    const definition = definitionsById.get(value.customFieldDefinitionId);
+    if (!definition || definition.fieldType !== "PERSON_PICKER") continue;
+    if (!hasValueForType(definition.fieldType, value)) continue;
+
+    if (value.personUserId) {
+      const personId = await resolvePersonInput({ type: "user", userId: value.personUserId }, client);
+      resolvedPersonIds.set(value.customFieldDefinitionId, personId);
+    } else if (value.personEmail) {
+      const personId = await upsertPersonReference(value.personEmail, undefined, client);
+      resolvedPersonIds.set(value.customFieldDefinitionId, personId);
+    }
+  }
+
   return values
     .map((value) => {
       const definition = definitionsById.get(value.customFieldDefinitionId);
@@ -460,7 +494,12 @@ export async function validateCustomFieldValues(
         return null;
       }
 
-      return buildCustomFieldCreateInput(registerId, definition, value);
+      return buildCustomFieldCreateInput(
+        registerId,
+        definition,
+        value,
+        resolvedPersonIds.get(value.customFieldDefinitionId)
+      );
     })
     .filter(
       (value): value is Prisma.RiskCustomFieldValueCreateManyRiskInput => value !== null

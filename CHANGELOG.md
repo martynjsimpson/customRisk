@@ -21,22 +21,28 @@ Version levels:
 
 ### Added
 
-- **Self-service profile:** authenticated users can update their own display name at `PATCH /api/v1/users/me`.
-- **Self-service password change:** authenticated users can change their own password at `POST /api/v1/users/me/change-password`; current password is verified, the new password is validated against the password policy, and all active sessions are revoked on success.
-- **User preferences API** _(requires `FEATURE_USER_PREFERENCES=true`)_: `GET` and `PATCH /api/v1/users/me/preferences` store a per-user preferences object in the database; partial updates preserve unset keys.
-- **Dark mode / colour scheme** _(requires `FEATURE_USER_PREFERENCES=true`)_: users can choose Light, Dark, or Auto (follows OS) on their profile page; the selection is persisted server-side and applied on next login.
-- **Profile page:** `/profile` route accessible to all authenticated users, containing the name, password, and (when enabled) appearance sections; linked from the sidebar.
-- **Feature flag infrastructure** _(PM0-05)_: `FEATURE_*` environment variables gate incomplete post-MVP features; `requireFeature` middleware returns 404 on disabled backend routes; `useFeatureFlags` hook gates frontend UI; `GET /api/v1/auth/me` now includes an `enabledFeatures` map.
-- **Post-MVP baseline governance docs** _(PM0-01 to PM0-04)_: data model extension plan, API versioning rules, audit and permission extension plan.
+- Profile page: users can update their display name and change their password from a new profile page, linked from the sidebar.
+- Password change: the current password is verified before accepting a new one, and all active sessions are signed out on success.
+- User preferences _(requires `FEATURE_USER_PREFERENCES=true`)_: per-user preferences are stored server-side and restored on login.
+- Color scheme _(requires `FEATURE_USER_PREFERENCES=true`)_: users can choose Light, Dark, or Auto (follows OS) from their profile page.
+- Feature flags: `FEATURE_*` environment variables let operators gate incomplete features; disabled features are hidden in the UI and return 404 from the API.
+- Email-only person assignment: Person Picker fields now accept an email address for someone who does not yet have an account; the value is saved and shown with an "Unresolved" badge until they register.
+- Person search: typing in a Person Picker field searches existing users by name or email; free-text email entry is available where the field allows it.
+- Automatic person linking: when a user registers or logs in, any unresolved person assignments that match their email are automatically resolved to their account.
+- Unresolved persons list: system administrators can view all unresolved person assignments across the register for data quality review.
 
 ### Changed
 
-- `GET /api/v1/auth/me` response now includes an `enabledFeatures` object listing the current state of all `FEATURE_*` flags; the field is always present and defaults to all `false`.
-- Session bootstrap fetches user preferences immediately after login when `FEATURE_USER_PREFERENCES` is enabled, applying the saved colour scheme before the first page render.
+- Color scheme preference is applied before the first page render so there is no flash of the wrong theme on login.
+
+### Fixed
+
+- "Level", "Next Review", "Created By", and "Updated" were missing from the Fields configuration screen and ignored the field display order. All four now appear in configuration and respect the display order in both the Edit and Detail risk views.
 
 ### Migration
 
-- Added nullable `preferences jsonb` column to the `user` table (`20260507000000_add_user_preferences`). Run `prisma migrate deploy` (production) or `prisma migrate dev` (local) before starting the new version.
+- Run `prisma migrate deploy` before starting the new version; two schema migrations are included.
+- After migrating, run the person-reference backfill script once to link existing risk owner and person-picker assignments to the updated data model.
 
 ---
 

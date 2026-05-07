@@ -12,6 +12,7 @@ import { logger } from "../config/logger.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import { recordAuditEvent } from "./audit.service.js";
+import { linkPersonReferenceToUser } from "./personReference.service.js";
 
 const FAILED_LOGIN_LIMIT = 5;
 const FAILED_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -185,6 +186,9 @@ export async function login(email: string, password: string): Promise<SessionRes
       lockedUntil: null
     }
   });
+
+  // Ensure any unresolved PersonReference for this email is linked to the user
+  await linkPersonReferenceToUser(user.id, normalisedEmail);
 
   await safeRecordAuthAudit({
     action: auditActions.loginSucceeded,

@@ -47,6 +47,7 @@ export const riskCustomFieldValueSchema = z.object({
   booleanValue: z.boolean().optional(),
   dateValue: dateOnlySchema.optional(),
   personUserId: z.string().uuid().optional(),
+  personEmail: z.string().email().optional(),
   dropdownOptionId: z.string().uuid().optional()
 });
 
