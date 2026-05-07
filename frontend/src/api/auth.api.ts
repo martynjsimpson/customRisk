@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { CurrentPermissions, CurrentUser } from "../auth/session";
+import type { CurrentPermissions, CurrentUser, EnabledFeatures } from "../auth/session";
 import type { ApiResponse } from "./types";
 
 export interface LoginRequest {
@@ -27,7 +27,7 @@ export async function logout() {
 
 export async function getCurrentUser() {
   const response = await apiClient.get<
-    ApiResponse<{ user: CurrentUser; permissions: CurrentPermissions }>
+    ApiResponse<{ user: CurrentUser; permissions: CurrentPermissions; enabledFeatures: EnabledFeatures }>
   >("/auth/me");
   return response.data.data;
 }

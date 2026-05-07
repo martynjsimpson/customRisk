@@ -18,10 +18,23 @@ export interface CurrentPermissions {
   }>;
 }
 
+export interface EnabledFeatures {
+  userPreferences: boolean;
+  samlAuth: boolean;
+  draftConfig: boolean;
+  childActions: boolean;
+  notifications: boolean;
+  csvImport: boolean;
+  attachments: boolean;
+  apiKeys: boolean;
+  webhooks: boolean;
+}
+
 interface AuthContextValue {
   accessToken: string | null;
   user: CurrentUser | null;
   permissions: CurrentPermissions | null;
+  enabledFeatures: EnabledFeatures | null;
   isBootstrapping: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -40,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessTokenState] = useState<string | null>(memoryAccessToken);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [permissions, setPermissions] = useState<CurrentPermissions | null>(null);
+  const [enabledFeatures, setEnabledFeatures] = useState<EnabledFeatures | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const setAccessToken = useCallback((token: string | null) => {
@@ -62,12 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setUser(session.user);
           setPermissions(session.permissions);
+          setEnabledFeatures(session.enabledFeatures);
         }
       } catch {
         if (!cancelled) {
           setAccessToken(null);
           setUser(null);
           setPermissions(null);
+          setEnabledFeatures(null);
         }
       } finally {
         if (!cancelled) {
@@ -90,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const session = await getCurrentUser();
       setUser(session.user);
       setPermissions(session.permissions);
+      setEnabledFeatures(session.enabledFeatures);
     },
     [setAccessToken]
   );
@@ -101,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null);
       setUser(null);
       setPermissions(null);
+      setEnabledFeatures(null);
     }
   }, [setAccessToken]);
 
@@ -109,12 +127,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       accessToken,
       user,
       permissions,
+      enabledFeatures,
       isBootstrapping,
       login,
       logout,
       setAccessToken
     }),
-    [accessToken, isBootstrapping, login, logout, permissions, setAccessToken, user]
+    [accessToken, enabledFeatures, isBootstrapping, login, logout, permissions, setAccessToken, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

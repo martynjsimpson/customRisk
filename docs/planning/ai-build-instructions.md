@@ -78,6 +78,7 @@ While implementing:
 - prefer existing project patterns over new abstractions;
 - keep changes scoped to the ticket;
 - enforce permissions in the backend, not only the UI;
+- when the work is identified as needing a feature flag (post-mvp-backlog step 6), apply the full PM0-05 pattern: (1) add the flag key to `backend/src/config/featureFlags.ts`; (2) add the matching boolean field to `EnabledFeatures` in `frontend/src/auth/session.tsx` and to the `allOff` constant in `frontend/src/hooks/useFeatureFlags.ts` — these are not derived automatically and must be kept in sync; (3) apply `requireFeature` middleware to every new backend route group in `backend/src/routes/index.ts`; (4) guard frontend nav links and routes with `useFeatureFlags()` from `frontend/src/hooks/useFeatureFlags.ts`; (5) add the `FEATURE_*=false` entry with a phase comment to `.env.example`;
 - validate request bodies and query parameters server-side;
 - write audit events where required;
 - when creating or changing frontend UI that calls the backend, display API errors to the user using the app's shared error display pattern, including field-level validation messages where the API returns them;
