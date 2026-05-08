@@ -414,7 +414,7 @@ Secrets must:
 - never be committed to source control;
 - never be printed in startup logs.
 
-`.env.example` must document required variables without real secret values.
+`.env.local.example` (local development) and `.env.deploy.example` (self-hosted deployment) must document required variables without real secret values.
 
 ---
 

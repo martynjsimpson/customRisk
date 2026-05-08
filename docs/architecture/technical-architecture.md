@@ -434,8 +434,10 @@ The MVP codebase uses a monorepo with separate frontend and backend packages.
 ```text
 custom-risk/
   docker-compose.yml
+  docker-compose.release.yml
   Dockerfile
-  .env.example
+  .env.local.example
+  .env.deploy.example
   README.md
   backend/
     package.json
@@ -484,7 +486,7 @@ Do not duplicate API response shapes, enum values, or shared DTO types across fr
 
 All environment-specific configuration must be injected through environment variables.
 
-A `.env.example` file must be committed to the repository and must document all required variables without real secret values.
+Two environment template files must be committed to the repository: `.env.local.example` for local development and `.env.deploy.example` for self-hosted deployments (published as `.env.example` in release assets). Neither must contain real secret values.
 
 | Variable | Description | Example |
 |---|---|---|

@@ -13,7 +13,30 @@ Version levels:
 
 ---
 
-## [Unreleased]
+## [0.1.5] - 2026-05-08
+
+### Added
+
+- Self-hosted deployment distribution: every GitHub Release now attaches a ready-to-use `docker-compose.yml` and `.env.example` as downloadable assets, so operators can deploy without cloning the repository.
+- Automatic database migration on container start: the container entrypoint runs `prisma migrate deploy` before starting the server, ensuring the schema is always current on first boot and after upgrades.
+- First-run admin seeding: if `SEED_ADMIN_PASSWORD` is set, the container creates or upserts the admin account on startup. The password and display name are only written on first creation and are not overwritten on subsequent restarts.
+- Optional demo data seeding: `SEED_DEMO_DATA` and `SEED_ADMIN_PASSWORD` are now independent controls. Set `SEED_DEMO_DATA=true` to also create demo users, two example registers, and representative sample risks. Omitting it gives a clean environment with only the admin account.
+- Auto-generated JWT secrets: `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` are generated on first container start if not provided, stored in a named volume, and reused on every restart. Operators no longer need to generate or manage these manually.
+- `latest` image tag: the GHCR release image is now also tagged `latest` on every versioned release, allowing compose deployments to track the newest stable release without pinning a version.
+
+### Fixed
+
+- Seed re-run on container restart previously reset the admin account password and display name to the seed values, overwriting any changes made in the application. Password and display name are now preserved on all restarts after first creation.
+- Demo user passwords were similarly reset on every container restart. Passwords are now only written on first creation.
+
+### Changed
+
+- `prisma` CLI moved from `devDependencies` to `dependencies` in the backend package so it is available in the production container for migration and seed execution.
+- Container entrypoint changed from a direct `node` invocation to `docker/entrypoint.sh`, which handles migration, optional seeding, and server start in sequence.
+
+### Migration
+
+- No schema changes in this release. The container will apply `prisma migrate deploy` automatically on start; no manual migration step is required.
 
 ---
 
@@ -92,7 +115,8 @@ Version levels:
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/martynjsimpson/customRisk/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/martynjsimpson/customRisk/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/martynjsimpson/customRisk/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/martynjsimpson/customRisk/compare/v0.1.1...v0.1.2

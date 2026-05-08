@@ -18,6 +18,6 @@
 - [ ] TypeScript builds cleanly (`npm run typecheck`)
 - [ ] Tests pass (`npm run test`)
 - [ ] Any new Prisma migrations are committed and reviewed
-- [ ] `.env.example` updated if new environment variables were added
+- [ ] `.env.local.example` (and `.env.deploy.example` if deployment-relevant) updated if new environment variables were added
 - [ ] README or docs updated if behaviour changed
 - [ ] CHANGELOG.md updated if this is a user-facing change
