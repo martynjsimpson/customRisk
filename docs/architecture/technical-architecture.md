@@ -202,21 +202,44 @@ src/
 |---|---|
 | Containerisation | Docker |
 | Local/self-hosted orchestration | Docker Compose |
-| App runtime image | Node 20 Alpine |
+| App runtime image | Node 20 Bookworm Slim |
 | Database image | `postgres:16-alpine` |
 | Database persistence | Named Docker volume (`pgdata`) |
 | Attachment file storage | Named Docker volume (`attachments`), added in Phase 12 |
 | Frontend serving | Express static file serving |
 | Public app port | `3000` |
+| Release distribution | GitHub Release assets — see ADR-0007 |
 
-### 5.1 Docker Compose Services
+### 5.1 Deployment distribution
+
+Every GitHub Release attaches two files as downloadable assets:
+
+- **`docker-compose.yml`** — references the pre-built GHCR image by version tag. Source: `docker-compose.release.yml`.
+- **`.env.example`** — deployment-focused environment template. Source: `.env.deploy.example`.
+
+End-user install:
+
+```sh
+curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/docker-compose.yml
+curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/.env.example
+cp .env.example .env
+# Edit .env — set POSTGRES_PASSWORD, JWT secrets, CORS_ALLOWED_ORIGINS, SEED_ADMIN_PASSWORD
+docker compose up -d
+```
+
+To use an external PostgreSQL server, operators set `DATABASE_URL` directly and remove the `db` service block from the compose file.
+
+### 5.2 Docker Compose services (development)
+
+The repository `docker-compose.yml` builds the image from source and is used for local development. The release compose file (`docker-compose.release.yml`) uses the GHCR image and is the file attached to GitHub Releases.
 
 ```yaml
 services:
   app:
-    build: .
+    build:
+      context: .
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     environment:
       - DATABASE_URL
       - JWT_ACCESS_SECRET
@@ -245,37 +268,38 @@ volumes:
   attachments:  # added in Phase 12 — see ADR-0006 and docs/decisions/ADR-0006-attachment-storage.md
 ```
 
-### 5.2 Multi-Stage Dockerfile Outline
+### 5.3 Container entrypoint and automatic migration
+
+The container does not start the server directly. It runs `docker/entrypoint.sh`, which:
+
+1. Runs `prisma migrate deploy` — applies any pending migrations. Idempotent; safe on every start.
+2. Runs the database seed script if `SEED_ADMIN_PASSWORD` is set in the environment.
+3. Execs into `node backend/dist/server.js`.
+
+This guarantees the schema is always current before the server begins accepting requests, and eliminates the need for a separate pre-start migration step during upgrades.
+
+### 5.4 Multi-Stage Dockerfile Outline
 
 ```dockerfile
-# Stage 1: Build frontend
-FROM node:20-alpine AS frontend-build
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
+# Stage 1: Build (monorepo — frontend, backend, seed script)
+FROM node:20-bookworm-slim AS build
 RUN npm ci
-COPY frontend/ ./
 RUN npm run build
+RUN npx tsc --project backend/tsconfig.seed.json   # compiles seed.ts → backend/dist-seed/
 
-# Stage 2: Build backend
-FROM node:20-alpine AS backend-build
-WORKDIR /app/backend
-COPY backend/package*.json ./
-RUN npm ci
-COPY backend/ ./
-RUN npm run build
-
-# Stage 3: Runtime
-FROM node:20-alpine AS runtime
-WORKDIR /app
-COPY --from=backend-build /app/backend/dist ./dist
-COPY --from=backend-build /app/backend/node_modules ./node_modules
-COPY --from=backend-build /app/backend/package.json ./
-COPY --from=frontend-build /app/frontend/dist ./public
-EXPOSE 3000
-CMD ["node", "dist/server.js"]
+# Stage 2: Runtime
+FROM node:20-bookworm-slim AS runtime
+RUN npm ci --omit=dev --ignore-scripts
+COPY --from=build /app/backend/dist ./backend/dist
+COPY --from=build /app/backend/dist-seed ./backend/dist-seed
+COPY --from=build /app/backend/prisma/schema.prisma ./backend/prisma/schema.prisma
+COPY --from=build /app/backend/prisma/migrations ./backend/prisma/migrations
+COPY --from=build /app/frontend/dist ./public
+COPY docker/entrypoint.sh ./entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
 ```
 
-### 5.3 Static Frontend Serving
+### 5.5 Static Frontend Serving
 
 Express must serve the React static files from `./public` and fall back to `index.html` for client-side routing.
 

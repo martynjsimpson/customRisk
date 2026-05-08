@@ -78,38 +78,25 @@ git push origin v<version>
 ### 6. Confirm the release workflow
 
 - Check GitHub Actions: the release workflow triggered by the `v*.*.*` tag should run.
-- Confirm the versioned container image is published to the container registry.
+- Confirm the versioned container image is published to the container registry with tags `<version>`, `<major>.<minor>`, and `latest`.
 - Confirm a GitHub Release is created with changelog notes.
+- Confirm `docker-compose.yml` and `.env.example` are attached as downloadable assets on the GitHub Release.
 
 ### 7. Verify the published image
 
-Pull and run the released image to confirm it starts correctly:
+Download the release assets and verify the full end-user install path:
 
 ```sh
-docker pull ghcr.io/martynjsimpson/customrisk:<version>
-docker compose up
+curl -LO https://github.com/martynjsimpson/customRisk/releases/download/<version>/docker-compose.yml
+curl -LO https://github.com/martynjsimpson/customRisk/releases/download/<version>/.env.example
+cp .env.example .env
+# Fill in POSTGRES_PASSWORD, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET,
+# CORS_ALLOWED_ORIGINS, and SEED_ADMIN_PASSWORD in .env
+docker compose up -d
 npm run smoke-test
 ```
 
-When running the published image directly with `docker run`, you must provide
-the runtime environment variables yourself. At minimum, set:
-
-- `DATABASE_URL`
-- `JWT_ACCESS_SECRET`
-- `JWT_REFRESH_SECRET`
-- `CORS_ALLOWED_ORIGINS`
-
-Example:
-
-```sh
-docker run --rm -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e DATABASE_URL=postgresql://customrisk:<password>@<host>:5432/customrisk \
-  -e JWT_ACCESS_SECRET=<random-256-bit-secret> \
-  -e JWT_REFRESH_SECRET=<random-256-bit-secret> \
-  -e CORS_ALLOWED_ORIGINS=https://<your-host> \
-  ghcr.io/martynjsimpson/customrisk:<version>
-```
+The container entrypoint runs `prisma migrate deploy` automatically before starting the server, so no separate migration step is needed during this verification.
 
 ---
 
@@ -129,48 +116,53 @@ Use explicit version tags for deployments when you want an immutable release tar
 
 ## Database migrations
 
-Migrations do not run automatically on container startup. Apply them explicitly
-as part of the release procedure.
+Migrations run automatically when the container starts. The entrypoint runs
+`prisma migrate deploy` before handing off to the server. This is idempotent —
+if all migrations have already been applied it exits immediately.
 
-### Before applying migrations
+### Before upgrading a deployment that includes schema changes
 
-1. Back up the database before any release that includes schema changes:
+1. Back up the database before pulling the new image:
    ```sh
    pg_dump -U <user> -h <host> <database> > backup-$(date +%Y%m%d-%H%M%S).sql
    ```
-2. Confirm the migration files look correct — review the SQL in
-   `backend/prisma/migrations/` before deploying.
+2. Review the SQL in `backend/prisma/migrations/` to understand what will change.
+3. Pull the new image and restart:
+   ```sh
+   docker compose pull
+   docker compose up -d
+   ```
+   Migrations apply automatically on the first start of the new container.
 
-### Applying migrations on a self-hosted deployment
+### Applying migrations manually
 
-Set `DATABASE_URL` to your production connection string, then run:
-
-```sh
-DATABASE_URL=<production-url> npm run db:migrate
-```
-
-Alternatively, exec into the running container:
+If you need explicit control over when migrations run (e.g. during a maintenance
+window), you can apply them before restarting the container:
 
 ```sh
 docker compose exec app node_modules/.bin/prisma migrate deploy --schema backend/prisma/schema.prisma
 ```
 
-### Verifying after migration
-
-Check the health endpoint immediately after applying migrations:
+Or from the host, with `DATABASE_URL` set:
 
 ```sh
-npm run smoke-test          # against localhost:3000
-# or
+DATABASE_URL=<production-url> npm run db:migrate
+```
+
+### Verifying after upgrade
+
+Check the health endpoint after the container restarts:
+
+```sh
 curl https://<your-host>/api/v1/health
 ```
 
-A healthy response confirms the app connected to the migrated database.
+A healthy response confirms the server started and connected to the migrated database.
 
 ### Release notes
 
 If a release includes Prisma migrations, note it explicitly in the GitHub
-Release so operators know to apply migrations and take a backup before upgrading.
+Release so operators know to take a database backup before upgrading.
 
 ---
 
