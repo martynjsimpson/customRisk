@@ -17,6 +17,15 @@ Version levels:
 
 ---
 
+## [0.1.4] - 2026-05-08
+
+### Changed
+
+- Container publishing: GitHub Container Registry images are now built and published for both `linux/amd64` and `linux/arm64`, so the release image can be pulled natively on Apple Silicon as well as x86_64 hosts.
+- Release image tags: documented the current GHCR tag layout more clearly. Main-branch builds publish `main` and `sha-<shortsha>`, while release builds publish the version tags such as `0.1.4` and `0.1`, with GHCR also marking the newest stable release as `latest`.
+
+---
+
 ## [0.1.3] - 2026-05-07
 
 ### Added
@@ -83,6 +92,9 @@ Version levels:
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/martynjsimpson/customRisk/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/martynjsimpson/customRisk/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/martynjsimpson/customRisk/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/martynjsimpson/customRisk/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/martynjsimpson/customRisk/releases/tag/v0.1.0
