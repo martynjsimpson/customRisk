@@ -91,6 +91,26 @@ docker compose up
 npm run smoke-test
 ```
 
+When running the published image directly with `docker run`, you must provide
+the runtime environment variables yourself. At minimum, set:
+
+- `DATABASE_URL`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `CORS_ALLOWED_ORIGINS`
+
+Example:
+
+```sh
+docker run --rm -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e DATABASE_URL=postgresql://customrisk:<password>@<host>:5432/customrisk \
+  -e JWT_ACCESS_SECRET=<random-256-bit-secret> \
+  -e JWT_REFRESH_SECRET=<random-256-bit-secret> \
+  -e CORS_ALLOWED_ORIGINS=https://<your-host> \
+  ghcr.io/martynjsimpson/customrisk:<version>
+```
+
 ---
 
 ## Image tagging convention
