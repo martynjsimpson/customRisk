@@ -86,7 +86,7 @@ git push origin v<version>
 Pull and run the released image to confirm it starts correctly:
 
 ```sh
-docker pull ghcr.io/martynjsimpson/customrisk:v<version>
+docker pull ghcr.io/martynjsimpson/customrisk:<version>
 docker compose up
 npm run smoke-test
 ```
@@ -97,11 +97,13 @@ npm run smoke-test
 
 | Tag | Meaning |
 |---|---|
-| `v0.1.0` | Exact version — immutable |
+| `0.1.0` | Exact version — immutable |
+| `0.1` | Major/minor release line |
 | `sha-<shortsha>` | Build from a specific commit |
 | `main` | Latest build from `main` branch |
+| `latest` | Latest stable release image |
 
-`latest` is not published. Use explicit version or SHA tags for deployments.
+Use explicit version tags for deployments when you want an immutable release target.
 
 ---
 
