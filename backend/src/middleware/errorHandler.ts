@@ -8,9 +8,17 @@ function isJsonParseError(error: unknown): error is SyntaxError & { type: string
   return error instanceof SyntaxError && "type" in error && error.type === "entity.parse.failed";
 }
 
+function getSafeRouteLabel(request: Parameters<RequestHandler>[0]) {
+  if (typeof request.route?.path === "string") {
+    return `${request.baseUrl}${request.route.path}`;
+  }
+
+  return request.baseUrl || "unmatched";
+}
+
 export function notFoundHandler(): RequestHandler {
-  return (_request, response) => {
-    sendError(response, 404, "NOT_FOUND", "Route not found");
+  return (request, response) => {
+    sendError(response, 404, "NOT_FOUND", "Route not found", undefined, request.requestId);
   };
 }
 
@@ -24,12 +32,12 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
     if (isJsonParseError(error)) {
       sendError(response, 400, "VALIDATION_ERROR", "Invalid JSON request body", {
         body: "Request body must be valid JSON"
-      });
+      }, request.requestId);
       return;
     }
 
     if (error instanceof ApiError) {
-      sendError(response, error.statusCode, error.code, error.message, error.fields);
+      sendError(response, error.statusCode, error.code, error.message, error.fields, request.requestId);
       return;
     }
 
@@ -37,11 +45,11 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
       {
         error,
         method: request.method,
-        path: request.originalUrl
+        route: getSafeRouteLabel(request)
       },
       "Unhandled API error"
     );
 
-    sendError(response, 500, "INTERNAL_ERROR", "An unexpected error occurred");
+    sendError(response, 500, "INTERNAL_ERROR", "An unexpected error occurred", undefined, request.requestId);
   };
 }

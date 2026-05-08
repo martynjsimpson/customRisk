@@ -1,0 +1,9 @@
+$kind: http-request
+description: Prometheus-style observability metrics export. Useful for checking request and job instrumentation.
+url: "{{baseUrl}}/api/v1/metrics"
+method: GET
+auth:
+  type: noauth
+headers:
+  X-Correlation-Id: "{{correlationId}}"
+order: 1100

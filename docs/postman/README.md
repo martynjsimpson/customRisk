@@ -1,6 +1,6 @@
 # Custom Risk Postman Collection
 
-This Postman collection should not be conisdered the authorative design for any API's, rather it should reflect what has been implemented.
+This Postman collection should not be considered the authoritative design for any APIs. It should reflect what is currently implemented in the backend.
 
 ## How to use with Postman local Git support
 
@@ -8,16 +8,26 @@ This Postman collection should not be conisdered the authorative design for any 
 2. Copy the `postman/` folder into the root of your Git repository.
 3. Open the Postman desktop app.
 4. Use **Import** > **Connect Local Git Repo**, or open the **Files / Local files** area and connect Postman to the repository root.
-5. Select/import the collection and local environment.
+5. Open the `Custom Risk API` collection from the local repository view.
 6. Keep local-only secrets, especially real access tokens, out of Git.
 
-Postman may create its own hidden `.postman/` folder, including mapping metadata such as `resources.yaml`, after you connect the repository to a workspace. I have not pre-created that folder because Postman should generate it for your workspace/cloud mapping.
+The repo includes a `.postman/resources.yaml` mapping file for local Git workspace support. Postman may still update or extend hidden `.postman/` metadata after you connect the repository to your own workspace.
 
 ## Variables
 
 The collection uses:
 
-- `{{baseUrl}}`, defaulted in the local environment to `http://localhost:3000/api/v1`
+- `{{baseUrl}}`, defaulted at collection level to `http://localhost:3000`
 - `{{accessToken}}`, automatically populated by the login request test script when `/auth/login` succeeds
 - UUID placeholders such as `{{registerId}}`, `{{riskId}}`, `{{userId}}`, `{{fieldId}}`, and related route parameters
 
+## Coverage
+
+The collection is aligned to the current backend route set, including:
+
+- observability endpoints such as `/api/v1/health` and `/api/v1/metrics`
+- authentication and session routes
+- register, risk, review, audit, dashboard, person-search, and user-management routes
+- self-service user profile and preference routes
+
+Requests for endpoints that are not currently implemented in the backend should not remain in this collection.

@@ -1,5 +1,0 @@
-$kind: http-request
-description: Optional MVP route listed in the route map.
-url: "{{baseUrl}}/api/v1/registers/{{registerId}}/exports"
-method: GET
-order: 3000

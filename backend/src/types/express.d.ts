@@ -12,6 +12,9 @@ declare global {
   namespace Express {
     interface Request {
       actor?: AuthenticatedActor;
+      correlationId?: string;
+      requestId?: string;
+      traceId?: string;
     }
   }
 }

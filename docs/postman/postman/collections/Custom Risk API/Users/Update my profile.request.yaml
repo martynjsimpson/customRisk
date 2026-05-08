@@ -1,0 +1,13 @@
+$kind: http-request
+description: Authenticated user self-service profile update.
+url: "{{baseUrl}}/api/v1/users/me"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Alice Register Admin"
+    }
+order: 1100

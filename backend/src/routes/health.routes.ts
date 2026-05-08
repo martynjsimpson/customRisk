@@ -18,7 +18,11 @@ export function createHealthRouter() {
     const healthy = databaseStatus === "ok";
     sendData(
       response,
-      { status: healthy ? "ok" : "degraded", database: databaseStatus },
+      {
+        status: healthy ? "ok" : "degraded",
+        database: databaseStatus,
+        uptimeSeconds: Math.floor(process.uptime())
+      },
       healthy ? 200 : 503
     );
   });

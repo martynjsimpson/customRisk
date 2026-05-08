@@ -1,0 +1,5 @@
+$kind: http-request
+description: Authenticated user. Requires the user preferences feature flag.
+url: "{{baseUrl}}/api/v1/users/me/preferences"
+method: GET
+order: 1300

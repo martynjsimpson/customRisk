@@ -8,6 +8,7 @@ import type { Logger } from "pino";
 import { getCorsAllowedOrigins } from "./config/env.js";
 import { logger as defaultLogger } from "./config/logger.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { requestContextMiddleware, requestMetricsMiddleware } from "./middleware/observability.js";
 import { createApiRouter } from "./routes/index.js";
 
 export interface CreateAppOptions {
@@ -24,6 +25,8 @@ export function createApp(options: CreateAppOptions = {}) {
   }
 
   app.disable("x-powered-by");
+  app.use(requestContextMiddleware());
+  app.use(requestMetricsMiddleware());
   app.use(cors({
     credentials: true,
     origin: (origin, callback) => {

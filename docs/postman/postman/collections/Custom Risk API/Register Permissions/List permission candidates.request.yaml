@@ -1,0 +1,5 @@
+$kind: http-request
+description: Register Admin or System Admin. Lists users who can be assigned to the register.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/permission-candidates"
+method: GET
+order: 1100

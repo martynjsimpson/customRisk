@@ -1,0 +1,13 @@
+$kind: http-request
+description: Authenticated user. Requires the user preferences feature flag.
+url: "{{baseUrl}}/api/v1/users/me/preferences"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "colorScheme": "auto"
+    }
+order: 1400
