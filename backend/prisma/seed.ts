@@ -319,8 +319,8 @@ async function upsertDemoUsers(passwordHash: string) {
           isActive: true
         },
         update: {
+          // Password is intentionally omitted — changes made in the app are preserved.
           name: user.name,
-          passwordHash,
           isSystemAdmin: user.isSystemAdmin,
           isActive: true
         },
@@ -694,22 +694,13 @@ async function main() {
   const email = optional("SEED_ADMIN_EMAIL", "admin@customrisk.local").trim().toLowerCase();
   const name = optional("SEED_ADMIN_NAME", "System Admin").trim();
   const password = required("SEED_ADMIN_PASSWORD");
-  const demoPassword = process.env.SEED_DEMO_USER_PASSWORD ?? randomBytes(24).toString("base64url");
   const passwordErrors = validatePasswordPolicy(password, email, name);
-  const demoPasswordErrors = process.env.SEED_DEMO_USER_PASSWORD
-    ? validatePasswordPolicy(demoPassword, "demo@customrisk.local", "Demo User")
-    : [];
 
   if (passwordErrors.length > 0) {
     throw new Error(`SEED_ADMIN_PASSWORD does not meet policy: ${passwordErrors.join("; ")}`);
   }
 
-  if (demoPasswordErrors.length > 0) {
-    throw new Error(`SEED_DEMO_USER_PASSWORD does not meet policy: ${demoPasswordErrors.join("; ")}`);
-  }
-
   const passwordHash = await hashPassword(password);
-  const demoPasswordHash = await hashPassword(demoPassword);
   const admin = await prisma.user.upsert({
     where: { email },
     create: {
@@ -720,8 +711,8 @@ async function main() {
       isActive: true
     },
     update: {
-      name,
-      passwordHash,
+      // Name and password are intentionally omitted — changes made in the app are preserved.
+      // Only ensure the account remains active, admin, and unlocked.
       isSystemAdmin: true,
       isActive: true,
       failedLoginAttempts: 0,
@@ -737,14 +728,27 @@ async function main() {
     }
   });
 
-  const users = await upsertDemoUsers(demoPasswordHash);
-  await upsertDemoRegisters(admin, users);
-  await upsertDemoRisks(admin, users);
-
   console.log(`System Admin ready: ${admin.email}`);
-  console.log("Demo data ready: 2 registers, 3 demo users, 16 representative risks");
-  if (!process.env.SEED_DEMO_USER_PASSWORD) {
-    console.log("Demo users were created with random passwords; set SEED_DEMO_USER_PASSWORD to make them login-capable.");
+
+  if (process.env.SEED_DEMO_DATA === "true") {
+    const demoPassword = process.env.SEED_DEMO_USER_PASSWORD ?? randomBytes(24).toString("base64url");
+    const demoPasswordErrors = process.env.SEED_DEMO_USER_PASSWORD
+      ? validatePasswordPolicy(demoPassword, "demo@customrisk.local", "Demo User")
+      : [];
+
+    if (demoPasswordErrors.length > 0) {
+      throw new Error(`SEED_DEMO_USER_PASSWORD does not meet policy: ${demoPasswordErrors.join("; ")}`);
+    }
+
+    const demoPasswordHash = await hashPassword(demoPassword);
+    const users = await upsertDemoUsers(demoPasswordHash);
+    await upsertDemoRegisters(admin, users);
+    await upsertDemoRisks(admin, users);
+
+    console.log("Demo data ready: 2 registers, 3 demo users, 16 representative risks");
+    if (!process.env.SEED_DEMO_USER_PASSWORD) {
+      console.log("Demo users were created with random passwords; set SEED_DEMO_USER_PASSWORD to make them login-capable.");
+    }
   }
 }
 

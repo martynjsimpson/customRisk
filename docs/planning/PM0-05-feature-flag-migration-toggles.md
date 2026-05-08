@@ -28,7 +28,7 @@ This document defines how post-MVP features will be gated during development so 
 - The product is self-hosted and single-tenant. There are no per-user, per-organisation, or A/B rollout requirements that would justify a runtime-configurable flag store.
 - Environment variables are already the established configuration pattern (`backend/src/config/env.ts`). Adding feature flags there keeps the model consistent.
 - A database-backed flag table adds schema complexity and a migration dependency for every new phase — the opposite of what this ticket is trying to achieve.
-- Operators control their deployment environment. A flag that gates an incomplete feature is set to `false` in the shipped `.env.example` and can be enabled by the operator when the feature is ready.
+- Operators control their deployment environment. A flag that gates an incomplete feature is set to `false` in the shipped `.env.local.example` and can be enabled by the operator when the feature is ready.
 
 **Constraint:** If a future phase introduces a genuinely user-toggleable capability (e.g. an operator can enable dark mode globally), that is a register or system setting — not a feature flag — and belongs in the application's own settings model.
 
@@ -191,11 +191,11 @@ The frontend must not be the sole gate for a protected feature. Every gated rout
 
 ---
 
-## 6. `.env.example` Maintenance
+## 6. `.env.local.example` Maintenance
 
-Each new `FEATURE_*` variable is added to `.env.example` with a `false` default and a comment identifying the phase that activates it. The comment is removed when the flag is graduated.
+Each new `FEATURE_*` variable is added to `.env.local.example` with a `false` default and a comment identifying the phase that activates it. The comment is removed when the flag is graduated.
 
-Example additions for `.env.example`:
+Example additions for `.env.local.example`:
 
 ```ini
 # Post-MVP feature flags — set to true only when the phase is complete and tested
@@ -225,9 +225,9 @@ FEATURE_WEBHOOKS=false
 
 | Stage | Action |
 |---|---|
-| Phase ticket created | Add `FEATURE_*` variable to `.env.example` (default `false`). Add flag key to `featureFlags.ts`. Add `requireFeature` to relevant backend routes. |
+| Phase ticket created | Add `FEATURE_*` variable to `.env.local.example` (default `false`). Add flag key to `featureFlags.ts`. Add `requireFeature` to relevant backend routes. |
 | Implementation in progress | Merge code with flag disabled. Feature is invisible to users. |
-| Phase acceptance complete | Remove `requireFeature` middleware. Remove flag from `featureFlags.ts`. Remove from `.env.example`. Remove frontend checks. |
+| Phase acceptance complete | Remove `requireFeature` middleware. Remove flag from `featureFlags.ts`. Remove from `.env.local.example`. Remove frontend checks. |
 | Rollback needed | Set `FEATURE_*=false` in environment and restart. Routes return 404. Frontend hides entry points. |
 
 ---

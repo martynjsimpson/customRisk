@@ -1,35 +1,135 @@
 # Custom Risk
 
-Custom Risk is a configurable risk register web application.
+Custom Risk is a self-hosted, configurable risk register web application. It lets teams create and manage risk registers with custom scoring matrices, review schedules, configurable fields, and a full audit trail.
 
-## Repository structure
+---
 
-- `frontend/` — React, Vite, TypeScript frontend.
-- `backend/` — Node.js, Express, TypeScript API with Prisma.
-- `shared/` — shared TypeScript types, enums, and schemas.
-- `docs/` — product, architecture, planning, ADRs, and AI build instructions. See [`docs/planning/post-mvp-backlog.md`](docs/planning/post-mvp-backlog.md) for the post-MVP roadmap and [`docs/planning/PM0-01-scope-baseline.md`](docs/planning/PM0-01-scope-baseline.md) for the PRD-to-phase capability map.
-- `scripts/` — local development, database, seed, and maintenance scripts.
-- `tests/` — cross-application API and E2E tests.
-
-## Versioning and releases
-
-This project uses [Semantic Versioning](https://semver.org/). The version in
-the root `package.json` is the single source of truth. Releases are tagged from
-`main` as `v<version>`, for example `v0.1.0`.
-
-See [CHANGELOG.md](CHANGELOG.md) for release history and [docs/release-process.md](docs/release-process.md) for the full release procedure.
-
-## Local development
-
-Configuration is documented in `.env.example`.
-
-Do not commit real `.env` files or secrets.
+## Self-hosted deployment
 
 ### Prerequisites
 
-- Node.js 20 LTS or newer.
-- npm with workspace support.
-- PostgreSQL 16 for later database-backed phases.
+- Docker with Compose (Docker Desktop, or Docker Engine with the Compose plugin).
+
+### Install
+
+Download the two deployment files from the [latest release](https://github.com/martynjsimpson/customRisk/releases/latest):
+
+```sh
+curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/docker-compose.yml
+curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/.env.example
+```
+
+Create your environment file:
+
+```sh
+cp .env.example .env
+```
+
+Open `.env` and set the three required values:
+
+| Variable | What to set |
+|---|---|
+| `POSTGRES_PASSWORD` | Any strong password — used only within the private Docker network |
+| `CORS_ALLOWED_ORIGINS` | The URL users will access the app from, e.g. `https://risk.example.com` |
+| `SEED_ADMIN_PASSWORD` | Your initial admin login password — see [First run](#first-run) below |
+
+JWT signing secrets are auto-generated on first start and stored in a Docker volume. You do not need to set them unless you want to manage them yourself.
+
+Start the application:
+
+```sh
+docker compose up -d
+```
+
+The app will be available on port `3000` by default. Change `PORT` in `.env` to use a different port.
+
+### First run
+
+On container start, if `SEED_ADMIN_PASSWORD` is set, the admin account is created. If the account already exists, only its active status and lockout state are updated — **the password and display name are not overwritten**. It is safe to leave `SEED_ADMIN_PASSWORD` set across restarts.
+
+Log in at `http://<your-host>:3000` with:
+
+- Email: the value of `SEED_ADMIN_EMAIL` (default: `admin@customrisk.local`)
+- Password: the value of `SEED_ADMIN_PASSWORD`
+
+### Demo data
+
+To start with two example registers and a set of representative risks, also set `SEED_DEMO_DATA=true` in `.env` alongside `SEED_ADMIN_PASSWORD`. This creates three demo users and populates both registers with realistic sample data.
+
+Demo users created when `SEED_DEMO_DATA=true`:
+
+| Name | Email | Role |
+|---|---|---|
+| Alice Register Admin | `alice@example.com` | Register Admin on both demo registers |
+| Bob Risk Owner | `bob@example.com` | Risk owner on sample risks |
+| Carol Viewer | `carol@example.com` | Register Viewer on both demo registers |
+
+Set `SEED_DEMO_USER_PASSWORD` in `.env` to give demo users a known password. If omitted, they are created with random non-printed passwords and cannot be used for login.
+
+Demo data is idempotent — re-running with `SEED_DEMO_DATA=true` updates records in place rather than duplicating them. Demo user passwords are not reset on subsequent starts.
+
+For a clean production environment with no sample data, leave `SEED_DEMO_DATA` unset.
+
+### Database migrations
+
+Migrations run automatically on every container start before the server accepts requests. There is no separate migration step required after an upgrade.
+
+### Upgrading
+
+Pull the latest image and restart:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Migrations are applied automatically on startup. Back up your database before upgrading releases that include schema changes — those releases are noted in [CHANGELOG.md](CHANGELOG.md).
+
+### Pinning a version
+
+The compose file defaults to the `latest` release image. To pin to a specific version, set `CUSTOMRISK_VERSION` in your `.env`:
+
+```sh
+CUSTOMRISK_VERSION=0.1.5
+```
+
+### External database
+
+To use an existing PostgreSQL server instead of the bundled database container, remove the `db` service block from `docker-compose.yml` and set `DATABASE_URL` directly in `.env`:
+
+```sh
+DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
+```
+
+All other configuration and the automatic migration behaviour are unchanged.
+
+### Health check
+
+```sh
+curl http://<your-host>:3000/api/v1/health
+```
+
+Healthy response (HTTP 200):
+
+```json
+{ "data": { "status": "ok", "database": "ok" } }
+```
+
+---
+
+## Versioning and releases
+
+This project uses [Semantic Versioning](https://semver.org/). See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+---
+
+## Contributing and local development
+
+### Prerequisites
+
+- Node.js 20 LTS or newer
+- npm with workspace support
+- PostgreSQL 16
 
 ### Install
 
@@ -39,198 +139,84 @@ npm install
 
 ### Environment setup
 
-Create a local environment file before running app or database commands:
-
 ```sh
-cp .env.example .env
+cp .env.local.example .env
 ```
 
-Then update `.env` with local-only values. Required variables are listed in
-`.env.example`; the important local contract is:
+Edit `.env` with local values. Key variables for local development:
 
-- `NODE_ENV` - use `development` for local work.
-- `PORT` - backend HTTP port; use `3000`.
-- `DATABASE_URL` - PostgreSQL connection string for the backend and Prisma.
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - local PostgreSQL service settings.
-- `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` - random 256-bit signing secrets.
-- `JWT_ACCESS_EXPIRY` - default access token lifetime; use `60m`.
-- `JWT_REFRESH_EXPIRY_DAYS` - default refresh token lifetime in days; use `30`.
-- `BCRYPT_COST_FACTOR` - bcrypt work factor; use `12` unless deliberately testing a lower local value.
-- `CORS_ALLOWED_ORIGINS` - comma-separated browser origins allowed to call the API.
-- `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_LOGIN` - auth rate-limit settings.
-- `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`, `SEED_ADMIN_PASSWORD` - local/dev System Admin bootstrap account.
-- `SEED_DEMO_USER_PASSWORD` - optional local/dev password for seeded demo users Alice, Bob, and Carol.
-
-Use placeholders only in `.env.example`. Real JWT secrets, database passwords,
-and seed passwords belong in your uncommitted `.env` or runtime environment.
+- `NODE_ENV=development`
+- `PORT=3000`
+- `DATABASE_URL` — PostgreSQL connection string (use `localhost` for host-based dev)
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — local PostgreSQL settings
+- `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` — random 256-bit secrets
+- `SEED_ADMIN_PASSWORD` — initial System Admin password for local setup
+- `SEED_DEMO_DATA=true` and `SEED_DEMO_USER_PASSWORD` — optional demo data
 
 ### Local ports
 
-- Backend/API: `http://localhost:3000`
-- Frontend dev server: `http://localhost:5173`
-- PostgreSQL: `localhost:5432`
+| Service | URL |
+|---|---|
+| Backend / API | `http://localhost:3000` |
+| Frontend dev server | `http://localhost:5173` |
+| PostgreSQL | `localhost:5432` |
 
-For host-based development, set `DATABASE_URL` to use `localhost`. Docker
-Compose sets the app service `DATABASE_URL` to use the PostgreSQL service name
-`db` as the database host.
+### Database setup and first login
 
-### Database service
-
-Local development expects PostgreSQL 16. Create a database and user matching
-your `.env` values, then make sure `DATABASE_URL` points at that database before
-running Prisma or backend commands. The default example database name is
-`customrisk`.
-
-### Local development vs release runtime
-
-**Local development** runs two separate processes:
-
-- Backend (`npm run dev:backend`) — Express API on `http://localhost:3000`.
-- Frontend (`npm run dev:frontend`) — Vite dev server on `http://localhost:5173`.
-
-The Vite dev server is a development-only tool. It is not used in release builds.
-
-**Release runtime** runs a single Express process that serves both the compiled
-React frontend and the API. The `Dockerfile` builds the React frontend and copies
-the output into the backend image. Express serves the static files directly.
-There is no separate frontend server in the release container.
-
-### Docker runtime
-
-Docker Compose runs the app and PostgreSQL together as a release-like environment:
-
-```sh
-docker compose up --build
-```
-
-The `app` service is built from the repository `Dockerfile` using Node 20
-Alpine. Express serves the compiled React frontend from `./public` and the API
-from `/api/v1/`. The service is published on port `3000`. The `db` service uses
-`postgres:16-alpine`, publishes PostgreSQL on port `5432`, and stores data in
-the named `pgdata` volume. Compose sets the app container `DATABASE_URL` to use
-the `db` service host.
-
-To stop the stack:
-
-```sh
-docker compose down
-```
-
-### Health endpoint
-
-The app exposes a health endpoint at `GET /api/v1/health`. It checks that the
-app is running and the database is reachable.
-
-```sh
-curl http://localhost:3000/api/v1/health
-```
-
-Healthy response (HTTP 200):
-
-```json
-{ "data": { "status": "ok", "database": "ok" } }
-```
-
-Degraded response (HTTP 503, database unreachable):
-
-```json
-{ "data": { "status": "degraded", "database": "unreachable" } }
-```
-
-### Smoke test
-
-Run the smoke test after `docker compose up --build` to confirm the release
-build is responding correctly:
-
-```sh
-npm run smoke-test
-```
-
-Pass an alternative base URL as the first argument when the app is not on port
-3000:
-
-```sh
-sh scripts/smoke-test.sh http://localhost:8080
-```
-
-### Package scripts
-
-Run these from the repository root:
-
-- `npm run dev:backend` - start the backend package in watch mode on `PORT`.
-- `npm run dev:frontend` - start the Vite frontend dev server on port `5173`.
-- `npm run test` - run all workspace test suites.
-- `npm run test:backend` - run only the backend test suite.
-- `npm run test:frontend` - run only the frontend test suite.
-- `npm run test:shared` - run only the shared package test suite.
-- `npm run typecheck` - typecheck all workspace packages.
-- `npm run typecheck:backend` - typecheck only the backend package.
-- `npm run typecheck:frontend` - typecheck only the frontend package.
-- `npm run typecheck:shared` - typecheck only the shared package.
-- `npm run lint` - run the current baseline lint gate, which is TypeScript typechecking.
-- `npm run build` - build all workspace packages that define a build script.
-- `npm run db:migrate` - apply committed Prisma migrations to the configured database.
-- `npm run db:setup` - apply migrations, then create or update the local seed data.
-- `npm run seed:admin` - create or update the local seed data from `.env`.
-- `npm run smoke-test` - run the health endpoint smoke test against `http://localhost:3000`.
-
-The backend and frontend are separate TypeScript packages under npm workspaces.
-The shared package is available for API DTOs, enums, and schemas that should not
-be duplicated between frontend and backend.
-
-### First login
-
-Apply migrations and create the first local System Admin:
+Apply migrations and create the local admin account:
 
 ```sh
 npm run db:setup
 ```
 
-The setup flow uses `DATABASE_URL`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NAME`,
-`SEED_ADMIN_PASSWORD`, and optional `SEED_DEMO_USER_PASSWORD` from `.env`. It is
-safe to rerun; it keeps the System Admin account active, grants System Admin,
-clears lockout state, updates the admin password to the current
-`SEED_ADMIN_PASSWORD`, and refreshes the demo registers, configuration,
-permissions, and risks.
+This runs `prisma migrate deploy` then the seed script using values from `.env`. It is idempotent — safe to re-run. The admin password and name are only set on first creation; subsequent runs update only active status and lockout state.
 
-The demo users are:
+### Running locally
 
-- Alice Register Admin: `alice@example.com`
-- Bob Risk Owner: `bob@example.com`
-- Carol Viewer: `carol@example.com`
-
-Set `SEED_DEMO_USER_PASSWORD` to make those demo accounts login-capable. When it
-is omitted, the seed creates them with random non-printed passwords.
-
-## Production environment variables
-
-The following variables must be changed from their development defaults before
-deploying to a production or shared environment.
-
-| Variable | Production requirement |
-|---|---|
-| `NODE_ENV` | Must be `production` |
-| `DATABASE_URL` | Point at the production PostgreSQL instance |
-| `JWT_ACCESS_SECRET` | Random value of at least 256 bits — never reuse the dev value |
-| `JWT_REFRESH_SECRET` | Random value of at least 256 bits — never reuse the dev value |
-| `BCRYPT_COST_FACTOR` | Use `12` or higher |
-| `CORS_ALLOWED_ORIGINS` | Set to the exact origin(s) of your deployment — wildcards are rejected at startup when `NODE_ENV=production` |
-| `POSTGRES_PASSWORD` | A strong, unique password |
-| `SEED_ADMIN_PASSWORD` | A strong password; this is the initial System Admin credential |
-| `SEED_DEMO_USER_PASSWORD` | Omit in production, or set to a strong password if demo users are needed |
-| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_LOGIN` | Review and tighten for your expected traffic |
-
-Supply all secrets at runtime via environment variables or a secrets manager.
-Do not bake secrets into container images or commit them to the repository.
-
-Generate secure JWT secrets with:
+Start backend and frontend dev servers in separate terminals:
 
 ```sh
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+npm run dev:backend    # Express API on http://localhost:3000
+npm run dev:frontend   # Vite dev server on http://localhost:5173
 ```
 
-## Secret scanning
+The Vite dev server is development-only. The release build serves the compiled React frontend directly from Express.
 
-GitHub secret scanning is available under **Settings → Security → Secret scanning**
-for this repository. Enable it to be alerted if a secret pattern is accidentally
-committed.
+### Docker (local release build)
+
+To run a release-like build locally:
+
+```sh
+docker compose up --build
+```
+
+### Package scripts
+
+| Script | What it does |
+|---|---|
+| `npm run dev:backend` | Start backend in watch mode |
+| `npm run dev:frontend` | Start Vite frontend dev server |
+| `npm run build` | Build all workspace packages |
+| `npm run test` | Run all test suites |
+| `npm run test:backend` | Run backend tests only |
+| `npm run test:frontend` | Run frontend tests only |
+| `npm run test:shared` | Run shared package tests only |
+| `npm run typecheck` | Typecheck all packages |
+| `npm run lint` | Run the lint gate (TypeScript typecheck) |
+| `npm run db:migrate` | Apply Prisma migrations to the configured database |
+| `npm run db:setup` | Migrate then seed (admin + demo data from `.env`) |
+| `npm run seed:admin` | Run the seed script only |
+| `npm run smoke-test` | Health check against `http://localhost:3000` |
+
+### Repository structure
+
+- `frontend/` — React, Vite, TypeScript frontend
+- `backend/` — Node.js, Express, TypeScript API with Prisma ORM
+- `shared/` — shared TypeScript types, enums, and schemas
+- `docker/` — container entrypoint script
+- `docs/` — architecture, ADRs, planning, and product documents
+- `scripts/` — local development and maintenance scripts
+
+### Secret scanning
+
+GitHub secret scanning can be enabled under **Settings → Security → Secret scanning** to alert on accidentally committed secrets.
