@@ -27,7 +27,7 @@ Phases 1, 4, 7, 9, 10, and 12 can run at the same time.
 
 ## PM2-01 — Person Reference Data Model
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Establish a person reference model that can represent local users, external-auth users, and unresolved email addresses.
 
@@ -61,7 +61,7 @@ Summary of the decision:
 
 ## PM2-02 — Email-Only Person Picker Backend Support
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Allow configured person fields to accept valid email addresses that are not yet local users.
 
@@ -83,7 +83,7 @@ Summary of the decision:
 
 ## PM2-03 — Automatic User Linking on Account Creation or Login
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Link stored person email values to user accounts when those users are later created or authenticated.
 
@@ -105,7 +105,7 @@ Summary of the decision:
 
 ## PM2-04 — Person Picker Frontend Autocomplete
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Improve Person Picker fields with user search plus free-email entry where permitted.
 
@@ -128,7 +128,7 @@ Summary of the decision:
 
 ## PM2-05 — Person Assignment Permission and Audit Review
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Ensure person assignment rules do not create unintended access.
 
