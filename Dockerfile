@@ -2,6 +2,10 @@ FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/package.json
 COPY frontend/package.json ./frontend/package.json
@@ -19,6 +23,10 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/package.json
