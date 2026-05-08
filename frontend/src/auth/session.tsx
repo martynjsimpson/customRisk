@@ -93,6 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch {
             // Preference load failure must not block the app
           }
+        } else if (!cancelled) {
+          setPreferences(null);
         }
       } catch {
         if (!cancelled) {
@@ -131,6 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // non-fatal
         }
+      } else {
+        setPreferences(null);
       }
     },
     [setAccessToken]

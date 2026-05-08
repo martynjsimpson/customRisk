@@ -18,7 +18,7 @@ test("core risk fields are defined once in a shared constant", async () => {
 });
 
 test("configuration panel renders core field anchors from the shared constant", async () => {
-  const panel = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
+  const panel = await readFile(new URL("../src/features/configuration/CustomFieldTable.tsx", import.meta.url), "utf8");
 
   assert.match(panel, /import.*CORE_RISK_FIELDS.*from.*coreRiskFields/);
   assert.match(panel, /CORE_RISK_FIELDS\.map/);
@@ -26,11 +26,15 @@ test("configuration panel renders core field anchors from the shared constant", 
 });
 
 test("configuration panel marks core fields as read-only and custom fields as editable", async () => {
-  const panel = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
+  const panel = await readFile(new URL("../src/features/configuration/CustomFieldTable.tsx", import.meta.url), "utf8");
+  const tab = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
 
   assert.match(panel, /field\.kind === "core".*Core/s);
-  assert.match(panel, /field\.kind === "custom".*openEditField/s);
-  assert.match(panel, /field\.kind === "custom".*deactivateFieldMutation/s);
+  assert.match(panel, /field\.kind === "custom".*onEditField/s);
+  assert.match(panel, /field\.kind === "custom".*onDeactivateField/s);
+  assert.match(tab, /invalidateCustomFieldConfiguration/);
+  assert.match(tab, /CustomFieldModal/);
+  assert.match(tab, /CustomFieldOptionsModal/);
 });
 
 test("risk form renders custom fields interleaved with core fields by displayOrder", async () => {

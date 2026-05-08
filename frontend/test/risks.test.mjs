@@ -6,6 +6,7 @@ test("risk detail UI includes review action, review history, and risk audit hist
   const detailModal = await readFile(new URL("../src/features/risks/RiskDetailModal.tsx", import.meta.url), "utf8");
   const reviewModal = await readFile(new URL("../src/features/risks/ReviewModal.tsx", import.meta.url), "utf8");
   const panel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
+  const formModal = await readFile(new URL("../src/features/risks/RiskFormModal.tsx", import.meta.url), "utf8");
 
   assert.match(detailModal, /listRiskReviews/);
   assert.match(detailModal, /listRiskAudit/);
@@ -19,6 +20,11 @@ test("risk detail UI includes review action, review history, and risk audit hist
   assert.match(panel, /action === "review"/);
   assert.match(panel, /action === "edit"/);
   assert.match(panel, /action === "delete"/);
+  assert.match(panel, /queryClient\.fetchQuery/);
+  assert.match(panel, /getRisk\(register\.id, requestedRiskId\)/);
+  assert.match(formModal, /getTimezoneOffset\(\)/);
+  assert.match(formModal, /const isEditingRiskLoading = Boolean/);
+  assert.match(formModal, /type="button" variant="subtle" onClick=\{onClose\}/);
 });
 
 test("my risks rows link to permitted register risk actions", async () => {

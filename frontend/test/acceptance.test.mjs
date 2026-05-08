@@ -7,6 +7,7 @@ test("frontend exposes the required MVP acceptance workflows", async () => {
   const registerDetailPage = await readFile(new URL("../src/pages/RegisterDetailPage.tsx", import.meta.url), "utf8");
   const configurationPanel = await readFile(new URL("../src/features/configuration/RegisterConfigurationPanel.tsx", import.meta.url), "utf8");
   const fieldConfig = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
+  const fieldTable = await readFile(new URL("../src/features/configuration/CustomFieldTable.tsx", import.meta.url), "utf8");
   const matrixConfig = await readFile(new URL("../src/features/configuration/MatrixConfigTab.tsx", import.meta.url), "utf8");
   const riskPanel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
   const reviewModal = await readFile(new URL("../src/features/risks/ReviewModal.tsx", import.meta.url), "utf8");
@@ -23,7 +24,8 @@ test("frontend exposes the required MVP acceptance workflows", async () => {
   assert.match(configurationPanel, /ScoringConfigurationPanel/);
   assert.match(fieldConfig, /Add field/);
   assert.match(fieldConfig, /createCustomField/);
-  assert.match(fieldConfig, /CORE_RISK_FIELDS/);
+  assert.match(fieldConfig, /CustomFieldTable/);
+  assert.match(fieldTable, /CORE_RISK_FIELDS/);
   assert.match(matrixConfig, /Save matrix/);
   assert.match(matrixConfig, /updateMatrix/);
   assert.match(matrixConfig, /Recalculate existing risks/);
