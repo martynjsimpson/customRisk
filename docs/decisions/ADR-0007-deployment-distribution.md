@@ -26,7 +26,7 @@ Three gaps were identified:
 Two files are attached to every GitHub Release as downloadable assets:
 
 - **`docker-compose.yml`** — a release-oriented compose file that references the GHCR image by tag rather than building from source. Source file in the repository: `docker-compose.release.yml`.
-- **`.env.example`** — a deployment-focused environment template with comments distinguishing required values from optional ones. Source file in the repository: `.env.deploy.example`.
+- **`env.example`** — a deployment-focused environment template with comments distinguishing required values from optional ones. Source file in the repository: `.env.deploy.example`.
 
 The release workflow copies these files to `/tmp/` under their published names and uploads them via `gh release upload`. The repository source files retain their distinct names to avoid confusion with the developer-facing `docker-compose.yml` and `.env.local.example`.
 
@@ -34,8 +34,8 @@ The end-user install procedure is:
 
 ```sh
 curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/docker-compose.yml
-curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/.env.example
-cp .env.example .env
+curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/env.example
+cp env.example .env
 # Edit .env — set POSTGRES_PASSWORD, CORS_ALLOWED_ORIGINS,
 #              and SEED_ADMIN_PASSWORD
 docker compose up -d

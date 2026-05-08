@@ -151,8 +151,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cp docker-compose.release.yml /tmp/docker-compose.yml
-          cp .env.deploy.example /tmp/.env.example
+          cp .env.deploy.example /tmp/env.example
           gh release upload "${{ github.ref_name }}" \
             /tmp/docker-compose.yml \
-            /tmp/.env.example \
+            /tmp/env.example \
             --clobber

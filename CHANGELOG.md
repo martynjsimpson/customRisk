@@ -25,6 +25,7 @@ Version levels:
 - Release documentation now treats `1.0.0` as the current stable baseline rather than a future milestone.
 - Documentation and release assets now consistently describe the `1.x` stable release line, including the release process, self-hosted install path, and release asset usage.
 - The release compose asset now supports overriding `DATABASE_URL` directly for external PostgreSQL deployments, matching the documented operator workflow.
+- Release downloads now publish the deployment environment template as `env.example` instead of `.env.example`, avoiding a broken GitHub release asset URL for end users.
 
 ---
 
@@ -32,7 +33,7 @@ Version levels:
 
 ### Added
 
-- Self-hosted deployment distribution: every GitHub Release now attaches a ready-to-use `docker-compose.yml` and `.env.example` as downloadable assets, so operators can deploy without cloning the repository.
+- Self-hosted deployment distribution: every GitHub Release now attaches a ready-to-use `docker-compose.yml` and `env.example` as downloadable assets, so operators can deploy without cloning the repository.
 - Automatic database migration on container start: the container entrypoint runs `prisma migrate deploy` before starting the server, ensuring the schema is always current on first boot and after upgrades.
 - First-run admin seeding: if `SEED_ADMIN_PASSWORD` is set, the container creates or upserts the admin account on startup. The password and display name are only written on first creation and are not overwritten on subsequent restarts.
 - Optional demo data seeding: `SEED_DEMO_DATA` and `SEED_ADMIN_PASSWORD` are now independent controls. Set `SEED_DEMO_DATA=true` to also create demo users, two example registers, and representative sample risks. Omitting it gives a clean environment with only the admin account.

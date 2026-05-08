@@ -16,13 +16,13 @@ Download the two deployment files from the [latest release](https://github.com/m
 
 ```sh
 curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/docker-compose.yml
-curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/.env.example
+curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/env.example
 ```
 
 Create your environment file:
 
 ```sh
-cp .env.example .env
+cp env.example .env
 ```
 
 Open `.env` and set the three required values:

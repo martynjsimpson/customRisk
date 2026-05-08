@@ -215,14 +215,14 @@ src/
 Every GitHub Release attaches two files as downloadable assets:
 
 - **`docker-compose.yml`** — references the pre-built GHCR image by version tag. Source: `docker-compose.release.yml`.
-- **`.env.example`** — deployment-focused environment template. Source: `.env.deploy.example`.
+- **`env.example`** — deployment-focused environment template. Source: `.env.deploy.example`.
 
 End-user install:
 
 ```sh
 curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/docker-compose.yml
-curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/.env.example
-cp .env.example .env
+curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/env.example
+cp env.example .env
 # Edit .env — set POSTGRES_PASSWORD, CORS_ALLOWED_ORIGINS, and SEED_ADMIN_PASSWORD
 # JWT secrets are auto-generated on first start if left unset.
 docker compose up -d
@@ -487,7 +487,7 @@ Do not duplicate API response shapes, enum values, or shared DTO types across fr
 
 All environment-specific configuration must be injected through environment variables.
 
-Two environment template files must be committed to the repository: `.env.local.example` for local development and `.env.deploy.example` for self-hosted deployments (published as `.env.example` in release assets). Neither must contain real secret values.
+Two environment template files must be committed to the repository: `.env.local.example` for local development and `.env.deploy.example` for self-hosted deployments (published as `env.example` in release assets). Neither must contain real secret values.
 
 | Variable | Description | Example |
 |---|---|---|
