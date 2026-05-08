@@ -17,6 +17,9 @@ COPY . .
 
 RUN npm run build
 
+# Compile the seed script separately so it can run at container start without tsx.
+RUN npx tsc --project backend/tsconfig.seed.json
+
 FROM node:20-bookworm-slim AS runtime
 
 WORKDIR /app
@@ -40,8 +43,16 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
 COPY --from=build /app/backend/dist ./backend/dist
+COPY --from=build /app/backend/dist-seed ./backend/dist-seed
 COPY --from=build /app/frontend/dist ./public
+
+# Prisma migrations and schema are needed by `prisma migrate deploy` in the entrypoint.
+COPY --from=build /app/backend/prisma/schema.prisma ./backend/prisma/schema.prisma
+COPY --from=build /app/backend/prisma/migrations ./backend/prisma/migrations
+
+COPY docker/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 EXPOSE 3000
 
-CMD ["node", "backend/dist/server.js"]
+ENTRYPOINT ["./entrypoint.sh"]

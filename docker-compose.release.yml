@@ -1,0 +1,54 @@
+# Custom Risk — self-hosted deployment
+#
+# Download this file and .env.example from the GitHub Releases page, then:
+#
+#   cp .env.example .env
+#   # Edit .env — set all required values (see comments in that file)
+#   docker compose -f docker-compose.release.yml up -d
+#
+# To pin to a specific release, set CUSTOMRISK_VERSION in your .env file.
+# To use an external PostgreSQL server, remove the db service block and set
+# DATABASE_URL in your .env to point at your existing server.
+
+services:
+  app:
+    image: ghcr.io/martynjsimpson/customrisk:${CUSTOMRISK_VERSION:-latest}
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-customrisk}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-customrisk}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-60m}
+      JWT_REFRESH_EXPIRY_DAYS: ${JWT_REFRESH_EXPIRY_DAYS:-30}
+      BCRYPT_COST_FACTOR: ${BCRYPT_COST_FACTOR:-12}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX_LOGIN: ${RATE_LIMIT_MAX_LOGIN:-10}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@customrisk.local}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-System Admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-customrisk}
+      POSTGRES_USER: ${POSTGRES_USER:-customrisk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:

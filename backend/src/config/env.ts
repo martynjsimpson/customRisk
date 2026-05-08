@@ -14,6 +14,14 @@ export function getJwtAccessSecret(): string {
   return required("JWT_ACCESS_SECRET");
 }
 
+export function getDatabaseUrl(): string {
+  return required("DATABASE_URL");
+}
+
+export function getJwtRefreshSecret(): string {
+  return required("JWT_REFRESH_SECRET");
+}
+
 export function getJwtAccessExpiry(): string {
   return optional("JWT_ACCESS_EXPIRY", "60m");
 }
@@ -39,4 +47,16 @@ export function getCorsAllowedOrigins(): string[] {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+}
+
+export function validateRuntimeEnvironment() {
+  getDatabaseUrl();
+  getJwtAccessSecret();
+  getJwtRefreshSecret();
+  getBcryptCostFactor();
+  getJwtAccessExpiry();
+  getJwtRefreshExpiryDays();
+  getRateLimitWindowMs();
+  getRateLimitMaxLogin();
+  getCorsAllowedOrigins();
 }

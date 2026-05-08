@@ -1,6 +1,7 @@
 import { Socket } from "node:net";
 
 import { createApp } from "./app.js";
+import { getDatabaseUrl, validateRuntimeEnvironment } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { disconnectPrisma } from "./db/prisma.js";
 
@@ -44,9 +45,9 @@ async function waitForDatabase(databaseUrl: string, timeoutMs = 30_000) {
 const app = createApp({ logger });
 
 try {
-  if (process.env.DATABASE_URL) {
-    await waitForDatabase(process.env.DATABASE_URL);
-  }
+  validateRuntimeEnvironment();
+
+  await waitForDatabase(getDatabaseUrl());
 
   const server = app.listen(port, () => {
     logger.info({ port }, "Custom Risk backend listening");

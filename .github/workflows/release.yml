@@ -115,6 +115,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -144,3 +145,14 @@ jobs:
             --title "${{ github.ref_name }}" \
             --generate-notes \
             --latest
+
+      - name: Attach deployment assets to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp docker-compose.release.yml /tmp/docker-compose.yml
+          cp .env.deploy.example /tmp/.env.example
+          gh release upload "${{ github.ref_name }}" \
+            /tmp/docker-compose.yml \
+            /tmp/.env.example \
+            --clobber
