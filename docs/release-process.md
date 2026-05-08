@@ -80,7 +80,7 @@ git push origin v<version>
 - Check GitHub Actions: the release workflow triggered by the `v*.*.*` tag should run.
 - Confirm the versioned container image is published to the container registry with tags `<version>`, `<major>.<minor>`, and `latest`.
 - Confirm a GitHub Release is created with changelog notes.
-- Confirm `docker-compose.yml` and `.env.example` are attached as downloadable assets on the GitHub Release.
+- Confirm `docker-compose.yml` and `env.example` are attached as downloadable assets on the GitHub Release.
 
 ### 7. Verify the published image
 
@@ -88,8 +88,8 @@ Download the release assets and verify the full end-user install path:
 
 ```sh
 curl -LO https://github.com/martynjsimpson/customRisk/releases/download/<version>/docker-compose.yml
-curl -LO https://github.com/martynjsimpson/customRisk/releases/download/<version>/.env.example
-cp .env.example .env
+curl -LO https://github.com/martynjsimpson/customRisk/releases/download/<version>/env.example
+cp env.example .env
 # Fill in POSTGRES_PASSWORD, CORS_ALLOWED_ORIGINS,
 # and SEED_ADMIN_PASSWORD in .env
 docker compose up -d
