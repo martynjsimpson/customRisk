@@ -2,7 +2,7 @@ import { Alert, Button, Checkbox, Group, Modal, Stack, Textarea } from "@mantine
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { completeRiskReview, type RiskDetail } from "../../api/risks.api";
+import { completeRiskReview } from "../../api/risks.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 
 interface ReviewModalProps {

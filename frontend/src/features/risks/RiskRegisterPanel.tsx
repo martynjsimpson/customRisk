@@ -1,10 +1,11 @@
-import { Anchor, Badge, Button, Checkbox, Group, Loader, Pagination, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Group, Loader, Pagination, Stack, Table, Text, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import {
   exportRisks,
+  getRisk,
   getRiskFormConfig,
   listRisks,
   type RiskListQuery
@@ -106,24 +107,47 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       return;
     }
 
-    const requestedRisk = (riskQuery.data?.data ?? []).find((risk) => risk.id === riskId);
-    const canEditRequestedRisk = Boolean(canManage || (user && requestedRisk?.owner.id === user.id));
+    const requestedRiskId = riskId;
 
-    if (action === "review" && canEditRequestedRisk && register.reviewsEnabled) {
-      setReviewRiskId(riskId);
+    if (!action) {
+      setDetailRiskId(requestedRiskId);
       setSearchParams({}, { replace: true });
-    } else if (action === "edit" && canEditRequestedRisk) {
-      setEditingRiskId(riskId);
-      setFormOpened(true);
-      setSearchParams({}, { replace: true });
-    } else if (action === "delete" && isSystemAdmin) {
-      setDeleteRiskId(riskId);
-      setSearchParams({}, { replace: true });
-    } else if (!action) {
-      setDetailRiskId(riskId);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function handleRequestedAction() {
+      const requestedRiskFromList = (riskQuery.data?.data ?? []).find((risk) => risk.id === requestedRiskId);
+      const requestedRisk = requestedRiskFromList ?? await queryClient.fetchQuery({
+        queryKey: ["risk", register.id, requestedRiskId],
+        queryFn: () => getRisk(register.id, requestedRiskId)
+      });
+
+      if (cancelled || !requestedRisk) {
+        return;
+      }
+
+      const canEditRequestedRisk = Boolean(canManage || (user && requestedRisk.owner.id === user.id));
+
+      if (action === "review" && canEditRequestedRisk && register.reviewsEnabled) {
+        setReviewRiskId(requestedRiskId);
+      } else if (action === "edit" && canEditRequestedRisk) {
+        setEditingRiskId(requestedRiskId);
+        setFormOpened(true);
+      } else if (action === "delete" && isSystemAdmin) {
+        setDeleteRiskId(requestedRiskId);
+      }
+
       setSearchParams({}, { replace: true });
     }
-  }, [canManage, isSystemAdmin, register.reviewsEnabled, riskQuery.data?.data, searchParams, setSearchParams, user]);
+
+    void handleRequestedAction();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canManage, isSystemAdmin, queryClient, register.id, register.reviewsEnabled, riskQuery.data?.data, searchParams, setSearchParams, user]);
 
   const openCreate = () => {
     setDetailRiskId(null);
@@ -271,7 +295,6 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       />
 
       <RiskDetailModal
-        register={register}
         registerId={register.id}
         riskId={detailRiskId}
         formConfig={formConfig}

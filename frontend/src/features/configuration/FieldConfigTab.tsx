@@ -1,20 +1,6 @@
-import {
-  Badge,
-  Button,
-  Checkbox,
-  Group,
-  Modal,
-  NumberInput,
-  Select,
-  Stack,
-  Table,
-  Textarea,
-  TextInput,
-  Title
-} from "@mantine/core";
-import { useForm } from "@mantine/form";
+import { Button, Group, Stack, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   activateCustomField,
@@ -27,32 +13,16 @@ import {
   updateCustomField,
   updateCustomFieldOption,
   type CustomFieldDefinition,
-  type CustomFieldOption,
-  type CustomFieldType
+  type CustomFieldOption
 } from "../../api/customFields.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
-import { CORE_RISK_FIELDS } from "../risks/coreRiskFields";
+import { CustomFieldModal, parseInitialOptions } from "./CustomFieldModal";
+import { CustomFieldOptionsModal } from "./CustomFieldOptionsModal";
+import { CustomFieldTable } from "./CustomFieldTable";
+import { invalidateCustomFieldConfiguration } from "./customFieldConfigInvalidation";
 
 interface FieldConfigTabProps {
   registerId: string;
-}
-
-const fieldTypeOptions: Array<{ value: CustomFieldType; label: string }> = [
-  { value: "TEXT", label: "Text" },
-  { value: "MULTILINE_TEXT", label: "Multi-line text" },
-  { value: "BOOLEAN", label: "Boolean" },
-  { value: "NUMBER", label: "Number" },
-  { value: "DATE", label: "Date" },
-  { value: "DROPDOWN", label: "Dropdown" },
-  { value: "PERSON_PICKER", label: "Person Picker" }
-];
-
-function parseInitialOptions(value: string) {
-  return value
-    .split("\n")
-    .map((label) => label.trim())
-    .filter(Boolean)
-    .map((label, index) => ({ label, displayOrder: index + 1, isActive: true }));
 }
 
 export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
@@ -74,160 +44,91 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
     enabled: Boolean(registerId) && Boolean(selectedField)
   });
 
-  const fieldForm = useForm({
-    initialValues: {
-      fieldName: "",
-      fieldType: "TEXT" as CustomFieldType,
-      helpText: "",
-      isRequired: false,
-      displayOrder: 10,
-      isActive: true,
-      initialOptionsText: ""
-    }
-  });
-  const optionForm = useForm({
-    initialValues: {
-      label: "",
-      displayOrder: 1,
-      isActive: true
-    }
-  });
-
-  const invalidateConfiguration = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["register-config", registerId] }),
-      queryClient.invalidateQueries({ queryKey: ["risk-form-config", registerId] }),
-      queryClient.invalidateQueries({ queryKey: ["custom-field-options", registerId] })
-    ]);
-  };
+  const fields = useMemo(() => configQuery.data?.customFields ?? [], [configQuery.data?.customFields]);
+  const nextFieldDisplayOrder = useMemo(
+    () => (fields.reduce((maxOrder, field) => Math.max(maxOrder, field.displayOrder), 0) || 0) + 10,
+    [fields]
+  );
+  const selectedFieldOptions = optionsQuery.data ?? [];
 
   const createFieldMutation = useMutation({
-    mutationFn: () =>
-      createCustomField(registerId, {
-        fieldName: fieldForm.values.fieldName,
-        fieldType: fieldForm.values.fieldType,
-        helpText: fieldForm.values.helpText || null,
-        isRequired: fieldForm.values.isRequired,
-        displayOrder: fieldForm.values.displayOrder,
-        isActive: fieldForm.values.isActive,
-        options:
-          fieldForm.values.fieldType === "DROPDOWN"
-            ? parseInitialOptions(fieldForm.values.initialOptionsText)
-            : undefined
-      }),
+    mutationFn: (values: Parameters<typeof createCustomField>[1]) => createCustomField(registerId, values),
     onSuccess: async () => {
       setFieldModalOpen(false);
-      fieldForm.reset();
-      await invalidateConfiguration();
+      await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
   });
   const updateFieldMutation = useMutation({
-    mutationFn: () =>
-      updateCustomField(registerId, editingField!.id, {
-        fieldName: fieldForm.values.fieldName,
-        helpText: fieldForm.values.helpText || null,
-        isRequired: fieldForm.values.isRequired,
-        displayOrder: fieldForm.values.displayOrder,
-        isActive: fieldForm.values.isActive
-      }),
+    mutationFn: ({
+      fieldId,
+      values
+    }: {
+      fieldId: string;
+      values: Parameters<typeof updateCustomField>[2];
+    }) => updateCustomField(registerId, fieldId, values),
     onSuccess: async () => {
       setFieldModalOpen(false);
       setEditingField(null);
-      await invalidateConfiguration();
+      await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
   });
   const activateFieldMutation = useMutation({
     mutationFn: (fieldId: string) => activateCustomField(registerId, fieldId),
-    onSuccess: invalidateConfiguration
+    onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
   const deactivateFieldMutation = useMutation({
     mutationFn: (fieldId: string) => deactivateCustomField(registerId, fieldId),
-    onSuccess: invalidateConfiguration
+    onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
   const createOptionMutation = useMutation({
-    mutationFn: () => createCustomFieldOption(registerId, selectedField!.id, optionForm.values),
+    mutationFn: ({
+      fieldId,
+      values
+    }: {
+      fieldId: string;
+      values: Parameters<typeof createCustomFieldOption>[2];
+    }) => createCustomFieldOption(registerId, fieldId, values),
     onSuccess: async () => {
-      optionForm.reset();
-      await invalidateConfiguration();
+      setEditingOption(null);
+      await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
   });
   const updateOptionMutation = useMutation({
-    mutationFn: () =>
-      updateCustomFieldOption(registerId, selectedField!.id, editingOption!.id, optionForm.values),
+    mutationFn: ({
+      fieldId,
+      optionId,
+      values
+    }: {
+      fieldId: string;
+      optionId: string;
+      values: Parameters<typeof updateCustomFieldOption>[3];
+    }) => updateCustomFieldOption(registerId, fieldId, optionId, values),
     onSuccess: async () => {
       setEditingOption(null);
-      optionForm.reset();
-      await invalidateConfiguration();
+      await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
   });
   const deactivateOptionMutation = useMutation({
-    mutationFn: (optionId: string) => deactivateCustomFieldOption(registerId, selectedField!.id, optionId),
-    onSuccess: invalidateConfiguration
+    mutationFn: ({ fieldId, optionId }: { fieldId: string; optionId: string }) =>
+      deactivateCustomFieldOption(registerId, fieldId, optionId),
+    onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
-
-  const fields = useMemo(() => configQuery.data?.customFields ?? [], [configQuery.data?.customFields]);
-  const orderedFieldRows = useMemo(
-    () =>
-      [
-        ...CORE_RISK_FIELDS.map((field) => ({
-          ...field,
-          kind: "core" as const,
-          isActive: true
-        })),
-        ...fields.map((field) => ({
-          ...field,
-          kind: "custom" as const,
-          fieldTypeLabel: fieldTypeOptions.find((option) => option.value === field.fieldType)?.label ?? field.fieldType
-        }))
-      ].sort((left, right) => left.displayOrder - right.displayOrder || left.fieldName.localeCompare(right.fieldName)),
-    [fields]
-  );
 
   const openCreateField = () => {
     setEditingField(null);
-    fieldForm.setValues({
-      fieldName: "",
-      fieldType: "TEXT",
-      helpText: "",
-      isRequired: false,
-      displayOrder: (orderedFieldRows.at(-1)?.displayOrder ?? 0) + 10,
-      isActive: true,
-      initialOptionsText: ""
-    });
     setFieldModalOpen(true);
   };
 
   const openEditField = (field: CustomFieldDefinition) => {
     setEditingField(field);
-    fieldForm.setValues({
-      fieldName: field.fieldName,
-      fieldType: field.fieldType,
-      helpText: field.helpText ?? "",
-      isRequired: field.isRequired,
-      displayOrder: field.displayOrder,
-      isActive: field.isActive,
-      initialOptionsText: ""
-    });
     setFieldModalOpen(true);
   };
 
   const openOptions = (field: CustomFieldDefinition) => {
     setSelectedField(field);
     setEditingOption(null);
-    optionForm.setValues({ label: "", displayOrder: (field.options.at(-1)?.displayOrder ?? 0) + 1, isActive: true });
     setOptionsModalOpen(true);
   };
-
-  useEffect(() => {
-    if (!editingOption) {
-      return;
-    }
-    optionForm.setValues({
-      label: editingOption.label,
-      displayOrder: editingOption.displayOrder,
-      isActive: editingOption.isActive
-    });
-  }, [editingOption]);
 
   return (
     <Stack>
@@ -238,178 +139,98 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load register configuration" />
       <ApiErrorAlert error={activateFieldMutation.error} fallback="Unable to activate field" />
       <ApiErrorAlert error={deactivateFieldMutation.error} fallback="Unable to deactivate field" />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Order</Table.Th>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Type</Table.Th>
-            <Table.Th>Required</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {orderedFieldRows.map((field) => (
-            <Table.Tr key={field.id}>
-              <Table.Td>{field.displayOrder}</Table.Td>
-              <Table.Td>{field.fieldName}</Table.Td>
-              <Table.Td>{field.kind === "core" ? field.fieldType : field.fieldTypeLabel}</Table.Td>
-              <Table.Td>{field.isRequired ? "Yes" : "No"}</Table.Td>
-              <Table.Td>
-                <Badge color={field.kind === "core" ? "blue" : field.isActive ? "green" : "gray"}>
-                  {field.kind === "core" ? "Core" : field.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </Table.Td>
-              <Table.Td>
-                <Group justify="flex-end" gap="xs">
-                  {field.kind === "custom" && field.fieldType === "DROPDOWN" ? (
-                    <Button variant="subtle" onClick={() => openOptions(field)}>
-                      Options
-                    </Button>
-                  ) : null}
-                  {field.kind === "custom" ? (
-                    <Button variant="subtle" onClick={() => openEditField(field)}>
-                      Edit
-                    </Button>
-                  ) : null}
-                  {field.kind === "custom" ? (
-                    field.isActive ? (
-                      <Button color="red" variant="subtle" onClick={() => deactivateFieldMutation.mutate(field.id)}>
-                        Deactivate
-                      </Button>
-                    ) : (
-                      <Button variant="subtle" onClick={() => activateFieldMutation.mutate(field.id)}>
-                        Activate
-                      </Button>
-                    )
-                  ) : null}
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+      <CustomFieldTable
+        fields={fields}
+        onEditField={openEditField}
+        onOpenOptions={openOptions}
+        onActivateField={(fieldId) => activateFieldMutation.mutate(fieldId)}
+        onDeactivateField={(fieldId) => deactivateFieldMutation.mutate(fieldId)}
+      />
 
-      <Modal
+      <CustomFieldModal
         opened={fieldModalOpen}
-        onClose={() => setFieldModalOpen(false)}
-        title={editingField ? "Edit custom field" : "Add custom field"}
-      >
-        <form
-          onSubmit={fieldForm.onSubmit(() => {
-            if (editingField) {
-              updateFieldMutation.mutate();
-            } else {
-              createFieldMutation.mutate();
-            }
-          })}
-        >
-          <Stack>
-            <ApiErrorAlert error={createFieldMutation.error} fallback="Unable to create custom field" />
-            <ApiErrorAlert error={updateFieldMutation.error} fallback="Unable to update custom field" />
-            <TextInput label="Field name" required {...fieldForm.getInputProps("fieldName")} />
-            <Select
-              label="Field type"
-              data={fieldTypeOptions}
-              disabled={Boolean(editingField)}
-              {...fieldForm.getInputProps("fieldType")}
-            />
-            <Textarea label="Help text" {...fieldForm.getInputProps("helpText")} />
-            <NumberInput label="Display order" min={1} {...fieldForm.getInputProps("displayOrder")} />
-            <Checkbox label="Required" {...fieldForm.getInputProps("isRequired", { type: "checkbox" })} />
-            <Checkbox label="Active" {...fieldForm.getInputProps("isActive", { type: "checkbox" })} />
-            {!editingField && fieldForm.values.fieldType === "DROPDOWN" ? (
-              <Textarea
-                label="Initial dropdown options"
-                autosize
-                minRows={3}
-                {...fieldForm.getInputProps("initialOptionsText")}
-              />
-            ) : null}
-            <Button type="submit" loading={createFieldMutation.isPending || updateFieldMutation.isPending}>
-              Save
-            </Button>
-          </Stack>
-        </form>
-      </Modal>
-
-      <Modal
-        opened={optionsModalOpen}
-        onClose={() => setOptionsModalOpen(false)}
-        title={selectedField ? `${selectedField.fieldName} options` : "Dropdown options"}
-      >
-        <Stack>
-          <ApiErrorAlert error={optionsQuery.error} fallback="Unable to load dropdown options" />
-          <ApiErrorAlert error={createOptionMutation.error} fallback="Unable to create dropdown option" />
-          <ApiErrorAlert error={updateOptionMutation.error} fallback="Unable to update dropdown option" />
-          <ApiErrorAlert error={deactivateOptionMutation.error} fallback="Unable to deactivate dropdown option" />
-          <form
-            onSubmit={optionForm.onSubmit(() => {
-              if (editingOption) {
-                updateOptionMutation.mutate();
-              } else {
-                createOptionMutation.mutate();
+        editingField={editingField}
+        nextDisplayOrder={nextFieldDisplayOrder}
+        createError={createFieldMutation.error}
+        updateError={updateFieldMutation.error}
+        isSaving={createFieldMutation.isPending || updateFieldMutation.isPending}
+        onClose={() => {
+          setFieldModalOpen(false);
+          setEditingField(null);
+        }}
+        onSubmit={(values) => {
+          if (editingField) {
+            updateFieldMutation.mutate({
+              fieldId: editingField.id,
+              values: {
+                fieldName: values.fieldName,
+                helpText: values.helpText || null,
+                isRequired: values.isRequired,
+                displayOrder: values.displayOrder,
+                isActive: values.isActive
               }
-            })}
-          >
-            <Stack>
-              <TextInput label="Option label" required {...optionForm.getInputProps("label")} />
-              <NumberInput label="Display order" min={1} {...optionForm.getInputProps("displayOrder")} />
-              <Checkbox label="Active" {...optionForm.getInputProps("isActive", { type: "checkbox" })} />
-              <Group>
-                <Button type="submit" loading={createOptionMutation.isPending || updateOptionMutation.isPending}>
-                  Save option
-                </Button>
-                {editingOption ? (
-                  <Button variant="subtle" onClick={() => setEditingOption(null)}>
-                    Cancel
-                  </Button>
-                ) : null}
-              </Group>
-            </Stack>
-          </form>
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Order</Table.Th>
-                <Table.Th>Label</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th />
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {(optionsQuery.data ?? []).map((option) => (
-                <Table.Tr key={option.id}>
-                  <Table.Td>{option.displayOrder}</Table.Td>
-                  <Table.Td>{option.label}</Table.Td>
-                  <Table.Td>
-                    <Badge color={option.isActive ? "green" : "gray"}>
-                      {option.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group justify="flex-end" gap="xs">
-                      <Button variant="subtle" onClick={() => setEditingOption(option)}>
-                        Edit
-                      </Button>
-                      {option.isActive ? (
-                        <Button
-                          color="red"
-                          variant="subtle"
-                          onClick={() => deactivateOptionMutation.mutate(option.id)}
-                        >
-                          Deactivate
-                        </Button>
-                      ) : null}
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Stack>
-      </Modal>
+            });
+            return;
+          }
+
+          createFieldMutation.mutate({
+            fieldName: values.fieldName,
+            fieldType: values.fieldType,
+            helpText: values.helpText || null,
+            isRequired: values.isRequired,
+            displayOrder: values.displayOrder,
+            isActive: values.isActive,
+            options: values.fieldType === "DROPDOWN" ? parseInitialOptions(values.initialOptionsText) : undefined
+          });
+        }}
+      />
+
+      <CustomFieldOptionsModal
+        opened={optionsModalOpen}
+        selectedField={selectedField}
+        options={selectedFieldOptions}
+        editingOption={editingOption}
+        loadError={optionsQuery.error}
+        createError={createOptionMutation.error}
+        updateError={updateOptionMutation.error}
+        deactivateError={deactivateOptionMutation.error}
+        isSaving={createOptionMutation.isPending || updateOptionMutation.isPending}
+        onClose={() => {
+          setOptionsModalOpen(false);
+          setSelectedField(null);
+          setEditingOption(null);
+        }}
+        onEditOption={setEditingOption}
+        onSubmit={(values) => {
+          if (!selectedField) {
+            return;
+          }
+
+          if (editingOption) {
+            updateOptionMutation.mutate({
+              fieldId: selectedField.id,
+              optionId: editingOption.id,
+              values
+            });
+            return;
+          }
+
+          createOptionMutation.mutate({
+            fieldId: selectedField.id,
+            values
+          });
+        }}
+        onDeactivate={(optionId) => {
+          if (!selectedField) {
+            return;
+          }
+
+          deactivateOptionMutation.mutate({
+            fieldId: selectedField.id,
+            optionId
+          });
+        }}
+      />
     </Stack>
   );
 }

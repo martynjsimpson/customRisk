@@ -27,7 +27,7 @@ fix/...                          ────────────▶
 | `fix/<short-description>` | Bug fix |
 | `chore/<short-description>` | Non-functional work: dependencies, tooling, config |
 | `docs/<short-description>` | Documentation only |
-| `release/<version>` | Release preparation, e.g. `release/v0.1.0` |
+| `release/<version>` | Release preparation, e.g. `release/v1.0.0` |
 
 Use lowercase and hyphens. Keep descriptions short.
 
@@ -38,7 +38,7 @@ feature/risk-export-csv
 fix/review-date-timezone
 chore/update-dependencies
 docs/development-workflow
-release/v0.2.0
+release/v1.0.0
 ```
 
 ---

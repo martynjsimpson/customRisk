@@ -7,6 +7,7 @@ import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent, type AuditFieldChangeInput } from "./audit.service.js";
 import { linkPersonReferenceToUser } from "./personReference.service.js";
+import { revokeActiveRefreshTokens } from "./sessionTokens.service.js";
 import type {
   ChangePasswordBody,
   CreateUserBody,
@@ -152,20 +153,7 @@ export async function createUser(actor: AuthenticatedActor, input: CreateUserBod
       }
 
       // Link any existing unresolved PersonReference for this email to the new user account
-      await tx.personReference.upsert({
-        where: { email: user.email.toLowerCase() },
-        create: {
-          email: user.email.toLowerCase(),
-          userId: user.id,
-          displayName: user.name,
-          resolvedAt: new Date()
-        },
-        update: {
-          userId: user.id,
-          displayName: user.name,
-          resolvedAt: new Date()
-        }
-      });
+      await linkPersonReferenceToUser(user.id, user.email, user.name, tx);
 
       return userResponse(user);
     });
@@ -209,10 +197,12 @@ export async function updateUser(actor: AuthenticatedActor, userId: string, inpu
       });
 
       if (existing.isActive && !updated.isActive) {
-        await tx.refreshToken.updateMany({
-          where: { userId, revokedAt: null },
-          data: { revokedAt: new Date() }
-        });
+        // Equivalent lifecycle rule:
+        // tx.refreshToken.updateMany({
+        //   where: { userId, revokedAt: null },
+        //   data: { revokedAt: new Date() }
+        // });
+        await revokeActiveRefreshTokens(userId, tx);
       }
 
       const fieldChanges: AuditFieldChangeInput[] = buildFieldChanges(existing, updated, [
@@ -308,10 +298,7 @@ export async function setUserActive(actor: AuthenticatedActor, userId: string, i
     });
 
     if (!updated.isActive) {
-      await tx.refreshToken.updateMany({
-        where: { userId, revokedAt: null },
-        data: { revokedAt: new Date() }
-      });
+      await revokeActiveRefreshTokens(userId, tx);
     }
 
     await recordAuditEvent(
@@ -404,10 +391,7 @@ export async function changeMyPassword(actor: AuthenticatedActor, input: ChangeP
       }
     });
 
-    await tx.refreshToken.updateMany({
-      where: { userId: actor.id, revokedAt: null },
-      data: { revokedAt: new Date() }
-    });
+    await revokeActiveRefreshTokens(actor.id, tx);
 
     await recordAuditEvent(
       {

@@ -1,6 +1,6 @@
 {
   "name": "custom-risk",
-  "version": "0.1.3",
+  "version": "1.0.0",
   "private": true,
   "description": "Custom Risk MVP monorepo.",
   "workspaces": [
@@ -23,10 +23,17 @@
     "typecheck:backend": "npm --workspace @custom-risk/backend run typecheck",
     "typecheck:frontend": "npm --workspace @custom-risk/frontend run typecheck",
     "typecheck:shared": "npm --workspace @custom-risk/shared run typecheck",
-    "lint": "npm run typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "db:migrate": "prisma migrate deploy --schema backend/prisma/schema.prisma",
     "db:setup": "npm run db:migrate && npm run seed:admin",
     "seed:admin": "npm --workspace @custom-risk/backend run prisma:seed",
     "smoke-test": "sh scripts/smoke-test.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "eslint": "^9.27.0",
+    "globals": "^16.0.0",
+    "typescript-eslint": "^8.32.0"
   }
 }

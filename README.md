@@ -90,12 +90,12 @@ Migrations are applied automatically on startup. Back up your database before up
 The compose file defaults to the `latest` release image. To pin to a specific version, set `CUSTOMRISK_VERSION` in your `.env`:
 
 ```sh
-CUSTOMRISK_VERSION=0.1.5
+CUSTOMRISK_VERSION=1.0.0
 ```
 
 ### External database
 
-To use an existing PostgreSQL server instead of the bundled database container, remove the `db` service block from `docker-compose.yml` and set `DATABASE_URL` directly in `.env`:
+To use an existing PostgreSQL server instead of the bundled database container, remove the `db` service block from the downloaded `docker-compose.yml` and set `DATABASE_URL` directly in `.env`:
 
 ```sh
 DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { auditActions } from "../audit/auditActions.js";
 import { prisma } from "../db/prisma.js";

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../db/prisma.js";
 import { logger } from "../config/logger.js";
 
@@ -145,19 +145,26 @@ export async function searchPersons(
   return results;
 }
 
-export async function linkPersonReferenceToUser(userId: string, email: string): Promise<void> {
+export async function linkPersonReferenceToUser(
+  userId: string,
+  email: string,
+  displayName?: string,
+  client: PersonClient = prisma
+): Promise<void> {
   const normalised = normaliseEmail(email);
 
   try {
-    await prisma.personReference.upsert({
+    await (client as typeof prisma).personReference.upsert({
       where: { email: normalised },
       create: {
         email: normalised,
         userId,
+        displayName: displayName ?? null,
         resolvedAt: new Date()
       },
       update: {
         userId,
+        displayName: displayName ?? undefined,
         resolvedAt: new Date()
       }
     });

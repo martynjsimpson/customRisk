@@ -223,7 +223,8 @@ End-user install:
 curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/docker-compose.yml
 curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/.env.example
 cp .env.example .env
-# Edit .env — set POSTGRES_PASSWORD, JWT secrets, CORS_ALLOWED_ORIGINS, SEED_ADMIN_PASSWORD
+# Edit .env — set POSTGRES_PASSWORD, CORS_ALLOWED_ORIGINS, and SEED_ADMIN_PASSWORD
+# JWT secrets are auto-generated on first start if left unset.
 docker compose up -d
 ```
 
@@ -493,8 +494,8 @@ Two environment template files must be committed to the repository: `.env.local.
 | `NODE_ENV` | Runtime environment | `production` / `development` |
 | `PORT` | Express listen port | `3000` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@db:5432/customrisk` |
-| `JWT_ACCESS_SECRET` | Secret for signing access JWTs | 256-bit random string |
-| `JWT_REFRESH_SECRET` | Secret for signing refresh JWTs, if JWTs are used for refresh | 256-bit random string |
+| `JWT_ACCESS_SECRET` | Access JWT signing secret. Optional in self-hosted deployments because it can be auto-generated on first start; set explicitly when running multiple app instances or rotating secrets. | 256-bit random string |
+| `JWT_REFRESH_SECRET` | Refresh JWT signing secret. Optional in self-hosted deployments because it can be auto-generated on first start; set explicitly when running multiple app instances or rotating secrets. | 256-bit random string |
 | `JWT_ACCESS_EXPIRY` | Access token expiry | `60m` |
 | `JWT_REFRESH_EXPIRY_DAYS` | Refresh token expiry in days | `30` |
 | `BCRYPT_COST_FACTOR` | bcrypt cost factor | `12` |

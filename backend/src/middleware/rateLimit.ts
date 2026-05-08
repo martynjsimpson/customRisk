@@ -8,8 +8,8 @@ export const loginRateLimit = rateLimit({
   max: getRateLimitMaxLogin(),
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (_request, response) => {
-    sendError(response, 429, "RATE_LIMITED", "Too many authentication attempts");
+  handler: (request, response) => {
+    sendError(response, 429, "RATE_LIMITED", "Too many authentication attempts", undefined, request.requestId);
   }
 });
 
@@ -18,7 +18,7 @@ export const refreshRateLimit = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (_request, response) => {
-    sendError(response, 429, "RATE_LIMITED", "Too many refresh attempts");
+  handler: (request, response) => {
+    sendError(response, 429, "RATE_LIMITED", "Too many refresh attempts", undefined, request.requestId);
   }
 });

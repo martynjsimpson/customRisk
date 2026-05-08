@@ -49,7 +49,7 @@ Ticket IDs use the format `PM{phase}-{number}` (e.g. `PM3-02`).
 | 11 | Reporting, Saved Views, and Dashboards | Planned | PM11-01 to PM11-08 | [phase-11-reporting.md](phases/phase-11-reporting.md) |
 | 12 | Attachments and Evidence | Planned | PM12-01 to PM12-06 | [phase-12-attachments.md](phases/phase-12-attachments.md) |
 | 13 | APIs, Webhooks, and Integration Admin | Planned | PM13-01 to PM13-07 | [phase-13-api-webhooks.md](phases/phase-13-api-webhooks.md) |
-| 14 | Operational Hardening, Accessibility, Scale, and Compliance | Planned | PM14-01 to PM14-09 | [phase-14-hardening.md](phases/phase-14-hardening.md) |
+| 14 | Operational Hardening, Accessibility, Scale, and Compliance | Planned (PM14-01, PM14-02 done) | PM14-01 to PM14-09 | [phase-14-hardening.md](phases/phase-14-hardening.md) |
 
 ---
 
@@ -94,7 +94,7 @@ The table below shows which phases can start independently once Phase 0 is compl
 - **Phase 10 (full import)** is more stable after Phases 5–7 are done to avoid column-mapping churn.
 - **Phase 11** requires Phase 5 field visibility to prevent reports from becoming an access-control bypass.
 - **Phase 13** should come after Phase 5 visibility and permission rules are mature for external consumers.
-- **Phase 14** observability work should begin before Phase 9, 10, and 13 background jobs reach production.
+- **Phase 14** observability groundwork is now in place through PM14-01 and PM14-02; extend the shared job instrumentation as Phase 9, 10, and 13 background jobs are implemented.
 
 ---
 

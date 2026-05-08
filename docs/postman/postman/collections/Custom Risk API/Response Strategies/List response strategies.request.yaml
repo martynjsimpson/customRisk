@@ -1,5 +1,0 @@
-$kind: http-request
-description: MVP exposes seeded response strategies only. Mutation routes are excluded from MVP.
-url: "{{baseUrl}}/api/v1/registers/{{registerId}}/response-strategies"
-method: GET
-order: 1000

@@ -14,6 +14,7 @@ export interface ApiErrorResponse {
     code: ApiErrorCode;
     message: string;
     fields?: ErrorFields;
+    requestId?: string;
   };
 }
 
@@ -32,11 +33,17 @@ export function sendError(
   statusCode: number,
   code: ApiErrorCode,
   message: string,
-  fields?: ErrorFields
+  fields?: ErrorFields,
+  requestId?: string
 ) {
-  const body: ApiErrorResponse = fields
-    ? { error: { code, message, fields } }
-    : { error: { code, message } };
+  const body: ApiErrorResponse = {
+    error: {
+      code,
+      message,
+      ...(fields ? { fields } : {}),
+      ...(requestId ? { requestId } : {})
+    }
+  };
 
   return response.status(statusCode).json(body);
 }

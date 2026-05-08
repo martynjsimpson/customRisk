@@ -13,6 +13,7 @@ import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import { recordAuditEvent } from "./audit.service.js";
 import { linkPersonReferenceToUser } from "./personReference.service.js";
+import { revokeRefreshToken } from "./sessionTokens.service.js";
 
 const FAILED_LOGIN_LIMIT = 5;
 const FAILED_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -271,14 +272,7 @@ export async function refreshSession(refreshToken: string): Promise<SessionResul
 
 export async function logout(userId: string, refreshToken?: string) {
   if (refreshToken) {
-    await prisma.refreshToken.updateMany({
-      where: {
-        userId,
-        tokenHash: hashRefreshToken(refreshToken),
-        revokedAt: null
-      },
-      data: { revokedAt: new Date() }
-    });
+    await revokeRefreshToken(userId, refreshToken);
   }
 
   const user = await prisma.user.findUnique({

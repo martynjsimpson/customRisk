@@ -1,6 +1,6 @@
 $kind: collection
 name: Custom Risk API
-description: Postman collection generated from Custom Risk — MVP API Route Map v1.0 (2026-05-04). Uses {{baseUrl}} and path-level variables such as {{registerId}}, {{riskId}}, {{userId}}, etc.
+description: Postman collection aligned to the current Custom Risk backend implementation, including observability, person search, self-service user routes, and register/risk management APIs. Uses {{baseUrl}} and path-level variables such as {{registerId}}, {{riskId}}, {{userId}}, etc.
 variables:
   baseUrl: http://localhost:3000
   accessToken: ""
@@ -17,6 +17,7 @@ variables:
   auditEventId: 00000000-0000-0000-0000-000000000000
   userName: ""
   password: ""
+  correlationId: support-case-001
 scripts:
   - type: http:beforeRequest
     code: // Collection-level pre-request script placeholder

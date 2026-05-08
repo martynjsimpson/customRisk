@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-05-08  
-**Applies to:** Custom Risk — all releases from v0.1.4 onwards  
+**Applies to:** Custom Risk — all releases from v0.1.4 onwards, including the stable `1.x` line  
 **Related documents:** Technical Architecture v1.0, release-process.md
 
 ---
@@ -36,8 +36,8 @@ The end-user install procedure is:
 curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/docker-compose.yml
 curl -LO https://github.com/martynjsimpson/customRisk/releases/latest/download/.env.example
 cp .env.example .env
-# Edit .env — set POSTGRES_PASSWORD, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET,
-#              CORS_ALLOWED_ORIGINS, and SEED_ADMIN_PASSWORD
+# Edit .env — set POSTGRES_PASSWORD, CORS_ALLOWED_ORIGINS,
+#              and SEED_ADMIN_PASSWORD
 docker compose up -d
 ```
 
@@ -66,7 +66,7 @@ No application code changes are required. The entrypoint migration step works id
 
 ### 2.4 `latest` image tag
 
-The release workflow now publishes a `latest` tag in addition to the semver tags (`0.1.4`, `0.1`). The release compose file defaults to `latest` when `CUSTOMRISK_VERSION` is not set in the operator's environment. Operators who want a pinned, immutable deployment should set `CUSTOMRISK_VERSION` to a specific semver tag in their `.env`.
+The release workflow now publishes a `latest` tag in addition to semver tags such as `1.0.0` and `1.0`. The release compose file defaults to `latest` when `CUSTOMRISK_VERSION` is not set in the operator's environment. Operators who want a pinned, immutable deployment should set `CUSTOMRISK_VERSION` to a specific semver tag in their `.env`.
 
 ---
 

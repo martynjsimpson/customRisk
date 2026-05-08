@@ -52,7 +52,9 @@ type RiskFormValues = {
 };
 
 function todayString() {
-  return new Date().toISOString().slice(0, 10);
+  const localDate = new Date();
+  localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
+  return localDate.toISOString().slice(0, 10);
 }
 
 function emptyValues(defaultState: RiskState): RiskFormValues {
@@ -268,6 +270,21 @@ export function RiskFormModal({
       return;
     }
 
+    if (editingRiskId) {
+      form.setValues(emptyValues(defaultState));
+      setCustomValues({});
+      return;
+    }
+
+    form.setValues(emptyValues(defaultState));
+    setCustomValues({});
+  }, [defaultState, editingRiskId, opened]);
+
+  useEffect(() => {
+    if (!opened) {
+      return;
+    }
+
     if (editingRiskId && selectedRiskQuery.data) {
       const risk = selectedRiskQuery.data;
       form.setValues({
@@ -299,11 +316,9 @@ export function RiskFormModal({
       return;
     }
 
-    if (!editingRiskId) {
-      form.setValues(emptyValues(defaultState));
-      setCustomValues({});
-    }
-  }, [defaultState, editingRiskId, opened, selectedRiskQuery.data]);
+  }, [editingRiskId, opened, selectedRiskQuery.data]);
+
+  const isEditingRiskLoading = Boolean(editingRiskId && selectedRiskQuery.isLoading && !selectedRiskQuery.data);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -329,27 +344,33 @@ export function RiskFormModal({
 
   return (
     <Modal opened={opened} onClose={onClose} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
-      <form onSubmit={form.onSubmit(() => saveMutation.mutate())}>
-        <Stack>
-          <ApiErrorAlert error={saveMutation.error} fallback="Unable to save risk" />
-          {orderedRiskFormFields.map((field) =>
-            field.kind === "core" ? (
-              renderCoreField({ fieldId: field.id, form, canManage, ownerOptions, formConfig })
-            ) : (
-              <CustomFieldInput
-                key={field.id}
-                field={field.field}
-                value={customValues[field.id]}
-                onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
-              />
-            )
-          )}
-          <Group justify="flex-end">
-            <Button variant="subtle" onClick={onClose}>Cancel</Button>
-            <Button type="submit" loading={saveMutation.isPending}>Save</Button>
-          </Group>
-        </Stack>
-      </form>
+      <Stack>
+        <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk" />
+        {isEditingRiskLoading ? <Loader /> : null}
+        {!isEditingRiskLoading && (!editingRiskId || selectedRiskQuery.data) ? (
+          <form onSubmit={form.onSubmit(() => saveMutation.mutate())}>
+            <Stack>
+              <ApiErrorAlert error={saveMutation.error} fallback="Unable to save risk" />
+              {orderedRiskFormFields.map((field) =>
+                field.kind === "core" ? (
+                  renderCoreField({ fieldId: field.id, form, canManage, ownerOptions, formConfig })
+                ) : (
+                  <CustomFieldInput
+                    key={field.id}
+                    field={field.field}
+                    value={customValues[field.id]}
+                    onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
+                  />
+                )
+              )}
+              <Group justify="flex-end">
+                <Button type="button" variant="subtle" onClick={onClose}>Cancel</Button>
+                <Button type="submit" loading={saveMutation.isPending}>Save</Button>
+              </Group>
+            </Stack>
+          </form>
+        ) : null}
+      </Stack>
     </Modal>
   );
 }

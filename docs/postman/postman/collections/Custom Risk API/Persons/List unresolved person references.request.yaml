@@ -1,0 +1,5 @@
+$kind: http-request
+description: System Admin only. Lists unresolved person references for data-quality review.
+url: "{{baseUrl}}/api/v1/persons/unresolved"
+method: GET
+order: 2000

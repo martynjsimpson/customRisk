@@ -1,4 +1,19 @@
 $kind: http-request
-url: "{{baseUrl}}/api/v1/lookups/registers"
+description: Uses the live registers endpoint with a smaller page size for picker-style lookups.
+url: "{{baseUrl}}/api/v1/registers"
 method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: pageSize
+    value: "10"
+  - key: search
+    value: security
+    disabled: true
+  - key: sortBy
+    value: name
+    disabled: true
+  - key: sortDir
+    value: asc
+    disabled: true
 order: 2000

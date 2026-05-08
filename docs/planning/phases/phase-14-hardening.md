@@ -30,7 +30,7 @@ Can run in parallel with all other phases. Observability work in particular shou
 
 ## PM14-01 — Observability Foundation
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Add structured operational metrics and health visibility.
 
@@ -50,9 +50,16 @@ Can run in parallel with all other phases. Observability work in particular shou
 - metrics do not expose secrets or business-sensitive field values;
 - failures are diagnosable without reading raw database records.
 
+**Implementation notes:**
+
+- Implemented via `GET /api/v1/metrics` plus expanded `GET /api/v1/health` uptime data.
+- HTTP request totals, error totals, and duration histograms are emitted using route templates rather than raw URLs.
+- Background job instrumentation scaffolding now exists through `runObservedJob(...)` for future notifications/import/webhook runners.
+- Dashboard and alerting guidance is documented in `docs/operations/observability.md`.
+
 ## PM14-02 — Distributed Tracing Readiness
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Prepare the app for tracing across API requests and background jobs.
 
@@ -70,6 +77,13 @@ Can run in parallel with all other phases. Observability work in particular shou
 - a request can be traced through logs and relevant audit metadata where useful;
 - correlation IDs do not become security tokens;
 - user-facing errors can be correlated with server logs.
+
+**Implementation notes:**
+
+- Request context middleware now issues `X-Request-Id`, preserves a safe `X-Correlation-Id`, and accepts W3C `traceparent` trace IDs where available.
+- Structured logs automatically include request/correlation/trace metadata via the shared logger mixin.
+- Standard API error responses now include `error.requestId` for support correlation without exposing stack traces.
+- Background job tracing can inherit correlation and trace context when using `runObservedJob(...)`.
 
 ## PM14-03 — Caching Strategy
 
