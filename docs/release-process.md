@@ -14,9 +14,9 @@
 | **Minor** | Backwards-compatible new features or enhancements |
 | **Major** | Breaking changes to the API contract, data model, or deployment model |
 
-The first MVP release is `v0.1.0`. Move to `v1.0.0` only when the API, data
-model, and deployment model are considered stable enough that breaking changes
-should be treated as major events.
+The current stable release line begins at `v1.0.0`. Future major versions should
+be reserved for breaking changes to the API contract, data model, or deployment
+model.
 
 ---
 
@@ -35,7 +35,7 @@ git checkout -b release/v<version>
 Update `version` in the root `package.json`:
 
 ```json
-{ "version": "0.1.0" }
+{ "version": "1.0.0" }
 ```
 
 Update the same version in `backend/package.json` and `frontend/package.json` and `shared/package.json`
@@ -59,7 +59,7 @@ In `CHANGELOG.md`:
 Push the release branch and open a pull request targeting `main`.
 
 ```sh
-git add package.json backend/package.json frontend/package.json CHANGELOG.md
+git add package.json backend/package.json frontend/package.json shared/package.json CHANGELOG.md
 git commit -m "chore: release v<version>"
 git push origin release/v<version>
 ```
@@ -90,8 +90,8 @@ Download the release assets and verify the full end-user install path:
 curl -LO https://github.com/martynjsimpson/customRisk/releases/download/<version>/docker-compose.yml
 curl -LO https://github.com/martynjsimpson/customRisk/releases/download/<version>/.env.example
 cp .env.example .env
-# Fill in POSTGRES_PASSWORD, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET,
-# CORS_ALLOWED_ORIGINS, and SEED_ADMIN_PASSWORD in .env
+# Fill in POSTGRES_PASSWORD, CORS_ALLOWED_ORIGINS,
+# and SEED_ADMIN_PASSWORD in .env
 docker compose up -d
 npm run smoke-test
 ```
@@ -104,8 +104,8 @@ The container entrypoint runs `prisma migrate deploy` automatically before start
 
 | Tag | Meaning |
 |---|---|
-| `0.1.0` | Exact version — immutable |
-| `0.1` | Major/minor release line |
+| `1.0.0` | Exact version — immutable |
+| `1.0` | Major/minor release line |
 | `sha-<shortsha>` | Build from a specific commit |
 | `main` | Latest build from `main` branch |
 | `latest` | Latest stable release image |

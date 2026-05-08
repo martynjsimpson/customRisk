@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { hashRefreshToken } from "../auth/refreshTokens.js";
 import { prisma } from "../db/prisma.js";

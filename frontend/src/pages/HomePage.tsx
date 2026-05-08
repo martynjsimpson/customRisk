@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 

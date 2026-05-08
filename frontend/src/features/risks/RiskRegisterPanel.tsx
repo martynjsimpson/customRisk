@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Checkbox, Group, Loader, Pagination, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Badge, Button, Group, Loader, Pagination, Stack, Table, Text, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -295,7 +295,6 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
       />
 
       <RiskDetailModal
-        register={register}
         registerId={register.id}
         riskId={detailRiskId}
         formConfig={formConfig}

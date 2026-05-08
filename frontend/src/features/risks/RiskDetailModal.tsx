@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getRisk, listRiskReviews, type RiskDetail, type RiskFormConfig } from "../../api/risks.api";
 import { listRiskAudit } from "../../api/audit.api";
-import type { RegisterRecord } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { AuditEventTable } from "../audit/AuditEventTable";
 import { CORE_RISK_FIELDS } from "./coreRiskFields";
@@ -56,7 +55,6 @@ function customDetailValue(field: RiskDetail["customFields"][number]): string {
 }
 
 interface RiskDetailModalProps {
-  register: RegisterRecord;
   registerId: string;
   riskId: string | null;
   formConfig: RiskFormConfig;
@@ -71,7 +69,6 @@ interface RiskDetailModalProps {
 }
 
 export function RiskDetailModal({
-  register,
   registerId,
   riskId,
   formConfig,

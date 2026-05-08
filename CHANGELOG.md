@@ -13,6 +13,21 @@ Version levels:
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- First stable `1.0.0` release line for Custom Risk, reflecting a self-hosted product with a stable deployment model, versioned release assets, and a documented upgrade path.
+
+### Changed
+
+- Package versions across the monorepo are aligned on `1.0.0`.
+- Release documentation now treats `1.0.0` as the current stable baseline rather than a future milestone.
+- Documentation and release assets now consistently describe the `1.x` stable release line, including the release process, self-hosted install path, and release asset usage.
+- The release compose asset now supports overriding `DATABASE_URL` directly for external PostgreSQL deployments, matching the documented operator workflow.
+
+---
+
 ## [0.1.5] - 2026-05-08
 
 ### Added

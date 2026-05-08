@@ -392,12 +392,12 @@ MVP XSS controls:
 
 ## 11. Secrets and Environment Configuration
 
-Required security-related environment variables:
+Security-related environment variables:
 
 | Variable | Purpose |
 |---|---|
-| `JWT_ACCESS_SECRET` | Access JWT signing secret. |
-| `JWT_REFRESH_SECRET` | Refresh JWT signing secret, if JWTs are used for refresh implementation details. |
+| `JWT_ACCESS_SECRET` | Access JWT signing secret. Optional in self-hosted deployments when using the release container, because it can be auto-generated on first start. |
+| `JWT_REFRESH_SECRET` | Refresh JWT signing secret. Optional in self-hosted deployments when using the release container, because it can be auto-generated on first start. |
 | `JWT_ACCESS_EXPIRY` | Access token expiry, default `60m`. |
 | `JWT_REFRESH_EXPIRY_DAYS` | Refresh token expiry, default `30`. |
 | `BCRYPT_COST_FACTOR` | Password hashing cost factor, default `12`. |

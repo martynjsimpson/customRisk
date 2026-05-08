@@ -1,4 +1,5 @@
-import { CustomFieldType, Prisma } from "@prisma/client";
+import type { CustomFieldType} from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
