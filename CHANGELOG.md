@@ -38,6 +38,7 @@ Version levels:
 ### Added (continued)
 
 - Favicon: the application now displays a Custom Risk favicon (blue rounded square with a white shield and "R" letterform) in browser tabs, bookmarks, pinned tabs, and iOS home screen shortcuts. Assets included: `favicon.ico` (16×16 and 32×32 ICO), `favicon-32x32.png`, `favicon-16x16.png`, `apple-touch-icon.png` (180×180), and `favicon.svg` (scalable, preferred by modern browsers). Source assets live in `frontend/public/`; `scripts/generate-favicon-ico.py` regenerates `favicon.ico` if the SVG is updated.
+- Environment and version label in the left navigation: the expanded sidebar now displays the current runtime environment alongside the application version in the format `[DEVELOPMENT v1.1.0]` or `[PRODUCTION v1.1.0]`. The environment value is sourced from `NODE_ENV` on the backend and exposed through the existing `/api/v1/auth/me` session endpoint — only the sanitised environment label (`development` or `production`) is sent to the client. The collapsed sidebar state is unaffected.
 
 ### Fixed
 

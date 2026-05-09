@@ -60,7 +60,7 @@ function NavItem({ to, label, icon, active, collapsed, onClick }: NavItemProps) 
 }
 
 export function MainLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, appEnvironment } = useAuth();
   const { isSystemAdmin, registerRoles } = usePermissions();
   const location = useLocation();
   const hasRegisterAccess = isSystemAdmin || registerRoles.length > 0;
@@ -153,7 +153,9 @@ export function MainLayout() {
           />
           {!collapsed && (
             <Text size="xs" c="dimmed" ta="center" py={4}>
-              v{packageJson.version}
+              {appEnvironment
+                ? `[${appEnvironment.toUpperCase()} v${packageJson.version}]`
+                : `v${packageJson.version}`}
             </Text>
           )}
         </Stack>

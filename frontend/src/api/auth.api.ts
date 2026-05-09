@@ -27,7 +27,12 @@ export async function logout() {
 
 export async function getCurrentUser() {
   const response = await apiClient.get<
-    ApiResponse<{ user: CurrentUser; permissions: CurrentPermissions; enabledFeatures: EnabledFeatures }>
+    ApiResponse<{
+      user: CurrentUser;
+      permissions: CurrentPermissions;
+      enabledFeatures: EnabledFeatures;
+      appEnvironment: "development" | "production";
+    }>
   >("/auth/me");
   return response.data.data;
 }
