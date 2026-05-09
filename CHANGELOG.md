@@ -15,18 +15,6 @@ Version levels:
 
 ## [Unreleased]
 
-### Added
-
-- First stable `1.0.0` release line for Custom Risk, reflecting a self-hosted product with a stable deployment model, versioned release assets, and a documented upgrade path.
-
-### Changed
-
-- Package versions across the monorepo are aligned on `1.0.0`.
-- Release documentation now treats `1.0.0` as the current stable baseline rather than a future milestone.
-- Documentation and release assets now consistently describe the `1.x` stable release line, including the release process, self-hosted install path, and release asset usage.
-- The release compose asset now supports overriding `DATABASE_URL` directly for external PostgreSQL deployments, matching the documented operator workflow.
-- Release downloads now publish the deployment environment template as `env.example` instead of `.env.example`, avoiding a broken GitHub release asset URL for end users.
-
 ---
 
 ## [1.1.0] - Unreleased
@@ -38,6 +26,22 @@ Version levels:
 ### Fixed
 
 - Typing in the Add field or Edit field modal would immediately delete each character as it was entered. The cause was Mantine's `useForm` returning a new object reference on every render, which caused the form-reset effect to re-fire on every keystroke and overwrite the input with the initial empty value.
+
+---
+
+## [1.0.0] - 2026-05-09
+
+### Added
+
+- First stable `1.0.0` release line for Custom Risk, reflecting a self-hosted product with a stable deployment model, versioned release assets, and a documented upgrade path.
+
+### Changed
+
+- Package versions across the monorepo are aligned on `1.0.0`.
+- Release documentation now treats `1.0.0` as the current stable baseline rather than a future milestone.
+- Documentation and release assets now consistently describe the `1.x` stable release line, including the release process, self-hosted install path, and release asset usage.
+- The release compose asset now supports overriding `DATABASE_URL` directly for external PostgreSQL deployments, matching the documented operator workflow.
+- Release downloads now publish the deployment environment template as `env.example` instead of `.env.example`, avoiding a broken GitHub release asset URL for end users.
 
 ---
 
@@ -143,8 +147,9 @@ Version levels:
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/martynjsimpson/customRisk/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...v1.0.0
 [0.1.5]: https://github.com/martynjsimpson/customRisk/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/martynjsimpson/customRisk/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/martynjsimpson/customRisk/compare/v0.1.2...v0.1.3
