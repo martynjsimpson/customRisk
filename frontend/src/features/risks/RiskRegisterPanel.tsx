@@ -8,6 +8,7 @@ import {
   getRisk,
   getRiskFormConfig,
   listRisks,
+  type RiskListItem,
   type RiskListQuery
 } from "../../api/risks.api";
 import type { RegisterRecord } from "../../api/registers.api";
@@ -21,9 +22,55 @@ import { RiskFilters } from "./RiskFilters";
 import { RiskFormModal } from "./RiskFormModal";
 import { DeleteRiskModal } from "./DeleteRiskModal";
 import { ReviewModal } from "./ReviewModal";
+import { ColumnPicker } from "./ColumnPicker";
+import type { ColumnGroup, PickerColumn } from "./ColumnPicker";
+import {
+  REGISTER_TABLE_CORE_COLUMNS,
+  customRegisterColumnKey,
+  getRegisterColumnDisplayOrder,
+  renderCustomFieldValue,
+  sortColumnsByDisplayOrder,
+} from "./riskTableColumns";
+import { useRegisterTableColumns, filterValidRegisterColumns } from "./useRiskTableColumns";
 
 interface RiskRegisterPanelProps {
   register: RegisterRecord;
+}
+
+function RiskTableCell({ risk, columnKey }: { risk: RiskListItem; columnKey: string }) {
+  switch (columnKey) {
+    case "riskId":
+      return null; // handled in the row directly (needs anchor)
+    case "title":
+      return <Table.Td>{risk.title}</Table.Td>;
+    case "state":
+      return <Table.Td><Badge>{risk.state}</Badge></Table.Td>;
+    case "owner":
+      return <Table.Td>{risk.owner.name}</Table.Td>;
+    case "likelihood":
+      return <Table.Td>{risk.likelihood.name}</Table.Td>;
+    case "impact":
+      return <Table.Td>{risk.impact.name}</Table.Td>;
+    case "score":
+      return <Table.Td>{risk.riskScore}</Table.Td>;
+    case "level":
+      return <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>;
+    case "response":
+      return <Table.Td>{risk.responseStrategy.name}</Table.Td>;
+    case "nextReview":
+      return <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>;
+    case "reviewStatus":
+      return <Table.Td><ReviewStatusBadge status={risk.reviewStatus} /></Table.Td>;
+    default: {
+      // custom field column: "custom:<fieldId>"
+      if (columnKey.startsWith("custom:")) {
+        const fieldId = columnKey.slice(7);
+        const cfv = risk.customFieldValues.find((v) => v.customFieldDefinitionId === fieldId);
+        return <Table.Td>{renderCustomFieldValue(cfv)}</Table.Td>;
+      }
+      return null;
+    }
+  }
 }
 
 export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
@@ -64,6 +111,54 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     [detailRiskId, riskQuery.data?.data]
   );
   const canEditSelectedRisk = Boolean(canManage || (user && selectedRisk?.owner.id === user.id));
+
+  const activeCustomFields = useMemo(
+    () => (formConfigQuery.data?.customFields ?? []).filter((f) => f.isActive),
+    [formConfigQuery.data]
+  );
+
+  const activeCustomFieldIds = useMemo(
+    () => new Set(activeCustomFields.map((f) => f.id)),
+    [activeCustomFields]
+  );
+
+  const { visibleColumns: rawVisibleColumns, setColumns } = useRegisterTableColumns(register.id);
+
+  const visibleColumns = useMemo(() => {
+    const valid = filterValidRegisterColumns(rawVisibleColumns, activeCustomFieldIds);
+    return sortColumnsByDisplayOrder(
+      valid,
+      (key) => getRegisterColumnDisplayOrder(key, REGISTER_TABLE_CORE_COLUMNS, activeCustomFields)
+    );
+  }, [rawVisibleColumns, activeCustomFieldIds, activeCustomFields]);
+
+  const columnPickerGroups = useMemo<ColumnGroup[]>(() => {
+    const corePickerColumns: PickerColumn[] = REGISTER_TABLE_CORE_COLUMNS.map((c) => ({
+      key: c.key,
+      label: c.label,
+    }));
+    const groups: ColumnGroup[] = [{ columns: corePickerColumns }];
+    if (activeCustomFields.length > 0) {
+      groups.push({
+        label: "Custom Fields",
+        columns: activeCustomFields.map((f) => ({
+          key: customRegisterColumnKey(f.id),
+          label: f.fieldName,
+        })),
+      });
+    }
+    return groups;
+  }, [activeCustomFields]);
+
+  const columnHeader = (key: string): string => {
+    const core = REGISTER_TABLE_CORE_COLUMNS.find((c) => c.key === key);
+    if (core) return core.label;
+    if (key.startsWith("custom:")) {
+      const fieldId = key.slice(7);
+      return activeCustomFields.find((f) => f.id === fieldId)?.fieldName ?? key;
+    }
+    return key;
+  };
 
   const invalidateRisks = async () => {
     await Promise.all([
@@ -187,11 +282,20 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
 
   const formConfig = formConfigQuery.data!;
 
+  // Columns other than riskId and the actions column
+  const dataColumns = visibleColumns.filter((k) => k !== "riskId");
+  const showRiskId = visibleColumns.includes("riskId");
+
   return (
     <Stack>
       <Group justify="space-between">
         <Title order={2}>Risks</Title>
         <Group>
+          <ColumnPicker
+            groups={columnPickerGroups}
+            visibleColumns={visibleColumns}
+            onChange={setColumns}
+          />
           {canExport ? (
             <Button variant="light" onClick={() => exportMutation.mutate()} loading={exportMutation.isPending}>
               Export CSV
@@ -214,42 +318,30 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
 
       <ApiErrorAlert error={riskQuery.error} fallback="Unable to load risks" />
       {riskQuery.isLoading ? <Loader /> : null}
-      <Table.ScrollContainer minWidth={1080}>
+      <Table.ScrollContainer minWidth={600}>
         <Table>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Risk ID</Table.Th>
-              <Table.Th>Title</Table.Th>
-              <Table.Th>State</Table.Th>
-              <Table.Th>Owner</Table.Th>
-              <Table.Th>Likelihood</Table.Th>
-              <Table.Th>Impact</Table.Th>
-              <Table.Th>Score</Table.Th>
-              <Table.Th>Level</Table.Th>
-              <Table.Th>Response</Table.Th>
-              <Table.Th>Next review</Table.Th>
-              <Table.Th>Review</Table.Th>
+              {showRiskId ? <Table.Th>Risk ID</Table.Th> : null}
+              {dataColumns.map((key) => (
+                <Table.Th key={key}>{columnHeader(key)}</Table.Th>
+              ))}
               <Table.Th />
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {(riskQuery.data?.data ?? []).map((risk) => (
               <Table.Tr key={risk.id}>
-                <Table.Td>
-                  <Anchor component={Link} to={`?riskId=${risk.id}`} fw={600} onClick={() => openDetail(risk.id)}>
-                    {risk.displayRiskId}
-                  </Anchor>
-                </Table.Td>
-                <Table.Td>{risk.title}</Table.Td>
-                <Table.Td><Badge>{risk.state}</Badge></Table.Td>
-                <Table.Td>{risk.owner.name}</Table.Td>
-                <Table.Td>{risk.likelihood.name}</Table.Td>
-                <Table.Td>{risk.impact.name}</Table.Td>
-                <Table.Td>{risk.riskScore}</Table.Td>
-                <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>
-                <Table.Td>{risk.responseStrategy.name}</Table.Td>
-                <Table.Td>{risk.nextReviewDate ?? ""}</Table.Td>
-                <Table.Td><ReviewStatusBadge status={risk.reviewStatus} /></Table.Td>
+                {showRiskId ? (
+                  <Table.Td>
+                    <Anchor component={Link} to={`?riskId=${risk.id}`} fw={600} onClick={() => openDetail(risk.id)}>
+                      {risk.displayRiskId}
+                    </Anchor>
+                  </Table.Td>
+                ) : null}
+                {dataColumns.map((key) => (
+                  <RiskTableCell key={key} risk={risk} columnKey={key} />
+                ))}
                 <Table.Td>
                   <Group justify="flex-end" gap="xs" wrap="nowrap">
                     {(canManage || (canEditOwnedRows && risk.owner.id === user?.id)) && register.reviewsEnabled ? (
@@ -269,7 +361,9 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
             ))}
             {riskQuery.data?.data.length === 0 ? (
               <Table.Tr>
-                <Table.Td colSpan={12}><Text c="dimmed">No risks match the current filters.</Text></Table.Td>
+                <Table.Td colSpan={visibleColumns.length + 1}>
+                  <Text c="dimmed">No risks match the current filters.</Text>
+                </Table.Td>
               </Table.Tr>
             ) : null}
           </Table.Tbody>

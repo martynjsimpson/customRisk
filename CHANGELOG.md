@@ -21,6 +21,11 @@ Version levels:
 
 ### Added
 
+- Per-user column selection on the Risk Register table and My Risks page. A Columns button opens a popover with checkboxes for every available column. Column visibility is saved to the user's server-side preferences and restored across devices and sessions. Each register maintains its own column set; My Risks has a separate scope. Custom fields appear as selectable columns grouped under a "Custom Fields" section (register table) or grouped by register name (My Risks). Disabled or deleted custom fields are silently omitted; cross-register custom fields show `—` for risks where the field does not apply. Action columns (Review, Edit, Delete) are always present and not hideable.
+- Columns are rendered in canonical display order: core fields follow the application's field configuration order; custom fields are interleaved according to their `displayOrder` setting in the register's field configuration. The saved column list is a membership set — display order is always recomputed from configuration on render, not from the order in preferences.
+
+### Added
+
 - Audit event detail expansion: every audit table (Register Audit, system Audit page, dashboard Recent Audit Activity widget) now shows a chevron on rows that carry detail data. Clicking a row expands an inline JSON view of `metadataJson` and `fieldChanges` for that event.
 - Register column on the system Audit page and dashboard Recent Audit Activity widget, showing which register each event belongs to. System-level events (login, user management) show `—`.
 - `register_display_name` column on `audit_event`: the register's human-readable name is now captured at write time for all register- and risk-scoped audit events. The value is resolved automatically inside `recordAuditEvent` when not supplied by the caller, requiring no changes to existing audit call sites.

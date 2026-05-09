@@ -19,8 +19,14 @@ export interface CurrentPermissions {
   }>;
 }
 
+export interface RiskTableColumnPreferences {
+  registers?: Record<string, string[]>;
+  myRisks?: string[];
+}
+
 export interface UserPreferences {
   colorScheme?: "light" | "dark" | "auto";
+  riskTableColumns?: RiskTableColumnPreferences;
 }
 
 export interface EnabledFeatures {

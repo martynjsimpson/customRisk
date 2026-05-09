@@ -39,6 +39,21 @@ export interface RiskOption {
   displayOrder?: number;
 }
 
+export interface RiskListCustomFieldValue {
+  customFieldDefinitionId: string;
+  fieldName: string;
+  fieldType: CustomFieldType;
+  displayOrder: number;
+  isActive: boolean;
+  textValue: string | null;
+  numberValue: number | null;
+  booleanValue: boolean | null;
+  dateValue: string | null;
+  personUser: { id: string; name: string; email: string } | null;
+  person: { displayName: string } | null;
+  dropdownOption: { id: string; label: string } | null;
+}
+
 export interface RiskListItem {
   id: string;
   displayRiskId: string;
@@ -54,6 +69,7 @@ export interface RiskListItem {
   reviewStatus: ReviewStatus;
   isOverdue: boolean;
   systemUpdatedAt: string;
+  customFieldValues: RiskListCustomFieldValue[];
 }
 
 export interface CustomFieldDefinition {
