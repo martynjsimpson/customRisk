@@ -15,6 +15,22 @@ Version levels:
 
 ## [Unreleased]
 
+---
+
+## [1.1.0] - Unreleased
+
+### Changed
+
+- Field configuration screen now uses drag-and-drop to reorder custom fields. Each custom field row has a grip handle; dragging it repositions the field relative to both core fields (which act as fixed anchors) and other custom fields. The numeric display-order input has been removed from the add and edit field modals — order is managed exclusively through drag-and-drop.
+
+### Fixed
+
+- Typing in the Add field or Edit field modal would immediately delete each character as it was entered. The cause was Mantine's `useForm` returning a new object reference on every render, which caused the form-reset effect to re-fire on every keystroke and overwrite the input with the initial empty value.
+
+---
+
+## [1.0.0] - 2026-05-09
+
 ### Added
 
 - First stable `1.0.0` release line for Custom Risk, reflecting a self-hosted product with a stable deployment model, versioned release assets, and a documented upgrade path.
@@ -131,7 +147,9 @@ Version levels:
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/martynjsimpson/customRisk/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...v1.0.0
 [0.1.5]: https://github.com/martynjsimpson/customRisk/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/martynjsimpson/customRisk/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/martynjsimpson/customRisk/compare/v0.1.2...v0.1.3
