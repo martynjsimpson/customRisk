@@ -17,18 +17,20 @@ Version levels:
 
 ---
 
-## [1.1.0] - Unreleased
+## [1.1.0] - 2026-05-09
 
 ### Added
 
 - Per-user column selection on the Risk Register table and My Risks page. A Columns button opens a popover with checkboxes for every available column. Column visibility is saved to the user's server-side preferences and restored across devices and sessions. Each register maintains its own column set; My Risks has a separate scope. Custom fields appear as selectable columns grouped under a "Custom Fields" section (register table) or grouped by register name (My Risks). Disabled or deleted custom fields are silently omitted; cross-register custom fields show `—` for risks where the field does not apply. Action columns (Review, Edit, Delete) are always present and not hideable.
 - Columns are rendered in canonical display order: core fields follow the application's field configuration order; custom fields are interleaved according to their `displayOrder` setting in the register's field configuration. The saved column list is a membership set — display order is always recomputed from configuration on render, not from the order in preferences.
-
-### Added
-
 - Audit event detail expansion: every audit table (Register Audit, system Audit page, dashboard Recent Audit Activity widget) now shows a chevron on rows that carry detail data. Clicking a row expands an inline JSON view of `metadataJson` and `fieldChanges` for that event.
 - Register column on the system Audit page and dashboard Recent Audit Activity widget, showing which register each event belongs to. System-level events (login, user management) show `—`.
 - `register_display_name` column on `audit_event`: the register's human-readable name is now captured at write time for all register- and risk-scoped audit events. The value is resolved automatically inside `recordAuditEvent` when not supplied by the caller, requiring no changes to existing audit call sites.
+- `RISK_CREATED` audit events now include the risk's display ID and title in the summary (e.g. `Risk ISEC-0001 created: Security Misconfiguration`) and capture the full initial risk state in `metadataJson` (title, state, owner, likelihood, impact, risk score, risk level, response strategy, response action, created date, and next review date). The row is now expandable in all three audit views.
+- Risk review audit events now produce a single `RISK_REVIEWED` event whose summary reads `Risk ISEC-0001 reviewed`, replacing the separate `NEXT_REVIEW_DATE_UPDATED` event that was previously emitted alongside it. The previous and new next-review date values are preserved as field-change detail on the same event, visible on row expansion. `NEXT_REVIEW_DATE_UPDATED` is retained as the action for any standalone next-review-date edits outside the review workflow.
+- The system Audit page and Register Audit panel now include a filter bar with: a free-text Search input (matches across event summary, object name, and display risk ID), an Actor input (matches name or email), a date range (From / To), an Action select (all 37 actions organised by group), and an Object type select. Filters are applied as AND conditions; changing any filter resets pagination to page 1. The dashboard Recent Audit Activity widget is intentionally unfiltered.
+- Favicon: the application now displays a Custom Risk favicon (blue rounded square with a white shield and "R" letterform) in browser tabs, bookmarks, pinned tabs, and iOS home screen shortcuts. Assets included: `favicon.ico` (16×16 and 32×32 ICO), `favicon-32x32.png`, `favicon-16x16.png`, `apple-touch-icon.png` (180×180), and `favicon.svg` (scalable, preferred by modern browsers). Source assets live in `frontend/public/`; `scripts/generate-favicon-ico.py` regenerates `favicon.ico` if the SVG is updated.
+- Environment and version label in the left navigation: the expanded sidebar now displays the current runtime environment alongside the application version in the format `[DEVELOPMENT v1.1.0]` or `[PRODUCTION v1.1.0]`. The environment value is sourced from `NODE_ENV` on the backend and exposed through the existing `/api/v1/auth/me` session endpoint — only the sanitised environment label (`development` or `production`) is sent to the client. The collapsed sidebar state is unaffected.
 
 ### Changed
 
@@ -39,14 +41,6 @@ Version levels:
 - Custom field creation audit events now capture all field properties in `metadataJson` (`fieldName`, `fieldType`, `helpText`, `isRequired`, `isActive`, `displayOrder`), up from the previous three (`fieldType`, `isRequired`, `isActive`).
 - Dropdown option creation audit events now capture `label` and `displayOrder` in `metadataJson` alongside the existing parent field reference.
 - Dashboard Recent Audit Activity widget now uses the shared `AuditEventTable` component, giving it consistent column layout, expand-on-click behaviour, and the Register column.
-
-### Added (continued)
-
-- Favicon: the application now displays a Custom Risk favicon (blue rounded square with a white shield and "R" letterform) in browser tabs, bookmarks, pinned tabs, and iOS home screen shortcuts. Assets included: `favicon.ico` (16×16 and 32×32 ICO), `favicon-32x32.png`, `favicon-16x16.png`, `apple-touch-icon.png` (180×180), and `favicon.svg` (scalable, preferred by modern browsers). Source assets live in `frontend/public/`; `scripts/generate-favicon-ico.py` regenerates `favicon.ico` if the SVG is updated.
-- Environment and version label in the left navigation: the expanded sidebar now displays the current runtime environment alongside the application version in the format `[DEVELOPMENT v1.1.0]` or `[PRODUCTION v1.1.0]`. The environment value is sourced from `NODE_ENV` on the backend and exposed through the existing `/api/v1/auth/me` session endpoint — only the sanitised environment label (`development` or `production`) is sent to the client. The collapsed sidebar state is unaffected.
-- `RISK_CREATED` audit events now include the risk's display ID and title in the summary (e.g. `Risk ISEC-0001 created: Security Misconfiguration`) and capture the full initial risk state in `metadataJson` (title, state, owner, likelihood, impact, risk score, risk level, response strategy, response action, created date, and next review date). The row is now expandable in all three audit views.
-- Risk review audit events now produce a single `RISK_REVIEWED` event whose summary reads `Risk ISEC-0001 reviewed`, replacing the separate `NEXT_REVIEW_DATE_UPDATED` event that was previously emitted alongside it. The previous and new next-review date values are preserved as field-change detail on the same event, visible on row expansion. `NEXT_REVIEW_DATE_UPDATED` is retained as the action for any standalone next-review-date edits outside the review workflow.
-- The system Audit page and Register Audit panel now include a filter bar with: a free-text Search input (matches across event summary, object name, and display risk ID), an Actor input (matches name or email), a date range (From / To), an Action select (all 37 actions organised by group), and an Object type select. Filters are applied as AND conditions; changing any filter resets pagination to page 1. The dashboard Recent Audit Activity widget is intentionally unfiltered.
 
 ### Fixed
 

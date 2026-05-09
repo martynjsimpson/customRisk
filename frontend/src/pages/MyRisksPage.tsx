@@ -134,7 +134,7 @@ export function MyRisksPage() {
   const { isSystemAdmin } = usePermissions();
   const risksQuery = useQuery({ queryKey: ["dashboard", "my-risks"], queryFn: getMyRisks });
 
-  const risks = risksQuery.data ?? [];
+  const risks = useMemo(() => risksQuery.data ?? [], [risksQuery.data]);
 
   const availableCustomFields = useMemo(() => buildAvailableCustomFields(risks), [risks]);
   const availableCustomFieldKeys = useMemo(
