@@ -5,6 +5,7 @@ import {
   IconHome,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
+  IconLogout,
   IconShield,
   IconUser,
   IconUsers
@@ -85,9 +86,6 @@ export function MainLayout() {
             >
               {user?.name}
             </Button>
-            <Button variant="light" onClick={() => void logout()}>
-              Logout
-            </Button>
           </Group>
         </Group>
       </AppShell.Header>
@@ -144,6 +142,14 @@ export function MainLayout() {
             active={false}
             collapsed={collapsed}
             onClick={(e) => { e.preventDefault(); setCollapsed((c) => !c); }}
+          />
+          <NavItem
+            to="#"
+            label="Logout"
+            icon={<IconLogout size={18} />}
+            active={false}
+            collapsed={collapsed}
+            onClick={(e) => { e.preventDefault(); void logout(); }}
           />
           {!collapsed && (
             <Text size="xs" c="dimmed" ta="center" py={4}>
