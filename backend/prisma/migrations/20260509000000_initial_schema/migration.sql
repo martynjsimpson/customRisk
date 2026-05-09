@@ -1,6 +1,3 @@
--- Enable UUID generation via gen_random_uuid().
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 -- CreateEnum
 CREATE TYPE "RegisterPermissionRole" AS ENUM ('REGISTER_ADMIN', 'REGISTER_VIEWER');
 
@@ -23,6 +20,18 @@ CREATE TYPE "AuditValueType" AS ENUM ('TEXT', 'NUMBER', 'BOOLEAN', 'DATE', 'JSON
 CREATE TYPE "ExportJobStatus" AS ENUM ('REQUESTED', 'COMPLETED', 'FAILED');
 
 -- CreateTable
+CREATE TABLE "person_reference" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "email" TEXT NOT NULL,
+    "user_id" UUID,
+    "display_name" TEXT,
+    "resolved_at" TIMESTAMPTZ(6),
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "person_reference_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "user" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" TEXT NOT NULL,
@@ -30,6 +39,7 @@ CREATE TABLE "user" (
     "password_hash" TEXT NOT NULL,
     "is_system_admin" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "preferences" JSONB,
     "failed_login_attempts" INTEGER NOT NULL DEFAULT 0,
     "last_failed_login_at" TIMESTAMPTZ(6),
     "locked_until" TIMESTAMPTZ(6),
@@ -117,6 +127,7 @@ CREATE TABLE "risk" (
     "description" TEXT NOT NULL,
     "state" "RiskState" NOT NULL DEFAULT 'DRAFT',
     "owner_user_id" UUID NOT NULL,
+    "owner_person_id" UUID,
     "created_date" DATE NOT NULL,
     "likelihood_value_id" UUID NOT NULL,
     "impact_value_id" UUID NOT NULL,
@@ -184,6 +195,7 @@ CREATE TABLE "risk_level" (
     "register_id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
+    "color" TEXT,
     "display_order" INTEGER NOT NULL,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -261,6 +273,7 @@ CREATE TABLE "risk_custom_field_value" (
     "date_value" DATE,
     "person_user_id" UUID,
     "person_email" TEXT,
+    "person_id" UUID,
     "dropdown_option_id" UUID,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
@@ -332,6 +345,15 @@ CREATE TABLE "export_job" (
 
     CONSTRAINT "export_job_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "person_reference_email_key" ON "person_reference"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "person_reference_user_id_key" ON "person_reference"("user_id");
+
+-- CreateIndex
+CREATE INDEX "person_reference_user_id_idx" ON "person_reference"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
@@ -493,6 +515,9 @@ CREATE INDEX "risk_custom_field_value_dropdown_option_id_idx" ON "risk_custom_fi
 CREATE INDEX "risk_custom_field_value_person_user_id_idx" ON "risk_custom_field_value"("person_user_id");
 
 -- CreateIndex
+CREATE INDEX "risk_custom_field_value_person_id_idx" ON "risk_custom_field_value"("person_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "risk_custom_field_value_risk_id_custom_field_definition_id_key" ON "risk_custom_field_value"("risk_id", "custom_field_definition_id");
 
 -- CreateIndex
@@ -544,6 +569,9 @@ CREATE INDEX "export_job_requested_by_user_id_requested_at_idx" ON "export_job"(
 CREATE INDEX "export_job_status_idx" ON "export_job"("status");
 
 -- AddForeignKey
+ALTER TABLE "person_reference" ADD CONSTRAINT "person_reference_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "user" ADD CONSTRAINT "user_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -581,6 +609,9 @@ ALTER TABLE "risk" ADD CONSTRAINT "risk_register_id_fkey" FOREIGN KEY ("register
 
 -- AddForeignKey
 ALTER TABLE "risk" ADD CONSTRAINT "risk_owner_user_id_fkey" FOREIGN KEY ("owner_user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "risk" ADD CONSTRAINT "risk_owner_person_id_fkey" FOREIGN KEY ("owner_person_id") REFERENCES "person_reference"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "risk" ADD CONSTRAINT "risk_likelihood_value_id_fkey" FOREIGN KEY ("likelihood_value_id") REFERENCES "likelihood_value"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -661,6 +692,9 @@ ALTER TABLE "risk_custom_field_value" ADD CONSTRAINT "risk_custom_field_value_cu
 ALTER TABLE "risk_custom_field_value" ADD CONSTRAINT "risk_custom_field_value_person_user_id_fkey" FOREIGN KEY ("person_user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "risk_custom_field_value" ADD CONSTRAINT "risk_custom_field_value_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "person_reference"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "risk_custom_field_value" ADD CONSTRAINT "risk_custom_field_value_dropdown_option_id_fkey" FOREIGN KEY ("dropdown_option_id") REFERENCES "custom_field_option"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -686,3 +720,4 @@ ALTER TABLE "export_job" ADD CONSTRAINT "export_job_register_id_fkey" FOREIGN KE
 
 -- AddForeignKey
 ALTER TABLE "export_job" ADD CONSTRAINT "export_job_requested_by_user_id_fkey" FOREIGN KEY ("requested_by_user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
