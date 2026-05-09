@@ -4,7 +4,7 @@
 **Date:** 2026-05-07  
 **Status:** Active  
 **Applies to:** Post-MVP implementation after completion of MVP backlog (v0.1.2)  
-**Related documents:** PRD v3.2, MVP Scope v1.2, Technical Architecture v1.0, API Route Map v1.0, Permission Model v1.0, Audit Model v1.0, Security Model v1.0
+**Related documents:** PRD v3.2, Technical Architecture v1.1, API Standards v1.0, Permission Model v1.1, Audit Model v1.1, Security Model v1.1, Postman Collection
 
 ---
 
@@ -35,7 +35,7 @@ Ticket IDs use the format `PM{phase}-{number}` (e.g. `PM3-02`).
 
 | Phase | Theme | Status | Tickets | File |
 |---:|---|---|---|---|
-| 0 | Post-MVP Baseline and Design Controls | Done | PM0-01 to PM0-05 | [phase-00-baseline.md](phases/phase-00-baseline.md) |
+| 0 | Post-MVP Baseline and Design Controls | Done | PM0-01 to PM0-05 | [PM0-01](PM0-01-scope-baseline.md), [PM0-02](PM0-02-data-model-extension.md), [PM0-03](PM0-03-api-versioning-compatibility.md), [PM0-04](PM0-04-audit-permission-extension.md), [PM0-05](PM0-05-feature-flag-migration-toggles.md) |
 | 1 | User Experience, Profile, and Preferences | Done | PM1-01 to PM1-05 | [phase-01-profile-preferences.md](phases/phase-01-profile-preferences.md) |
 | 2 | Person Identity Expansion | Done | PM2-01 to PM2-05 | [phase-02-person-identity.md](phases/phase-02-person-identity.md) |
 | 3 | Enterprise Authentication and Account Recovery | Planned | PM3-01 to PM3-08 | [phase-03-enterprise-auth.md](phases/phase-03-enterprise-auth.md) |

@@ -1,51 +1,65 @@
-# Custom Risk — MVP Permission Model
+# Custom Risk Permission Model
 
-**Version:** 1.0  
-**Date:** 2026-05-04  
-**Status:** Draft  
-**Applies to:** MVP delivery  
-**Related documents:** PRD v3.2, MVP Scope v1.2, MVP Functional Specification v1.2, MVP Data Model v1.2, Technical Architecture v1.0, API Route Map v1.0
+**Version:** 1.1  
+**Date:** 2026-05-09  
+**Status:** Active  
+**Applies to:** Current and future permission enforcement  
+**Related documents:** Technical Architecture v1.1, API Standards v1.0, Audit Model v1.1, Security Model v1.1, PM0-04 Audit and Permission Extension Plan
 
 ---
 
 ## 1. Purpose
 
-This document defines the permission model for the Custom Risk MVP.
+This document defines the durable permission model for Custom Risk.
 
-It is the implementation reference for how the backend, frontend, and database model should interpret roles, register assignments, risk ownership, export access, configuration access, and audit visibility.
+It is the source of truth for:
 
-The model is intentionally limited to MVP scope. Product-level exclusions are authoritative in `docs/product/MVP_Scope.md`; permission-specific deferrals are listed in section 14.
+- permission principles;
+- permission sources;
+- effective access rules;
+- field-level edit restrictions;
+- permission-management rules;
+- backend enforcement expectations;
+- frontend permission-shaping expectations.
+
+It is not the route inventory or the canonical schema definition.
 
 ---
 
-## 2. Permission Principles
+## 2. Document Ownership Split
+
+- Use this document for permission behavior and enforcement rules.
+- Use `backend/prisma/schema.prisma` as the canonical physical schema.
+- Use `docs/postman/` for currently implemented endpoints.
+- Use `docs/planning/PM0-04-audit-permission-extension.md` for post-MVP permission subjects and later-phase extensions.
+
+---
+
+## 3. Permission Principles
 
 1. **Permissions are additive.**  
-   A user receives the highest effective access available from all permission sources.
+   A user receives the highest effective access available from all applicable permission sources.
 
 2. **Backend enforcement is authoritative.**  
-   The frontend may hide unavailable UI actions, but every protected API route and service operation must enforce permissions on the server.
+   The frontend may hide or disable UI, but every protected route and service operation must enforce permissions on the server.
 
 3. **Register scope is the main boundary.**  
-   Most MVP permissions are evaluated for a specific register.
+   Most access decisions are evaluated for a specific register.
 
-4. **Risk ownership is derived, not assigned separately.**  
-   A user becomes a Risk Owner for a risk when `risk.owner_user_id` references that user.
+4. **Ownership-derived access is real but limited.**  
+   Risk ownership grants access to the owned risk and container-level register visibility, but it does not grant full register-wide access.
 
-5. **Configuration access is administrative.**  
-   Only System Admins and Register Admins can manage register configuration.
+5. **Permission changes take effect immediately.**  
+   Access must be evaluated from current database state, not from long-lived cached claims.
 
-6. **Permission changes take effect immediately.**  
-   Access must be evaluated from current database state, not from long-lived cached permission claims.
-
-7. **Do not reveal hidden resources.**  
-   Where exposing existence would be inappropriate, return `404 NOT_FOUND` for inaccessible resources.
+6. **Do not reveal hidden resources.**  
+   Where exposing existence would be inappropriate, return `404 NOT_FOUND` instead of confirming the resource exists.
 
 ---
 
-## 3. Permission Sources
+## 4. Permission Sources
 
-## 3.1 System Admin
+### 4.1 System Admin
 
 System Admin is stored on the user record:
 
@@ -53,23 +67,10 @@ System Admin is stored on the user record:
 user.is_system_admin
 ```
 
-A System Admin can access all MVP functionality unless a route is explicitly public or unauthenticated.
+System Admins have global access to application functionality unless a route is
+explicitly public or unauthenticated.
 
-System Admins can:
-
-- manage users;
-- grant and remove System Admin rights;
-- create registers;
-- manage all registers;
-- manage all register permissions;
-- configure all registers;
-- create, edit, review, export, and hard delete risks;
-- view system, register, and risk audit logs;
-- access deleted-risk snapshots.
-
-System Admin rights are not stored in `register_permission`.
-
-## 3.2 Register Admin
+### 4.2 Register Admin
 
 Register Admin is stored as a register permission row:
 
@@ -77,28 +78,9 @@ Register Admin is stored as a register permission row:
 register_permission.role = REGISTER_ADMIN
 ```
 
-A Register Admin can manage the specific register they are assigned to.
+Register Admins can manage the specific register they are assigned to.
 
-Register Admins can:
-
-- view the register;
-- update register settings;
-- manage register permissions, except System Admin rights;
-- configure custom fields;
-- configure likelihood, impact, risk levels, matrix cells, and response strategies;
-- create and edit risks in the register;
-- review risks in the register;
-- export register risk data;
-- view register and risk audit logs for the register.
-
-Register Admins cannot:
-
-- create registers in the MVP;
-- manage system users except by assigning existing users to register permissions;
-- grant or remove System Admin rights;
-- access registers where they have no permission.
-
-## 3.3 Register Viewer
+### 4.3 Register Viewer
 
 Register Viewer is stored as a register permission row:
 
@@ -106,23 +88,10 @@ Register Viewer is stored as a register permission row:
 register_permission.role = REGISTER_VIEWER
 ```
 
-A Register Viewer has read-only access to a specific register.
+Register Viewers have read-only access to the assigned register, with export
+access only when the register-level viewer-export flag allows it.
 
-Register Viewers can:
-
-- view the register;
-- view risks in the register;
-- filter, sort, search, and open risk records;
-- export register risk data only when `register.allow_viewer_export = true`.
-
-Register Viewers cannot:
-
-- create, edit, review, or delete risks;
-- configure registers;
-- manage permissions;
-- view administrative audit logs unless they also have higher permissions.
-
-## 3.4 Risk Owner
+### 4.4 Risk Owner
 
 Risk Owner is derived from:
 
@@ -130,108 +99,77 @@ Risk Owner is derived from:
 risk.owner_user_id
 ```
 
-A user is a Risk Owner only for the risks assigned to them.
-
-Risk Owners can:
-
-- view assigned risks;
-- edit permitted fields on assigned risks;
-- complete reviews for assigned risks;
-- see due and overdue review status for assigned risks.
-
-Risk Owners cannot:
-
-- create risks in the MVP;
-- delete risks;
-- configure registers;
-- manage permissions;
-- export risk data through ownership alone;
-- directly edit calculated fields, review history, system metadata, risk score, or risk level;
-- override Created Date in the MVP.
-
-When a risk owner changes, the previous owner's derived access is removed immediately and the new owner's derived access is granted immediately.
+Risk ownership is per-risk, not a separately assigned global role.
 
 ---
 
-## 4. Effective Permission Evaluation
+## 5. Effective Access Rules
 
-## 4.1 Effective Register Access
+### 5.1 Register Access
 
 A user can access a register if any of the following is true:
 
 - the user is a System Admin;
-- the user has `REGISTER_ADMIN` permission for the register;
-- the user has `REGISTER_VIEWER` permission for the register;
+- the user is a Register Admin for the register;
+- the user is a Register Viewer for the register;
 - the user owns at least one risk in the register.
 
-Risk-owner-derived register access allows the user to see the register as a container for assigned risks. It does not grant access to all risks in that register.
+Ownership-derived register access is container access only. It does not grant
+visibility into unassigned risks in that register.
 
-## 4.2 Effective Risk View Access
+### 5.2 Risk View Access
 
 A user can view a risk if any of the following is true:
 
 - the user is a System Admin;
-- the user has `REGISTER_ADMIN` permission for the risk's register;
-- the user has `REGISTER_VIEWER` permission for the risk's register;
-- the user is the Risk Owner for the risk.
+- the user is a Register Admin for the risk's register;
+- the user is a Register Viewer for the risk's register;
+- the user is the Risk Owner for that risk.
 
-## 4.3 Effective Risk Edit Access
+### 5.3 Risk Edit Access
 
 A user can edit a risk if any of the following is true:
 
 - the user is a System Admin;
-- the user has `REGISTER_ADMIN` permission for the risk's register;
-- the user is the Risk Owner for the risk.
+- the user is a Register Admin for the risk's register;
+- the user is the Risk Owner for that risk.
 
-Risk edit access does not mean every field is editable. Field-level edit restrictions still apply.
+Risk edit access does not mean every field is editable.
 
-## 4.4 Effective Configuration Access
+### 5.4 Register Management Access
 
-A user can configure a register if any of the following is true:
+A user can manage a register if either of the following is true:
 
 - the user is a System Admin;
-- the user has `REGISTER_ADMIN` permission for the register.
+- the user is a Register Admin for the register.
 
-Configuration access includes register settings, custom fields, dropdown options, likelihood values, impact values, risk levels, matrix cells, and response strategies.
+This includes register settings, register permissions, and current register
+configuration endpoints.
 
-## 4.5 Effective Export Access
+### 5.5 Export Access
 
 A user can export register risk data if any of the following is true:
 
 - the user is a System Admin;
-- the user has `REGISTER_ADMIN` permission for the register;
-- the user has `REGISTER_VIEWER` permission for the register and `register.allow_viewer_export = true`.
+- the user is a Register Admin for the register;
+- the user is a Register Viewer for the register and `register.allow_viewer_export = true`.
 
-Risk Owners do not receive export permission from ownership alone in the MVP.
+Risk Owners do not gain export permission from ownership alone.
 
-## 4.6 Effective Audit Access
+### 5.6 Audit Access
 
-System audit access:
+Current behavior is split by audit scope:
 
-- System Admin only.
+- system audit: System Admin only;
+- register audit: System Admin or Register Admin for the register;
+- risk audit event visibility: users with risk-view access for the risk, subject to the implemented route surface;
+- deleted-risk snapshots: System Admin or Register Admin for the deleted risk's register.
 
-Register audit access:
-
-- System Admin;
-- Register Admin for the register.
-
-Risk audit access:
-
-- System Admin;
-- Register Admin for the risk's register;
-- Register Viewer for risks in assigned registers;
-- Risk Owner for assigned risks.
-
-Deleted-risk snapshot access:
-
-- System Admin;
-- Register Admin for the deleted risk's register.
-
-Register Viewers do not receive audit log access in the MVP.
+See the Postman collection for the currently exposed API endpoints.
 
 ---
 
-## 5. Capability Matrix
+## 6. Current Capability Summary
 
 | Capability | System Admin | Register Admin | Register Viewer | Risk Owner |
 |---|:---:|:---:|:---:|:---:|
@@ -239,31 +177,31 @@ Register Viewers do not receive audit log access in the MVP.
 | Manage users | Yes | No | No | No |
 | Grant/remove System Admin | Yes | No | No | No |
 | Create register | Yes | No | No | No |
-| View register | Yes | Assigned registers | Assigned registers | Registers containing assigned risks |
+| View register | Yes | Assigned registers | Assigned registers | Registers containing owned risks |
 | Update register settings | Yes | Assigned registers | No | No |
 | Manage register permissions | Yes | Assigned registers | No | No |
-| Configure fields/scoring/matrix | Yes | Assigned registers | No | No |
-| View risks | Yes | All risks in assigned registers | All risks in assigned registers | Assigned risks only |
+| Configure register fields/scoring | Yes | Assigned registers | No | No |
+| View risks | Yes | All risks in assigned registers | All risks in assigned registers | Owned risks only |
 | Create risks | Yes | Assigned registers | No | No |
-| Edit risks | Yes | All risks in assigned registers | No | Assigned risks, limited fields |
-| Review risks | Yes | All risks in assigned registers | No | Assigned risks |
+| Edit risks | Yes | All risks in assigned registers | No | Owned risks, limited fields |
+| Review risks | Yes | All risks in assigned registers | No | Owned risks |
 | Hard delete risks | Yes | No | No | No |
 | Export risks | Yes | Assigned registers | If enabled for register | No |
 | View system audit | Yes | No | No | No |
 | View register audit | Yes | Assigned registers | No | No |
 | View deleted-risk snapshots | Yes | Assigned registers | No | No |
 
-If a user has multiple permissions, use the highest applicable capability. For example, a Register Viewer who is also the Risk Owner of one risk can view the whole register as a viewer and edit/review only their assigned risk as owner.
-
-Risk-owner-derived register access is container access only. A user who can access a register solely because they own one or more risks must not be able to list or view unassigned risks in that register. Risk list queries must filter to `ownerUserId = actor.userId` unless the actor also has System Admin, Register Admin, or Register Viewer access.
+If a user has multiple applicable permission sources, the highest effective
+capability applies.
 
 ---
 
-## 6. Field-Level Edit Rules
+## 7. Field-Level Edit Rules
 
-## 6.1 Admin Risk Edit Fields
+### 7.1 Admin Risk Editing
 
-System Admins and Register Admins may edit normal risk fields, including:
+System Admins and Register Admins may edit normal risk business fields,
+including:
 
 - title;
 - description;
@@ -276,11 +214,12 @@ System Admins and Register Admins may edit normal risk fields, including:
 - response action;
 - custom field values.
 
-They cannot directly edit system-controlled calculated or metadata fields through normal risk update routes.
+They should not directly edit system-controlled calculated or metadata fields
+through ordinary risk update flows.
 
-## 6.2 Risk Owner Edit Fields
+### 7.2 Risk Owner Editing
 
-Risk Owners may edit permitted business fields on assigned risks:
+Risk Owners may edit permitted business fields on owned risks, including:
 
 - title;
 - description;
@@ -291,184 +230,163 @@ Risk Owners may edit permitted business fields on assigned risks:
 - response action;
 - custom field values.
 
-Risk Owners cannot edit:
+Risk Owners may not edit:
 
 - created date;
-- risk score;
-- risk level;
-- last reviewed timestamp;
-- last reviewed by;
-- next review date;
-- system created at/by;
-- system updated at/by;
-- review history rows;
+- calculated risk score;
+- calculated risk level;
+- review timestamps or review history;
+- system-created/system-updated metadata;
 - audit rows.
 
-The service layer must ignore or reject attempts to update fields outside the actor's allowed field set.
+The backend service layer must ignore or reject changes outside the actor's
+allowed field set.
 
-## 6.3 System-Controlled Fields
+### 7.3 System-Controlled Fields
 
-The following fields are always system-controlled:
+Fields such as these are always system-controlled:
 
-- `risk.risk_score`;
-- `risk.risk_level_id`;
-- `risk.last_reviewed_at`;
-- `risk.last_reviewed_by_user_id`;
-- `risk.next_review_date`;
-- `risk.system_created_at`;
-- `risk.system_created_by_user_id`;
-- `risk.system_updated_at`;
-- `risk.system_updated_by_user_id`.
-
-These fields are changed only by dedicated service logic, such as risk recalculation, review completion, or persistence metadata handling.
+- `risk.risk_score`
+- `risk.risk_level_id`
+- `risk.last_reviewed_at`
+- `risk.last_reviewed_by_user_id`
+- `risk.next_review_date`
+- `risk.system_created_at`
+- `risk.system_created_by_user_id`
+- `risk.system_updated_at`
+- `risk.system_updated_by_user_id`
 
 ---
 
-## 7. Register Permission Management
+## 8. Register Permission Management Rules
 
-## 7.1 Assignment Rules
+### 8.1 Assignment Rules
 
 Register permissions can be assigned only to existing local users.
 
-Allowed roles:
+Current assignable register roles are:
 
-- `REGISTER_ADMIN`;
-- `REGISTER_VIEWER`.
+- `REGISTER_ADMIN`
+- `REGISTER_VIEWER`
 
-The same user may hold both roles for a register, but this is redundant because Register Admin already includes register-view capability. The UI should discourage redundant assignments where practical.
+### 8.2 Last Register Admin Protection
 
-## 7.2 Last Register Admin Protection
-
-The system must prevent accidental removal of the final Register Admin for a register.
+The backend must prevent accidental removal of the final Register Admin for a
+register.
 
 Rule:
 
-- If removing a `REGISTER_ADMIN` row would leave the register with zero Register Admins, block the removal unless the actor is a System Admin.
+- if removing a `REGISTER_ADMIN` row would leave the register with zero Register Admins, block the removal unless the actor is a System Admin.
 
-Rationale:
+This rule must be enforced in backend service logic inside the same transaction
+as the permission removal.
 
-- Register Admins need protection from accidentally orphaning a register.
-- System Admins retain global authority and can intentionally leave a register without assigned Register Admins if operationally required.
+### 8.3 System Admin Rights
 
-The rule must be enforced in the backend service layer inside the same transaction as the permission removal.
-
-## 7.3 System Admin Rights
-
-System Admin rights are managed through User Management only.
+System Admin rights are managed through user management, not register
+permissions.
 
 Register Admins cannot:
 
 - grant System Admin rights;
 - remove System Admin rights;
-- create users for the purpose of assigning permissions;
+- create users just to assign register permissions;
 - activate or deactivate users.
 
 ---
 
-## 8. Authentication Tokens and Permission Freshness
+## 9. Permission Freshness and Authentication
 
-JWT access tokens should identify the authenticated user but must not be treated as the long-term source of register permissions.
+JWT access tokens identify the authenticated user, but must not be treated as
+the long-term source of register permissions or ownership-derived access.
 
-Implementation standard:
+Implementation expectations:
 
-- Access tokens may include user ID and basic System Admin state for convenience.
-- Register permissions and risk ownership must be read from the database for protected operations.
-- Permission-sensitive route handlers should use current database state.
-- Permission changes take effect no later than the next API request that evaluates permissions.
+- register permissions and ownership-derived access are evaluated from the database;
+- permission-sensitive handlers use current database state;
+- permission changes take effect no later than the next API request that evaluates permissions.
 
-If System Admin status is included in the JWT, services that perform highly sensitive operations should confirm current `user.is_system_admin` from the database.
+The current session bootstrap payload from `GET /auth/me` exposes:
 
-API keys and external integration authentication are deferred to post-MVP.
+- `isSystemAdmin`
+- `registerRoles`
+
+That payload is useful for UI shaping, but it is not a replacement for backend
+authorization checks.
 
 ---
 
-## 9. Backend Implementation Pattern
+## 10. Backend Enforcement Pattern
 
-## 9.1 Authenticated Actor
+### 10.1 Authenticated Actor
 
-After authentication, request context should contain at least:
+Authenticated request context should carry a lightweight actor object rather
+than a full cached permission graph.
 
-```typescript
-type AuthenticatedActor = {
-  userId: string;
-  authMethod: 'jwt';
-};
-```
+### 10.2 Centralized Helpers
 
-The actor context should not be treated as a complete permission object.
+Permission checks should be centralized in helper functions and middleware such as:
 
-## 9.2 Permission Helper Functions
+- `canViewRegister`
+- `canManageRegister`
+- `canManageRegisterPermissions`
+- `canExportRegister`
+- `canViewRisk`
+- `canEditRisk`
+- `canDeleteRisk`
+- `requireRegisterAccess`
+- `requireRegisterManagement`
+- `requireRiskView`
+- `requireRiskEdit`
+- `requireExportAccess`
+- `requireSystemAdmin`
 
-The backend should centralise permission checks in helper functions or a permission service.
+### 10.3 Service-Layer Enforcement
 
-Recommended helper names:
-
-```typescript
-canAccessRegister(actor, registerId)
-canViewRisk(actor, registerId, riskId)
-canEditRisk(actor, registerId, riskId)
-canConfigureRegister(actor, registerId)
-canManageRegisterPermissions(actor, registerId)
-canExportRegister(actor, registerId)
-canViewSystemAudit(actor)
-canViewRegisterAudit(actor, registerId)
-canViewDeletedRiskSnapshot(actor, registerId)
-```
-
-Helpers should return a boolean or a structured result that includes the effective source of access where useful for logging or UI bootstrap.
-
-## 9.3 Service-Layer Enforcement
-
-Route middleware may perform broad checks, but service methods must enforce business permissions for mutating operations.
+Route middleware may perform broad access checks, but service methods must still
+enforce business-specific permission rules.
 
 Examples:
 
-- Risk update service must filter or reject disallowed field changes for Risk Owners.
-- Permission removal service must enforce last Register Admin protection.
-- Export service must check `allow_viewer_export`.
-- Risk owner reassignment must validate that the new owner is an existing active local user.
-- Hard delete service must require System Admin.
+- risk updates must enforce field-level restrictions for Risk Owners;
+- permission removal must enforce last Register Admin protection;
+- export logic must enforce `allowViewerExport`;
+- risk owner reassignment must validate the new owner;
+- hard delete must require System Admin.
 
-## 9.4 Transaction Boundaries
+### 10.4 Hidden Resource Behavior
 
-Permission-sensitive mutations should perform permission checks and writes in a single transaction where stale state could matter.
-
-This is required for:
-
-- removing Register Admin rows;
-- changing risk ownership;
-- hard deleting risks and writing deletion snapshots;
-- writing audit events for permission changes.
+Where revealing a resource would be inappropriate, permission middleware should
+return hidden `404 NOT_FOUND` responses rather than confirming existence.
 
 ---
 
-## 10. Frontend Behaviour
+## 11. Frontend Behavior
 
-The frontend should use effective permissions to shape navigation and action availability.
+The frontend should use effective permissions to shape navigation and available
+actions, but never as a security boundary.
 
-Rules:
+Current expectations:
 
-- Hide navigation items the user cannot access.
-- Disable or hide actions the user cannot perform.
-- Treat `GET /api/v1/auth/me` as the initial permission bootstrap endpoint.
-- Re-fetch relevant data after permission-changing mutations.
-- Do not rely on hidden UI as a security control.
+- hide navigation items the user cannot reach;
+- hide or disable actions the user cannot perform;
+- use `GET /auth/me` as the initial permission bootstrap;
+- re-fetch relevant data after permission-changing mutations.
 
-Frontend examples:
+Examples:
 
-- System Admin sees Users and all registers.
-- Register Admin sees configuration links for assigned registers.
+- System Admin sees global admin navigation such as Users and system audit.
+- Register Admin sees management views for assigned registers.
 - Register Viewer sees read-only register views.
-- Risk Owner sees assigned risks and review actions for those risks.
-- Risk Owner should not see unassigned-risk dashboard counts unless they also have Register Admin or System Admin access.
+- Risk Owner sees owned-risk actions but not wider administrative controls unless another role grants them.
 
 ---
 
-## 11. Error Handling
+## 12. Error Handling
 
-Use the standard API error shape from the API Route Map.
+Use the standard API error shape from `api-standards.md`.
 
-Recommended status behaviour:
+Recommended status behavior:
 
 | Situation | Status | Error code |
 |---|---:|---|
@@ -478,43 +396,34 @@ Recommended status behaviour:
 | Last Register Admin removal blocked | 422 | `UNPROCESSABLE` |
 | Duplicate register permission assignment | 409 | `CONFLICT` |
 
-Use `404 NOT_FOUND` instead of `403 FORBIDDEN` when returning `403` would confirm the existence of a register, risk, audit event, or deleted-risk snapshot the user should not know about.
+Use hidden `404 NOT_FOUND` when returning `403 FORBIDDEN` would confirm the
+existence of a resource the caller should not learn about.
 
 ---
 
-## 12. Audit Requirements
+## 13. Audit Expectations
 
-Permission-related changes must be audited.
+Permission-related changes must be audited according to `audit-model.md`.
 
-Required audit events:
+Important events include:
 
-- `SYSTEM_ADMIN_GRANTED`;
-- `SYSTEM_ADMIN_REMOVED`;
-- `REGISTER_ADMIN_ADDED`;
-- `REGISTER_ADMIN_REMOVED`;
-- `REGISTER_VIEWER_ADDED`;
-- `REGISTER_VIEWER_REMOVED`;
-- `RISK_OWNER_CHANGED`;
-- `RISK_EXPORT_GENERATED`;
-- permission-denied security events where practical and useful.
+- `SYSTEM_ADMIN_GRANTED`
+- `SYSTEM_ADMIN_REMOVED`
+- `REGISTER_ADMIN_ADDED`
+- `REGISTER_ADMIN_REMOVED`
+- `REGISTER_VIEWER_ADDED`
+- `REGISTER_VIEWER_REMOVED`
+- ownership-related events where implemented
+- export events where permission decisions matter
 
-Audit events should capture:
-
-- actor user ID;
-- actor display name and email at time of event;
-- affected user ID where applicable;
-- affected register ID where applicable;
-- affected risk ID and display Risk ID where applicable;
-- previous value and new value where applicable;
-- concise human-readable summary.
-
-Permission change audit events should be written in the same transaction as the permission change.
+Permission-change audit writes should happen in the same transaction as the
+underlying change where practical.
 
 ---
 
-## 13. Data Model Mapping
+## 14. Data Model Mapping
 
-| Permission concept | Prisma model / field |
+| Permission concept | Current model / field |
 |---|---|
 | System Admin | `User.isSystemAdmin` |
 | User active state | `User.isActive` |
@@ -522,35 +431,30 @@ Permission change audit events should be written in the same transaction as the 
 | Register Viewer | `RegisterPermission.role = REGISTER_VIEWER` |
 | Risk Owner | `Risk.ownerUserId` |
 | Viewer export setting | `Register.allowViewerExport` |
-| Audit actor | `AuditEvent.actorUserId` |
-| Permission audit object | `AuditEvent.objectType` and `AuditEvent.action` |
 
-Database constraints support uniqueness of register permission rows:
-
-```text
-unique(register_id, user_id, role)
-```
-
-The database does not enforce every permission rule. Application service logic must enforce last-admin protection, field-level edit rules, ownership-derived access, export access, and hidden-resource behaviour.
+Database constraints help enforce permission-row uniqueness, but application
+logic still owns higher-level rules such as last-admin protection and
+ownership-derived access.
 
 ---
 
-## 14. MVP Deferrals
+## 15. Current Deferrals
 
-Product-level MVP exclusions are authoritative in:
+This document does not define future permission subjects for every later-phase
+feature area.
 
-- `docs/product/MVP_Scope.md`
+Those extensions belong in:
 
-Permission-specific capabilities deferred from MVP are:
+- `docs/planning/PM0-04-audit-permission-extension.md`
+
+Examples of deferred or later-phase areas include:
 
 - child-record Risk Response Action permissions;
 - configurable field-level visibility;
-- raw email or unresolved person ownership;
-- team/group-based permissions;
-- register templates with inherited permissions;
-- workflow-specific state transition permissions;
+- unresolved-person ownership models beyond the current implementation;
+- team or group-based permissions;
+- template inheritance of permissions;
+- workflow-specific transition permissions;
 - per-field edit permissions;
 - custom export visibility rules beyond Register Viewer export enablement;
 - public sharing links.
-
-These deferrals should not be partially implemented in MVP permission logic unless a later planning document explicitly moves them into scope.

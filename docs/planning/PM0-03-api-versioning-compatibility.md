@@ -4,13 +4,13 @@
 **Version:** 1.0  
 **Date:** 2026-05-07  
 **Status:** Approved  
-**Related documents:** API Route Map v1.0, Technical Architecture v1.0, PM0-01 Scope Baseline, Post-MVP Implementation Backlog v1.0
+**Related documents:** API Standards v1.0, Technical Architecture v1.0, PM0-01 Scope Baseline, Post-MVP Implementation Backlog v1.0
 
 ---
 
 ## 1. Purpose
 
-This document records how post-MVP API routes and breaking changes will be introduced. It does not repeat the MVP route inventory (see `docs/architecture/api-route-map.md`); it defines the conventions and rules that govern post-MVP route additions.
+This document records how post-MVP API routes and breaking changes will be introduced. It does not repeat the implemented route inventory in the Postman collection; it defines the compatibility rules that govern post-MVP route additions.
 
 ---
 
@@ -62,7 +62,7 @@ Route names follow existing resource-oriented conventions:
 
 ## 4. Existing MVP Routes — Backward Compatibility Rules
 
-**Rule 1 — No silent removals.** Existing MVP routes (`/auth`, `/users`, `/registers`, `/risks`, `/audit`) must not be removed or have required fields removed from responses in post-MVP phases. If a field must be removed, add a deprecation note to the API route map for one release before removing it.
+**Rule 1 — No silent removals.** Existing MVP routes (`/auth`, `/users`, `/registers`, `/risks`, `/audit`) must not be removed or have required fields removed from responses in post-MVP phases. If a field must be removed, record the deprecation in the Postman collection and release notes for one release before removing it.
 
 **Rule 2 — Additive changes are safe.** Adding optional request fields, adding new response fields, adding new filter parameters, and adding new endpoints are all backward compatible. The frontend and any future API clients must be written to ignore unknown response fields.
 
@@ -90,7 +90,7 @@ The frontend uses per-feature API modules in `frontend/src/api/`. Each module wr
 
 ## 6. Error Code Extension Rules
 
-The MVP defines these standard error codes in the API Route Map (section 2.6):
+The API standards define these standard error codes in `docs/architecture/api-standards.md`:
 
 | Code | HTTP status |
 |---|---|
@@ -106,7 +106,7 @@ The MVP defines these standard error codes in the API Route Map (section 2.6):
 **Rules for new error codes:**
 
 - Prefer the existing generic codes where they are sufficient. Introduce a new code only when the frontend needs to branch on the specific failure reason.
-- New codes use `SCREAMING_SNAKE_CASE` and are documented in the API route map at the same time they are implemented.
+- New codes use `SCREAMING_SNAKE_CASE` and are documented in `docs/architecture/api-standards.md` at the same time they are implemented.
 - New codes must map to one of the existing HTTP status codes above; do not introduce new HTTP status codes.
 - Phase-specific codes are listed in the relevant phase ticket. Examples of anticipated additions:
   - `SAML_CONFIGURATION_INVALID` (Phase 3)
@@ -123,7 +123,7 @@ MVP routes accept browser-session JWT access tokens only (`Authorization: Bearer
 
 Phase 13 (PM13-01) adds API key authentication. The bearer token will remain the default shape; API keys will be distinguished by prefix (e.g. `cr_` prefix) rather than by a separate header or authentication scheme. The `GET /auth/me` endpoint will return the authenticated entity type (`session` or `api_key`) in Phase 13.
 
-Until Phase 13 is active, the following still applies from the API Route Map:
+Until Phase 13 is active, the following still applies from the API standards:
 
 > API keys and external integration authentication are deferred to post-MVP. MVP protected routes accept browser-session access tokens only.
 
@@ -142,7 +142,7 @@ MVP uses offset pagination (`?page=1&pageSize=25`) and `?sortBy=fieldName&sortDi
 
 | Document | Location |
 |---|---|
-| API Route Map v1.0 | `docs/architecture/api-route-map.md` |
+| API Standards v1.0 | `docs/architecture/api-standards.md` |
 | Technical Architecture v1.0 | `docs/architecture/technical-architecture.md` |
 | Post-MVP Scope Baseline v1.0 | `docs/planning/PM0-01-scope-baseline.md` |
 | Post-MVP Data Model Extension Plan v1.0 | `docs/planning/PM0-02-data-model-extension.md` |

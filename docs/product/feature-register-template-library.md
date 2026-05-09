@@ -3,7 +3,7 @@
 **Version:** 0.1  
 **Status:** Draft / Post-MVP feature extension  
 **Applies to:** Post-MVP feature exploration  
-**Related documents:** PRD.md, MVP_Scope.md, MVP_Functional_Spec.md, MVP_Data_Model.md, Feature_Control_Effectiveness_and_Residual_Risk.md
+**Related documents:** PRD.md, data-model.md, Feature_Control_Effectiveness_and_Residual_Risk.md
 
 ---
 
@@ -811,7 +811,7 @@ POST /api/v1/register-templates/import
 GET /api/v1/register-templates/:templateId/versions/:versionId/export
 ```
 
-A future route map should define request/response shapes, permissions, and audit events.
+Implementation should define request/response shapes in the Postman collection and apply the shared rules from `docs/architecture/api-standards.md`, `permission-model.md`, and `audit-model.md`.
 
 ---
 

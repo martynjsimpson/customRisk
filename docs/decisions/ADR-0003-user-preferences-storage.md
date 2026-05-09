@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Date:** 2026-05-05  
 **Applies to:** Custom Risk — post-MVP user profile and preferences (PM1-01 to PM1-04)  
-**Related documents:** Post-MVP Implementation Backlog (PM1-01 to PM1-04), MVP Data Model v1.2, PRD v3.2 section 19.1
+**Related documents:** Post-MVP Implementation Backlog (PM1-01 to PM1-04), Data Model v1.3, PRD v3.2 section 19.1
 
 ---
 

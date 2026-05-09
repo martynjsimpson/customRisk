@@ -1,228 +1,186 @@
-# Custom Risk — MVP Audit Model
+# Custom Risk Audit Model
 
-**Version:** 1.0  
-**Date:** 2026-05-04  
-**Status:** Draft  
-**Applies to:** MVP delivery  
-**Related documents:** PRD v3.2, MVP Scope v1.2, MVP Functional Specification v1.2, MVP Data Model v1.2, Technical Architecture v1.0, API Route Map v1.0, Permission Model v1.0
+**Version:** 1.1  
+**Date:** 2026-05-09  
+**Status:** Active  
+**Applies to:** Current and future audit implementation  
+**Related documents:** Technical Architecture v1.1, API Standards v1.0, Permission Model v1.1, Security Model v1.1, PM0-04 Audit and Permission Extension Plan
 
 ---
 
 ## 1. Purpose
 
-This document defines the audit model for the Custom Risk MVP.
+This document defines the durable audit model for Custom Risk.
 
-It is the implementation reference for audit event structure, audit scopes, event naming, field-change rows, hard-delete snapshots, audit access, and service-layer audit behaviour.
+It is the source of truth for:
 
-Audit logging is a first-class MVP capability. The implementation must use structured append-only audit records. A single flat text log is not sufficient because the product must support system, register, and risk audit views with field-level changes, permission evidence, review evidence, security events, export evidence, and hard-delete snapshots.
+- audit principles and redaction rules;
+- logical audit storage model;
+- event construction rules;
+- field-change handling;
+- hard-delete snapshot expectations;
+- audit access rules;
+- backend audit-writing expectations;
+- the current implemented audit action set.
+
+It is not the canonical route inventory or physical schema definition.
 
 ---
 
-## 2. Audit Principles
+## 2. Document Ownership Split
 
-1. **Append-only by application behaviour.**  
-   Audit events, field-change rows, and deletion snapshots must not be edited or deleted through the application UI or normal service routes.
+- Use this document for audit behavior, access rules, and implementation expectations.
+- Use `backend/prisma/schema.prisma` as the canonical physical schema.
+- Use `docs/postman/` for the currently implemented audit API endpoints and request examples.
+- Use `docs/planning/PM0-04-audit-permission-extension.md` for post-MVP additions and future object types/actions.
+
+---
+
+## 3. Audit Principles
+
+1. **Append-only by application behavior.**  
+   Audit events, field-change rows, and deletion snapshots must not be edited or deleted through normal application routes.
 
 2. **Structured before narrative.**  
-   Human-readable summaries are useful, but key audit facts must be stored in structured columns or JSON fields.
+   Human-readable summaries are useful, but key audit facts must be stored in structured columns or JSON.
 
 3. **Same transaction where practical.**  
-   Mutating business actions and their audit events should be written in the same database transaction.
+   Mutating business actions and their required audit evidence should commit together.
 
 4. **Preserve context at time of event.**  
-   Actor names, actor emails, object display names, display Risk IDs, field labels, and snapshots should preserve useful context even if related records later change.
+   Actor names, actor emails, object names, and display IDs should be captured at event time rather than resolved later.
 
 5. **Audit reads are permissioned.**  
-   Audit logs can reveal sensitive system and register information, so audit routes must enforce the Permission Model.
+   Audit data can expose sensitive system and register information, so access must be enforced on the server.
 
-6. **Hard-deleted risks require snapshots.**  
-   A System Admin hard delete must preserve a full last-known risk snapshot before the risk row is removed.
+6. **Never log secrets.**  
+   Passwords, password hashes, refresh tokens, API keys, JWTs, cookies, and similar secrets must never appear in summaries, field changes, or metadata.
 
-7. **Never log secrets.**  
-   Plain passwords, refresh tokens, API keys, password hashes, token hashes, and similarly sensitive values must never appear in audit summaries, field changes, or metadata JSON.
+7. **Hard-deleted risks require snapshots.**  
+   A hard delete must preserve a full last-known risk snapshot before the risk row is removed.
 
 ---
 
-## 3. Audit Storage Model
+## 4. Logical Storage Model
 
-The MVP audit model uses three tables:
+The current audit model uses three logical stores:
 
 1. `audit_event`
 2. `audit_field_change`
 3. `audit_risk_snapshot`
 
-The optional `export_job` table may record export job metadata, but the audit event remains the authoritative evidence that an export occurred.
+An optional export-tracking table may exist for operational reasons, but the
+audit event remains the authoritative evidence that an export occurred.
 
-## 3.1 `audit_event`
+### 4.1 `audit_event`
 
-`audit_event` stores the primary event.
+The primary event record. It stores:
 
-Required implementation fields:
+- when the event occurred;
+- who performed it, if known;
+- what action happened;
+- the affected object type and object ID;
+- the event scope (`SYSTEM`, `REGISTER`, or `RISK`);
+- optional register and risk context;
+- a concise summary;
+- optional structured metadata.
 
-| Field | Purpose |
-|---|---|
-| `id` | Internal audit event UUID. |
-| `occurred_at` | Business event timestamp in UTC. |
-| `actor_user_id` | User who performed the action, null for system or unknown actors. |
-| `actor_display_name` | Actor display name at time of event. |
-| `actor_email` | Actor email at time of event. |
-| `action` | Stable audit action string, such as `RISK_CREATED`. |
-| `object_type` | Enum describing the affected object type. |
-| `object_id` | ID or stable identifier of the affected object. |
-| `object_display_name` | Human-readable affected object name at time of event. |
-| `scope_type` | `SYSTEM`, `REGISTER`, or `RISK`. |
-| `register_id` | Register context, where applicable. |
-| `risk_id` | Risk context while the risk exists. |
-| `display_risk_id` | Denormalised displayed Risk ID. Required for risk events. |
-| `summary` | Concise human-readable summary. |
-| `metadata_json` | Structured context not represented by first-class columns. |
-| `created_at` | Row creation timestamp. |
+### 4.2 `audit_field_change`
 
-`occurred_at` and `created_at` will usually be the same, but `occurred_at` is the meaningful business timestamp.
+Structured before/after evidence for events that changed one or more fields.
 
-## 3.2 `audit_field_change`
+Use field-change rows when before/after state matters, for example:
 
-`audit_field_change` stores field-level before/after evidence for events that change one or more fields.
-
-Use field-change rows for:
-
-- user profile/status changes;
-- System Admin role changes;
-- register setting changes;
+- user profile or status changes;
+- register settings changes;
 - register permission changes where useful;
-- custom field configuration changes;
-- scoring configuration changes;
-- risk field changes;
-- risk owner changes;
-- risk state changes;
-- review-related updates to latest-review fields;
-- other structured changes where before/after evidence matters.
+- custom field and scoring configuration changes;
+- risk updates;
+- review-related updates to stored risk fields.
 
-Do not create field-change rows for:
+### 4.3 `audit_risk_snapshot`
 
-- failed login attempts unless useful metadata is available;
-- successful login/logout;
-- exports;
-- read-only events;
-- values that would expose secrets.
+The full last-known snapshot for hard-deleted risks.
 
-Field values are stored as JSON so values can be typed consistently. User references should include enough display context to remain useful later.
-
-Example `previous_value` for a user field:
-
-```json
-{
-  "id": "uuid",
-  "name": "Alice Register Admin",
-  "email": "alice@example.com"
-}
-```
-
-## 3.3 `audit_risk_snapshot`
-
-`audit_risk_snapshot` stores the full last-known risk snapshot for hard-deleted risks.
-
-Every `RISK_DELETED` event must have exactly one related snapshot.
-
-The snapshot must be written before deleting the risk row. If child rows such as custom field values or reviews are cascade-deleted, their required summary must already be included in `snapshot_json`.
+Every `RISK_DELETED` event must have exactly one related snapshot row.
 
 ---
 
-## 4. Audit Scopes
+## 5. Audit Scopes
 
-## 4.1 `SYSTEM`
+### 5.1 `SYSTEM`
 
-Use `SYSTEM` for events whose primary meaning is system-wide.
-
-Examples:
+Use `SYSTEM` for system-wide events such as:
 
 - authentication events;
 - user creation and deactivation;
 - System Admin role changes;
-- account lockout events;
-- register creation;
-- system-level permission denied events.
+- account lockout and unlock events;
+- system-level permission-denied events where captured.
 
-`register_id` and `risk_id` are usually null for system events. Register creation may use `SYSTEM` scope because only System Admins can create registers in MVP, while still recording the created register as the object.
+### 5.2 `REGISTER`
 
-## 4.2 `REGISTER`
+Use `REGISTER` for events scoped to a register but not primarily to a single risk, such as:
 
-Use `REGISTER` for events scoped to a register but not primarily to a single risk.
-
-Examples:
-
-- register setting changes;
+- register settings changes;
 - register permission changes;
-- custom field configuration changes;
-- dropdown option changes;
-- likelihood value changes;
-- impact value changes;
-- risk level changes;
-- matrix changes;
-- response strategy changes;
-- register CSV export.
+- configuration changes;
+- scoring configuration changes;
+- register CSV exports.
 
-`register_id` must be populated for register-scoped events.
+### 5.3 `RISK`
 
-## 4.3 `RISK`
+Use `RISK` for events primarily about a specific risk, such as:
 
-Use `RISK` for events primarily about a specific risk.
-
-Examples:
-
-- risk creation;
-- risk field changes;
-- risk owner changes;
-- risk score/level recalculation;
+- risk creation and update;
 - risk review completion;
 - next review date updates;
-- risk hard deletion.
+- risk deletion.
 
-`register_id` and `display_risk_id` must be populated for risk-scoped events. `risk_id` should be populated while the risk exists. For hard-deleted risks, keep `display_risk_id` and the snapshot even after the `risk_id` relation becomes null or inaccessible.
-
----
-
-## 5. Object Types
-
-Use the Prisma `AuditObjectType` enum values:
-
-| Object type | Use for |
-|---|---|
-| `USER` | User creation, update, activation, deactivation, lockout, System Admin role changes. |
-| `REGISTER` | Register creation and settings updates. |
-| `REGISTER_PERMISSION` | Register Admin and Register Viewer assignment changes. |
-| `RISK` | Risk creation, update, recalculation, ownership changes, deletion. |
-| `RISK_REVIEW` | Review completion and review history evidence. |
-| `CUSTOM_FIELD` | Custom field definition changes. |
-| `CUSTOM_FIELD_OPTION` | Dropdown option changes. |
-| `LIKELIHOOD_VALUE` | Likelihood configuration changes. |
-| `IMPACT_VALUE` | Impact configuration changes. |
-| `RISK_LEVEL` | Risk level configuration changes. |
-| `RISK_MATRIX` | Risk matrix cell changes. |
-| `RESPONSE_STRATEGY` | Response strategy configuration changes; configuration mutations are deferred from MVP. |
-| `EXPORT` | CSV export events. |
-| `AUTH` | Login, refresh token, logout, and lockout events. |
+For risk-scoped events, retain `display_risk_id` so the event remains useful
+even after hard delete.
 
 ---
 
-## 6. Required Audit Actions
+## 6. Object Types
 
-The following action names are the MVP standard. Use exact uppercase snake-case strings.
+The implementation uses Prisma `AuditObjectType` enum values. The important
+current object families are:
 
-## 6.1 Authentication and Security
+- `AUTH`
+- `USER`
+- `REGISTER`
+- `REGISTER_PERMISSION`
+- `RISK`
+- `RISK_REVIEW`
+- `CUSTOM_FIELD`
+- `CUSTOM_FIELD_OPTION`
+- `LIKELIHOOD_VALUE`
+- `IMPACT_VALUE`
+- `RISK_LEVEL`
+- `RISK_MATRIX`
+- `EXPORT`
+
+Future object types are defined through `PM0-04-audit-permission-extension.md`
+as post-MVP phases add new audited domains.
+
+---
+
+## 7. Current Implemented Audit Actions
+
+The current action constants are implemented in
+`backend/src/audit/auditActions.ts`.
+
+### 7.1 Authentication and Security
 
 - `LOGIN_SUCCEEDED`
 - `LOGIN_FAILED`
 - `LOGOUT`
-- `REFRESH_TOKEN_ROTATED`
 - `REFRESH_TOKEN_REUSE_DETECTED`
 - `ACCOUNT_LOCKED`
 - `ACCOUNT_UNLOCKED`
-- `PERMISSION_DENIED`
 
-For MVP, logging every successful refresh may be noisy. `REFRESH_TOKEN_REUSE_DETECTED`, lockout events, and security-relevant failures are more important than high-volume successful events. API-key audit actions are deferred to post-MVP PM13.
-
-## 6.2 Users and System Roles
+### 7.2 Users and Self-Service
 
 - `USER_CREATED`
 - `USER_UPDATED`
@@ -230,8 +188,11 @@ For MVP, logging every successful refresh may be noisy. `REFRESH_TOKEN_REUSE_DET
 - `USER_DEACTIVATED`
 - `SYSTEM_ADMIN_GRANTED`
 - `SYSTEM_ADMIN_REMOVED`
+- `PROFILE_UPDATED`
+- `PASSWORD_CHANGED`
+- `PREFERENCES_UPDATED`
 
-## 6.3 Registers and Permissions
+### 7.3 Registers and Permissions
 
 - `REGISTER_CREATED`
 - `REGISTER_SETTINGS_UPDATED`
@@ -240,7 +201,7 @@ For MVP, logging every successful refresh may be noisy. `REFRESH_TOKEN_REUSE_DET
 - `REGISTER_VIEWER_ADDED`
 - `REGISTER_VIEWER_REMOVED`
 
-## 6.4 Register Configuration
+### 7.4 Register Configuration
 
 - `CUSTOM_FIELD_CREATED`
 - `CUSTOM_FIELD_UPDATED`
@@ -259,184 +220,124 @@ For MVP, logging every successful refresh may be noisy. `REFRESH_TOKEN_REUSE_DET
 - `RISK_LEVEL_UPDATED`
 - `RISK_LEVEL_DEACTIVATED`
 - `RISK_MATRIX_UPDATED`
-- `RESPONSE_STRATEGY_CREATED`
-- `RESPONSE_STRATEGY_UPDATED`
-- `RESPONSE_STRATEGY_DEACTIVATED`
 
-## 6.5 Risks, Reviews, and Export
+### 7.5 Risks, Reviews, Exports, and Person References
 
 - `RISK_CREATED`
 - `RISK_UPDATED`
-- `RISK_FIELD_CHANGED`
-- `RISK_OWNER_CHANGED`
-- `RISK_STATE_CHANGED`
-- `RISK_SCORE_RECALCULATED`
+- `RISK_DELETED`
 - `RISK_REVIEWED`
 - `NEXT_REVIEW_DATE_UPDATED`
-- `RISK_DELETED`
 - `RISK_EXPORT_GENERATED`
+- `PERSON_REFERENCE_CREATED`
+- `PERSON_REFERENCE_LINKED`
 
-Use `RISK_UPDATED` for broad update summaries where multiple fields changed. Use `RISK_FIELD_CHANGED` only when the implementation chooses one event per changed field. The preferred MVP approach is one `RISK_UPDATED` event with multiple `audit_field_change` rows.
+Post-MVP additions should be defined in `PM0-04-audit-permission-extension.md`
+and then added to the implementation and this document together.
 
 ---
 
-## 7. Event Construction Rules
+## 8. Event Construction Rules
 
-## 7.1 Actor Fields
+### 8.1 Actor Fields
 
 For user-initiated events:
 
-- `actor_user_id` must be populated;
-- `actor_display_name` must copy the user's name at event time;
-- `actor_email` must copy the user's email at event time.
+- `actor_user_id` must be populated where available;
+- `actor_display_name` should copy the actor name at event time;
+- `actor_email` should copy the actor email at event time.
 
-For system events:
+For system-triggered events:
 
 - `actor_user_id` may be null;
-- `actor_display_name` should be `System` where useful;
+- `actor_display_name` may be `System` where useful;
 - `actor_email` should be null.
 
-For failed login where no matching user exists:
+For failed authentication where no matching user exists:
 
 - `actor_user_id` is null;
-- `actor_email` may store the attempted email in `metadata_json`, normalised and rate-limited as appropriate.
+- attempted identity details may appear in `metadata_json` if needed and if they do not create a security or privacy problem.
 
-## 7.2 Object Fields
+### 8.2 Object Fields
 
 `object_type`, `object_id`, and `action` must always be populated.
 
-`object_display_name` should be populated when a human-readable value exists:
+`object_display_name` should be populated when a human-readable value exists,
+for example:
 
 - user name or email;
 - register name;
 - displayed Risk ID and title;
-- custom field name;
-- permission target user and role;
-- export file/register name.
+- custom field name.
 
-## 7.3 Summary
+### 8.3 Summary
 
-`summary` should be concise and suitable for display in an audit list.
+`summary` should be concise and suitable for audit-list display.
 
-Examples:
+It must not contain secrets, raw tokens, or oversized payloads.
 
-- `Alice Register Admin created risk SEC-0001.`
-- `Bob Risk Owner reviewed risk SEC-0001.`
-- `System Admin granted Register Admin access to Alice for Information Security.`
-- `System Admin hard-deleted risk SEC-0001.`
+### 8.4 Metadata JSON
 
-Summaries must not include secrets or large JSON payloads.
+Use `metadata_json` for structured context that is useful for filtering,
+investigation, or detail views but does not deserve a first-class column.
 
-## 7.4 Metadata JSON
+Examples include:
 
-Use `metadata_json` for structured context that is useful for filtering, investigation, or event detail but does not deserve a first-class column.
+- IP address where captured;
+- user agent where useful;
+- authentication method;
+- export filters and row count.
 
-Examples:
-
-```json
-{
-  "ipAddress": "203.0.113.10",
-  "userAgent": "Mozilla/5.0",
-  "authMethod": "jwt"
-}
-```
-
-```json
-{
-  "export": {
-    "filters": {
-      "state": "OPEN",
-      "includeClosed": false
-    },
-    "rowCount": 42,
-    "format": "csv"
-  }
-}
-```
-
-Do not store plain tokens, API keys, password values, password hashes, refresh token hashes, or full request bodies.
+Do not store full request bodies or secret values.
 
 ---
 
-## 8. Field Change Rules
+## 9. Field Change Rules
 
-## 8.1 Field Names and Labels
+### 9.1 Field Names and Labels
 
 `field_name` should be a stable machine-oriented identifier.
 
-Examples:
+`field_label` should be the user-facing label at the time of change where that
+improves readability.
 
-- `name`
-- `isSystemAdmin`
-- `riskIdPrefix`
-- `ownerUserId`
-- `likelihoodValueId`
-- `customField.<customFieldId>`
+### 9.2 Value Types
 
-`field_label` should be the user-facing label at the time of the change.
+Use `AuditValueType` where practical, including:
 
-Examples:
+- `TEXT`
+- `NUMBER`
+- `BOOLEAN`
+- `DATE`
+- `JSON`
+- `USER`
+- `UUID`
 
-- `Name`
-- `System Admin`
-- `Risk ID Prefix`
-- `Risk Owner`
-- `Likelihood`
-- `Supplier Criticality`
+### 9.3 Redaction
 
-## 8.2 Value Types
+Secret-bearing fields must never be recorded in plain form.
 
-Use `AuditValueType` where practical:
+The current implementation explicitly treats names such as these as secrets:
 
-| Value type | Use for |
-|---|---|
-| `TEXT` | Strings and labels. |
-| `NUMBER` | Numeric values and scores. |
-| `BOOLEAN` | True/false settings. |
-| `DATE` | Dates and timestamps. |
-| `JSON` | Structured objects or arrays. |
-| `USER` | User references. |
-| `UUID` | Raw identifiers where no richer representation is available. |
+- `password`
+- `passwordHash`
+- `token`
+- `refreshToken`
+- `jwt`
+- `apiKey`
+- `secret`
+- `cookie`
+- `authorization`
 
-## 8.3 Redaction
-
-The following fields must never be recorded in plain form:
-
-- passwords;
-- password hashes;
-- refresh tokens;
-- refresh token hashes;
-- API keys;
-- API key hashes;
-- session cookies;
-- JWTs;
-- MFA secrets if added later.
-
-For secret-related changes, record a safe summary instead.
-
-Example:
-
-```json
-{
-  "fieldName": "password",
-  "fieldLabel": "Password",
-  "previousValue": null,
-  "newValue": {
-    "changed": true
-  },
-  "valueType": "JSON"
-}
-```
+If a field is secret-related, record a redacted value or a safe summary instead.
 
 ---
 
-## 9. Hard-Deleted Risk Snapshot
+## 10. Hard-Deleted Risk Snapshot
 
-## 9.1 Required Flow
+### 10.1 Required Flow
 
-Risk hard delete is System Admin only.
-
-The delete service must:
+Hard delete must:
 
 1. Load the full risk with related data.
 2. Build the snapshot JSON.
@@ -445,235 +346,70 @@ The delete service must:
 5. Delete the risk row.
 6. Commit the transaction.
 
-If any step fails, the transaction must roll back and the risk must remain.
+If any step fails, the transaction must roll back.
 
-## 9.2 Required Snapshot Contents
+### 10.2 Required Snapshot Contents
 
-`snapshot_json` must include, at minimum:
+The snapshot must remain useful after the original risk and related rows are gone.
 
-- internal risk ID;
-- register ID and register name;
-- displayed Risk ID;
-- risk sequence;
-- title;
-- description;
-- state;
-- owner ID, name, and email;
-- created date;
-- likelihood ID, name, numeric value, and display order;
-- impact ID, name, numeric value, and display order;
-- risk score;
-- risk level ID, name, and display order;
-- response strategy ID, name, and display order;
-- response action;
-- last reviewed timestamp;
-- last reviewed by user ID, name, and email;
-- next review date;
-- system created at/by;
-- system updated at/by;
+At minimum it should preserve:
+
+- core risk fields and displayed Risk ID;
+- register context;
+- owner identity context;
+- scoring and response values;
 - active and inactive custom field values;
 - review history summary;
-- deletion actor ID, name, and email;
-- deletion timestamp;
-- deletion reason, where provided.
-
-## 9.3 Snapshot Shape
-
-Recommended top-level shape:
-
-```json
-{
-  "risk": {},
-  "register": {},
-  "owner": {},
-  "scoring": {},
-  "response": {},
-  "customFields": [],
-  "reviews": [],
-  "systemMetadata": {},
-  "deletion": {}
-}
-```
-
-The snapshot is intentionally denormalised. It should be useful even when the original risk, custom field values, and review rows no longer exist.
+- system created/updated metadata;
+- deletion actor, timestamp, and optional reason.
 
 ---
 
-## 10. Required Event Coverage
-
-## 10.1 Authentication
-
-| Action | Scope | Object type | Field changes |
-|---|---|---|---|
-| `LOGIN_SUCCEEDED` | `SYSTEM` | `AUTH` | No |
-| `LOGIN_FAILED` | `SYSTEM` | `AUTH` | No |
-| `LOGOUT` | `SYSTEM` | `AUTH` | No |
-| `REFRESH_TOKEN_REUSE_DETECTED` | `SYSTEM` | `AUTH` | No |
-| `ACCOUNT_LOCKED` | `SYSTEM` | `AUTH` or `USER` | Optional |
-| `ACCOUNT_UNLOCKED` | `SYSTEM` | `USER` | Optional |
-
-## 10.2 User Management
-
-| Action | Scope | Object type | Field changes |
-|---|---|---|---|
-| `USER_CREATED` | `SYSTEM` | `USER` | Optional |
-| `USER_UPDATED` | `SYSTEM` | `USER` | Yes |
-| `USER_ACTIVATED` | `SYSTEM` | `USER` | Yes |
-| `USER_DEACTIVATED` | `SYSTEM` | `USER` | Yes |
-| `SYSTEM_ADMIN_GRANTED` | `SYSTEM` | `USER` | Yes |
-| `SYSTEM_ADMIN_REMOVED` | `SYSTEM` | `USER` | Yes |
-
-## 10.3 Register and Permission Management
-
-| Action | Scope | Object type | Field changes |
-|---|---|---|---|
-| `REGISTER_CREATED` | `SYSTEM` | `REGISTER` | Optional |
-| `REGISTER_SETTINGS_UPDATED` | `REGISTER` | `REGISTER` | Yes |
-| `REGISTER_ADMIN_ADDED` | `REGISTER` | `REGISTER_PERMISSION` | Optional |
-| `REGISTER_ADMIN_REMOVED` | `REGISTER` | `REGISTER_PERMISSION` | Optional |
-| `REGISTER_VIEWER_ADDED` | `REGISTER` | `REGISTER_PERMISSION` | Optional |
-| `REGISTER_VIEWER_REMOVED` | `REGISTER` | `REGISTER_PERMISSION` | Optional |
-
-## 10.4 Configuration
-
-| Action family | Scope | Object type | Field changes |
-|---|---|---|---|
-| `CUSTOM_FIELD_*` | `REGISTER` | `CUSTOM_FIELD` or `CUSTOM_FIELD_OPTION` | Yes for updates |
-| `LIKELIHOOD_VALUE_*` | `REGISTER` | `LIKELIHOOD_VALUE` | Yes for updates |
-| `IMPACT_VALUE_*` | `REGISTER` | `IMPACT_VALUE` | Yes for updates |
-| `RISK_LEVEL_*` | `REGISTER` | `RISK_LEVEL` | Yes for updates |
-| `RISK_MATRIX_UPDATED` | `REGISTER` | `RISK_MATRIX` | Yes or metadata JSON |
-| `RESPONSE_STRATEGY_*` | `REGISTER` | `RESPONSE_STRATEGY` | Yes for updates |
-
-## 10.5 Risks and Reviews
-
-| Action | Scope | Object type | Field changes |
-|---|---|---|---|
-| `RISK_CREATED` | `RISK` | `RISK` | Optional |
-| `RISK_UPDATED` | `RISK` | `RISK` | Yes |
-| `RISK_OWNER_CHANGED` | `RISK` | `RISK` | Yes |
-| `RISK_STATE_CHANGED` | `RISK` | `RISK` | Yes |
-| `RISK_SCORE_RECALCULATED` | `RISK` | `RISK` | Yes |
-| `RISK_REVIEWED` | `RISK` | `RISK_REVIEW` | Optional |
-| `NEXT_REVIEW_DATE_UPDATED` | `RISK` | `RISK` | Yes |
-| `RISK_DELETED` | `RISK` | `RISK` | Snapshot required |
-
-## 10.6 Export
-
-| Action | Scope | Object type | Field changes |
-|---|---|---|---|
-| `RISK_EXPORT_GENERATED` | `REGISTER` | `EXPORT` | No |
-
-The export event must record filters, included/excluded closed-risk setting, actor, register, and row count where known.
-
----
-
-## 11. Audit Views and Access
+## 11. Audit Access Rules
 
 Audit access follows the Permission Model.
 
-## 11.1 System Audit Log
-
-Route:
-
-```text
-GET /api/v1/audit/system
-```
-
-Access:
+### 11.1 System Audit
 
 - System Admin only.
 
-Includes:
+### 11.2 Register Audit
 
-- all system-scoped events;
-- user management events;
-- System Admin role changes;
-- authentication and lockout events;
-- register creation;
-- captured system-level permission denied events.
+- System Admin or Register Admin for the register.
 
-## 11.2 Register Audit Log
+### 11.3 Risk Audit
 
-Route:
+- any actor with risk view access for the risk while it exists.
 
-```text
-GET /api/v1/registers/:registerId/audit
-```
-
-Access:
-
-- System Admin;
-- Register Admin for the register.
-
-Includes:
-
-- events where `register_id = :registerId`;
-- register settings changes;
-- register permission changes;
-- configuration changes;
-- risk creation, update, review, deletion;
-- CSV exports.
-
-## 11.3 Risk Audit Log
-
-Route:
-
-```text
-GET /api/v1/registers/:registerId/risks/:riskId/audit
-```
-
-Access:
-
-- risk view access.
-
-Includes:
-
-- audit events where `risk_id = :riskId`;
-- review history from `risk_review` where useful;
-- deletion events only when accessed from audit context after hard delete.
-
-## 11.4 Audit Event Detail
-
-Route:
-
-```text
-GET /api/v1/audit/events/:auditEventId
-```
+### 11.4 Audit Event Detail
 
 Access is based on event scope:
 
 - `SYSTEM`: System Admin only;
-- `REGISTER`: System Admin or Register Admin for `register_id`;
-- `RISK`: risk view access while the risk exists, otherwise System Admin or Register Admin for `register_id`.
+- `REGISTER`: System Admin or Register Admin for the event's register;
+- `RISK`: users with risk-view access while the risk exists, otherwise System Admin or Register Admin for the event's register.
 
-## 11.5 Deleted-Risk Snapshot
-
-Route:
-
-```text
-GET /api/v1/audit/events/:auditEventId/snapshot
-```
-
-Access:
+### 11.5 Deleted-Risk Snapshot
 
 - System Admin;
 - Register Admin for the snapshot's register.
 
-Risk Owners and Register Viewers cannot access deleted-risk snapshots in the MVP.
+Risk Owners and Register Viewers do not get deleted-risk snapshot access.
+
+See the Postman collection for the current API paths that expose these views.
 
 ---
 
-## 12. Filtering and Sorting
+## 12. Filtering and Sorting Expectations
 
-MVP audit list routes must support:
+Audit list endpoints should support, where implemented:
 
 - date range;
 - actor;
 - action;
 - object type;
 - register;
-- risk ID or display Risk ID where applicable;
+- risk ID or display Risk ID;
 - client IP address where captured;
 - pagination;
 - sort by occurred date.
@@ -684,102 +420,68 @@ Recommended default sort:
 occurred_at desc
 ```
 
-Date filters should be interpreted as UTC boundaries after the API has converted or validated client input.
-
 ---
 
 ## 13. Backend Implementation Pattern
 
-## 13.1 Audit Service
+### 13.1 Centralized Writes
 
-Centralise audit writes in an audit service.
+Audit writes should be centralized through shared audit helpers and services,
+not hand-written ad hoc in each controller.
 
-Recommended service methods:
+### 13.2 Transaction Support
 
-```typescript
-recordAuditEvent(input)
-recordFieldChanges(auditEventId, changes)
-recordRiskDeletionSnapshot(input)
-recordRiskUpdateAudit(input)
-recordRegisterConfigAudit(input)
-```
+Audit write helpers must support Prisma transaction clients so required audit
+evidence commits with the business mutation.
 
-Business services should call the audit service rather than writing audit rows ad hoc.
+### 13.3 Diffing
 
-## 13.2 Transaction Use
-
-The audit service must support receiving a Prisma transaction client so audit writes can be committed with the business change.
-
-Required transactional audit writes:
-
-- user changes;
-- register creation and settings changes;
-- register permission changes;
-- configuration changes;
-- risk creation and update;
-- risk review completion;
-- risk hard delete and snapshot;
-- export job creation if `export_job` is used.
-
-Login failure audit may happen outside a business transaction because there may be no business row mutation.
-
-## 13.3 Diffing
-
-For updates, services should compute field changes from the previous persisted value and the new persisted value.
-
-Rules:
+For updates:
 
 - only record changed fields;
-- use display values where they improve readability;
-- include IDs for referenced records;
-- avoid recording noisy unchanged derived fields;
-- include calculated score and level changes when recalculation changes the stored values.
+- prefer readable values where they improve investigation;
+- include IDs for referenced records where helpful;
+- avoid noisy unchanged derived values.
 
-## 13.4 Failure Behaviour
+### 13.4 Failure Behavior
 
-For business mutations where audit is required, failure to write the audit event should fail the whole mutation.
+For required audit evidence, failure to write audit must fail the whole mutation.
 
 Examples:
 
-- If risk update succeeds but audit write fails, roll back the risk update.
-- If risk deletion snapshot fails, do not delete the risk.
-- If register permission audit fails, roll back the permission change.
+- if a risk update audit write fails, roll back the risk update;
+- if a deletion snapshot write fails, do not delete the risk;
+- if a register permission audit write fails, roll back the permission change.
 
-For non-critical security telemetry such as a failed login event, the application may still return the correct authentication response if audit write fails, but the server must log the audit write failure.
+For non-critical telemetry such as failed login auditing, the application may
+still return the correct authentication response if the audit write fails, but
+the server must log the failure.
 
 ---
 
 ## 14. Retention and Immutability
 
-MVP does not define an audit retention/deletion feature.
+Current expectations:
 
-Implementation requirements:
-
-- audit records are retained indefinitely for MVP;
-- no UI route may update or delete audit rows;
-- no normal API route may update or delete audit rows;
-- database administrators may still perform operational maintenance outside application behaviour;
-- future retention rules must be documented before implementation.
+- audit records are retained indefinitely unless a later documented retention policy is introduced;
+- no normal application route may update or delete audit rows;
+- operational database maintenance outside the application is a separate concern.
 
 ---
 
-## 15. MVP Deferrals
+## 15. Current Deferrals
 
-Product-level MVP exclusions are authoritative in:
+This document does not define future audit models for every post-MVP object.
 
-- `docs/product/MVP_Scope.md`
+Those extensions belong in:
 
-Audit-specific capabilities deferred from MVP are:
+- `docs/planning/PM0-04-audit-permission-extension.md`
 
-- audit logs for child-record Risk Response Actions;
-- full audit export feature;
+Examples of deferred or later-phase areas include:
+
+- child-record Risk Response Action audit history;
 - configurable retention policies;
-- tamper-evident hash chains;
-- digital signatures;
+- tamper-evident hash chains or digital signatures;
 - external SIEM forwarding;
 - webhook audit delivery;
-- field-level visibility filtering inside audit event detail;
-- full deleted-object snapshots for objects other than hard-deleted risks;
-- import audit events.
-
-These deferrals should not block implementing the structured audit event model required for MVP.
+- deleted-object snapshots for additional object families.

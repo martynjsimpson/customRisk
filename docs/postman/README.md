@@ -1,6 +1,10 @@
 # Custom Risk Postman Collection
 
-This Postman collection should not be considered the authoritative design for any APIs. It should reflect what is currently implemented in the backend.
+This Postman collection is the reference for the currently implemented API surface.
+It should reflect what is currently implemented in the backend.
+
+Use `docs/architecture/api-standards.md` for API-wide conventions such as
+response shapes, error codes, pagination, sorting, and route design rules.
 
 ## How to use with Postman local Git support
 
