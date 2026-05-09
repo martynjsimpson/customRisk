@@ -92,11 +92,14 @@ curl -LO https://github.com/martynjsimpson/customRisk/releases/download/<version
 cp env.example .env
 # Fill in POSTGRES_PASSWORD, CORS_ALLOWED_ORIGINS,
 # and SEED_ADMIN_PASSWORD in .env
+# Quote password values in .env if they contain `$`,
+# for example: SEED_ADMIN_PASSWORD='Abc123456789$qw'
 docker compose up -d
 npm run smoke-test
 ```
 
 The container entrypoint runs `prisma migrate deploy` automatically before starting the server, so no separate migration step is needed during this verification.
+Remember that `SEED_ADMIN_PASSWORD` only sets the admin password on first creation; updating `.env` later does not rotate an existing admin password.
 
 ---
 
