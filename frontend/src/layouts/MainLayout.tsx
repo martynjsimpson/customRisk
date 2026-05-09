@@ -75,7 +75,16 @@ export function MainLayout() {
         <Group h="100%" justify="space-between">
           <Title order={3}>Custom Risk</Title>
           <Group gap="sm">
-            <Text size="sm">{user?.name}</Text>
+            <Button
+              component={Link}
+              to="/profile"
+              variant="subtle"
+              size="sm"
+              leftSection={<IconUser size={18} />}
+              aria-label="My Profile"
+            >
+              {user?.name}
+            </Button>
             <Button variant="light" onClick={() => void logout()}>
               Logout
             </Button>
@@ -128,13 +137,6 @@ export function MainLayout() {
           ) : null}
         </Stack>
         <Stack gap={0} pt="xs" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
-          <NavItem
-            to="/profile"
-            label={user?.name ?? "Profile"}
-            icon={<IconUser size={18} />}
-            active={location.pathname === "/profile"}
-            collapsed={collapsed}
-          />
           <NavItem
             to="#"
             label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

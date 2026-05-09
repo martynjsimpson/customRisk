@@ -27,6 +27,7 @@ Version levels:
 
 ### Changed
 
+- Profile navigation consolidated: the user's display name in the top-right header area now links to My Profile, with the user icon shown alongside it. The duplicate My Profile entry has been removed from the left navigation.
 - Field configuration screen now uses drag-and-drop to reorder custom fields. Each custom field row has a grip handle; dragging it repositions the field relative to both core fields (which act as fixed anchors) and other custom fields. The numeric display-order input has been removed from the add and edit field modals — order is managed exclusively through drag-and-drop.
 - Audit event summaries for custom field events now include the field name and type, e.g. `Custom field 'Risk Owner' created (TEXT)` instead of `Custom field created`. Option events include both the option label and the parent field name.
 - Custom field creation audit events now capture all field properties in `metadataJson` (`fieldName`, `fieldType`, `helpText`, `isRequired`, `isActive`, `displayOrder`), up from the previous three (`fieldType`, `isRequired`, `isActive`).
