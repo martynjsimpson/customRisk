@@ -3,7 +3,7 @@
 # Download this file and .env.example from the GitHub Releases page, then:
 #
 #   cp .env.example .env
-#   # Edit .env — see comments in that file for what to set
+#   # Edit .env — quote password values if they contain `$`
 #   docker compose up -d
 #
 # To pin to a specific release, set CUSTOMRISK_VERSION in your .env file.

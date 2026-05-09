@@ -35,6 +35,8 @@ Open `.env` and set the three required values:
 
 JWT signing secrets are auto-generated on first start and stored in a Docker volume. You do not need to set them unless you want to manage them yourself.
 
+Quote password and secret values in `.env` so Docker Compose passes them literally, especially if they contain `$`, spaces, or other shell-special characters. Example: `SEED_ADMIN_PASSWORD='Abc123456789$qw'`.
+
 Start the application:
 
 ```sh
@@ -46,6 +48,8 @@ The app will be available on port `3000` by default. Change `PORT` in `.env` to 
 ### First run
 
 On container start, if `SEED_ADMIN_PASSWORD` is set, the admin account is created. If the account already exists, only its active status and lockout state are updated — **the password and display name are not overwritten**. It is safe to leave `SEED_ADMIN_PASSWORD` set across restarts.
+
+If the first seed used the wrong password because your shell or Compose expanded an unquoted `$`, correcting `.env` later will not update the existing admin password automatically. Change it in the app after logging in, or recreate/reset the admin user before reseeding.
 
 Log in at `http://<your-host>:3000` with:
 
@@ -152,6 +156,8 @@ Edit `.env` with local values. Key variables for local development:
 - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` — random 256-bit secrets
 - `SEED_ADMIN_PASSWORD` — initial System Admin password for local setup
 - `SEED_DEMO_DATA=true` and `SEED_DEMO_USER_PASSWORD` — optional demo data
+
+Prefer quoting password and secret values in `.env`, for example `SEED_ADMIN_PASSWORD='Abc123456789$qw'`.
 
 ### Local ports
 
