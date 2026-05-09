@@ -46,6 +46,7 @@ Version levels:
 
 - Typing in the Add field or Edit field modal would immediately delete each character as it was entered. The cause was Mantine's `useForm` returning a new object reference on every render, which caused the form-reset effect to re-fire on every keystroke and overwrite the input with the initial empty value.
 - Dashboard Recent Audit Activity widget crashed with `event.fieldChanges is undefined` because the underlying query omitted the `fieldChanges` include. The dashboard now uses the shared `listAuditEvents` service function, which always includes field changes and maps events through the standard `mapAuditEvent` shape.
+- Login page background was hardcoded to a light grey, leaving the page background white when the OS is in dark mode while the login card rendered correctly in dark mode. The background now adapts to the active colour scheme.
 
 ### Migration
 
