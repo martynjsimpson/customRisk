@@ -1,10 +1,8 @@
-FROM node:20-bookworm-slim AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl ca-certificates
 
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/package.json
@@ -20,16 +18,14 @@ RUN npm run build
 # Compile the seed script separately so it can run at container start without tsx.
 RUN npx tsc --project backend/tsconfig.seed.json
 
-FROM node:20-bookworm-slim AS runtime
+FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl ca-certificates
 
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/package.json
