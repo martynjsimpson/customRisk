@@ -35,6 +35,10 @@ Version levels:
 - Dropdown option creation audit events now capture `label` and `displayOrder` in `metadataJson` alongside the existing parent field reference.
 - Dashboard Recent Audit Activity widget now uses the shared `AuditEventTable` component, giving it consistent column layout, expand-on-click behaviour, and the Register column.
 
+### Added (continued)
+
+- Favicon: the application now displays a Custom Risk favicon (blue rounded square with a white shield and "R" letterform) in browser tabs, bookmarks, pinned tabs, and iOS home screen shortcuts. Assets included: `favicon.ico` (16×16 and 32×32 ICO), `favicon-32x32.png`, `favicon-16x16.png`, `apple-touch-icon.png` (180×180), and `favicon.svg` (scalable, preferred by modern browsers). Source assets live in `frontend/public/`; `scripts/generate-favicon-ico.py` regenerates `favicon.ico` if the SVG is updated.
+
 ### Fixed
 
 - Typing in the Add field or Edit field modal would immediately delete each character as it was entered. The cause was Mantine's `useForm` returning a new object reference on every render, which caused the form-reset effect to re-fire on every keystroke and overwrite the input with the initial empty value.

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Rounded square background: Mantine blue-6 (#228BE6) -->
+  <rect width="32" height="32" rx="7" fill="#228BE6"/>
+  <!-- Shield shape in white, mirroring the Tabler IconShield style used in the app nav -->
+  <path
+    d="M16 5.5
+       L24.5 8.8
+       L24.5 16.5
+       C24.5 21.2 20.8 25.2 16 26.5
+       C11.2 25.2 7.5 21.2 7.5 16.5
+       L7.5 8.8 Z"
+    fill="white"
+    opacity="0.95"
+  />
+  <!-- "R" letterform in blue on the shield for legibility at small sizes -->
+  <text
+    x="16"
+    y="20.5"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-weight="800"
+    font-size="11"
+    fill="#228BE6"
+    letter-spacing="-0.5"
+  >R</text>
+</svg>
