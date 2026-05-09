@@ -1,6 +1,6 @@
 # Custom Risk Audit Model
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Date:** 2026-05-09  
 **Status:** Active  
 **Applies to:** Current and future audit implementation  
@@ -420,25 +420,43 @@ See the Postman collection for the current API paths that expose these views.
 
 ---
 
-## 12. Filtering and Sorting Expectations
+## 12. Filtering and Sorting
 
-Audit list endpoints should support, where implemented:
+### 12.1 Supported Filters
 
-- date range;
-- actor;
-- action;
-- object type;
-- register;
-- risk ID or display Risk ID;
-- client IP address where captured;
-- pagination;
-- sort by occurred date.
+The following filters are implemented across all three audit list endpoints
+(`/audit/system`, `/:registerId/audit`, `/:registerId/risks/:riskId/audit`):
 
-Recommended default sort:
+| Filter | Query param | Behaviour |
+|---|---|---|
+| Free-text search | `search` | Case-insensitive substring match across `summary`, `objectDisplayName`, and `displayRiskId` |
+| Actor | `actorName` | Case-insensitive substring match across `actorDisplayName` and `actorEmail` |
+| Date range | `dateFrom`, `dateTo` | ISO 8601 date strings; `dateTo` is inclusive (end of day UTC) |
+| Action | `action` | Exact match on action code |
+| Object type | `objectType` | Exact match on object type enum value |
+| Actor user ID | `actorUserId` | Exact UUID match |
+| Register | `registerId` | Exact UUID match (also used as a scope filter for register-level endpoints) |
+| Risk | `riskId` | Exact UUID match |
+| Display risk ID | `displayRiskId` | Exact match |
+| IP address | `ipAddress` | Exact match against `metadataJson.ipAddress` |
 
-```text
-occurred_at desc
-```
+Multiple filters combine as `AND`.
+
+### 12.2 UI Filter Surfaces
+
+The system Audit page and Register Audit panel expose a filter bar with: Search,
+Actor, date range (From / To), Action (grouped select, all 37 current actions),
+and Object type. Changing any filter resets pagination to page 1. The dashboard
+Recent Audit Activity widget is intentionally unfiltered.
+
+### 12.3 Sorting
+
+Default sort is `occurredAt desc`. No user-configurable sort is currently exposed.
+
+### 12.4 Pagination
+
+Default page size is 50. Maximum is 100. The `meta` response includes `total`,
+`page`, and `pageSize` for client-side page control.
 
 ---
 

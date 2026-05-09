@@ -4,6 +4,8 @@ import type { ApiResponse, ListMeta } from "./types";
 export interface AuditQuery {
   page?: number;
   pageSize?: number;
+  search?: string;
+  actorName?: string;
   dateFrom?: string;
   dateTo?: string;
   actorUserId?: string;

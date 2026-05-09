@@ -42,6 +42,7 @@ Version levels:
 
 - `RISK_CREATED` audit events now include the risk's display ID and title in the summary (e.g. `Risk ISEC-0001 created: Security Misconfiguration`) and capture the full initial risk state in `metadataJson` (title, state, owner, likelihood, impact, risk score, risk level, response strategy, response action, created date, and next review date). The row is now expandable in all three audit views.
 - Risk review audit events now produce a single `RISK_REVIEWED` event whose summary reads `Risk ISEC-0001 reviewed`, replacing the separate `NEXT_REVIEW_DATE_UPDATED` event that was previously emitted alongside it. The previous and new next-review date values are preserved as field-change detail on the same event, visible on row expansion. `NEXT_REVIEW_DATE_UPDATED` is retained as the action for any standalone next-review-date edits outside the review workflow.
+- The system Audit page and Register Audit panel now include a filter bar with: a free-text Search input (matches across event summary, object name, and display risk ID), an Actor input (matches name or email), a date range (From / To), an Action select (all 37 actions organised by group), and an Object type select. Filters are applied as AND conditions; changing any filter resets pagination to page 1. The dashboard Recent Audit Activity widget is intentionally unfiltered.
 
 ### Fixed
 

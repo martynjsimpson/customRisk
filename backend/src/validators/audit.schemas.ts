@@ -35,6 +35,8 @@ export const auditQuerySchema = z.object({
       "API_KEY"
     ])
     .optional(),
+  search: z.string().trim().min(1).optional(),
+  actorName: z.string().trim().min(1).optional(),
   registerId: z.string().uuid().optional(),
   riskId: z.string().uuid().optional(),
   displayRiskId: z.string().trim().min(1).optional(),
