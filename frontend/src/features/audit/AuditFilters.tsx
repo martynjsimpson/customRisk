@@ -1,13 +1,7 @@
 import { Group, Select, TextInput } from "@mantine/core";
 
 import type { AuditQuery } from "../../api/audit.api";
-
-function actionLabel(action: string) {
-  return action
-    .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/^./, (c) => c.toUpperCase());
-}
+import { actionLabel } from "./auditFormatters";
 
 function actionOption(value: string) {
   return { value, label: actionLabel(value) };

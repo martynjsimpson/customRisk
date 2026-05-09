@@ -1,39 +1,17 @@
-import { Pagination, Stack, Title } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Stack, Title } from "@mantine/core";
 
-import { listSystemAudit, type AuditQuery } from "../api/audit.api";
-import { ApiErrorAlert } from "../components/ApiErrorAlert";
-import { AuditEventTable } from "../features/audit/AuditEventTable";
-import { AuditFilters } from "../features/audit/AuditFilters";
-
-const PAGE_SIZE = 25;
+import { listSystemAudit } from "../api/audit.api";
+import { AuditLogPanel } from "../features/audit/AuditLogPanel";
 
 export function AuditPage() {
-  const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<AuditQuery>({});
-
-  const auditQuery = useQuery({
-    queryKey: ["audit", "system", filters, page],
-    queryFn: () => listSystemAudit({ ...filters, page, pageSize: PAGE_SIZE }),
-    placeholderData: (previous) => previous
-  });
-
-  const handleFilterChange = (patch: Partial<AuditQuery>) => {
-    setPage(1);
-    setFilters((current) => ({ ...current, ...patch }));
-  };
-
   return (
     <Stack>
       <Title order={1}>Audit</Title>
-      <AuditFilters filters={filters} onChange={handleFilterChange} />
-      <ApiErrorAlert error={auditQuery.error} fallback="Unable to load audit events" />
-      <AuditEventTable events={auditQuery.data?.data ?? []} showObject showRegister />
-      <Pagination
-        value={page}
-        total={Math.max(1, Math.ceil((auditQuery.data?.meta.total ?? 0) / PAGE_SIZE))}
-        onChange={setPage}
+      <AuditLogPanel
+        queryKey={["audit", "system"]}
+        queryFn={listSystemAudit}
+        showObject
+        showRegister
       />
     </Stack>
   );
