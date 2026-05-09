@@ -51,6 +51,12 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
   );
   const selectedFieldOptions = optionsQuery.data ?? [];
 
+  const reorderFieldMutation = useMutation({
+    mutationFn: ({ fieldId, displayOrder }: { fieldId: string; displayOrder: number }) =>
+      updateCustomField(registerId, fieldId, { displayOrder }),
+    onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
+  });
+
   const createFieldMutation = useMutation({
     mutationFn: (values: Parameters<typeof createCustomField>[1]) => createCustomField(registerId, values),
     onSuccess: async () => {
@@ -141,6 +147,7 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
       <ApiErrorAlert error={deactivateFieldMutation.error} fallback="Unable to deactivate field" />
       <CustomFieldTable
         fields={fields}
+        onReorder={(fieldId, newDisplayOrder) => reorderFieldMutation.mutate({ fieldId, displayOrder: newDisplayOrder })}
         onEditField={openEditField}
         onOpenOptions={openOptions}
         onActivateField={(fieldId) => activateFieldMutation.mutate(fieldId)}
@@ -150,7 +157,6 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
       <CustomFieldModal
         opened={fieldModalOpen}
         editingField={editingField}
-        nextDisplayOrder={nextFieldDisplayOrder}
         createError={createFieldMutation.error}
         updateError={updateFieldMutation.error}
         isSaving={createFieldMutation.isPending || updateFieldMutation.isPending}
@@ -166,7 +172,6 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
                 fieldName: values.fieldName,
                 helpText: values.helpText || null,
                 isRequired: values.isRequired,
-                displayOrder: values.displayOrder,
                 isActive: values.isActive
               }
             });
@@ -178,7 +183,7 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
             fieldType: values.fieldType,
             helpText: values.helpText || null,
             isRequired: values.isRequired,
-            displayOrder: values.displayOrder,
+            displayOrder: nextFieldDisplayOrder,
             isActive: values.isActive,
             options: values.fieldType === "DROPDOWN" ? parseInitialOptions(values.initialOptionsText) : undefined
           });
