@@ -30,6 +30,19 @@ test("risk create route is mounted under register risk collection", async () => 
   assert.match(controller, /createRisk\(actorOrThrow\(request\), request\.params\.registerId, request\.body\)/);
 });
 
+test("RISK_CREATED audit event includes display ID and title in summary and initial state in metadataJson", async () => {
+  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+
+  assert.match(service, /action: auditActions\.riskCreated/);
+  assert.match(service, /summary: `Risk \$\{risk\.displayRiskId\} created: \$\{risk\.title\}`/);
+  assert.match(service, /owner: \{ id: risk\.owner\.id, name: risk\.owner\.name \}/);
+  assert.match(service, /likelihood: \{ id: risk\.likelihoodValue\.id, name: risk\.likelihoodValue\.name \}/);
+  assert.match(service, /impact: \{ id: risk\.impactValue\.id, name: risk\.impactValue\.name \}/);
+  assert.match(service, /riskLevel: \{ id: risk\.riskLevel\.id, name: risk\.riskLevel\.name \}/);
+  assert.match(service, /responseStrategy: \{ id: risk\.responseStrategy\.id, name: risk\.responseStrategy\.name \}/);
+  assert.match(service, /nextReviewDate: toDateOnlyString\(risk\.nextReviewDate\)/);
+});
+
 test("risk detail route uses risk view permission and controller", async () => {
   const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");

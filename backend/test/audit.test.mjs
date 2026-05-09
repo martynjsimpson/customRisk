@@ -129,6 +129,8 @@ test("key MVP mutating workflows write audit events and field changes where requ
   assert.match(registers, /auditActions\.registerViewerRemoved/);
 
   assert.match(risks, /action: auditActions\.riskCreated/);
+  assert.match(risks, /summary: `Risk \$\{risk\.displayRiskId\} created: \$\{risk\.title\}`/);
+  assert.match(risks, /metadataJson: \{/);
   assert.match(risks, /action: auditActions\.riskUpdated/);
   assert.match(risks, /fieldChanges: buildRiskUpdateFieldChanges\(existing, updated\)/);
   assert.match(risks, /action: auditActions\.riskDeleted/);

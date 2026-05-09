@@ -223,7 +223,7 @@ The current action constants are implemented in
 
 ### 7.5 Risks, Reviews, Exports, and Person References
 
-- `RISK_CREATED`
+- `RISK_CREATED` — initial risk state is captured in `metadataJson` (`title`, `state`, `owner`, `likelihood`, `impact`, `riskScore`, `riskLevel`, `responseStrategy`, `responseAction`, `createdDate`, `nextReviewDate`)
 - `RISK_UPDATED`
 - `RISK_DELETED`
 - `RISK_REVIEWED` — primary event for a user-completed review; field changes for `nextReviewDate` (previous → new) are embedded in this event as the supporting detail

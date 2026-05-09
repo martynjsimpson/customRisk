@@ -728,7 +728,20 @@ export async function createRisk(
         registerId,
         riskId: risk.id,
         displayRiskId: risk.displayRiskId,
-        summary: "Risk created"
+        summary: `Risk ${risk.displayRiskId} created: ${risk.title}`,
+        metadataJson: {
+          title: risk.title,
+          state: risk.state,
+          owner: { id: risk.owner.id, name: risk.owner.name },
+          likelihood: { id: risk.likelihoodValue.id, name: risk.likelihoodValue.name },
+          impact: { id: risk.impactValue.id, name: risk.impactValue.name },
+          riskScore: decimalToNumber(risk.riskScore),
+          riskLevel: { id: risk.riskLevel.id, name: risk.riskLevel.name },
+          responseStrategy: { id: risk.responseStrategy.id, name: risk.responseStrategy.name },
+          responseAction: risk.responseAction ?? null,
+          createdDate: toDateOnlyString(risk.createdDate),
+          nextReviewDate: toDateOnlyString(risk.nextReviewDate)
+        }
       },
       tx
     );
