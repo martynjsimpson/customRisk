@@ -27,7 +27,7 @@ fix/...                          ────────────▶
 | `fix/<short-description>` | Bug fix |
 | `chore/<short-description>` | Non-functional work: dependencies, tooling, config |
 | `docs/<short-description>` | Documentation only |
-| `release/<version>` | Release preparation, e.g. `release/v1.0.0` |
+| `release/<version>` | Release preparation, e.g. `release/v1.0.0` (see [release-process.md](release-process.md)) |
 
 Use lowercase and hyphens. Keep descriptions short.
 
@@ -115,18 +115,12 @@ npm run lint            # baseline lint gate (TypeScript typecheck)
 
 ---
 
-## Release process
+## Release handoff
 
-See [release-process.md](release-process.md) for the full release procedure
-once that document is created.
-
-High-level steps:
-1. Create a `release/<version>` branch.
-2. Update `CHANGELOG.md`.
-3. Open and merge a release prep PR to `main`.
-4. Tag the merge commit: `git tag v<version>`.
-5. Push the tag: `git push origin v<version>`.
-6. Confirm the release workflow completes and the versioned image is published.
+Day-to-day development ends when the branch is merged to `main`. From that
+point onwards, follow [release-process.md](release-process.md) for release
+branch preparation, version bumps, changelog updates, tagging, release
+verification, and rollback guidance.
 
 ---
 
@@ -159,7 +153,8 @@ To generate a migration file without applying it (for review before applying):
 npm --workspace @custom-risk/backend exec -- prisma migrate dev --create-only --name <description>
 ```
 
-### Production migration workflow
+### Production releases
 
-See [release-process.md](release-process.md) for the full procedure, including
-the required database backup step before applying migrations to production.
+Production database backup, upgrade, verification, and rollback steps live in
+[release-process.md](release-process.md). Keep this document focused on authoring
+and validating migrations during development.

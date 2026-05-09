@@ -1,105 +1,121 @@
-# Custom Risk — MVP Security Model
+# Custom Risk Security Model
 
-**Version:** 1.0  
-**Date:** 2026-05-04  
-**Status:** Draft  
-**Applies to:** MVP delivery  
-**Related documents:** PRD v3.2, MVP Scope v1.2, MVP Functional Specification v1.2, Technical Architecture v1.0, API Route Map v1.0, Permission Model v1.0, Audit Model v1.0
+**Version:** 1.1  
+**Date:** 2026-05-09  
+**Status:** Active  
+**Applies to:** Current and future security implementation  
+**Related documents:** Technical Architecture v1.0, API Standards v1.0, Permission Model v1.1, Audit Model v1.1, Observability Notes
 
 ---
 
 ## 1. Purpose
 
-This document defines the security model for the Custom Risk MVP.
+This document defines the durable security model for Custom Risk.
 
-It consolidates the authentication, session, password, token, rate limiting, CORS, secret handling, audit, and permission enforcement rules that must be followed during implementation.
+It is the source of truth for:
 
-The MVP uses application-managed local authentication. SAML, Microsoft Entra ID, MFA, SMTP credential handling, advanced secrets management, and enterprise identity lifecycle features are deferred.
+- authentication and session rules;
+- password handling and policy;
+- access-token and refresh-token behavior;
+- account lockout and auth rate limiting;
+- CORS and browser-session controls;
+- secret-handling expectations;
+- security logging and audit requirements;
+- current security-related deferrals.
+
+It is not the route inventory or the canonical schema definition.
 
 ---
 
-## 2. Security Principles
+## 2. Document Ownership Split
+
+- Use this document for security policy and application-security behavior.
+- Use `backend/prisma/schema.prisma` as the canonical physical schema.
+- Use `docs/postman/` for currently implemented auth and health endpoints.
+- Use `docs/operations/observability.md` for request IDs, correlation headers, metrics, tracing, dashboard, and alerting guidance.
+- Use post-MVP phase docs for future SAML, MFA, password-reset, API-key, and webhook security extensions.
+
+---
+
+## 3. Security Principles
 
 1. **Server-side enforcement is mandatory.**  
-   UI hiding is helpful for usability, but the backend must enforce authentication, authorisation, validation, and field-level restrictions.
+   The backend must enforce authentication, authorization, validation, and field-level restrictions.
 
 2. **Least privilege by default.**  
-   Users receive only the access granted by System Admin status, register permissions, or risk ownership.
+   Users receive only the access granted by System Admin state, register permissions, or ownership-derived access.
 
 3. **Short-lived bearer access.**  
    Browser API access uses short-lived JWT access tokens stored in frontend memory only.
 
 4. **Refresh tokens are high-value secrets.**  
-   Refresh tokens must be opaque, stored only as hashes server-side, rotated on every use, and sent only through secure HttpOnly cookies.
+   Refresh tokens must be opaque, stored only as hashes server-side, rotated on every use, and sent only through HttpOnly cookies.
 
 5. **Secrets are never logged.**  
-   Passwords, tokens, API keys, cookie values, hashes, and signing secrets must not appear in logs, audit records, responses, or error messages.
+   Passwords, tokens, API keys, cookie values, hashes, and signing secrets must not appear in logs, audit records, responses, or error payloads.
 
 6. **Security events are auditable.**  
-   Logins, lockouts, token reuse detection, permission changes, exports, and meaningful permission denials should create structured audit evidence.
+   Logins, lockouts, token reuse detection, permission changes, exports, and meaningful permission-denied events should produce structured audit evidence where implemented.
 
 7. **Production origins must be explicit.**  
    Production CORS must not use wildcard origins.
 
 ---
 
-## 3. Authentication Model
+## 4. Authentication Model
 
-## 3.1 Local Authentication
+### 4.1 Local Authentication
 
-MVP authentication is application-managed local authentication.
+The current authentication model is application-managed local authentication.
 
-User credentials are stored in PostgreSQL through the `user` table. The password credential is stored as:
+User credentials are stored in PostgreSQL through the `user` table. Passwords
+are stored only as password hashes.
 
-```text
-user.password_hash
-```
+Plain-text passwords must never be stored, returned, logged, or audited.
 
-Plain-text passwords must never be stored, returned by the API, logged, or written to audit records.
+Inactive users cannot authenticate successfully.
 
-Inactive users cannot log in.
+### 4.2 Login
 
-## 3.2 Login
-
-Login route:
+Current login flow:
 
 ```text
 POST /api/v1/auth/login
 ```
 
-Login rules:
+Rules:
 
 - validate email and password server-side;
-- normalise email consistently before lookup;
-- return a generic error for invalid credentials;
-- do not reveal whether the email address exists;
+- normalize email consistently before lookup;
+- return a generic auth failure for invalid credentials;
+- do not reveal whether an email exists;
 - apply rate limiting;
 - apply account lockout rules;
-- on success, issue an access token and refresh token;
-- on success, reset failed login counters where applicable;
-- on failure, increment failed login counters where applicable;
-- create `LOGIN_SUCCEEDED` or `LOGIN_FAILED` audit events where practical.
+- issue a new access token and refresh token on success;
+- reset failed-login counters on success;
+- increment failed-login state on failure;
+- audit login success and failure where implemented.
 
-## 3.3 Logout
+### 4.3 Logout
 
-Logout route:
+Current logout flow:
 
 ```text
 POST /api/v1/auth/logout
 ```
 
-Logout rules:
+Rules:
 
-- revoke or delete the presented refresh token;
-- clear the refresh token cookie;
-- allow the access token to expire naturally;
-- create a `LOGOUT` audit event where practical.
+- revoke the presented refresh token where available;
+- clear the refresh-token cookie;
+- allow the short-lived access token to expire naturally;
+- audit logout where implemented.
 
 ---
 
-## 4. Password Security
+## 5. Password Security
 
-## 4.1 Hashing
+### 5.1 Hashing
 
 Use `bcryptjs` for password hashing.
 
@@ -115,27 +131,27 @@ The cost factor may be overridden by:
 BCRYPT_COST_FACTOR
 ```
 
-Password verification must use bcrypt comparison. Do not implement custom hashing.
+Do not implement custom password hashing.
 
-## 4.2 Password Policy
+### 5.2 Password Policy
 
-Password requirements:
+Current password requirements:
 
 - minimum 12 characters;
 - at least one uppercase letter;
 - at least one lowercase letter;
 - at least one digit;
-- at least one special character: `!@#$%^&*()_+-=[]{}|;':",.<>?`;
-- must not match the user's email address;
-- must not match the user's display name.
+- at least one special character from the approved set;
+- must not exactly match the user's email address;
+- must not exactly match the user's display name.
 
-Server-side validation is authoritative. Frontend validation may mirror these rules for user experience.
+Server-side validation is authoritative.
 
-## 4.3 Password Handling
+### 5.3 Password Handling
 
 Password values may appear only:
 
-- in the incoming create/update/login request body;
+- in the incoming create, update, login, or password-change request;
 - in process memory while hashing or verifying.
 
 Password values must not appear in:
@@ -144,29 +160,21 @@ Password values must not appear in:
 - logs;
 - audit summaries;
 - audit field-change values;
-- validation error field echoes;
-- thrown error messages.
+- validation echoes;
+- thrown error messages returned to clients.
 
-Password changes may be audited with a redacted field-change value such as:
-
-```json
-{
-  "changed": true
-}
-```
+Password-change auditing, if recorded, must use redacted or summary-only values.
 
 ---
 
-## 5. Session and Token Model
+## 6. Session and Token Model
 
-The MVP uses:
+The current browser session model uses:
 
 - short-lived signed JWT access tokens;
 - rotating opaque refresh tokens.
 
-## 5.1 Access Tokens
-
-Access token standard:
+### 6.1 Access Tokens
 
 | Area | Standard |
 |---|---|
@@ -174,52 +182,49 @@ Access token standard:
 | Expiry | 60 minutes by default |
 | Browser storage | Frontend memory only |
 | Transport | `Authorization: Bearer <access_token>` |
-| Purpose | Authorise API requests |
+| Purpose | Authorize API requests |
 
 Access tokens must not be stored in:
 
 - `localStorage`;
 - `sessionStorage`;
 - non-HttpOnly cookies;
-- persisted application state.
+- persisted frontend application state.
 
-On page load, the frontend must call:
+The frontend may refresh session state on page load by calling:
 
 ```text
 POST /api/v1/auth/refresh
 ```
 
-to obtain a new access token before rendering protected routes.
+Access-token claims may identify the user, but register permissions and
+ownership-derived access must still be evaluated from current database state.
 
-Access token claims may include the user ID and basic session metadata. Register-level permissions and risk ownership must still be evaluated from current database state for protected operations.
-
-## 5.2 Refresh Tokens
-
-Refresh token standard:
+### 6.2 Refresh Tokens
 
 | Area | Standard |
 |---|---|
 | Type | Opaque random token |
 | Expiry | 30 days by default |
-| Browser storage | HttpOnly, Secure, SameSite=Strict cookie |
+| Browser storage | HttpOnly cookie, Secure in production, SameSite=Strict |
 | Server storage | Hashed token in `refresh_token.token_hash` |
 | Purpose | Obtain new access tokens |
 
-Refresh token rules:
+Rules:
 
-- generate using cryptographically secure randomness;
+- generate with cryptographically secure randomness;
 - store only a hash server-side;
 - return the plain token only at login or successful rotation;
 - rotate on every successful refresh;
 - invalidate the previous token after rotation;
-- store token family ID for reuse detection;
-- if an already-rotated token is presented, invalidate all refresh tokens for that user;
-- user deactivation must revoke all refresh tokens for that user;
+- track token families for reuse detection;
+- if an already-rotated token is presented, invalidate the user's token family as implemented;
+- user deactivation must revoke active refresh tokens;
 - logout must revoke the presented refresh token.
 
-## 5.3 Refresh Route
+### 6.3 Refresh Route
 
-Refresh route:
+Current refresh flow:
 
 ```text
 POST /api/v1/auth/refresh
@@ -227,58 +232,56 @@ POST /api/v1/auth/refresh
 
 Rules:
 
-- read refresh token from the HttpOnly cookie;
-- do not accept refresh tokens in request bodies for browser sessions;
-- reject missing, expired, revoked, or unknown tokens;
+- read the refresh token from the HttpOnly cookie;
+- do not accept browser refresh tokens in request bodies;
+- reject missing, expired, revoked, replaced, or unknown tokens;
 - reject refresh for inactive users;
-- rotate token on success;
-- create security audit events for token reuse detection.
+- rotate the token on success;
+- audit token reuse detection and related security events where implemented.
 
-## 5.4 Cookie Settings
+### 6.4 Cookie Settings
 
-Refresh token cookie settings:
+Current refresh-cookie expectations:
 
-| Attribute | MVP value |
+| Attribute | Current value |
 |---|---|
 | `HttpOnly` | Yes |
 | `Secure` | Yes in production |
 | `SameSite` | `Strict` |
-| Path | Auth refresh/logout path or API root |
-| Expiry | Align with refresh token expiry |
+| Path | Auth cookie path |
+| Expiry | Align with refresh-token expiry |
 
-For local development over HTTP, `Secure` may be disabled by environment configuration only.
+For local HTTP development, `Secure` may be disabled by environment-aware server behavior.
 
 ---
 
-## 6. Account Lockout and Rate Limiting
+## 7. Account Lockout and Rate Limiting
 
-## 6.1 Account Lockout
+### 7.1 Account Lockout
 
-Account lockout rules:
+Current account lockout rules:
 
 - maximum failed login attempts: 5;
-- failed attempt window: 15 minutes;
+- failed-attempt window: 15 minutes;
 - lockout duration: 15 minutes;
 - lockout state stored in the database;
-- lockout events recorded in audit logs.
+- lockout events recorded in audit logs where implemented.
 
-Relevant Prisma fields:
+Relevant fields:
 
-- `User.failedLoginAttempts`;
-- `User.lastFailedLoginAt`;
-- `User.lockedUntil`.
+- `User.failedLoginAttempts`
+- `User.lastFailedLoginAt`
+- `User.lockedUntil`
 
-After the lockout window passes, the attempt counter should reset automatically on the next successful login.
+### 7.2 Rate Limiting
 
-MVP relies on time-based lockout expiry rather than manual admin unlock, though an admin unlock endpoint may be included as defined in the API Route Map.
+Auth endpoints are rate-limited.
 
-## 6.2 Rate Limiting
-
-Apply `express-rate-limit` to authentication endpoints:
+Current intended limits:
 
 | Endpoint | Limit |
 |---|---|
-| `POST /api/v1/auth/login` | 10 requests per IP per minute |
+| `POST /api/v1/auth/login` | configured by env, default-aligned to current implementation |
 | `POST /api/v1/auth/refresh` | 20 requests per IP per minute |
 
 Rate-limited responses must return:
@@ -291,24 +294,9 @@ Rate limiting is not a replacement for account lockout. Both controls are requir
 
 ---
 
-## 7. API Keys
+## 8. Authorization Enforcement
 
-API keys and external integration authentication are deferred to post-MVP.
-
-For MVP:
-
-- do not implement API-key authentication middleware;
-- do not create API-key management UI or admin endpoints;
-- do not create or seed usable API keys;
-- do not allow `Authorization: Bearer` values other than access JWTs for protected routes.
-
-Post-MVP API-key design should be handled under PM13 in `docs/planning/Post_MVP_Implementation_Backlog.md`.
-
----
-
-## 8. Authorisation Enforcement
-
-Authorisation follows the Permission Model.
+Authorization follows `permission-model.md`.
 
 Backend requirements:
 
@@ -316,28 +304,26 @@ Backend requirements:
 - route middleware may perform broad checks;
 - service methods must enforce business permissions;
 - field-level edit restrictions must be enforced in risk update services;
-- System Admin status used for sensitive actions should be confirmed against current database state;
-- register permissions and risk ownership must be evaluated from current database state;
-
-Use `404 NOT_FOUND` where returning `403 FORBIDDEN` would reveal the existence of hidden resources.
+- System Admin status used for sensitive actions should be checked against current database state;
+- register permissions and ownership-derived access must be evaluated from current database state;
+- use hidden `404 NOT_FOUND` where returning `403 FORBIDDEN` would reveal a protected resource.
 
 ---
 
 ## 9. Request Validation and Input Handling
 
-All request bodies and query parameters must be validated with Zod before reaching service logic.
+All request bodies, params, and query values must be validated before reaching business logic.
 
-Validation rules:
+Current expectations:
 
-- reject unknown or invalid enum values;
 - validate UUID path parameters;
+- validate enum inputs;
 - validate pagination and sorting parameters;
 - validate date inputs;
-- validate custom field payloads against field definitions;
-- validate risk updates against role-specific editable fields;
-- validate uploaded/imported files only when import is added in a later phase.
+- validate role-specific editable fields;
+- reject malformed JSON and invalid request bodies cleanly.
 
-Server-side validation is authoritative. Frontend validation is supportive only.
+Server-side validation is authoritative.
 
 Error responses must not include stack traces or secret values.
 
@@ -345,148 +331,141 @@ Error responses must not include stack traces or secret values.
 
 ## 10. Browser and CORS Security
 
-## 10.1 CORS
+### 10.1 CORS
 
-Use the `cors` middleware.
+Use `cors` middleware with explicit allowed origins.
 
-Production CORS rules:
+Production rules:
 
-- configure explicit allowed origins through `CORS_ALLOWED_ORIGINS`;
-- do not use wildcard origins in production;
+- configure allowed origins through `CORS_ALLOWED_ORIGINS`;
+- do not allow wildcard origins in production;
 - allow credentials only for trusted origins;
-- reject unknown origins.
+- reject unknown browser origins.
 
-## 10.2 Browser Storage
+### 10.2 Browser Storage
 
 Browser storage rules:
 
 - access tokens in memory only;
 - refresh token in HttpOnly cookie only;
-- no tokens in localStorage;
-- no tokens in sessionStorage;
+- no tokens in `localStorage`;
+- no tokens in `sessionStorage`;
 - no secrets in persisted frontend state.
 
-## 10.3 CSRF
+### 10.3 CSRF
 
-The browser session model uses bearer access tokens for API authorisation and a refresh token cookie for obtaining new access tokens.
+The current browser session model uses bearer access tokens for API
+authorization and a refresh-token cookie only for refresh/logout flows.
 
-Refresh-token cookie controls:
+With `SameSite=Strict` and no broader cookie-authenticated state-changing
+surface, CSRF exposure is currently constrained.
 
-- `SameSite=Strict`;
-- HttpOnly;
-- Secure in production.
+If the application later relaxes `SameSite`, supports cross-site embedding, or
+accepts broader cookie-authenticated mutations, CSRF protections must be
+reassessed before release.
 
-If the app later relaxes SameSite settings, supports cross-site embedding, or accepts state-changing cookie-authenticated requests beyond refresh/logout, CSRF protection must be revisited before release.
+### 10.4 XSS
 
-## 10.4 XSS
+Current XSS controls rely on:
 
-MVP XSS controls:
+- React escaping for normal rendering;
+- avoiding `dangerouslySetInnerHTML`;
+- avoiding server-provided HTML rendering by default;
+- keeping bearer tokens out of JavaScript-readable persistent storage.
 
-- rely on React escaping for normal rendering;
-- avoid `dangerouslySetInnerHTML`;
-- sanitise any future rich-text content before rendering;
-- do not store access tokens in JavaScript-readable persistent storage;
-- avoid rendering server-provided HTML.
+Any future rich-text or HTML-bearing feature must add explicit sanitization.
 
 ---
 
 ## 11. Secrets and Environment Configuration
 
-Security-related environment variables:
+Security-relevant environment variables include:
 
 | Variable | Purpose |
 |---|---|
-| `JWT_ACCESS_SECRET` | Access JWT signing secret. Optional in self-hosted deployments when using the release container, because it can be auto-generated on first start. |
-| `JWT_REFRESH_SECRET` | Refresh JWT signing secret. Optional in self-hosted deployments when using the release container, because it can be auto-generated on first start. |
-| `JWT_ACCESS_EXPIRY` | Access token expiry, default `60m`. |
-| `JWT_REFRESH_EXPIRY_DAYS` | Refresh token expiry, default `30`. |
-| `BCRYPT_COST_FACTOR` | Password hashing cost factor, default `12`. |
-| `CORS_ALLOWED_ORIGINS` | Explicit allowed browser origins. |
-| `RATE_LIMIT_WINDOW_MS` | Auth rate-limit window. |
-| `RATE_LIMIT_MAX_LOGIN` | Login rate-limit max. |
-| `SEED_ADMIN_PASSWORD` | Local/dev seed admin password. |
+| `JWT_ACCESS_SECRET` | Access-token signing secret |
+| `JWT_REFRESH_SECRET` | Refresh-token secret or related refresh auth secret |
+| `JWT_ACCESS_EXPIRY` | Access-token expiry, default `60m` |
+| `JWT_REFRESH_EXPIRY_DAYS` | Refresh-token expiry, default `30` |
+| `BCRYPT_COST_FACTOR` | Password hashing cost factor |
+| `CORS_ALLOWED_ORIGINS` | Explicit allowed browser origins |
+| `RATE_LIMIT_WINDOW_MS` | Auth rate-limit window |
+| `RATE_LIMIT_MAX_LOGIN` | Login rate-limit max |
+| `SEED_ADMIN_PASSWORD` | Bootstrap admin password |
 
 Secrets must:
 
-- be cryptographically random;
-- be at least 256 bits where applicable;
-- be injected through environment variables;
+- be cryptographically strong;
+- be provided through environment or deployment secret injection;
 - never be committed to source control;
-- never be printed in startup logs.
+- never be printed in startup logs;
+- never be echoed back to clients.
 
-`.env.local.example` (local development) and `.env.deploy.example` (self-hosted deployment) must document required variables without real secret values.
+Example env files may document required variables, but must never contain real
+secret values.
 
 ---
 
-## 12. Audit and Logging
+## 12. Security Logging and Audit
 
-Security-relevant events must follow the Audit Model.
+Security-relevant events must follow `audit-model.md`.
 
-Required or recommended security audit events:
+Important current events include:
 
-- `LOGIN_SUCCEEDED`;
-- `LOGIN_FAILED`;
-- `LOGOUT`;
-- `REFRESH_TOKEN_REUSE_DETECTED`;
-- `ACCOUNT_LOCKED`;
-- `ACCOUNT_UNLOCKED`;
-- `SYSTEM_ADMIN_GRANTED`;
-- `SYSTEM_ADMIN_REMOVED`;
-- `REGISTER_ADMIN_ADDED`;
-- `REGISTER_ADMIN_REMOVED`;
-- `REGISTER_VIEWER_ADDED`;
-- `REGISTER_VIEWER_REMOVED`;
-- `PERMISSION_DENIED` where practical;
-
+- `LOGIN_SUCCEEDED`
+- `LOGIN_FAILED`
+- `LOGOUT`
+- `REFRESH_TOKEN_REUSE_DETECTED`
+- `ACCOUNT_LOCKED`
+- `ACCOUNT_UNLOCKED`
+- permission-related admin events where applicable
 
 Logs and audit records must not contain:
 
 - plain passwords;
 - password hashes;
 - refresh tokens;
-- refresh token hashes;
-- access JWTs;
+- refresh-token hashes;
+- access tokens;
 - cookie headers;
-- full request bodies containing credentials.
+- full credential-bearing request bodies.
 
-Server logs may include stack traces server-side only. API responses must not return stack traces.
+Observability-specific guidance for request IDs, correlation IDs, metrics, and
+tracing belongs in `docs/operations/observability.md`.
 
 ---
 
 ## 13. Data Protection Notes
 
-The MVP stores business risk data, user identity data, audit evidence, and security metadata.
+Current implementation expectations:
 
-Implementation requirements:
-
-- use TLS in production deployments;
+- use TLS in production;
 - store timestamps in UTC;
-- restrict audit logs through the Permission Model;
-- exclude internal IDs, administrative metadata, and sensitive fields from Register Viewer exports unless explicitly allowed by later design;
-- retain hard-deleted risk snapshots as defined by the Audit Model;
-- avoid collecting unnecessary personal data.
+- restrict audit logs through the permission model;
+- avoid collecting unnecessary personal data;
+- preserve hard-delete audit snapshots as defined by the audit model.
 
-Database encryption at rest, managed key rotation, and dedicated secrets management are deployment concerns outside the MVP application code unless a later deployment target requires them.
+Deployment concerns such as encryption at rest, managed key rotation, and
+external secret managers may be handled outside application code unless a later
+target explicitly brings them into scope.
 
 ---
 
-## 14. MVP Deferrals
+## 14. Current Deferrals
 
-Product-level MVP exclusions are authoritative in:
+This document does not define the future implementation for every enterprise or
+integration security feature.
 
-- `docs/product/MVP_Scope.md`
+Later-phase security areas include:
 
-Security-specific capabilities deferred from MVP are:
-
+- SAML or other external identity-provider authentication;
 - MFA;
-- self-service password reset emails;
-- SCIM or directory synchronisation;
-- user groups or teams;
-- row-level security in PostgreSQL;
+- self-service password reset;
+- SCIM or directory synchronization;
+- group- or team-based access;
+- API keys and external integration authentication;
 - advanced anomaly detection;
-- tamper-evident audit hashing;
-- formal secrets manager integration;
-- configurable password policies;
-- API keys and external integration authentication.
+- formal secret-manager integration;
+- configurable password policies beyond the current baseline.
 
-These deferrals must be revisited before broader production or enterprise deployment.
+See the relevant post-MVP phase documents for those extensions.

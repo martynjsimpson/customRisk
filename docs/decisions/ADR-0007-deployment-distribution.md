@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Date:** 2026-05-08  
 **Applies to:** Custom Risk — all releases from v0.1.4 onwards, including the stable `1.x` line  
-**Related documents:** Technical Architecture v1.0, release-process.md
+**Related documents:** Technical Architecture v1.1, docs/operations/release-process.md
 
 ---
 

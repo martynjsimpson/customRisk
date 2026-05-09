@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-05-04
 **Applies to:** CI workflow runtime
-**Related architecture:** `docs/architecture/Technical_Architecture.md`
+**Related architecture:** `docs/architecture/technical-architecture.md`
 **Related decision:** `ADR-0001-technical-stack.md`
 
 ---

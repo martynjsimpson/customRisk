@@ -22,6 +22,10 @@ model.
 
 ## Release procedure
 
+This document starts once the release candidate work is already on `main`. For
+branch naming, local development, PR expectations, and local migration authoring,
+see [development-workflow.md](development-workflow.md).
+
 ### 1. Create a release branch
 
 ```sh
@@ -56,7 +60,9 @@ In `CHANGELOG.md`:
 
 ### 4. Open and merge the release PR
 
-Push the release branch and open a pull request targeting `main`.
+Push the release branch and open a pull request targeting `main`. The release
+branch should contain only release-preparation changes such as version bumps,
+changelog updates, or other release notes adjustments.
 
 ```sh
 git add package.json backend/package.json frontend/package.json shared/package.json CHANGELOG.md
@@ -118,6 +124,10 @@ Use explicit version tags for deployments when you want an immutable release tar
 ---
 
 ## Database migrations
+
+This section covers release-time handling only. For creating and reviewing
+Prisma migrations during development, see
+[development-workflow.md](development-workflow.md).
 
 Migrations run automatically when the container starts. The entrypoint runs
 `prisma migrate deploy` before handing off to the server. This is idempotent —

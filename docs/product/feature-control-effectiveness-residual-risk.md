@@ -3,7 +3,7 @@
 **Version:** 0.1  
 **Status:** Draft / Post-MVP feature extension  
 **Applies to:** Post-MVP feature exploration  
-**Related documents:** PRD.md, MVP_Scope.md, MVP_Functional_Spec.md, MVP_Data_Model.md
+**Related documents:** PRD.md, data-model.md
 
 ---
 
@@ -583,7 +583,7 @@ GET /api/v1/registers/:registerId/risks/:riskId/residual-suggestion
 POST /api/v1/registers/:registerId/risks/:riskId/apply-residual-suggestion
 ```
 
-The exact route shape should be defined in a post-MVP API route map.
+The exact route shape should be defined in the implementing phase ticket and reflected in the Postman collection, following `docs/architecture/api-standards.md`.
 
 ---
 

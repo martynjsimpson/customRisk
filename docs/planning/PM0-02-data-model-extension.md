@@ -4,7 +4,7 @@
 **Version:** 1.0  
 **Date:** 2026-05-07  
 **Status:** Approved  
-**Related documents:** `docs/product/mvp-data-model.md`, `docs/planning/post-mvp-backlog.md`, `docs/planning/PM0-01-scope-baseline.md`
+**Related documents:** `docs/architecture/data-model.md`, `docs/planning/post-mvp-backlog.md`, `docs/planning/PM0-01-scope-baseline.md`
 
 ---
 

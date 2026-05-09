@@ -34,7 +34,7 @@ Phases 8, 9, 10, 11, and 12 can run at the same time.
 
 **Goal:** Finalise API key persistence and scope model for external integrations.
 
-**Dependencies:** Security Model; API Route Map; Permission Model; Audit Model.
+**Dependencies:** Security Model; API Standards; Permission Model; Audit Model.
 
 **Deliverables:**
 

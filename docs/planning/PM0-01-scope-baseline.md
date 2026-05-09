@@ -192,11 +192,12 @@ The cross-phase dependency map is maintained in the Post-MVP Implementation Back
 |---|---|
 | Post-MVP Implementation Backlog v1.0 | `docs/planning/post-mvp-backlog.md` |
 | PRD v3.2 | `docs/product/prd.md` |
-| MVP Scope v1.2 | `docs/product/mvp-scope.md` |
-| MVP Functional Specification v1.2 | `docs/product/mvp-functional-spec.md` |
-| MVP Data Model v1.2 | `docs/product/mvp-data-model.md` |
+| MVP Scope v1.2 (archived) | `docs/planning/archive/mvp-scope.md` |
+| MVP Functional Specification v1.2 (archived) | `docs/planning/archive/mvp-functional-spec.md` |
+| Data Model v1.3 | `docs/architecture/data-model.md` |
 | Technical Architecture v1.0 | `docs/architecture/technical-architecture.md` |
-| API Route Map v1.0 | `docs/architecture/api-route-map.md` |
+| API Standards v1.0 | `docs/architecture/api-standards.md` |
+| Postman Collection | `docs/postman/` |
 | Permission Model v1.0 | `docs/architecture/permission-model.md` |
 | Audit Model v1.0 | `docs/architecture/audit-model.md` |
 | Security Model v1.0 | `docs/architecture/security-model.md` |

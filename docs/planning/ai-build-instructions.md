@@ -24,9 +24,9 @@ Use the following documents as authoritative:
 | Topic | Authoritative document |
 |---|---|
 | Long-term product intent | `docs/product/prd.md` |
-| MVP scope and exclusions (historical reference) | `docs/product/mvp-scope.md` |
-| MVP user-facing behaviour, screens, acceptance criteria | `docs/product/mvp-functional-spec.md` |
-| MVP logical data model, seed data, transaction boundaries | `docs/product/mvp-data-model.md` |
+| MVP scope and exclusions (archived) | `docs/planning/archive/mvp-scope.md` |
+| MVP user-facing behaviour, screens, acceptance criteria (archived) | `docs/planning/archive/mvp-functional-spec.md` |
+| Data model: modelling principles, ER overview, calculation rules, transaction boundaries | `docs/architecture/data-model.md` |
 | Post-MVP scope baseline and PRD-to-phase map | `docs/planning/PM0-01-scope-baseline.md` |
 | Post-MVP data model extension plan | `docs/planning/PM0-02-data-model-extension.md` |
 | Post-MVP API versioning and compatibility rules | `docs/planning/PM0-03-api-versioning-compatibility.md` |
@@ -35,7 +35,8 @@ Use the following documents as authoritative:
 | Post-MVP backlog index, sequencing, and acceptance mapping | `docs/planning/post-mvp-backlog.md` |
 | Post-MVP phase tickets (one file per phase) | `docs/planning/phases/phase-NN-*.md` |
 | Runtime, frameworks, deployment, repo structure | `docs/architecture/technical-architecture.md` |
-| REST routes, request/response shapes, route-level auth | `docs/architecture/api-route-map.md` |
+| API conventions: response shapes, error codes, pagination, sorting, route design | `docs/architecture/api-standards.md` |
+| Current implemented REST routes and example requests | `docs/postman/` |
 | Permission rules and effective access | `docs/architecture/permission-model.md` |
 | Audit event model and audit access | `docs/architecture/audit-model.md` |
 | Authentication, sessions, passwords, tokens, CORS, secrets | `docs/architecture/security-model.md` |
@@ -52,7 +53,7 @@ When documents overlap, use this order:
 1. Post-MVP backlog and PM-prefixed scope docs for what is in or out.
 2. MVP Functional Specification for existing user-facing behaviour.
 3. Architecture documents for implementation contracts.
-4. MVP Data Model and PM0-02 extension plan for data rules and transactions.
+4. Data Model (`docs/architecture/data-model.md`) and PM0-02 extension plan for data rules and transactions.
 5. PRD for long-term intent only where other documents are silent.
 6. Current codebase for implementation state.
 
@@ -68,7 +69,7 @@ Before starting an implementation task:
 2. Read the source documents listed for that topic in section 2.
 3. Confirm the task does not require features not yet phased or deliberately non-goal (see PM0-01).
 4. Identify required permission checks from `permission-model.md`.
-5. Identify required audit events from `audit-model.md` and `api-route-map.md`.
+5. Identify required audit events from `audit-model.md` and check the Postman collection for current route behavior if the task changes an existing endpoint.
 6. Identify relevant security rules from `security-model.md`.
 7. Identify schema additions or backfill requirements from `PM0-02-data-model-extension.md`.
 8. Identify tests required by the backlog ticket.
@@ -126,11 +127,12 @@ Avoid copying long lists from authoritative docs into planning or prompt docs.
 Use references instead:
 
 - refer to `prd.md` for long-term product intent;
-- refer to `mvp-scope.md` for MVP exclusions instead of repeating the full exclusion list;
+- refer to `docs/planning/archive/mvp-scope.md` for MVP exclusions instead of repeating the full exclusion list;
 - refer to `technical-architecture.md` for stack details instead of repeating library versions;
-- refer to `api-route-map.md` for routes instead of copying route inventories;
+- refer to `docs/postman/` for current routes instead of copying route inventories;
+- refer to `api-standards.md` for API-wide conventions instead of repeating response and error-shape rules;
 - refer to `permission-model.md`, `audit-model.md`, and `security-model.md` for policy details;
-- refer to `mvp-data-model.md` and `PM0-02-data-model-extension.md` for data rules.
+- refer to `docs/architecture/data-model.md` and `PM0-02-data-model-extension.md` for data rules.
 
 Short summaries are acceptable when they help the reader understand a ticket, but the detailed rule should live in only one authoritative document.
 

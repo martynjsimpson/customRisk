@@ -1,25 +1,25 @@
 # Custom Risk — Technical Architecture
 
-**Version:** 1.0  
-**Date:** 2026-05-04  
-**Status:** Confirmed  
-**Applies to:** MVP delivery  
+**Version:** 1.1  
+**Date:** 2026-05-09  
+**Status:** Active  
+**Applies to:** Current and future implementation  
 **Related ADR:** ADR-0001 — Technical Stack  
-**Related documents:** PRD v3.2, MVP Scope v1.2, MVP Functional Specification v1.2, MVP Data Model v1.2
+**Related documents:** Security Model v1.1, API Standards v1.0, Permission Model v1.1, Audit Model v1.1, Observability Notes
 
 ---
 
 ## 1. Purpose
 
-This document defines the definitive technical architecture for the Custom Risk MVP.
+This document defines the definitive technical architecture for Custom Risk.
 
-It specifies the technologies, libraries, runtime patterns, deployment model, authentication design, API conventions, repository structure, and environment configuration to be used during implementation.
+It specifies the technologies, libraries, runtime patterns, deployment model, authentication design, API conventions, repository structure, and environment configuration.
 
 Decision reasoning is intentionally excluded from this document. Rationale and alternatives are recorded separately in:
 
 - `ADR-0001-technical-stack.md`
 
-This file should be treated as the implementation source of truth for the MVP architecture. Any future change to the technical stack should be recorded through a new or superseding ADR before this document is updated.
+This file should be treated as the implementation source of truth for the architecture. Any future change to the technical stack should be recorded through a new or superseding ADR before this document is updated.
 
 ---
 
@@ -316,19 +316,19 @@ app.get('*', (req, res) => {
 
 ## 6. Authentication and Session Management
 
-The authoritative MVP security contract is:
+The authoritative security contract is:
 
-- `Security_Model.md`
+- `security-model.md`
 
 This Technical Architecture document records only the architectural boundary:
 
-- MVP uses application-managed local authentication.
+- Uses application-managed local authentication.
 - Authentication and authorisation are implemented in the Express backend.
 - User and refresh-token persistence is in PostgreSQL through Prisma. API-key persistence is deferred to post-MVP.
 - Password hashing uses the selected backend library from section 3.2.
-- Route-level behaviour is defined in `API_Route_Map.md`.
-- Effective access rules are defined in `Permission_Model.md`.
-- Security audit requirements are defined in `Audit_Model.md` and `Security_Model.md`.
+- Route-level behaviour is defined in `api-route-map.md`.
+- Effective access rules are defined in `permission-model.md`.
+- Security audit requirements are defined in `audit-model.md` and `security-model.md`.
 
 Do not duplicate password policy, token rotation, cookie settings, or rate-limit rules here. Keep those details in `Security_Model.md`.
 
@@ -424,7 +424,7 @@ Paginated responses must include:
   - `/registers/:registerId/risks/:riskId`
 - Non-CRUD actions should use sub-resource patterns, for example:
   - `POST /risks/:riskId/reviews`
-- The complete endpoint inventory belongs in the API Route Map document.
+- The complete implemented endpoint inventory belongs in the Postman collection, while API-wide conventions belong in `api-standards.md`.
 
 ---
 
@@ -558,7 +558,7 @@ Each seeded register should contain 8–12 risks with a realistic spread of:
 
 The authoritative MVP exclusion list is in:
 
-- `docs/product/MVP_Scope.md`
+- `docs/planning/archive/mvp-scope.md` (archived — MVP is complete)
 
 Architecture-specific deferrals that are not already governed by MVP product scope:
 
@@ -575,12 +575,13 @@ Architecture-specific deferrals that are not already governed by MVP product sco
 
 ## 12. Architecture Document Set
 
-The architecture document set for MVP implementation is:
+The architecture document set is:
 
 1. **Technical Architecture** — Runtime, framework, deployment, and repository standards.
-2. **API Route Map** — Full inventory of REST endpoints, request/response shapes, query parameters, auth requirements, and audit events.
-3. **Permission Model** — Effective permissions, role behaviour, field-level edit restrictions, and backend enforcement rules.
-4. **Audit Model** — Audit event structure, action names, scopes, field changes, snapshots, and audit access rules.
-5. **Security Model** — Authentication, sessions, passwords, CORS, validation, secrets, and security logging. API keys are post-MVP.
-6. **Schema** — Reference document pointing to `backend/prisma/schema.prisma` as the canonical drafted Prisma schema.
-7. **Implementation Backlog** — AI-ready build tickets broken down by MVP Scope v1.2 phases, with acceptance criteria derived from the MVP Functional Specification.
+2. **API Standards** — Cross-cutting API conventions such as envelopes, error codes, pagination, sorting, and route design rules.
+3. **Postman Collection** — Current implemented REST endpoints and example requests.
+4. **Permission Model** — Effective permissions, role behaviour, field-level edit restrictions, and backend enforcement rules.
+5. **Audit Model** — Audit event structure, action names, scopes, field changes, snapshots, and audit access rules.
+6. **Security Model** — Authentication, sessions, passwords, CORS, validation, secrets, and security logging. API keys are post-MVP.
+7. **Schema** — Reference document pointing to `backend/prisma/schema.prisma` as the canonical Prisma schema.
+8. **Post-MVP Planning** — Phase documents under `docs/planning/phases/` defining post-MVP feature delivery.

@@ -4,7 +4,7 @@
 **Date:** 2026-05-04  
 **Applies to:** Custom Risk MVP  
 **Related architecture:** `Technical_Architecture.md`  
-**Related documents:** PRD v3.2, MVP Scope v1.2, MVP Functional Specification v1.2, MVP Data Model v1.2
+**Related documents:** PRD v3.2, MVP Scope v1.2 (archived), MVP Functional Specification v1.2 (archived), Data Model v1.3
 
 ---
 
@@ -369,7 +369,7 @@ The local authentication architecture should not prevent future external identit
 
 The following implementation documents should be produced using this ADR and the technical architecture as inputs:
 
-1. API Route Map
+1. API Standards and Postman Collection
 2. Prisma Schema
 3. Implementation Backlog
 

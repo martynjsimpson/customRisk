@@ -536,7 +536,7 @@ Potential dashboard focus:
 * Risk Response Owner: owned actions and due reviews.
 * Register Viewer: read-only summaries.
 
-> **MVP note:** The MVP Functional Specification v1.2 (sections 8.2–8.5) defines the implemented Home dashboard for the MVP. That specification supersedes the above for MVP-scoped delivery. Post-MVP dashboard development should refer back to the full requirements in this section.
+> **Note:** The MVP Functional Specification v1.2 (archived at `docs/planning/archive/mvp-functional-spec.md`, sections 8.2–8.5) defines the implemented Home dashboard. Post-MVP dashboard development should refer back to the full requirements in this section.
 
 ### 15.2 Registers
 
