@@ -258,6 +258,7 @@ export function RiskFormModal({
   );
 
   const form = useForm<RiskFormValues>({ initialValues: emptyValues(defaultState) });
+  const { setValues: setFormValues } = form;
 
   const selectedRiskQuery = useQuery({
     queryKey: ["risk", register.id, editingRiskId],
@@ -271,14 +272,14 @@ export function RiskFormModal({
     }
 
     if (editingRiskId) {
-      form.setValues(emptyValues(defaultState));
+      setFormValues(emptyValues(defaultState));
       setCustomValues({});
       return;
     }
 
-    form.setValues(emptyValues(defaultState));
+    setFormValues(emptyValues(defaultState));
     setCustomValues({});
-  }, [defaultState, editingRiskId, opened]);
+  }, [defaultState, editingRiskId, opened, setFormValues]);
 
   useEffect(() => {
     if (!opened) {
@@ -287,7 +288,7 @@ export function RiskFormModal({
 
     if (editingRiskId && selectedRiskQuery.data) {
       const risk = selectedRiskQuery.data;
-      form.setValues({
+      setFormValues({
         title: risk.title,
         description: risk.description,
         state: risk.state,
@@ -316,7 +317,7 @@ export function RiskFormModal({
       return;
     }
 
-  }, [editingRiskId, opened, selectedRiskQuery.data]);
+  }, [editingRiskId, opened, selectedRiskQuery.data, setFormValues]);
 
   const isEditingRiskLoading = Boolean(editingRiskId && selectedRiskQuery.isLoading && !selectedRiskQuery.data);
 
