@@ -4,10 +4,12 @@ import { test } from "node:test";
 
 import { auditQuerySchema } from "../src/validators/audit.schemas.ts";
 
-test("audit query schema supports MVP audit filters", () => {
+test("audit query schema supports all audit filters including search and actorName", () => {
   const parsed = auditQuerySchema.parse({
     page: "2",
     pageSize: "50",
+    search: "ISEC-0001",
+    actorName: "Alice",
     dateFrom: "2026-05-01",
     dateTo: "2026-05-31",
     actorUserId: "00000000-0000-4000-8000-000000000001",
@@ -21,9 +23,29 @@ test("audit query schema supports MVP audit filters", () => {
 
   assert.equal(parsed.page, 2);
   assert.equal(parsed.pageSize, 50);
+  assert.equal(parsed.search, "ISEC-0001");
+  assert.equal(parsed.actorName, "Alice");
   assert.equal(parsed.action, "RISK_UPDATED");
   assert.equal(parsed.objectType, "RISK");
   assert.equal(parsed.displayRiskId, "ISEC-0001");
+});
+
+test("buildAuditWhere applies AND conditions for search and actorName", async () => {
+  const service = await readFile(new URL("../src/services/audit.service.ts", import.meta.url), "utf8");
+
+  // search fans out across summary, objectDisplayName, and displayRiskId
+  assert.match(service, /input\.search/);
+  assert.match(service, /summary.*contains.*input\.search/);
+  assert.match(service, /objectDisplayName.*contains.*input\.search/);
+  assert.match(service, /displayRiskId.*contains.*input\.search/);
+
+  // actorName fans out across actorDisplayName and actorEmail
+  assert.match(service, /input\.actorName/);
+  assert.match(service, /actorDisplayName.*contains.*input\.actorName/);
+  assert.match(service, /actorEmail.*contains.*input\.actorName/);
+
+  // both use AND so they combine cleanly with other filters
+  assert.match(service, /where\.AND = andConditions/);
 });
 
 test("audit routes enforce system, register, risk, event, and snapshot access paths", async () => {
@@ -129,12 +151,15 @@ test("key MVP mutating workflows write audit events and field changes where requ
   assert.match(registers, /auditActions\.registerViewerRemoved/);
 
   assert.match(risks, /action: auditActions\.riskCreated/);
+  assert.match(risks, /summary: `Risk \$\{risk\.displayRiskId\} created: \$\{risk\.title\}`/);
+  assert.match(risks, /metadataJson: \{/);
   assert.match(risks, /action: auditActions\.riskUpdated/);
   assert.match(risks, /fieldChanges: buildRiskUpdateFieldChanges\(existing, updated\)/);
   assert.match(risks, /action: auditActions\.riskDeleted/);
 
   assert.match(reviews, /action: auditActions\.riskReviewed/);
-  assert.match(reviews, /action: auditActions\.nextReviewDateUpdated/);
+  // Risk review embeds field-change detail in the RISK_REVIEWED event; no separate NEXT_REVIEW_DATE_UPDATED event is created
+  assert.doesNotMatch(reviews, /action: auditActions\.nextReviewDateUpdated/);
   assert.match(reviews, /fieldChanges/);
 
   assert.match(customFields, /auditActions\.customFieldCreated/);

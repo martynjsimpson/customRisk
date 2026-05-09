@@ -5,6 +5,7 @@ import {
   IconHome,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
+  IconLogout,
   IconShield,
   IconUser,
   IconUsers
@@ -59,7 +60,7 @@ function NavItem({ to, label, icon, active, collapsed, onClick }: NavItemProps) 
 }
 
 export function MainLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, appEnvironment } = useAuth();
   const { isSystemAdmin, registerRoles } = usePermissions();
   const location = useLocation();
   const hasRegisterAccess = isSystemAdmin || registerRoles.length > 0;
@@ -75,9 +76,15 @@ export function MainLayout() {
         <Group h="100%" justify="space-between">
           <Title order={3}>Custom Risk</Title>
           <Group gap="sm">
-            <Text size="sm">{user?.name}</Text>
-            <Button variant="light" onClick={() => void logout()}>
-              Logout
+            <Button
+              component={Link}
+              to="/profile"
+              variant="subtle"
+              size="sm"
+              leftSection={<IconUser size={18} />}
+              aria-label="My Profile"
+            >
+              {user?.name}
             </Button>
           </Group>
         </Group>
@@ -129,13 +136,6 @@ export function MainLayout() {
         </Stack>
         <Stack gap={0} pt="xs" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
           <NavItem
-            to="/profile"
-            label={user?.name ?? "Profile"}
-            icon={<IconUser size={18} />}
-            active={location.pathname === "/profile"}
-            collapsed={collapsed}
-          />
-          <NavItem
             to="#"
             label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             icon={collapsed ? <IconLayoutSidebarLeftExpand size={18} /> : <IconLayoutSidebarLeftCollapse size={18} />}
@@ -143,9 +143,19 @@ export function MainLayout() {
             collapsed={collapsed}
             onClick={(e) => { e.preventDefault(); setCollapsed((c) => !c); }}
           />
+          <NavItem
+            to="#"
+            label="Logout"
+            icon={<IconLogout size={18} />}
+            active={false}
+            collapsed={collapsed}
+            onClick={(e) => { e.preventDefault(); void logout(); }}
+          />
           {!collapsed && (
             <Text size="xs" c="dimmed" ta="center" py={4}>
-              v{packageJson.version}
+              {appEnvironment
+                ? `[${appEnvironment.toUpperCase()} v${packageJson.version}]`
+                : `v${packageJson.version}`}
             </Text>
           )}
         </Stack>

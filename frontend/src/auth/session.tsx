@@ -19,8 +19,14 @@ export interface CurrentPermissions {
   }>;
 }
 
+export interface RiskTableColumnPreferences {
+  registers?: Record<string, string[]>;
+  myRisks?: string[];
+}
+
 export interface UserPreferences {
   colorScheme?: "light" | "dark" | "auto";
+  riskTableColumns?: RiskTableColumnPreferences;
 }
 
 export interface EnabledFeatures {
@@ -40,6 +46,7 @@ interface AuthContextValue {
   user: CurrentUser | null;
   permissions: CurrentPermissions | null;
   enabledFeatures: EnabledFeatures | null;
+  appEnvironment: "development" | "production" | null;
   preferences: UserPreferences | null;
   setPreferences: (prefs: UserPreferences | null) => void;
   isBootstrapping: boolean;
@@ -61,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [permissions, setPermissions] = useState<CurrentPermissions | null>(null);
   const [enabledFeatures, setEnabledFeatures] = useState<EnabledFeatures | null>(null);
+  const [appEnvironment, setAppEnvironment] = useState<"development" | "production" | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
@@ -85,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(session.user);
           setPermissions(session.permissions);
           setEnabledFeatures(session.enabledFeatures);
+          setAppEnvironment(session.appEnvironment);
         }
         if (!cancelled && session.enabledFeatures.userPreferences) {
           try {
@@ -102,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setPermissions(null);
           setEnabledFeatures(null);
+          setAppEnvironment(null);
           setPreferences(null);
         }
       } finally {
@@ -126,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session.user);
       setPermissions(session.permissions);
       setEnabledFeatures(session.enabledFeatures);
+      setAppEnvironment(session.appEnvironment);
       if (session.enabledFeatures.userPreferences) {
         try {
           const prefs = await getMyPreferences();
@@ -148,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setPermissions(null);
       setEnabledFeatures(null);
+      setAppEnvironment(null);
       setPreferences(null);
     }
   }, [setAccessToken]);
@@ -158,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       permissions,
       enabledFeatures,
+      appEnvironment,
       preferences,
       setPreferences,
       isBootstrapping,
@@ -165,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       setAccessToken
     }),
-    [accessToken, enabledFeatures, isBootstrapping, login, logout, permissions, preferences, setAccessToken, user]
+    [accessToken, appEnvironment, enabledFeatures, isBootstrapping, login, logout, permissions, preferences, setAccessToken, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

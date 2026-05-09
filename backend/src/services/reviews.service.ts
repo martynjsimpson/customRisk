@@ -165,25 +165,8 @@ export async function completeRiskReview(
         summary: `Risk ${updatedRisk.displayRiskId} reviewed`,
         metadataJson: {
           reviewedAt: reviewedAt.toISOString(),
-          commentProvided: Boolean(input.comment),
-          calculatedNextReviewDate: toDateOnlyString(calculatedNextReviewDate)
-        }
-      },
-      tx
-    );
-
-    await recordAuditEvent(
-      {
-        action: auditActions.nextReviewDateUpdated,
-        actor,
-        objectType: "RISK",
-        objectId: riskId,
-        objectDisplayName: updatedRisk.displayRiskId,
-        scopeType: "RISK",
-        registerId,
-        riskId,
-        displayRiskId: updatedRisk.displayRiskId,
-        summary: `Next review date updated for risk ${updatedRisk.displayRiskId}`,
+          commentProvided: Boolean(input.comment)
+        },
         fieldChanges: [
           {
             fieldName: "nextReviewDate",

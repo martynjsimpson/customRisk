@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
+import { listAuditEvents } from "./audit.service.js";
+import { formatPersonDisplay, personReferenceSelect } from "./personReference.service.js";
 import {
   getDueSoonLimit,
   getRiskReviewStatus,
@@ -13,7 +15,15 @@ import {
 const dashboardRiskInclude = {
   register: { select: { id: true, name: true, reviewsEnabled: true } },
   owner: { select: { id: true, name: true, email: true } },
-  riskLevel: { select: { id: true, name: true, color: true } }
+  riskLevel: { select: { id: true, name: true, color: true } },
+  customFieldValues: {
+    include: {
+      customFieldDefinition: { select: { id: true, fieldName: true, fieldType: true, isActive: true, displayOrder: true } },
+      dropdownOption: { select: { id: true, label: true } },
+      personUser: { select: { id: true, name: true, email: true } },
+      person: { select: personReferenceSelect }
+    }
+  }
 } satisfies Prisma.RiskInclude;
 
 function toDateOnlyString(date: Date | null) {
@@ -50,7 +60,21 @@ function mapDashboardRisk(
       nextReviewDate: risk.nextReviewDate,
       state: risk.state
     }),
-    systemUpdatedAt: risk.systemUpdatedAt
+    systemUpdatedAt: risk.systemUpdatedAt,
+    customFieldValues: risk.customFieldValues.map((value) => ({
+      customFieldDefinitionId: value.customFieldDefinitionId,
+      fieldName: value.customFieldDefinition.fieldName,
+      fieldType: value.customFieldDefinition.fieldType,
+      displayOrder: value.customFieldDefinition.displayOrder,
+      isActive: value.customFieldDefinition.isActive,
+      textValue: value.textValue,
+      numberValue: value.numberValue ? decimalToNumber(value.numberValue) : null,
+      booleanValue: value.booleanValue,
+      dateValue: toDateOnlyString(value.dateValue),
+      personUser: value.personUser,
+      person: value.person ? { displayName: formatPersonDisplay(value.person).displayName } : null,
+      dropdownOption: value.dropdownOption
+    }))
   };
 }
 
@@ -207,10 +231,7 @@ export async function getAdminSummary(actor: AuthenticatedActor) {
         register: { reviewsEnabled: true }
       }
     }),
-    prisma.auditEvent.findMany({
-      orderBy: { occurredAt: "desc" },
-      take: 10
-    })
+    listAuditEvents({ pageSize: 10 }).then((r) => r.data)
   ]);
 
   return {

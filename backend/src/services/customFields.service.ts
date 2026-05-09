@@ -230,11 +230,14 @@ export async function createCustomField(
           objectDisplayName: field.fieldName,
           scopeType: "REGISTER",
           registerId,
-          summary: "Custom field created",
+          summary: `Custom field '${field.fieldName}' created (${field.fieldType})`,
           metadataJson: {
+            fieldName: field.fieldName,
             fieldType: field.fieldType,
+            helpText: field.helpText ?? null,
             isRequired: field.isRequired,
-            isActive: field.isActive
+            isActive: field.isActive,
+            displayOrder: field.displayOrder
           }
         },
         tx
@@ -283,7 +286,7 @@ export async function updateCustomField(
           objectDisplayName: updated.fieldName,
           scopeType: "REGISTER",
           registerId,
-          summary: "Custom field updated",
+          summary: `Custom field '${updated.fieldName}' updated`,
           fieldChanges: buildFieldChanges(existing, updated, customFieldAuditFields)
         },
         tx
@@ -336,7 +339,9 @@ export async function setCustomFieldActiveState(
         objectDisplayName: updated.fieldName,
         scopeType: "REGISTER",
         registerId,
-        summary: isActive ? "Custom field activated" : "Custom field deactivated",
+        summary: isActive
+          ? `Custom field '${updated.fieldName}' activated`
+          : `Custom field '${updated.fieldName}' deactivated`,
         fieldChanges: [
           {
             fieldName: "isActive",
@@ -395,10 +400,12 @@ export async function createCustomFieldOption(
           objectDisplayName: option.label,
           scopeType: "REGISTER",
           registerId,
-          summary: "Dropdown option created",
+          summary: `Dropdown option '${option.label}' added to '${field.fieldName}'`,
           metadataJson: {
             customFieldDefinitionId: field.id,
             fieldName: field.fieldName,
+            label: option.label,
+            displayOrder: option.displayOrder,
             isActive: option.isActive
           }
         },
@@ -419,7 +426,10 @@ export async function updateCustomFieldOption(
   optionId: string,
   input: UpdateCustomFieldOptionBody
 ) {
-  const existing = await findCustomFieldOption(registerId, fieldId, optionId);
+  const [field, existing] = await Promise.all([
+    findDropdownField(registerId, fieldId),
+    findCustomFieldOption(registerId, fieldId, optionId)
+  ]);
 
   if (input.isActive === false && existing.isActive) {
     await assertDropdownWillKeepActiveOption(fieldId, optionId);
@@ -445,8 +455,8 @@ export async function updateCustomFieldOption(
           objectDisplayName: updated.label,
           scopeType: "REGISTER",
           registerId,
-          summary: "Dropdown option updated",
-          metadataJson: { customFieldDefinitionId: fieldId },
+          summary: `Dropdown option '${updated.label}' updated in '${field.fieldName}'`,
+          metadataJson: { customFieldDefinitionId: fieldId, fieldName: field.fieldName },
           fieldChanges: buildFieldChanges(existing, updated, optionAuditFields)
         },
         tx
@@ -465,7 +475,10 @@ export async function deactivateCustomFieldOption(
   fieldId: string,
   optionId: string
 ) {
-  const existing = await findCustomFieldOption(registerId, fieldId, optionId);
+  const [field, existing] = await Promise.all([
+    findDropdownField(registerId, fieldId),
+    findCustomFieldOption(registerId, fieldId, optionId)
+  ]);
   if (existing.isActive) {
     await assertDropdownWillKeepActiveOption(fieldId, optionId);
   }
@@ -485,8 +498,8 @@ export async function deactivateCustomFieldOption(
         objectDisplayName: updated.label,
         scopeType: "REGISTER",
         registerId,
-        summary: "Dropdown option deactivated",
-        metadataJson: { customFieldDefinitionId: fieldId },
+        summary: `Dropdown option '${updated.label}' deactivated in '${field.fieldName}'`,
+        metadataJson: { customFieldDefinitionId: fieldId, fieldName: field.fieldName },
         fieldChanges: [
           {
             fieldName: "isActive",

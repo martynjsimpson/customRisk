@@ -527,9 +527,10 @@ model AuditEvent {
   objectId           String          @map("object_id")
   objectDisplayName  String?         @map("object_display_name")
   scopeType          AuditScopeType  @map("scope_type")
-  registerId         String?         @map("register_id") @db.Uuid
-  riskId             String?         @map("risk_id") @db.Uuid
-  displayRiskId      String?         @map("display_risk_id")
+  registerId            String?         @map("register_id") @db.Uuid
+  registerDisplayName   String?         @map("register_display_name")
+  riskId                String?         @map("risk_id") @db.Uuid
+  displayRiskId         String?         @map("display_risk_id")
   summary            String          @db.Text
   metadataJson       Json?           @map("metadata_json") @db.JsonB
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)

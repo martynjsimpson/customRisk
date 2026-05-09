@@ -110,16 +110,50 @@ function applyReviewFilters(where: Prisma.RiskWhereInput, query: ListRisksQuery,
   }
 }
 
-function mapRiskListItem(
-  risk: Prisma.RiskGetPayload<{
+const riskListInclude = {
+  owner: { select: { id: true, name: true, email: true } },
+  likelihoodValue: { select: { id: true, name: true } },
+  impactValue: { select: { id: true, name: true } },
+  riskLevel: { select: { id: true, name: true, color: true } },
+  responseStrategy: { select: { id: true, name: true } },
+  customFieldValues: {
     include: {
-      owner: { select: { id: true; name: true; email: true } };
-      likelihoodValue: { select: { id: true; name: true } };
-      impactValue: { select: { id: true; name: true } };
-      riskLevel: { select: { id: true; name: true; color: true } };
-      responseStrategy: { select: { id: true; name: true } };
+      customFieldDefinition: { select: { id: true, fieldName: true, fieldType: true, isActive: true, displayOrder: true } },
+      dropdownOption: { select: { id: true, label: true } },
+      personUser: { select: { id: true, name: true, email: true } },
+      person: { select: personReferenceSelect }
+    }
+  }
+} satisfies Prisma.RiskInclude;
+
+function mapRiskListCustomFieldValue(
+  value: Prisma.RiskCustomFieldValueGetPayload<{
+    include: {
+      customFieldDefinition: { select: { id: true; fieldName: true; fieldType: true; isActive: true; displayOrder: true } };
+      dropdownOption: { select: { id: true; label: true } };
+      personUser: { select: { id: true; name: true; email: true } };
+      person: { select: typeof personReferenceSelect };
     };
-  }>,
+  }>
+) {
+  return {
+    customFieldDefinitionId: value.customFieldDefinitionId,
+    fieldName: value.customFieldDefinition.fieldName,
+    fieldType: value.customFieldDefinition.fieldType,
+    displayOrder: value.customFieldDefinition.displayOrder,
+    isActive: value.customFieldDefinition.isActive,
+    textValue: value.textValue,
+    numberValue: value.numberValue ? decimalToNumber(value.numberValue) : null,
+    booleanValue: value.booleanValue,
+    dateValue: toDateOnlyString(value.dateValue),
+    personUser: value.personUser,
+    person: value.person ? { displayName: formatPersonDisplay(value.person).displayName } : null,
+    dropdownOption: value.dropdownOption
+  };
+}
+
+function mapRiskListItem(
+  risk: Prisma.RiskGetPayload<{ include: typeof riskListInclude }>,
   reviewsEnabled: boolean
 ) {
   const reviewStatus = getRiskReviewStatus({
@@ -146,7 +180,8 @@ function mapRiskListItem(
       nextReviewDate: risk.nextReviewDate,
       state: risk.state
     }),
-    systemUpdatedAt: risk.systemUpdatedAt
+    systemUpdatedAt: risk.systemUpdatedAt,
+    customFieldValues: risk.customFieldValues.map(mapRiskListCustomFieldValue)
   };
 }
 
@@ -353,13 +388,7 @@ export async function listRisks(
   const [risks, total] = await Promise.all([
     prisma.risk.findMany({
       where,
-      include: {
-        owner: { select: { id: true, name: true, email: true } },
-        likelihoodValue: { select: { id: true, name: true } },
-        impactValue: { select: { id: true, name: true } },
-        riskLevel: { select: { id: true, name: true, color: true } },
-        responseStrategy: { select: { id: true, name: true } }
-      },
+      include: riskListInclude,
       orderBy: buildRiskOrderBy(query),
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize
@@ -728,7 +757,20 @@ export async function createRisk(
         registerId,
         riskId: risk.id,
         displayRiskId: risk.displayRiskId,
-        summary: "Risk created"
+        summary: `Risk ${risk.displayRiskId} created: ${risk.title}`,
+        metadataJson: {
+          title: risk.title,
+          state: risk.state,
+          owner: { id: risk.owner.id, name: risk.owner.name },
+          likelihood: { id: risk.likelihoodValue.id, name: risk.likelihoodValue.name },
+          impact: { id: risk.impactValue.id, name: risk.impactValue.name },
+          riskScore: decimalToNumber(risk.riskScore),
+          riskLevel: { id: risk.riskLevel.id, name: risk.riskLevel.name },
+          responseStrategy: { id: risk.responseStrategy.id, name: risk.responseStrategy.name },
+          responseAction: risk.responseAction ?? null,
+          createdDate: toDateOnlyString(risk.createdDate),
+          nextReviewDate: toDateOnlyString(risk.nextReviewDate)
+        }
       },
       tx
     );

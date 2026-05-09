@@ -34,11 +34,12 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
       allowViewerExport: false
     }
   });
+  const { setValues: setSettingsValues } = settingsForm;
 
   useEffect(() => {
     const register = registerQuery.data;
     if (register) {
-      settingsForm.setValues({
+      setSettingsValues({
         name: register.name,
         description: register.description ?? "",
         riskIdPrefix: register.riskIdPrefix ?? "",
@@ -49,7 +50,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
         allowViewerExport: register.allowViewerExport
       });
     }
-  }, [registerQuery.data]);
+  }, [registerQuery.data, setSettingsValues]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: () =>

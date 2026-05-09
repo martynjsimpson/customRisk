@@ -1,4 +1,4 @@
-import { Button, Checkbox, Modal, NumberInput, Select, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Checkbox, Modal, Select, Stack, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect } from "react";
 
@@ -10,7 +10,6 @@ interface CustomFieldFormValues {
   fieldType: CustomFieldType;
   helpText: string;
   isRequired: boolean;
-  displayOrder: number;
   isActive: boolean;
   initialOptionsText: string;
 }
@@ -18,7 +17,6 @@ interface CustomFieldFormValues {
 interface CustomFieldModalProps {
   opened: boolean;
   editingField: CustomFieldDefinition | null;
-  nextDisplayOrder: number;
   createError: unknown;
   updateError: unknown;
   isSaving: boolean;
@@ -36,13 +34,12 @@ const fieldTypeOptions: Array<{ value: CustomFieldType; label: string }> = [
   { value: "PERSON_PICKER", label: "Person Picker" }
 ];
 
-function createInitialValues(nextDisplayOrder: number): CustomFieldFormValues {
+function createInitialValues(): CustomFieldFormValues {
   return {
     fieldName: "",
     fieldType: "TEXT",
     helpText: "",
     isRequired: false,
-    displayOrder: nextDisplayOrder,
     isActive: true,
     initialOptionsText: ""
   };
@@ -59,7 +56,6 @@ export function parseInitialOptions(value: string) {
 export function CustomFieldModal({
   opened,
   editingField,
-  nextDisplayOrder,
   createError,
   updateError,
   isSaving,
@@ -67,7 +63,7 @@ export function CustomFieldModal({
   onSubmit
 }: CustomFieldModalProps) {
   const form = useForm<CustomFieldFormValues>({
-    initialValues: createInitialValues(nextDisplayOrder)
+    initialValues: createInitialValues()
   });
 
   useEffect(() => {
@@ -81,15 +77,17 @@ export function CustomFieldModal({
         fieldType: editingField.fieldType,
         helpText: editingField.helpText ?? "",
         isRequired: editingField.isRequired,
-        displayOrder: editingField.displayOrder,
         isActive: editingField.isActive,
         initialOptionsText: ""
       });
       return;
     }
 
-    form.setValues(createInitialValues(nextDisplayOrder));
-  }, [editingField, form, nextDisplayOrder, opened]);
+    form.setValues(createInitialValues());
+  // form is intentionally omitted — Mantine returns a new object reference each render,
+  // which would retrigger this effect on every keystroke and reset the form values.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingField, opened]);
 
   return (
     <Modal
@@ -109,7 +107,6 @@ export function CustomFieldModal({
             {...form.getInputProps("fieldType")}
           />
           <Textarea label="Help text" {...form.getInputProps("helpText")} />
-          <NumberInput label="Display order" min={1} {...form.getInputProps("displayOrder")} />
           <Checkbox label="Required" {...form.getInputProps("isRequired", { type: "checkbox" })} />
           <Checkbox label="Active" {...form.getInputProps("isActive", { type: "checkbox" })} />
           {!editingField && form.values.fieldType === "DROPDOWN" ? (

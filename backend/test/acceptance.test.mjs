@@ -66,6 +66,7 @@ test("MVP acceptance services enforce calculations, audit, read-only viewer acce
   assert.match(risks, /auditActions\.riskCreated/);
 
   assert.match(reviews, /auditActions\.riskReviewed/);
-  assert.match(reviews, /auditActions\.nextReviewDateUpdated/);
+  // Field-change detail is embedded in the RISK_REVIEWED event; no separate NEXT_REVIEW_DATE_UPDATED event
+  assert.doesNotMatch(reviews, /auditActions\.nextReviewDateUpdated/);
   assert.match(reviews, /calculatedNextReviewDate/);
 });

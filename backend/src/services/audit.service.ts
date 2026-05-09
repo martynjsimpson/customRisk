@@ -37,6 +37,7 @@ export interface RecordAuditEventInput {
   actor?: AuditActorInput | null;
   objectDisplayName?: string | null;
   registerId?: string | null;
+  registerDisplayName?: string | null;
   riskId?: string | null;
   displayRiskId?: string | null;
   metadataJson?: Prisma.InputJsonValue | null;
@@ -48,7 +49,9 @@ export interface AuditQueryInput {
   registerId?: string;
   riskId?: string;
   actorUserId?: string;
+  actorName?: string;
   action?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
 }
@@ -60,7 +63,7 @@ function endOfDate(date: Date) {
 }
 
 function buildAuditWhere(input: Partial<AuditQuery> = {}): Prisma.AuditEventWhereInput {
-  return {
+  const where: Prisma.AuditEventWhereInput = {
     occurredAt:
       input.dateFrom || input.dateTo
         ? {
@@ -81,6 +84,33 @@ function buildAuditWhere(input: Partial<AuditQuery> = {}): Prisma.AuditEventWher
         }
       : undefined
   };
+
+  const andConditions: Prisma.AuditEventWhereInput[] = [];
+
+  if (input.search) {
+    andConditions.push({
+      OR: [
+        { summary: { contains: input.search, mode: "insensitive" } },
+        { objectDisplayName: { contains: input.search, mode: "insensitive" } },
+        { displayRiskId: { contains: input.search, mode: "insensitive" } }
+      ]
+    });
+  }
+
+  if (input.actorName) {
+    andConditions.push({
+      OR: [
+        { actorDisplayName: { contains: input.actorName, mode: "insensitive" } },
+        { actorEmail: { contains: input.actorName, mode: "insensitive" } }
+      ]
+    });
+  }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
+  }
+
+  return where;
 }
 
 function mapAuditEvent(event: Prisma.AuditEventGetPayload<{ include: { fieldChanges: true; riskSnapshot: true } }>) {
@@ -100,6 +130,7 @@ function mapAuditEvent(event: Prisma.AuditEventGetPayload<{ include: { fieldChan
     objectDisplayName: event.objectDisplayName,
     scopeType: event.scopeType,
     registerId: event.registerId,
+    registerDisplayName: event.registerDisplayName,
     riskId: event.riskId,
     displayRiskId: event.displayRiskId,
     summary: event.summary,
@@ -210,6 +241,16 @@ export async function getAuditEventSnapshot(actor: AuthenticatedActor, auditEven
 
 export async function recordAuditEvent(input: RecordAuditEventInput, client?: PrismaAuditClient) {
   const auditClient = getAuditClient(client);
+
+  let registerDisplayName = input.registerDisplayName ?? null;
+  if (!registerDisplayName && input.registerId) {
+    const register = await prisma.register.findUnique({
+      where: { id: input.registerId },
+      select: { name: true }
+    });
+    registerDisplayName = register?.name ?? null;
+  }
+
   const event = await auditClient.auditEvent.create({
     data: {
       actorUserId: input.actor?.id,
@@ -221,6 +262,7 @@ export async function recordAuditEvent(input: RecordAuditEventInput, client?: Pr
       objectDisplayName: input.objectDisplayName,
       scopeType: input.scopeType,
       registerId: input.registerId,
+      registerDisplayName,
       riskId: input.riskId,
       displayRiskId: input.displayRiskId,
       summary: input.summary,

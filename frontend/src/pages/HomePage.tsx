@@ -6,6 +6,7 @@ import { getMyWork, type DashboardRisk } from "../api/dashboard.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { RiskLevelBadge } from "../components/RiskLevelBadge/RiskLevelBadge";
+import { AuditEventTable } from "../features/audit/AuditEventTable";
 
 
 function reviewBadge(status: string) {
@@ -145,19 +146,7 @@ export function HomePage() {
             <Group justify="space-between">
               <Title order={2}>Recent audit activity</Title>
             </Group>
-            <Table.ScrollContainer minWidth={720}>
-              <Table>
-                <Table.Tbody>
-                  {dashboardQuery.data!.recentAuditActivity.map((event) => (
-                    <Table.Tr key={event.id}>
-                      <Table.Td>{new Date(event.occurredAt).toLocaleString()}</Table.Td>
-                      <Table.Td><Badge>{event.action}</Badge></Table.Td>
-                      <Table.Td>{event.summary}</Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </Table.ScrollContainer>
+            <AuditEventTable events={dashboardQuery.data!.recentAuditActivity} showRegister />
           </Stack>
         </Paper>
       ) : null}

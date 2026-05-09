@@ -1,6 +1,6 @@
 # Custom Risk Audit Model
 
-**Version:** 1.1  
+**Version:** 1.3  
 **Date:** 2026-05-09  
 **Status:** Active  
 **Applies to:** Current and future audit implementation  
@@ -81,7 +81,7 @@ The primary event record. It stores:
 - what action happened;
 - the affected object type and object ID;
 - the event scope (`SYSTEM`, `REGISTER`, or `RISK`);
-- optional register and risk context;
+- optional register and risk context, including the register's display name captured at event time;
 - a concise summary;
 - optional structured metadata.
 
@@ -223,11 +223,11 @@ The current action constants are implemented in
 
 ### 7.5 Risks, Reviews, Exports, and Person References
 
-- `RISK_CREATED`
+- `RISK_CREATED` — initial risk state is captured in `metadataJson` (`title`, `state`, `owner`, `likelihood`, `impact`, `riskScore`, `riskLevel`, `responseStrategy`, `responseAction`, `createdDate`, `nextReviewDate`)
 - `RISK_UPDATED`
 - `RISK_DELETED`
-- `RISK_REVIEWED`
-- `NEXT_REVIEW_DATE_UPDATED`
+- `RISK_REVIEWED` — primary event for a user-completed review; field changes for `nextReviewDate` (previous → new) are embedded in this event as the supporting detail
+- `NEXT_REVIEW_DATE_UPDATED` — reserved for standalone or manual next-review-date changes that occur outside the review workflow (e.g. a direct date edit, if supported)
 - `RISK_EXPORT_GENERATED`
 - `PERSON_REFERENCE_CREATED`
 - `PERSON_REFERENCE_LINKED`
@@ -270,9 +270,26 @@ for example:
 - displayed Risk ID and title;
 - custom field name.
 
+`register_display_name` must be populated for all `REGISTER`- and `RISK`-scoped
+events. It captures the register's human-readable name at event time so that
+system-wide audit views can show register context without joining to the live
+register table. The audit write helper resolves this automatically from
+`register_id` when the caller does not supply it explicitly.
+
 ### 8.3 Summary
 
 `summary` should be concise and suitable for audit-list display.
+
+Summaries must reflect the business action, not the underlying implementation detail.
+For example, when a user completes a risk review the summary is `Risk ISEC-0001 reviewed`,
+not `Next review date updated for risk ISEC-0001`. Supporting field-change detail
+(such as the previous and new `nextReviewDate`) belongs in `fieldChanges` rows on the
+same event, not in a separate technical event.
+
+For create and update events, include the object's name and relevant type
+information where it aids readability without duplicating what is already in
+`object_display_name`. For example: `Custom field 'Risk Owner' created (TEXT)`
+rather than `Custom field created`.
 
 It must not contain secrets, raw tokens, or oversized payloads.
 
@@ -286,7 +303,10 @@ Examples include:
 - IP address where captured;
 - user agent where useful;
 - authentication method;
-- export filters and row count.
+- export filters and row count;
+- initial property state for newly created objects (e.g. field type, required
+  status, help text, and display order on custom field creation), since there
+  are no before/after field-change rows for a creation event.
 
 Do not store full request bodies or secret values.
 
@@ -400,25 +420,43 @@ See the Postman collection for the current API paths that expose these views.
 
 ---
 
-## 12. Filtering and Sorting Expectations
+## 12. Filtering and Sorting
 
-Audit list endpoints should support, where implemented:
+### 12.1 Supported Filters
 
-- date range;
-- actor;
-- action;
-- object type;
-- register;
-- risk ID or display Risk ID;
-- client IP address where captured;
-- pagination;
-- sort by occurred date.
+The following filters are implemented across all three audit list endpoints
+(`/audit/system`, `/:registerId/audit`, `/:registerId/risks/:riskId/audit`):
 
-Recommended default sort:
+| Filter | Query param | Behaviour |
+|---|---|---|
+| Free-text search | `search` | Case-insensitive substring match across `summary`, `objectDisplayName`, and `displayRiskId` |
+| Actor | `actorName` | Case-insensitive substring match across `actorDisplayName` and `actorEmail` |
+| Date range | `dateFrom`, `dateTo` | ISO 8601 date strings; `dateTo` is inclusive (end of day UTC) |
+| Action | `action` | Exact match on action code |
+| Object type | `objectType` | Exact match on object type enum value |
+| Actor user ID | `actorUserId` | Exact UUID match |
+| Register | `registerId` | Exact UUID match (also used as a scope filter for register-level endpoints) |
+| Risk | `riskId` | Exact UUID match |
+| Display risk ID | `displayRiskId` | Exact match |
+| IP address | `ipAddress` | Exact match against `metadataJson.ipAddress` |
 
-```text
-occurred_at desc
-```
+Multiple filters combine as `AND`.
+
+### 12.2 UI Filter Surfaces
+
+The system Audit page and Register Audit panel expose a filter bar with: Search,
+Actor, date range (From / To), Action (grouped select, all 37 current actions),
+and Object type. Changing any filter resets pagination to page 1. The dashboard
+Recent Audit Activity widget is intentionally unfiltered.
+
+### 12.3 Sorting
+
+Default sort is `occurredAt desc`. No user-configurable sort is currently exposed.
+
+### 12.4 Pagination
+
+Default page size is 50. Maximum is 100. The `meta` response includes `total`,
+`page`, and `pageSize` for client-side page control.
 
 ---
 

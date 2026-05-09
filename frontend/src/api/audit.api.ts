@@ -4,6 +4,8 @@ import type { ApiResponse, ListMeta } from "./types";
 export interface AuditQuery {
   page?: number;
   pageSize?: number;
+  search?: string;
+  actorName?: string;
   dateFrom?: string;
   dateTo?: string;
   actorUserId?: string;
@@ -25,6 +27,7 @@ export interface AuditEvent {
   objectDisplayName: string | null;
   scopeType: string;
   registerId: string | null;
+  registerDisplayName: string | null;
   riskId: string | null;
   displayRiskId: string | null;
   summary: string;

@@ -49,6 +49,10 @@ export function getCorsAllowedOrigins(): string[] {
     .filter(Boolean);
 }
 
+export function getNodeEnv(): "development" | "production" {
+  return process.env.NODE_ENV === "production" ? "production" : "development";
+}
+
 export function validateRuntimeEnvironment() {
   getDatabaseUrl();
   getJwtAccessSecret();

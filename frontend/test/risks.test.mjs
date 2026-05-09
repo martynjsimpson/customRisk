@@ -42,3 +42,91 @@ test("my risks rows link to permitted register risk actions", async () => {
   assert.match(page, /Edit\s+<\/Button>/);
   assert.match(page, /Delete\s+<\/Button>/);
 });
+
+test("register risk table column selection uses per-register preference scope", async () => {
+  const panel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
+  const hook = await readFile(new URL("../src/features/risks/useRiskTableColumns.ts", import.meta.url), "utf8");
+
+  // Panel imports and uses the column selection hook
+  assert.match(panel, /useRegisterTableColumns/);
+  assert.match(panel, /ColumnPicker/);
+  assert.match(panel, /visibleColumns/);
+  assert.match(panel, /setColumns/);
+
+  // Hook saves to the correct register-scoped preference path
+  assert.match(hook, /riskTableColumns/);
+  assert.match(hook, /registers/);
+  assert.match(hook, /\[registerId\]/);
+  assert.match(hook, /DEFAULT_REGISTER_TABLE_COLUMNS/);
+
+  // Column changes are persisted via updateMyPreferences
+  assert.match(hook, /updateMyPreferences/);
+});
+
+test("my risks column selection uses its own separate preference scope", async () => {
+  const page = await readFile(new URL("../src/pages/MyRisksPage.tsx", import.meta.url), "utf8");
+  const hook = await readFile(new URL("../src/features/risks/useRiskTableColumns.ts", import.meta.url), "utf8");
+
+  // Page imports and uses the my-risks column hook
+  assert.match(page, /useMyRisksTableColumns/);
+  assert.match(page, /ColumnPicker/);
+  assert.match(page, /visibleColumns/);
+
+  // Hook saves to myRisks preference scope (separate from registers)
+  assert.match(hook, /myRisks/);
+  assert.match(hook, /DEFAULT_MY_RISKS_COLUMNS/);
+});
+
+test("column picker groups custom fields by register for my risks", async () => {
+  const page = await readFile(new URL("../src/pages/MyRisksPage.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /buildAvailableCustomFields/);
+  assert.match(page, /buildColumnPickerGroups/);
+  // Groups custom fields by register name
+  assert.match(page, /registerName/);
+  // Filters out custom field columns whose field no longer exists in returned risks
+  assert.match(page, /filterValidMyRisksColumns/);
+});
+
+test("stale custom field columns are silently omitted for register table", async () => {
+  const hook = await readFile(new URL("../src/features/risks/useRiskTableColumns.ts", import.meta.url), "utf8");
+  const panel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
+
+  // Hook exports the filter helper
+  assert.match(hook, /filterValidRegisterColumns/);
+  // Panel applies filter using active custom field IDs
+  assert.match(panel, /filterValidRegisterColumns/);
+  assert.match(panel, /activeCustomFieldIds/);
+});
+
+test("my risks table shows dash for custom fields that do not apply to a risk's register", async () => {
+  const page = await readFile(new URL("../src/pages/MyRisksPage.tsx", import.meta.url), "utf8");
+
+  // When a risk's register ID does not match the column's register, renders a placeholder
+  assert.match(page, /risk\.register\.id === parsed\.registerId/);
+  assert.match(page, /—/);
+});
+
+test("column key helpers use stable register:field namespacing for my risks custom fields", async () => {
+  const colDefs = await readFile(new URL("../src/features/risks/riskTableColumns.ts", import.meta.url), "utf8");
+
+  assert.match(colDefs, /customRegisterColumnKey/);
+  assert.match(colDefs, /customMyRisksColumnKey/);
+  assert.match(colDefs, /parseCustomRegisterColumnKey/);
+  assert.match(colDefs, /parseCustomMyRisksColumnKey/);
+  assert.match(colDefs, /renderCustomFieldValue/);
+  assert.match(colDefs, /DEFAULT_REGISTER_TABLE_COLUMNS/);
+  assert.match(colDefs, /DEFAULT_MY_RISKS_COLUMNS/);
+});
+
+test("column picker is available on both register risks table and my risks page", async () => {
+  const panel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
+  const page = await readFile(new URL("../src/pages/MyRisksPage.tsx", import.meta.url), "utf8");
+  const picker = await readFile(new URL("../src/features/risks/ColumnPicker.tsx", import.meta.url), "utf8");
+
+  assert.match(panel, /ColumnPicker/);
+  assert.match(page, /ColumnPicker/);
+  assert.match(picker, /Columns/);
+  assert.match(picker, /Popover/);
+  assert.match(picker, /Checkbox/);
+});

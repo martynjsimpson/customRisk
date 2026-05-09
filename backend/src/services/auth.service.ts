@@ -6,7 +6,7 @@ import { auditActions } from "../audit/auditActions.js";
 import { generateRefreshToken, hashRefreshToken } from "../auth/refreshTokens.js";
 import { signAccessToken } from "../auth/tokens.js";
 import { verifyPassword } from "../auth/password.js";
-import { getJwtRefreshExpiryDays } from "../config/env.js";
+import { getJwtRefreshExpiryDays, getNodeEnv } from "../config/env.js";
 import { featureFlags } from "../config/featureFlags.js";
 import { logger } from "../config/logger.js";
 import { prisma } from "../db/prisma.js";
@@ -312,6 +312,7 @@ export async function getCurrentSession(userId: string) {
       isSystemAdmin: user.isSystemAdmin,
       registerRoles: user.registerPermissions
     },
-    enabledFeatures: { ...featureFlags }
+    enabledFeatures: { ...featureFlags },
+    appEnvironment: getNodeEnv()
   };
 }

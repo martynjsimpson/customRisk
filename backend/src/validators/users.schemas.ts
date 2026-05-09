@@ -40,7 +40,11 @@ export const changePasswordSchema = z.object({
 });
 
 export const updatePreferencesSchema = z.object({
-  colorScheme: z.enum(["light", "dark", "auto"]).optional()
+  colorScheme: z.enum(["light", "dark", "auto"]).optional(),
+  riskTableColumns: z.object({
+    registers: z.record(z.string().uuid(), z.array(z.string().max(200))).optional(),
+    myRisks: z.array(z.string().max(200)).optional()
+  }).optional()
 });
 
 export type UserIdParams = z.infer<typeof userIdParamsSchema>;
