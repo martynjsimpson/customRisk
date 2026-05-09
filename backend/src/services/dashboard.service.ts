@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
+import { listAuditEvents } from "./audit.service.js";
 import {
   getDueSoonLimit,
   getRiskReviewStatus,
@@ -207,10 +208,7 @@ export async function getAdminSummary(actor: AuthenticatedActor) {
         register: { reviewsEnabled: true }
       }
     }),
-    prisma.auditEvent.findMany({
-      orderBy: { occurredAt: "desc" },
-      take: 10
-    })
+    listAuditEvents({ pageSize: 10 }).then((r) => r.data)
   ]);
 
   return {

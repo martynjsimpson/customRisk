@@ -25,6 +25,7 @@ export interface AuditEvent {
   objectDisplayName: string | null;
   scopeType: string;
   registerId: string | null;
+  registerDisplayName: string | null;
   riskId: string | null;
   displayRiskId: string | null;
   summary: string;

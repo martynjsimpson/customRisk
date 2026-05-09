@@ -19,13 +19,28 @@ Version levels:
 
 ## [1.1.0] - Unreleased
 
+### Added
+
+- Audit event detail expansion: every audit table (Register Audit, system Audit page, dashboard Recent Audit Activity widget) now shows a chevron on rows that carry detail data. Clicking a row expands an inline JSON view of `metadataJson` and `fieldChanges` for that event.
+- Register column on the system Audit page and dashboard Recent Audit Activity widget, showing which register each event belongs to. System-level events (login, user management) show `—`.
+- `register_display_name` column on `audit_event`: the register's human-readable name is now captured at write time for all register- and risk-scoped audit events. The value is resolved automatically inside `recordAuditEvent` when not supplied by the caller, requiring no changes to existing audit call sites.
+
 ### Changed
 
 - Field configuration screen now uses drag-and-drop to reorder custom fields. Each custom field row has a grip handle; dragging it repositions the field relative to both core fields (which act as fixed anchors) and other custom fields. The numeric display-order input has been removed from the add and edit field modals — order is managed exclusively through drag-and-drop.
+- Audit event summaries for custom field events now include the field name and type, e.g. `Custom field 'Risk Owner' created (TEXT)` instead of `Custom field created`. Option events include both the option label and the parent field name.
+- Custom field creation audit events now capture all field properties in `metadataJson` (`fieldName`, `fieldType`, `helpText`, `isRequired`, `isActive`, `displayOrder`), up from the previous three (`fieldType`, `isRequired`, `isActive`).
+- Dropdown option creation audit events now capture `label` and `displayOrder` in `metadataJson` alongside the existing parent field reference.
+- Dashboard Recent Audit Activity widget now uses the shared `AuditEventTable` component, giving it consistent column layout, expand-on-click behaviour, and the Register column.
 
 ### Fixed
 
 - Typing in the Add field or Edit field modal would immediately delete each character as it was entered. The cause was Mantine's `useForm` returning a new object reference on every render, which caused the form-reset effect to re-fire on every keystroke and overwrite the input with the initial empty value.
+- Dashboard Recent Audit Activity widget crashed with `event.fieldChanges is undefined` because the underlying query omitted the `fieldChanges` include. The dashboard now uses the shared `listAuditEvents` service function, which always includes field changes and maps events through the standard `mapAuditEvent` shape.
+
+### Migration
+
+- `audit_event` gains a nullable `register_display_name TEXT` column. The column is `NULL` for all pre-existing rows; new events written after this release will have the value populated automatically.
 
 ---
 

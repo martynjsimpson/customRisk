@@ -37,6 +37,7 @@ export interface RecordAuditEventInput {
   actor?: AuditActorInput | null;
   objectDisplayName?: string | null;
   registerId?: string | null;
+  registerDisplayName?: string | null;
   riskId?: string | null;
   displayRiskId?: string | null;
   metadataJson?: Prisma.InputJsonValue | null;
@@ -100,6 +101,7 @@ function mapAuditEvent(event: Prisma.AuditEventGetPayload<{ include: { fieldChan
     objectDisplayName: event.objectDisplayName,
     scopeType: event.scopeType,
     registerId: event.registerId,
+    registerDisplayName: event.registerDisplayName,
     riskId: event.riskId,
     displayRiskId: event.displayRiskId,
     summary: event.summary,
@@ -210,6 +212,16 @@ export async function getAuditEventSnapshot(actor: AuthenticatedActor, auditEven
 
 export async function recordAuditEvent(input: RecordAuditEventInput, client?: PrismaAuditClient) {
   const auditClient = getAuditClient(client);
+
+  let registerDisplayName = input.registerDisplayName ?? null;
+  if (!registerDisplayName && input.registerId) {
+    const register = await prisma.register.findUnique({
+      where: { id: input.registerId },
+      select: { name: true }
+    });
+    registerDisplayName = register?.name ?? null;
+  }
+
   const event = await auditClient.auditEvent.create({
     data: {
       actorUserId: input.actor?.id,
@@ -221,6 +233,7 @@ export async function recordAuditEvent(input: RecordAuditEventInput, client?: Pr
       objectDisplayName: input.objectDisplayName,
       scopeType: input.scopeType,
       registerId: input.registerId,
+      registerDisplayName,
       riskId: input.riskId,
       displayRiskId: input.displayRiskId,
       summary: input.summary,

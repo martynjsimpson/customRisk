@@ -81,7 +81,7 @@ The primary event record. It stores:
 - what action happened;
 - the affected object type and object ID;
 - the event scope (`SYSTEM`, `REGISTER`, or `RISK`);
-- optional register and risk context;
+- optional register and risk context, including the register's display name captured at event time;
 - a concise summary;
 - optional structured metadata.
 
@@ -270,9 +270,20 @@ for example:
 - displayed Risk ID and title;
 - custom field name.
 
+`register_display_name` must be populated for all `REGISTER`- and `RISK`-scoped
+events. It captures the register's human-readable name at event time so that
+system-wide audit views can show register context without joining to the live
+register table. The audit write helper resolves this automatically from
+`register_id` when the caller does not supply it explicitly.
+
 ### 8.3 Summary
 
 `summary` should be concise and suitable for audit-list display.
+
+For create and update events, include the object's name and relevant type
+information where it aids readability without duplicating what is already in
+`object_display_name`. For example: `Custom field 'Risk Owner' created (TEXT)`
+rather than `Custom field created`.
 
 It must not contain secrets, raw tokens, or oversized payloads.
 
@@ -286,7 +297,10 @@ Examples include:
 - IP address where captured;
 - user agent where useful;
 - authentication method;
-- export filters and row count.
+- export filters and row count;
+- initial property state for newly created objects (e.g. field type, required
+  status, help text, and display order on custom field creation), since there
+  are no before/after field-change rows for a creation event.
 
 Do not store full request bodies or secret values.
 
