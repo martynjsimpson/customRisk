@@ -30,7 +30,7 @@ test("risk review schema requires explicit confirmation and supports optional co
   assert.throws(() => createRiskReviewSchema.parse({ confirmed: false }));
 });
 
-test("risk review service copies attestation, updates latest fields, and writes audit events", async () => {
+test("risk review creates a single RISK_REVIEWED audit event with next-review-date field change embedded", async () => {
   const service = await readFile(new URL("../src/services/reviews.service.ts", import.meta.url), "utf8");
   const actions = await readFile(new URL("../src/audit/auditActions.ts", import.meta.url), "utf8");
 
@@ -41,7 +41,9 @@ test("risk review service copies attestation, updates latest fields, and writes 
   assert.match(service, /nextReviewDate: calculatedNextReviewDate/);
   assert.match(service, /action: auditActions\.riskReviewed/);
   assert.match(service, /objectType: "RISK_REVIEW"/);
-  assert.match(service, /action: auditActions\.nextReviewDateUpdated/);
+  // Next-review-date detail is embedded in the RISK_REVIEWED event, not a separate event
+  assert.doesNotMatch(service, /action: auditActions\.nextReviewDateUpdated/);
+  assert.match(service, /fieldChanges/);
   assert.match(service, /fieldName: "nextReviewDate"/);
   assert.match(actions, /riskReviewed: "RISK_REVIEWED"/);
   assert.match(actions, /nextReviewDateUpdated: "NEXT_REVIEW_DATE_UPDATED"/);

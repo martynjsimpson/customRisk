@@ -134,7 +134,8 @@ test("key MVP mutating workflows write audit events and field changes where requ
   assert.match(risks, /action: auditActions\.riskDeleted/);
 
   assert.match(reviews, /action: auditActions\.riskReviewed/);
-  assert.match(reviews, /action: auditActions\.nextReviewDateUpdated/);
+  // Risk review embeds field-change detail in the RISK_REVIEWED event; no separate NEXT_REVIEW_DATE_UPDATED event is created
+  assert.doesNotMatch(reviews, /action: auditActions\.nextReviewDateUpdated/);
   assert.match(reviews, /fieldChanges/);
 
   assert.match(customFields, /auditActions\.customFieldCreated/);

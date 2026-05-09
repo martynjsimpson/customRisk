@@ -1,6 +1,6 @@
 # Custom Risk Audit Model
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Date:** 2026-05-09  
 **Status:** Active  
 **Applies to:** Current and future audit implementation  
@@ -226,8 +226,8 @@ The current action constants are implemented in
 - `RISK_CREATED`
 - `RISK_UPDATED`
 - `RISK_DELETED`
-- `RISK_REVIEWED`
-- `NEXT_REVIEW_DATE_UPDATED`
+- `RISK_REVIEWED` — primary event for a user-completed review; field changes for `nextReviewDate` (previous → new) are embedded in this event as the supporting detail
+- `NEXT_REVIEW_DATE_UPDATED` — reserved for standalone or manual next-review-date changes that occur outside the review workflow (e.g. a direct date edit, if supported)
 - `RISK_EXPORT_GENERATED`
 - `PERSON_REFERENCE_CREATED`
 - `PERSON_REFERENCE_LINKED`
@@ -279,6 +279,12 @@ register table. The audit write helper resolves this automatically from
 ### 8.3 Summary
 
 `summary` should be concise and suitable for audit-list display.
+
+Summaries must reflect the business action, not the underlying implementation detail.
+For example, when a user completes a risk review the summary is `Risk ISEC-0001 reviewed`,
+not `Next review date updated for risk ISEC-0001`. Supporting field-change detail
+(such as the previous and new `nextReviewDate`) belongs in `fieldChanges` rows on the
+same event, not in a separate technical event.
 
 For create and update events, include the object's name and relevant type
 information where it aids readability without duplicating what is already in
