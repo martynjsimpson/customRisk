@@ -175,22 +175,23 @@ export function CustomFieldTable({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th style={{ width: 36 }} />
-              <Table.Th>Name</Table.Th>
-              <Table.Th>Type</Table.Th>
-              <Table.Th>Required</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {orderedFields.map((field) => (
-              <SortableRow
-                key={field.id}
-                field={field}
+        <Table.ScrollContainer minWidth={760}>
+          <Table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th style={{ width: 36 }} />
+                <Table.Th>Name</Table.Th>
+                <Table.Th>Type</Table.Th>
+                <Table.Th>Required</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {orderedFields.map((field) => (
+                <SortableRow
+                  key={field.id}
+                  field={field}
                 onEditField={onEditField}
                 onOpenOptions={onOpenOptions}
                 onActivateField={onActivateField}
@@ -198,8 +199,9 @@ export function CustomFieldTable({
                 readOnly={readOnly}
               />
             ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       </SortableContext>
     </DndContext>
   );

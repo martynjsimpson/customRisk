@@ -36,6 +36,10 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
   - Templates page (System Admin, `/templates`): list all templates with version, status, and actions to create a register, update the config, view details, download the config snapshot, and deactivate.
   - Thirteen new audit actions covering the full configuration and template lifecycle.
 
+### Fixed
+
+- Semantic badges no longer truncate, clip, or render with ellipses across the application. Shared badge styling now preserves full labels for risk levels, review states, roles, actions, and other short status values, while badge-heavy tables and detail views use horizontal scrolling where needed instead of squeezing badge text.
+
 ### Migration
 
 - Four new tables: `register_config_version`, `register_template`, `register_template_version`, and a `source_template_version_id` column on `register_config_version` for tracking template-originated drafts.
@@ -201,7 +205,7 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 
 <!-- Release links — update when tagging -->
 [Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...HEAD
-[1.2.0]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...HEAD
+[1.2.0]: https://github.com/martynsimpson/customRisk/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/martynjsimpson/customRisk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...v1.0.0
 [0.1.5]: https://github.com/martynjsimpson/customRisk/compare/v0.1.4...v0.1.5
