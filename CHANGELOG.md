@@ -15,6 +15,10 @@ Version levels:
 
 ## [Unreleased]
 
+### Fixed
+
+- Semantic badges no longer truncate, clip, or render with ellipses across the application. Shared badge styling now preserves full labels for risk levels, review states, roles, actions, and other short status values, while badge-heavy tables and detail views use horizontal scrolling where needed instead of squeezing badge text.
+
 ---
 
 ## [1.1.0] - 2026-05-09
