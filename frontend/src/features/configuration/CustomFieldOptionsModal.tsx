@@ -100,45 +100,47 @@ export function CustomFieldOptionsModal({
             </Group>
           </Stack>
         </form>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Order</Table.Th>
-              <Table.Th>Label</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {options.map((option) => (
-              <Table.Tr key={option.id}>
-                <Table.Td>{option.displayOrder}</Table.Td>
-                <Table.Td>{option.label}</Table.Td>
-                <Table.Td>
-                  <Badge color={option.isActive ? "green" : "gray"}>
-                    {option.isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Group justify="flex-end" gap="xs">
-                    <Button variant="subtle" onClick={() => onEditOption(option)}>
-                      Edit
-                    </Button>
-                    {option.isActive ? (
-                      <Button
-                        color="red"
-                        variant="subtle"
-                        onClick={() => onDeactivate(option.id)}
-                      >
-                        Deactivate
-                      </Button>
-                    ) : null}
-                  </Group>
-                </Table.Td>
+        <Table.ScrollContainer minWidth={640}>
+          <Table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Order</Table.Th>
+                <Table.Th>Label</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th />
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {options.map((option) => (
+                <Table.Tr key={option.id}>
+                  <Table.Td>{option.displayOrder}</Table.Td>
+                  <Table.Td>{option.label}</Table.Td>
+                  <Table.Td>
+                    <Badge color={option.isActive ? "green" : "gray"}>
+                      {option.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Group justify="flex-end" gap="xs">
+                      <Button variant="subtle" onClick={() => onEditOption(option)}>
+                        Edit
+                      </Button>
+                      {option.isActive ? (
+                        <Button
+                          color="red"
+                          variant="subtle"
+                          onClick={() => onDeactivate(option.id)}
+                        >
+                          Deactivate
+                        </Button>
+                      ) : null}
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       </Stack>
     </Modal>
   );

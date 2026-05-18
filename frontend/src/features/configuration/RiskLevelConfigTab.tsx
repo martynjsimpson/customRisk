@@ -127,65 +127,67 @@ export function RiskLevelConfigTab({ registerId }: RiskLevelConfigTabProps) {
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load configuration" />
       <ApiErrorAlert error={deactivateRiskLevelMutation.error} fallback="Unable to deactivate risk level" />
       <ApiErrorAlert error={activateRiskLevelMutation.error} fallback="Unable to activate risk level" />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Order</Table.Th>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Color</Table.Th>
-            <Table.Th>Description</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {riskLevels.map((value) => (
-            <Table.Tr key={value.id}>
-              <Table.Td>{value.displayOrder}</Table.Td>
-              <Table.Td>{value.name}</Table.Td>
-              <Table.Td>
-                {value.color ? (
-                  <Group gap="xs">
-                    <Box
-                      w={16}
-                      h={16}
-                      style={{ borderRadius: 3, backgroundColor: value.color, border: "1px solid #dee2e6", flexShrink: 0 }}
-                    />
-                    <Text size="sm" c="dimmed">{value.color}</Text>
-                  </Group>
-                ) : (
-                  <Text size="sm" c="dimmed">—</Text>
-                )}
-              </Table.Td>
-              <Table.Td>{value.description ?? ""}</Table.Td>
-              <Table.Td>
-                <Badge color={value.isActive ? "green" : "gray"}>
-                  {value.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </Table.Td>
-              <Table.Td>
-                <Group justify="flex-end" gap="xs">
-                  <Button variant="subtle" onClick={() => openEditRiskLevel(value)}>Edit</Button>
-                  {value.isActive ? (
-                    <Button color="red" variant="subtle" onClick={() => deactivateRiskLevelMutation.mutate(value.id)}>
-                      Deactivate
-                    </Button>
-                  ) : (
-                    <Button variant="subtle" onClick={() => activateRiskLevelMutation.mutate(value.id)}>
-                      Activate
-                    </Button>
-                  )}
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-          {riskLevels.length === 0 ? (
+      <Table.ScrollContainer minWidth={900}>
+        <Table>
+          <Table.Thead>
             <Table.Tr>
-              <Table.Td colSpan={6}><Text c="dimmed">No risk levels configured</Text></Table.Td>
+              <Table.Th>Order</Table.Th>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Color</Table.Th>
+              <Table.Th>Description</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th />
             </Table.Tr>
-          ) : null}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {riskLevels.map((value) => (
+              <Table.Tr key={value.id}>
+                <Table.Td>{value.displayOrder}</Table.Td>
+                <Table.Td>{value.name}</Table.Td>
+                <Table.Td>
+                  {value.color ? (
+                    <Group gap="xs">
+                      <Box
+                        w={16}
+                        h={16}
+                        style={{ borderRadius: 3, backgroundColor: value.color, border: "1px solid #dee2e6", flexShrink: 0 }}
+                      />
+                      <Text size="sm" c="dimmed">{value.color}</Text>
+                    </Group>
+                  ) : (
+                    <Text size="sm" c="dimmed">—</Text>
+                  )}
+                </Table.Td>
+                <Table.Td>{value.description ?? ""}</Table.Td>
+                <Table.Td>
+                  <Badge color={value.isActive ? "green" : "gray"}>
+                    {value.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Group justify="flex-end" gap="xs">
+                    <Button variant="subtle" onClick={() => openEditRiskLevel(value)}>Edit</Button>
+                    {value.isActive ? (
+                      <Button color="red" variant="subtle" onClick={() => deactivateRiskLevelMutation.mutate(value.id)}>
+                        Deactivate
+                      </Button>
+                    ) : (
+                      <Button variant="subtle" onClick={() => activateRiskLevelMutation.mutate(value.id)}>
+                        Activate
+                      </Button>
+                    )}
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {riskLevels.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={6}><Text c="dimmed">No risk levels configured</Text></Table.Td>
+              </Table.Tr>
+            ) : null}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
 
       <Modal
         opened={riskLevelModalOpen}

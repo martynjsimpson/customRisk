@@ -29,6 +29,21 @@ const theme = createTheme({
     Badge: {
       defaultProps: {
         variant: "light"
+      },
+      styles: {
+        root: {
+          flexShrink: 0,
+          minWidth: "max-content",
+          maxWidth: "none",
+          overflow: "visible",
+          textOverflow: "clip",
+          whiteSpace: "nowrap"
+        },
+        label: {
+          overflow: "visible",
+          textOverflow: "clip",
+          whiteSpace: "nowrap"
+        }
       }
     },
     Table: {

@@ -1,4 +1,4 @@
-import { Anchor, Badge, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
+import { Anchor, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -6,13 +6,8 @@ import { getMyWork, type DashboardRisk } from "../api/dashboard.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { RiskLevelBadge } from "../components/RiskLevelBadge/RiskLevelBadge";
+import { ReviewStatusBadge } from "../components/ReviewStatusBadge/ReviewStatusBadge";
 import { AuditEventTable } from "../features/audit/AuditEventTable";
-
-
-function reviewBadge(status: string) {
-  const color = status === "OVERDUE" ? "red" : status === "DUE_SOON" ? "yellow" : "gray";
-  return <Badge color={color}>{status.replace(/_/g, " ")}</Badge>;
-}
 
 function RiskTable({ risks }: { risks: DashboardRisk[] }) {
   if (risks.length === 0) {
@@ -47,7 +42,7 @@ function RiskTable({ risks }: { risks: DashboardRisk[] }) {
               <Table.Td>{risk.register.name}</Table.Td>
               <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>
               <Table.Td>{risk.nextReviewDate}</Table.Td>
-              <Table.Td>{reviewBadge(risk.reviewStatus)}</Table.Td>
+              <Table.Td><ReviewStatusBadge status={risk.reviewStatus} /></Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>
