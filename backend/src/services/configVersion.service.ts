@@ -897,6 +897,7 @@ export async function publishDraft(
     }
 
     // --- Update register settings ---
+    // Apply register settings from snapshot only when draft originated from a template.
     // Register settings are only applied from the snapshot when the draft originated from a
     // template (sourceTemplateVersionId set), because adopting the template's settings is
     // deliberate. For manually-created drafts, direct edits to the register made while the
