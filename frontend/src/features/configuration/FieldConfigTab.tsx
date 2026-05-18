@@ -23,9 +23,10 @@ import { invalidateCustomFieldConfiguration } from "./customFieldConfigInvalidat
 
 interface FieldConfigTabProps {
   registerId: string;
+  draftConfigMode?: boolean;
 }
 
-export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
+export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabProps) {
   const queryClient = useQueryClient();
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const [optionsModalOpen, setOptionsModalOpen] = useState(false);
@@ -140,7 +141,7 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
     <Stack>
       <Group justify="space-between">
         <Title order={2}>Field Configuration</Title>
-        <Button onClick={openCreateField}>Add field</Button>
+        {!draftConfigMode ? <Button onClick={openCreateField}>Add field</Button> : null}
       </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load register configuration" />
       <ApiErrorAlert error={activateFieldMutation.error} fallback="Unable to activate field" />
@@ -152,6 +153,7 @@ export function FieldConfigTab({ registerId }: FieldConfigTabProps) {
         onOpenOptions={openOptions}
         onActivateField={(fieldId) => activateFieldMutation.mutate(fieldId)}
         onDeactivateField={(fieldId) => deactivateFieldMutation.mutate(fieldId)}
+        readOnly={draftConfigMode}
       />
 
       <CustomFieldModal

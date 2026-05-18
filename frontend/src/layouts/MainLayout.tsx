@@ -1,6 +1,7 @@
 import { AppShell, Button, Group, NavLink, Stack, Text, Title, Tooltip } from "@mantine/core";
 import {
   IconBook,
+  IconCopy,
   IconHistory,
   IconHome,
   IconLayoutSidebarLeftCollapse,
@@ -14,6 +15,7 @@ import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/session";
+import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import { usePermissions } from "../hooks/usePermissions";
 import packageJson from "../../package.json";
 
@@ -62,6 +64,7 @@ function NavItem({ to, label, icon, active, collapsed, onClick }: NavItemProps) 
 export function MainLayout() {
   const { user, logout, appEnvironment } = useAuth();
   const { isSystemAdmin, registerRoles } = usePermissions();
+  const flags = useFeatureFlags();
   const location = useLocation();
   const hasRegisterAccess = isSystemAdmin || registerRoles.length > 0;
   const [collapsed, setCollapsed] = useState(false);
@@ -130,6 +133,15 @@ export function MainLayout() {
               label="Users"
               icon={<IconUsers size={18} />}
               active={location.pathname.startsWith("/users")}
+              collapsed={collapsed}
+            />
+          ) : null}
+          {isSystemAdmin && flags.draftConfig ? (
+            <NavItem
+              to="/templates"
+              label="Templates"
+              icon={<IconCopy size={18} />}
+              active={location.pathname.startsWith("/templates")}
               collapsed={collapsed}
             />
           ) : null}

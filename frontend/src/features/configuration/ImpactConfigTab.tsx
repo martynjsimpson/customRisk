@@ -15,9 +15,10 @@ import { invalidateScoringConfiguration } from "./scoringConfigInvalidation";
 
 interface ImpactConfigTabProps {
   registerId: string;
+  draftConfigMode?: boolean;
 }
 
-export function ImpactConfigTab({ registerId }: ImpactConfigTabProps) {
+export function ImpactConfigTab({ registerId, draftConfigMode }: ImpactConfigTabProps) {
   const queryClient = useQueryClient();
   const [impactModalOpen, setImpactModalOpen] = useState(false);
   const [editingImpact, setEditingImpact] = useState<ImpactValue | null>(null);
@@ -90,7 +91,7 @@ export function ImpactConfigTab({ registerId }: ImpactConfigTabProps) {
     <Stack>
       <Group justify="space-between">
         <Title order={3}>Impact Values</Title>
-        <Button onClick={openCreateImpact}>Add impact</Button>
+        {!draftConfigMode ? <Button onClick={openCreateImpact}>Add impact</Button> : null}
       </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load configuration" />
       <ApiErrorAlert error={deactivateImpactMutation.error} fallback="Unable to deactivate impact value" />
@@ -116,20 +117,22 @@ export function ImpactConfigTab({ registerId }: ImpactConfigTabProps) {
                   {value.isActive ? "Active" : "Inactive"}
                 </Badge>
               </Table.Td>
-              <Table.Td>
-                <Group justify="flex-end" gap="xs">
-                  <Button variant="subtle" onClick={() => openEditImpact(value)}>Edit</Button>
-                  {value.isActive ? (
-                    <Button color="red" variant="subtle" onClick={() => deactivateImpactMutation.mutate(value.id)}>
-                      Deactivate
-                    </Button>
-                  ) : (
-                    <Button variant="subtle" onClick={() => activateImpactMutation.mutate(value.id)}>
-                      Activate
-                    </Button>
-                  )}
-                </Group>
-              </Table.Td>
+              {!draftConfigMode ? (
+                <Table.Td>
+                  <Group justify="flex-end" gap="xs">
+                    <Button variant="subtle" onClick={() => openEditImpact(value)}>Edit</Button>
+                    {value.isActive ? (
+                      <Button color="red" variant="subtle" onClick={() => deactivateImpactMutation.mutate(value.id)}>
+                        Deactivate
+                      </Button>
+                    ) : (
+                      <Button variant="subtle" onClick={() => activateImpactMutation.mutate(value.id)}>
+                        Activate
+                      </Button>
+                    )}
+                  </Group>
+                </Table.Td>
+              ) : <Table.Td />}
             </Table.Tr>
           ))}
           {impacts.length === 0 ? (

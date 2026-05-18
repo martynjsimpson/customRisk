@@ -30,13 +30,14 @@ import { invalidateScoringConfiguration } from "./scoringConfigInvalidation";
 
 interface RiskLevelConfigTabProps {
   registerId: string;
+  draftConfigMode?: boolean;
 }
 
 const hexColorPattern = /^#[0-9A-Fa-f]{6}$/;
 const fallbackColorPickerValue = "#868e96";
 const riskLevelColorSwatches = ["#2f9e44", "#f59f00", "#f76707", "#e03131", "#1971c2", "#7048e8", "#495057"];
 
-export function RiskLevelConfigTab({ registerId }: RiskLevelConfigTabProps) {
+export function RiskLevelConfigTab({ registerId, draftConfigMode }: RiskLevelConfigTabProps) {
   const queryClient = useQueryClient();
   const [riskLevelModalOpen, setRiskLevelModalOpen] = useState(false);
   const [editingRiskLevel, setEditingRiskLevel] = useState<RiskLevel | null>(null);
@@ -122,7 +123,7 @@ export function RiskLevelConfigTab({ registerId }: RiskLevelConfigTabProps) {
     <Stack>
       <Group justify="space-between">
         <Title order={3}>Risk Levels</Title>
-        <Button onClick={openCreateRiskLevel}>Add risk level</Button>
+        {!draftConfigMode ? <Button onClick={openCreateRiskLevel}>Add risk level</Button> : null}
       </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load configuration" />
       <ApiErrorAlert error={deactivateRiskLevelMutation.error} fallback="Unable to deactivate risk level" />
@@ -163,20 +164,22 @@ export function RiskLevelConfigTab({ registerId }: RiskLevelConfigTabProps) {
                   {value.isActive ? "Active" : "Inactive"}
                 </Badge>
               </Table.Td>
-              <Table.Td>
-                <Group justify="flex-end" gap="xs">
-                  <Button variant="subtle" onClick={() => openEditRiskLevel(value)}>Edit</Button>
-                  {value.isActive ? (
-                    <Button color="red" variant="subtle" onClick={() => deactivateRiskLevelMutation.mutate(value.id)}>
-                      Deactivate
-                    </Button>
-                  ) : (
-                    <Button variant="subtle" onClick={() => activateRiskLevelMutation.mutate(value.id)}>
-                      Activate
-                    </Button>
-                  )}
-                </Group>
-              </Table.Td>
+              {!draftConfigMode ? (
+                <Table.Td>
+                  <Group justify="flex-end" gap="xs">
+                    <Button variant="subtle" onClick={() => openEditRiskLevel(value)}>Edit</Button>
+                    {value.isActive ? (
+                      <Button color="red" variant="subtle" onClick={() => deactivateRiskLevelMutation.mutate(value.id)}>
+                        Deactivate
+                      </Button>
+                    ) : (
+                      <Button variant="subtle" onClick={() => activateRiskLevelMutation.mutate(value.id)}>
+                        Activate
+                      </Button>
+                    )}
+                  </Group>
+                </Table.Td>
+              ) : <Table.Td />}
             </Table.Tr>
           ))}
           {riskLevels.length === 0 ? (

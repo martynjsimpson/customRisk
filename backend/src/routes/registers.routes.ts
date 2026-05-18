@@ -10,7 +10,8 @@ import {
   listRegisterPermissionsController,
   listRegistersController,
   removeRegisterPermissionController,
-  updateRegisterController
+  updateRegisterController,
+  unlinkRegisterFromTemplateController
 } from "../controllers/registers.controller.js";
 import { authenticate } from "../middleware/authenticate.js";
 import {
@@ -28,8 +29,12 @@ import {
   registerPermissionParamsSchema,
   updateRegisterSchema
 } from "../validators/registers.schemas.js";
+import { requireFeature } from "../middleware/requireFeature.js";
+import { createConfigExportImportSubRouter } from "./configExportImport.routes.js";
+import { createConfigVersionSubRouter } from "./configVersion.routes.js";
 import { createConfigurationSubRouter } from "./configuration.routes.js";
 import { createRisksSubRouter } from "./risks.routes.js";
+import { createRegisterTemplateSubRouter } from "./template.routes.js";
 
 type AsyncHandler = (request: Request<any, any, any, any>, response: Response, next: NextFunction) => unknown;
 
@@ -52,11 +57,22 @@ export function createRegistersRouter() {
 
   router.use("/", createRisksSubRouter());
   router.use("/", createConfigurationSubRouter());
+  router.use("/", requireFeature("draftConfig"), createConfigVersionSubRouter());
+  router.use("/", requireFeature("draftConfig"), createConfigExportImportSubRouter());
+  router.use("/", requireFeature("draftConfig"), createRegisterTemplateSubRouter());
 
   router.get("/:registerId/summary", validateRequest({ params: registerIdParamsSchema }), requireRegisterAccess(), asyncRoute(getRegisterSummaryController));
   router.get("/:registerId/audit", validateRequest({ params: registerIdParamsSchema, query: auditQuerySchema }), requireRegisterManagement(), asyncRoute(listRegisterAuditController));
   router.get("/:registerId", validateRequest({ params: registerIdParamsSchema }), requireRegisterAccess(), asyncRoute(getRegisterController));
   router.patch("/:registerId", validateRequest({ params: registerIdParamsSchema, body: updateRegisterSchema }), requireRegisterManagement(), asyncRoute(updateRegisterController));
+
+  router.delete(
+    "/:registerId/template-link",
+    requireFeature("draftConfig"),
+    requireSystemAdmin,
+    validateRequest({ params: registerIdParamsSchema }),
+    asyncRoute(unlinkRegisterFromTemplateController)
+  );
 
   return router;
 }

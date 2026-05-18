@@ -9,6 +9,7 @@ import { MyRisksPage } from "../pages/MyRisksPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { RegisterDetailPage } from "../pages/RegisterDetailPage";
 import { RegistersPage } from "../pages/RegistersPage";
+import { TemplatesPage } from "../pages/TemplatesPage";
 import { UsersPage } from "../pages/UsersPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
           {
             path: "/profile",
             element: <ProfilePage />
+          },
+          {
+            path: "/templates",
+            element: <TemplatesPage />
           }
         ]
       }

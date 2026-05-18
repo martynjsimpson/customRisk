@@ -4,6 +4,7 @@ import { auditActions } from "../audit/auditActions.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import { getEffectiveRegisterRole, listAccessibleRegisterIds } from "../permissions/registerAccess.js";
+import type { RegisterConfigSnapshot } from "../types/configSnapshot.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
 import { utcDateOnly } from "./reviewStatus.service.js";
@@ -28,7 +29,26 @@ const registerSelect = {
   reviewAttestationText: true,
   allowViewerExport: true,
   createdAt: true,
-  updatedAt: true
+  updatedAt: true,
+  linkedTemplateVersion: {
+    select: {
+      id: true,
+      versionNumber: true,
+      template: {
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          versions: {
+            where: { status: "PUBLISHED" as const },
+            orderBy: { versionNumber: "desc" as const },
+            take: 1,
+            select: { id: true, versionNumber: true }
+          }
+        }
+      }
+    }
+  }
 } satisfies Prisma.RegisterSelect;
 
 const permissionCandidateUserSelect = {
@@ -87,7 +107,19 @@ async function decorateRegister(
     ...register,
     effectiveRole,
     openRisksCount,
-    overdueRisksCount
+    overdueRisksCount,
+    linkedTemplate: register.linkedTemplateVersion
+      ? {
+          templateId: register.linkedTemplateVersion.template.id,
+          templateName: register.linkedTemplateVersion.template.name,
+          templateIsActive: register.linkedTemplateVersion.template.isActive,
+          linkedVersionId: register.linkedTemplateVersion.id,
+          linkedVersionNumber: register.linkedTemplateVersion.versionNumber,
+          latestPublishedVersionId: register.linkedTemplateVersion.template.versions[0]?.id ?? null,
+          latestPublishedVersionNumber: register.linkedTemplateVersion.template.versions[0]?.versionNumber ?? null,
+          isLatest: register.linkedTemplateVersion.template.versions[0]?.versionNumber === register.linkedTemplateVersion.versionNumber
+        }
+      : null,
   };
 }
 
@@ -549,4 +581,333 @@ export async function removeRegisterPermission(
   });
 
   return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// PM4-10: Create Register From Template
+// ---------------------------------------------------------------------------
+
+export async function createRegisterFromTemplate(
+  templateVersionId: string,
+  registerName: string,
+  actorId: string,
+  actorName: string,
+  actorEmail: string
+) {
+  const templateVersion = await prisma.registerTemplateVersion.findUnique({
+    where: { id: templateVersionId },
+    include: {
+      template: { select: { id: true, name: true, isActive: true } }
+    }
+  });
+
+  if (!templateVersion) {
+    throw new ApiError(404, "NOT_FOUND", "Template version not found");
+  }
+
+  if (templateVersion.status !== "PUBLISHED") {
+    throw new ApiError(422, "UNPROCESSABLE", "Cannot create a register from a DRAFT template version");
+  }
+
+  if (!templateVersion.template.isActive) {
+    throw new ApiError(422, "UNPROCESSABLE", "Cannot create a register from an inactive template");
+  }
+
+  const snapshot = templateVersion.snapshotJson as unknown as RegisterConfigSnapshot;
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // 1. Create the Register using settings from snapshot but with user-supplied name
+      const regSettings = snapshot.register;
+      const register = await tx.register.create({
+        data: {
+          name: registerName,
+          description: regSettings.description,
+          riskIdPrefix: regSettings.riskIdPrefix,
+          riskIdZeroPaddingEnabled: regSettings.riskIdZeroPaddingEnabled,
+          riskIdZeroPaddingWidth: regSettings.riskIdZeroPaddingWidth,
+          defaultNewRiskState: regSettings.defaultNewRiskState as "DRAFT" | "OPEN" | "CLOSED",
+          reviewsEnabled: regSettings.reviewsEnabled,
+          defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
+          reviewAttestationText: regSettings.reviewAttestationText,
+          allowViewerExport: regSettings.allowViewerExport,
+          nextRiskSequence: 1,
+          createdByUserId: actorId,
+          updatedByUserId: actorId
+        },
+        select: registerSelect
+      });
+
+      // 2. Create config rows from snapshot with NEW UUIDs
+      // Build ID mapping tables: templateId -> newId
+
+      // Likelihood values
+      const likelihoodIdMap = new Map<string, string>();
+      const newLikelihoodValues = await Promise.all(
+        snapshot.likelihoodValues.map((lv) =>
+          tx.likelihoodValue.create({
+            data: {
+              registerId: register.id,
+              name: lv.name,
+              numericValue: parseFloat(lv.numericValue),
+              displayOrder: lv.displayOrder,
+              isActive: lv.isActive
+            }
+          })
+        )
+      );
+      snapshot.likelihoodValues.forEach((lv, i) => {
+        likelihoodIdMap.set(lv.id, newLikelihoodValues[i]!.id);
+      });
+
+      // Impact values
+      const impactIdMap = new Map<string, string>();
+      const newImpactValues = await Promise.all(
+        snapshot.impactValues.map((iv) =>
+          tx.impactValue.create({
+            data: {
+              registerId: register.id,
+              name: iv.name,
+              numericValue: parseFloat(iv.numericValue),
+              displayOrder: iv.displayOrder,
+              isActive: iv.isActive
+            }
+          })
+        )
+      );
+      snapshot.impactValues.forEach((iv, i) => {
+        impactIdMap.set(iv.id, newImpactValues[i]!.id);
+      });
+
+      // Risk levels
+      const riskLevelIdMap = new Map<string, string>();
+      const newRiskLevels = await Promise.all(
+        snapshot.riskLevels.map((rl) =>
+          tx.riskLevel.create({
+            data: {
+              registerId: register.id,
+              name: rl.name,
+              description: rl.description,
+              color: rl.color,
+              displayOrder: rl.displayOrder,
+              isActive: rl.isActive
+            }
+          })
+        )
+      );
+      snapshot.riskLevels.forEach((rl, i) => {
+        riskLevelIdMap.set(rl.id, newRiskLevels[i]!.id);
+      });
+
+      // Response strategies
+      const responseStrategyIdMap = new Map<string, string>();
+      const newResponseStrategies = await Promise.all(
+        snapshot.responseStrategies.map((rs) =>
+          tx.responseStrategy.create({
+            data: {
+              registerId: register.id,
+              name: rs.name,
+              displayOrder: rs.displayOrder,
+              isActive: rs.isActive
+            }
+          })
+        )
+      );
+      snapshot.responseStrategies.forEach((rs, i) => {
+        responseStrategyIdMap.set(rs.id, newResponseStrategies[i]!.id);
+      });
+
+      // Matrix cells (using mapped IDs)
+      const matrixCellIdMap = new Map<string, string>();
+      const newMatrixCells = await Promise.all(
+        snapshot.matrixCells.map((cell) => {
+          const newLikelihoodId = likelihoodIdMap.get(cell.likelihoodValueId);
+          const newImpactId = impactIdMap.get(cell.impactValueId);
+          const newRiskLevelId = riskLevelIdMap.get(cell.riskLevelId);
+
+          if (!newLikelihoodId || !newImpactId || !newRiskLevelId) {
+            throw new ApiError(
+              422,
+              "UNPROCESSABLE",
+              "Template snapshot contains inconsistent matrix cell references"
+            );
+          }
+
+          return tx.riskMatrixCell.create({
+            data: {
+              registerId: register.id,
+              likelihoodValueId: newLikelihoodId,
+              impactValueId: newImpactId,
+              riskLevelId: newRiskLevelId
+            }
+          });
+        })
+      );
+      snapshot.matrixCells.forEach((cell, i) => {
+        matrixCellIdMap.set(cell.id, newMatrixCells[i]!.id);
+      });
+
+      // Custom fields with options
+      const customFieldIdMap = new Map<string, string>();
+      const customFieldOptionIdMap = new Map<string, string>();
+
+      for (const field of snapshot.customFields) {
+        const newField = await tx.customFieldDefinition.create({
+          data: {
+            registerId: register.id,
+            fieldName: field.fieldName,
+            fieldType: field.fieldType as "TEXT" | "MULTILINE_TEXT" | "BOOLEAN" | "NUMBER" | "DATE" | "DROPDOWN" | "PERSON_PICKER",
+            helpText: field.helpText,
+            isRequired: field.isRequired,
+            displayOrder: field.displayOrder,
+            isActive: field.isActive,
+            createdByUserId: actorId,
+            updatedByUserId: actorId
+          }
+        });
+        customFieldIdMap.set(field.id, newField.id);
+
+        for (const opt of field.options) {
+          const newOpt = await tx.customFieldOption.create({
+            data: {
+              customFieldDefinitionId: newField.id,
+              label: opt.label,
+              displayOrder: opt.displayOrder,
+              isActive: opt.isActive
+            }
+          });
+          customFieldOptionIdMap.set(opt.id, newOpt.id);
+        }
+      }
+
+      // 3. Build a new snapshotJson with updated IDs for the config version
+      const newSnapshotJson: RegisterConfigSnapshot = {
+        register: {
+          ...regSettings,
+          name: registerName
+        },
+        customFields: snapshot.customFields.map((field) => ({
+          ...field,
+          id: customFieldIdMap.get(field.id)!,
+          options: field.options.map((opt) => ({
+            ...opt,
+            id: customFieldOptionIdMap.get(opt.id)!
+          }))
+        })),
+        likelihoodValues: snapshot.likelihoodValues.map((lv) => ({
+          ...lv,
+          id: likelihoodIdMap.get(lv.id)!
+        })),
+        impactValues: snapshot.impactValues.map((iv) => ({
+          ...iv,
+          id: impactIdMap.get(iv.id)!
+        })),
+        riskLevels: snapshot.riskLevels.map((rl) => ({
+          ...rl,
+          id: riskLevelIdMap.get(rl.id)!
+        })),
+        matrixCells: snapshot.matrixCells.map((cell) => ({
+          ...cell,
+          id: matrixCellIdMap.get(cell.id)!,
+          likelihoodValueId: likelihoodIdMap.get(cell.likelihoodValueId)!,
+          impactValueId: impactIdMap.get(cell.impactValueId)!,
+          riskLevelId: riskLevelIdMap.get(cell.riskLevelId)!
+        })),
+        responseStrategies: snapshot.responseStrategies.map((rs) => ({
+          ...rs,
+          id: responseStrategyIdMap.get(rs.id)!
+        }))
+      };
+
+      // 4. Create a RegisterConfigVersion (PUBLISHED, v1)
+      const configVersion = await tx.registerConfigVersion.create({
+        data: {
+          registerId: register.id,
+          versionNumber: 1,
+          status: "PUBLISHED",
+          snapshotJson: newSnapshotJson as unknown as Prisma.InputJsonValue,
+          createdByUserId: actorId,
+          publishedAt: new Date()
+        }
+      });
+
+      // 5. Link register to the config version
+      await tx.register.update({
+        where: { id: register.id },
+        data: { currentConfigVersionId: configVersion.id }
+      });
+
+      await tx.register.update({
+        where: { id: register.id },
+        data: { linkedTemplateVersionId: templateVersionId }
+      });
+
+      // 6. Audit event
+      await recordAuditEvent(
+        {
+          action: auditActions.registerCreatedFromTemplate,
+          actor: { id: actorId, name: actorName, email: actorEmail },
+          objectType: "REGISTER",
+          objectId: register.id,
+          objectDisplayName: register.name,
+          scopeType: "SYSTEM",
+          registerId: register.id,
+          summary: `Register "${register.name}" created from template "${templateVersion.template.name}"`,
+          metadataJson: {
+            templateId: templateVersion.template.id,
+            templateVersionId: templateVersion.id,
+            templateName: templateVersion.template.name
+          }
+        },
+        tx
+      );
+
+      return register;
+    });
+  } catch (error) {
+    mapPrismaError(error);
+  }
+}
+
+export async function unlinkRegisterFromTemplate(
+  registerId: string,
+  actorId: string,
+  actorName: string,
+  actorEmail: string
+) {
+  const register = await prisma.register.findUnique({
+    where: { id: registerId },
+    select: { id: true, name: true, linkedTemplateVersionId: true }
+  });
+
+  if (!register) {
+    throw new ApiError(404, "NOT_FOUND", "Register not found");
+  }
+
+  if (!register.linkedTemplateVersionId) {
+    throw new ApiError(422, "UNPROCESSABLE", "Register is not linked to a template");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.register.update({
+      where: { id: registerId },
+      data: { linkedTemplateVersionId: null }
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.registerUnlinkedFromTemplate,
+        actor: { id: actorId, name: actorName, email: actorEmail },
+        objectType: "REGISTER",
+        objectId: registerId,
+        objectDisplayName: register.name,
+        scopeType: "REGISTER",
+        registerId,
+        summary: `Register "${register.name}" unlinked from template`
+      },
+      tx
+    );
+
+    return { success: true };
+  });
 }
