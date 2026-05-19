@@ -15,7 +15,7 @@ Version levels:
 
 ## [Unreleased]
 
-## [1.2.0] - Unreleased
+## [1.2.0] - 2026-05-19
 
 All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 
@@ -208,8 +208,8 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...HEAD
-[1.2.0]: https://github.com/martynsimpson/customRisk/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/martynjsimpson/customRisk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...v1.0.0
 [0.1.5]: https://github.com/martynjsimpson/customRisk/compare/v0.1.4...v0.1.5
