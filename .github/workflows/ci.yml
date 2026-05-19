@@ -60,7 +60,7 @@ jobs:
 
       - name: Apply database migrations
         run: |
-          echo "DATABASE_URL=${DATABASE_URL}" > backend/.env
+          printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > backend/.env
           npm run db:migrate
 
       - name: Test backend
