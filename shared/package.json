@@ -1,6 +1,6 @@
 {
   "name": "@custom-risk/shared",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
@@ -17,6 +17,6 @@
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^6.0.0"
   }
 }

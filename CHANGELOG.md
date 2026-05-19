@@ -15,6 +15,22 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-05-19
+
+### Changed
+
+- **Dependency updates**
+  - Prisma bumped from 5.22.0 to 7.8.0. Prisma 7 removes the `url` property from `datasource` in `schema.prisma`; connection configuration is now handled via a new `prisma.config.ts` file. The runtime `PrismaClient` now connects through `@prisma/adapter-pg` (a new direct dependency) backed by a `pg.Pool`, replacing the previous binary-engine model. `binaryTargets` removed from the generator as it is no longer relevant when using driver adapters.
+  - React bumped from 18.3.1 to 19.2.6; `react-dom` updated in step. `@types/react` updated to 19.x; `@types/react-dom` updated to 19.x.
+  - Mantine bumped from 7.17.8 to 9.2.1 across all packages (`@mantine/core`, `@mantine/form`, `@mantine/hooks`, `@mantine/notifications`). `@mantine/dates` and `mantine-datatable` removed — both were unused.
+  - `react-router-dom` bumped from 6.30.3 to 7.15.1. No code changes required; all APIs in use are stable in v7.
+  - TypeScript bumped from 5.9.3 to 6.0.3 across all workspaces.
+  - Zod bumped from 3.25.76 to 4.4.3. One breaking change applied: `z.record()` now requires an explicit key schema — `z.record(z.unknown())` updated to `z.record(z.string(), z.unknown())` in `template.schemas.ts`.
+  - `dotenv` bumped from 16.6.1 to 17.4.2.
+  - `bcryptjs` bumped from 2.4.3 to 3.0.3.
+  - Patch bumps: `axios` 1.16.1, `@tanstack/react-query` 5.100.11, `express-rate-limit` 8.5.2, `tsx` 4.22.3, `@types/node` 20.19.41.
+  - Root `db:migrate` script updated to run via the backend workspace so Prisma CLI picks up `prisma.config.ts`.
+
 ## [1.3.0] - 2026-05-19
 
 ### Changed
@@ -224,7 +240,8 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/martynjsimpson/customRisk/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/martynjsimpson/customRisk/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/martynjsimpson/customRisk/compare/v1.0.0...v1.1.0
