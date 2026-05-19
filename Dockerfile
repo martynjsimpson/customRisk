@@ -1,4 +1,6 @@
-FROM node:20-alpine AS build
+# Run npm ci and the full build on the host's native platform to avoid
+# QEMU emulation crashes (signal 4 illegal instruction) on arm64 runners.
+FROM --platform=$BUILDPLATFORM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -18,12 +20,12 @@ RUN npm run build
 # Compile the seed script separately so it can run at container start without tsx.
 RUN npx tsc --project backend/tsconfig.seed.json
 
-FROM node:20-alpine AS runtime
+# Install production dependencies on the native platform for the same reason.
+# node_modules for pure-JS packages are platform-independent; the Prisma
+# engine binary is handled separately via binaryTargets in schema.prisma.
+FROM --platform=$BUILDPLATFORM node:20-alpine AS runtime-deps
 
 WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=3000
 
 RUN apk add --no-cache openssl ca-certificates
 
@@ -34,8 +36,21 @@ COPY shared/package.json ./shared/package.json
 
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 
+FROM node:20-alpine AS runtime
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+RUN apk add --no-cache openssl ca-certificates
+
+# Copy natively-installed production node_modules.
+COPY --from=runtime-deps /app/node_modules ./node_modules
+
 # Copy the Prisma-generated client from the build stage.
-# --ignore-scripts skips the @prisma/client postinstall that would normally generate it.
+# binaryTargets in schema.prisma ensures the arm64 engine binary is included
+# even though the build ran on amd64.
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
 COPY --from=build /app/backend/dist ./backend/dist
