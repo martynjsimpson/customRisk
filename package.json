@@ -31,7 +31,7 @@
     "smoke-test": "sh scripts/smoke-test.sh"
   },
   "devDependencies": {
-    "@eslint/js": "^10.4.0",
+    "@eslint/js": "^10.0.1",
     "eslint": "^10.4.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^16.0.0",
