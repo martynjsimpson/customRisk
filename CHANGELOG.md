@@ -15,6 +15,23 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-05-19
+
+### Changed
+
+- **Refactoring and internal cleanup**
+  - Consolidated repeated scoring-configuration CRUD logic into a shared frontend `ScoringValueConfigTab` and backend `scoringValueCrud.helper`, reducing duplication across likelihood, impact, and risk-level configuration flows while preserving behaviour.
+  - Extracted shared async Express route handling into `backend/src/utils/asyncRoute.ts` and updated route modules to use the common helper instead of repeating inline wrappers.
+  - Split session-related frontend API contracts out of `auth/session.tsx` into `frontend/src/api/contracts.ts`, reducing coupling between auth state management and API type reuse.
+  - Added a dedicated persons controller/service path for person-reference lookups and cleanup work, including the supporting `personReference.service.ts` changes and updated backend tests.
+  - Removed empty stub files from the shared workspace so the package surface better reflects the code that is actually implemented and exported.
+
+### Fixed
+
+- **Frontend dependency resolution**
+  - Aligned the monorepo on a single React 19 runtime (`react` and `react-dom` 19.2.6) after the workspace had drifted into a mixed React 18/19 install tree. This fixes the local development blank page and `Invalid hook call` / `QueryClientProvider` startup failure caused by different packages resolving different React instances.
+  - Added Vite React deduplication in the frontend config so the browser bundle consistently resolves one React runtime within the workspace.
+
 ## [1.4.0] - 2026-05-19
 
 ### Changed
@@ -240,7 +257,8 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/martynjsimpson/customRisk/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/martynjsimpson/customRisk/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/martynjsimpson/customRisk/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...v1.2.0
