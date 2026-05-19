@@ -15,6 +15,8 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-05-19
+
 ### Added
 
 - **Frontend behavioral test coverage**
@@ -24,6 +26,12 @@ Version levels:
 
 ### Changed
 
+- **Refactoring and internal cleanup**
+  - Consolidated repeated scoring-configuration CRUD logic into a shared frontend `ScoringValueConfigTab` and backend `scoringValueCrud.helper`, reducing duplication across likelihood, impact, and risk-level configuration flows while preserving behaviour.
+  - Extracted shared async Express route handling into `backend/src/utils/asyncRoute.ts` and updated route modules to use the common helper instead of repeating inline wrappers.
+  - Split session-related frontend API contracts out of `auth/session.tsx` into `frontend/src/api/contracts.ts`, reducing coupling between auth state management and API type reuse.
+  - Added a dedicated persons controller/service path for person-reference lookups and cleanup work, including the supporting `personReference.service.ts` changes and updated backend tests.
+  - Removed empty stub files from the shared workspace so the package surface better reflects the code that is actually implemented and exported.
 - **Documentation and workflow**
   - Added an ADR recording the decision to use a lightweight frontend runtime test stack for browser-like component behavior checks.
   - Updated development workflow, AI build guidance, and technical architecture documentation to reflect the frontend testing strategy and quality gates.
@@ -34,20 +42,6 @@ Version levels:
   - Restored draft-mode editing for likelihood values, impact values, risk levels, and the risk matrix after refactoring had inverted the editability checks and left draft changes disconnected from the draft snapshot update path.
   - Restored draft-mode editing for custom field configuration, including dropdown options, and fixed draft config projection so draft custom fields and options are returned in the frontend's expected shape.
   - New custom fields now default to a display order after the built-in core fields, preventing newly created fields from appearing unexpectedly at the top of the configuration table.
-
-## [1.5.0] - 2026-05-19
-
-### Changed
-
-- **Refactoring and internal cleanup**
-  - Consolidated repeated scoring-configuration CRUD logic into a shared frontend `ScoringValueConfigTab` and backend `scoringValueCrud.helper`, reducing duplication across likelihood, impact, and risk-level configuration flows while preserving behaviour.
-  - Extracted shared async Express route handling into `backend/src/utils/asyncRoute.ts` and updated route modules to use the common helper instead of repeating inline wrappers.
-  - Split session-related frontend API contracts out of `auth/session.tsx` into `frontend/src/api/contracts.ts`, reducing coupling between auth state management and API type reuse.
-  - Added a dedicated persons controller/service path for person-reference lookups and cleanup work, including the supporting `personReference.service.ts` changes and updated backend tests.
-  - Removed empty stub files from the shared workspace so the package surface better reflects the code that is actually implemented and exported.
-
-### Fixed
-
 - **Frontend dependency resolution**
   - Aligned the monorepo on a single React 19 runtime (`react` and `react-dom` 19.2.6) after the workspace had drifted into a mixed React 18/19 install tree. This fixes the local development blank page and `Invalid hook call` / `QueryClientProvider` startup failure caused by different packages resolving different React instances.
   - Added Vite React deduplication in the frontend config so the browser bundle consistently resolves one React runtime within the workspace.
