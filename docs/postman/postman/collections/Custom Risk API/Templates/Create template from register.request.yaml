@@ -1,0 +1,14 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and System Admin access. Captures the current register configuration as a new template.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/templates/from-register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Register-derived Template",
+      "description": "Created from the current register configuration"
+    }
+order: 1600

@@ -1,0 +1,32 @@
+$kind: http-request
+description: Requires the `draftConfig` feature. Imports a configuration snapshot into the register.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/config-versions/import"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "config": {
+        "register": {
+          "name": "Imported Register Configuration",
+          "description": "Imported from Postman example payload",
+          "riskIdPrefix": "IMP",
+          "riskIdZeroPaddingEnabled": true,
+          "riskIdZeroPaddingWidth": 4,
+          "defaultNewRiskState": "Open",
+          "reviewsEnabled": true,
+          "defaultReviewFrequencyMonths": 12,
+          "reviewAttestationText": "I confirm that I have reviewed this risk.",
+          "allowViewerExport": false
+        },
+        "customFields": [],
+        "likelihoodValues": [],
+        "impactValues": [],
+        "riskLevels": [],
+        "matrixCells": [],
+        "responseStrategies": []
+      }
+    }
+order: 1800

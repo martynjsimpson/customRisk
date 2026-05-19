@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature. Publishes the current draft configuration version.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/config-versions/draft/publish"
+method: POST
+order: 1600

@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and System Admin access. Gets one template and its current metadata.
+url: "{{baseUrl}}/api/v1/templates/{{templateId}}"
+method: GET
+order: 1200

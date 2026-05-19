@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and System Admin access. Removes the current template link from a register.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/template-link"
+method: DELETE
+order: 2000

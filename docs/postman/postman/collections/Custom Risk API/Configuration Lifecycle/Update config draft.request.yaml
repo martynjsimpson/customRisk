@@ -1,0 +1,28 @@
+$kind: http-request
+description: Requires the `draftConfig` feature. Updates selected sections of the current draft configuration snapshot.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/config-versions/draft"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "register": {
+        "description": "Draft configuration for the register",
+        "riskIdPrefix": "CRR",
+        "riskIdZeroPaddingEnabled": true,
+        "riskIdZeroPaddingWidth": 4,
+        "reviewsEnabled": true,
+        "defaultReviewFrequencyMonths": 12,
+        "reviewAttestationText": "I confirm that I have reviewed this risk.",
+        "allowViewerExport": false
+      },
+      "customFields": [],
+      "likelihoodValues": [],
+      "impactValues": [],
+      "riskLevels": [],
+      "matrixCells": [],
+      "responseStrategies": []
+    }
+order: 1300

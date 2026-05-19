@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature. Lists published config versions and any active draft metadata.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/config-versions"
+method: GET
+order: 1100
