@@ -44,7 +44,19 @@ export const auditActions = {
   passwordChanged: "PASSWORD_CHANGED",
   preferencesUpdated: "PREFERENCES_UPDATED",
   personReferenceLinked: "PERSON_REFERENCE_LINKED",
-  personReferenceCreated: "PERSON_REFERENCE_CREATED"
+  personReferenceCreated: "PERSON_REFERENCE_CREATED",
+  configDraftCreated: "CONFIG_DRAFT_CREATED",
+  configDraftUpdated: "CONFIG_DRAFT_UPDATED",
+  configPublished: "CONFIG_PUBLISHED",
+  configDraftDiscarded: "CONFIG_DRAFT_DISCARDED",
+  configImpactAnalysed: "CONFIG_IMPACT_ANALYSED",
+  registerConfigExported: "REGISTER_CONFIG_EXPORTED",
+  registerConfigImported: "REGISTER_CONFIG_IMPORTED",
+  templateCreated: "TEMPLATE_CREATED",
+  templateUpdated: "TEMPLATE_UPDATED",
+  templateDeleted: "TEMPLATE_DELETED",
+  registerCreatedFromTemplate: "REGISTER_CREATED_FROM_TEMPLATE",
+  registerUnlinkedFromTemplate: "REGISTER_UNLINKED_FROM_TEMPLATE"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];

@@ -63,6 +63,8 @@ enum AuditObjectType {
   EXPORT
   AUTH
   API_KEY
+  CONFIG_VERSION
+  REGISTER_TEMPLATE
 }
 
 enum AuditValueType {
@@ -79,6 +81,11 @@ enum ExportJobStatus {
   REQUESTED
   COMPLETED
   FAILED
+}
+
+enum ConfigVersionStatus {
+  DRAFT
+  PUBLISHED
 }
 
 model PersonReference {
@@ -147,6 +154,10 @@ model User {
   apiKeysCreated ApiKey[] @relation("ApiKeyCreatedBy")
 
   exportJobs ExportJob[] @relation("ExportJobRequestedBy")
+
+  configVersionsCreated    RegisterConfigVersion[] @relation("ConfigVersionCreatedBy")
+  templatesCreated         RegisterTemplate[]      @relation("TemplateCreatedBy")
+  templateVersionsCreated  RegisterTemplateVersion[] @relation("TemplateVersionCreatedBy")
 
   personReference PersonReference? @relation("PersonReferenceUser")
 
@@ -217,6 +228,10 @@ model Register {
   reviewAttestationText        String    @default("I confirm that I have reviewed this risk and the recorded details remain accurate or have been updated.") @map("review_attestation_text") @db.Text
   allowViewerExport            Boolean   @default(false) @map("allow_viewer_export")
 
+  currentConfigVersionId  String?  @unique @map("current_config_version_id") @db.Uuid
+  draftConfigVersionId    String?  @unique @map("draft_config_version_id") @db.Uuid
+  linkedTemplateVersionId String? @map("linked_template_version_id") @db.Uuid
+
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdByUserId String   @map("created_by_user_id") @db.Uuid
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -224,6 +239,11 @@ model Register {
 
   createdBy User @relation("RegisterCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
   updatedBy User @relation("RegisterUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  currentConfigVersion RegisterConfigVersion? @relation("CurrentConfigVersion", fields: [currentConfigVersionId], references: [id], onDelete: SetNull)
+  draftConfigVersion   RegisterConfigVersion? @relation("DraftConfigVersion", fields: [draftConfigVersionId], references: [id], onDelete: SetNull)
+  configVersions       RegisterConfigVersion[] @relation("RegisterVersionList")
+  linkedTemplateVersion   RegisterTemplateVersion? @relation("RegisterLinkedTemplate", fields: [linkedTemplateVersionId], references: [id], onDelete: SetNull)
 
   permissions            RegisterPermission[]
   risks                  Risk[]
@@ -606,4 +626,61 @@ model ExportJob {
   @@index([requestedByUserId, requestedAt])
   @@index([status])
   @@map("export_job")
+}
+
+model RegisterConfigVersion {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registerId      String              @map("register_id") @db.Uuid
+  versionNumber   Int                 @map("version_number")
+  status          ConfigVersionStatus
+  snapshotJson    Json                @map("snapshot_json") @db.JsonB
+  createdByUserId String              @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  publishedAt     DateTime?           @map("published_at") @db.Timestamptz(6)
+  sourceTemplateVersionId String?     @map("source_template_version_id") @db.Uuid
+
+  register  Register @relation("RegisterVersionList", fields: [registerId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("ConfigVersionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  asCurrentVersion Register? @relation("CurrentConfigVersion")
+  asDraftVersion   Register? @relation("DraftConfigVersion")
+
+  @@unique([registerId, versionNumber])
+  @@index([registerId, status])
+  @@map("register_config_version")
+}
+
+model RegisterTemplate {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String   @unique
+  description     String?  @db.Text
+  isActive        Boolean  @default(true) @map("is_active")
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy User                      @relation("TemplateCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions  RegisterTemplateVersion[]
+
+  @@index([isActive])
+  @@map("register_template")
+}
+
+model RegisterTemplateVersion {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  templateId      String              @map("template_id") @db.Uuid
+  versionNumber   Int                 @map("version_number")
+  status          ConfigVersionStatus
+  snapshotJson    Json                @map("snapshot_json") @db.JsonB
+  createdByUserId String              @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  publishedAt     DateTime?           @map("published_at") @db.Timestamptz(6)
+
+  template  RegisterTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  createdBy User             @relation("TemplateVersionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  linkedRegisters         Register[]               @relation("RegisterLinkedTemplate")
+
+  @@unique([templateId, versionNumber])
+  @@index([templateId, status])
+  @@map("register_template_version")
 }

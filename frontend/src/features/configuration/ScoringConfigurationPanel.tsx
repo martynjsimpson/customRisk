@@ -7,9 +7,10 @@ import { RiskLevelConfigTab } from "./RiskLevelConfigTab";
 
 interface ScoringConfigurationPanelProps {
   registerId: string;
+  draftConfigMode?: boolean;
 }
 
-export function ScoringConfigurationPanel({ registerId }: ScoringConfigurationPanelProps) {
+export function ScoringConfigurationPanel({ registerId, draftConfigMode }: ScoringConfigurationPanelProps) {
   return (
     <Tabs defaultValue="likelihood">
       <Tabs.List>
@@ -19,16 +20,16 @@ export function ScoringConfigurationPanel({ registerId }: ScoringConfigurationPa
         <Tabs.Tab value="matrix">Matrix</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="likelihood" pt="md">
-        <LikelihoodConfigTab registerId={registerId} />
+        <LikelihoodConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
       </Tabs.Panel>
       <Tabs.Panel value="impact" pt="md">
-        <ImpactConfigTab registerId={registerId} />
+        <ImpactConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
       </Tabs.Panel>
       <Tabs.Panel value="risk-levels" pt="md">
-        <RiskLevelConfigTab registerId={registerId} />
+        <RiskLevelConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
       </Tabs.Panel>
       <Tabs.Panel value="matrix" pt="md">
-        <MatrixConfigTab registerId={registerId} />
+        <MatrixConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
       </Tabs.Panel>
     </Tabs>
   );

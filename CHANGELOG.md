@@ -15,9 +15,37 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.2.0] - Unreleased
+
+All features in this release require `FEATURE_DRAFT_CONFIG=true`.
+
+### Added
+
+- **Register configuration and templates**
+  - Versioned draft/publish workflow for register configuration: create a draft from the current published config, edit fields, scoring, and settings, then publish or discard. Only one draft can exist per register at a time.
+  - Impact analysis before publish: reports blockers (empty active collections, broken matrix references) and warnings (items being deactivated that are assigned to live risks). Publishing is blocked until all blockers are resolved.
+  - Publish applies all seven configuration sections (likelihood values, impact values, risk levels, response strategies, custom fields, matrix cells, register settings) atomically in a single database transaction. Items absent from the draft are deactivated rather than deleted, preserving referential integrity for historical risks.
+  - Configuration export and import: download the current published config as a structured JSON file and re-import it into any register as a new draft for review.
+  - Register configuration settings (description, risk ID prefix, review settings, etc.) are editable directly while a draft is in progress; they are not overwritten when the draft is published.
+  - Template management (System Admin): create, version, and deactivate reusable register configuration templates. Templates are created from an exported config file or from an existing register's current configuration.
+  - Create a register from a template: new registers are pre-populated with the template's full configuration using fresh database-generated IDs.
+  - Template link tracking: registers created from a template, or whose config is saved as a template, are linked to that template version. The configuration panel shows whether the register is in sync with the latest template version.
+  - Compare register to template: diff a register's current configuration against its linked template version across all seven configuration sections.
+  - Apply latest template version: creates a draft from the latest published template version. The register's template link advances to the new version only when that draft is published.
+  - Unlink a register from its template (System Admin).
+  - Templates page (System Admin, `/templates`): list all templates with version, status, and actions to create a register, update the config, view details, download the config snapshot, and deactivate.
+  - Thirteen new audit actions covering the full configuration and template lifecycle.
+
 ### Fixed
 
 - Semantic badges no longer truncate, clip, or render with ellipses across the application. Shared badge styling now preserves full labels for risk levels, review states, roles, actions, and other short status values, while badge-heavy tables and detail views use horizontal scrolling where needed instead of squeezing badge text.
+
+### Migration
+
+- Four new tables: `register_config_version`, `register_template`, `register_template_version`, and a `source_template_version_id` column on `register_config_version` for tracking template-originated drafts.
+- `register` gains three nullable columns: `current_config_version_id`, `draft_config_version_id`, and `linked_template_version_id`.
+- `AuditObjectType` enum gains two new values: `CONFIG_VERSION` and `REGISTER_TEMPLATE`.
+- Run the backfill script (`scripts/backfill-phase4-config-versions.ts`) once after applying the migration to create an initial `PUBLISHED` version 1 snapshot for each existing register.
 
 ---
 
@@ -177,6 +205,7 @@ Version levels:
 
 <!-- Release links — update when tagging -->
 [Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...HEAD
+[1.2.0]: https://github.com/martynsimpson/customRisk/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/martynjsimpson/customRisk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...v1.0.0
 [0.1.5]: https://github.com/martynjsimpson/customRisk/compare/v0.1.4...v0.1.5

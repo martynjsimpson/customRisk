@@ -10,7 +10,8 @@ import {
   listRegisterPermissionCandidates,
   listRegisterPermissions,
   removeRegisterPermission,
-  updateRegister
+  updateRegister,
+  unlinkRegisterFromTemplate
 } from "../services/registers.service.js";
 import { sendData } from "../utils/apiResponse.js";
 import type {
@@ -98,4 +99,18 @@ export async function removeRegisterPermissionController(
       request.params.permissionId
     )
   );
+}
+
+export async function unlinkRegisterFromTemplateController(
+  request: Request<RegisterIdParams>,
+  response: Response
+) {
+  const actor = request.actor!;
+  await unlinkRegisterFromTemplate(
+    request.params.registerId,
+    actor.id,
+    actor.name,
+    actor.email
+  );
+  sendData(response, { success: true });
 }

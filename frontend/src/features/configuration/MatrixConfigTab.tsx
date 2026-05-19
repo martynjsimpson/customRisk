@@ -9,9 +9,10 @@ import { invalidateScoringConfiguration } from "./scoringConfigInvalidation";
 
 interface MatrixConfigTabProps {
   registerId: string;
+  draftConfigMode?: boolean;
 }
 
-export function MatrixConfigTab({ registerId }: MatrixConfigTabProps) {
+export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTabProps) {
   const queryClient = useQueryClient();
   const [matrixValues, setMatrixValues] = useState<Record<string, string>>({});
   const [recalculateExistingRisks, setRecalculateExistingRisks] = useState(false);
@@ -62,16 +63,18 @@ export function MatrixConfigTab({ registerId }: MatrixConfigTabProps) {
     <Stack>
       <Group justify="space-between">
         <Title order={3}>Risk Matrix</Title>
-        <Group>
-          <Checkbox
-            label="Recalculate existing risks"
-            checked={recalculateExistingRisks}
-            onChange={(event) => setRecalculateExistingRisks(event.currentTarget.checked)}
-          />
-          <Button onClick={() => saveMatrixMutation.mutate()} loading={saveMatrixMutation.isPending}>
-            Save matrix
-          </Button>
-        </Group>
+        {!draftConfigMode ? (
+          <Group>
+            <Checkbox
+              label="Recalculate existing risks"
+              checked={recalculateExistingRisks}
+              onChange={(event) => setRecalculateExistingRisks(event.currentTarget.checked)}
+            />
+            <Button onClick={() => saveMatrixMutation.mutate()} loading={saveMatrixMutation.isPending}>
+              Save matrix
+            </Button>
+          </Group>
+        ) : null}
       </Group>
       <ApiErrorAlert error={matrixQuery.error} fallback="Unable to load matrix" />
       <ApiErrorAlert error={saveMatrixMutation.error} fallback="Unable to save matrix" />
@@ -111,6 +114,7 @@ export function MatrixConfigTab({ registerId }: MatrixConfigTabProps) {
                         value={matrixValues[cellKey] ?? null}
                         placeholder="Select level"
                         size="xs"
+                        disabled={draftConfigMode}
                         styles={{
                           input: {
                             backgroundColor: selectedColor ?? undefined,

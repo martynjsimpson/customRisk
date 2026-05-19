@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 import { Prisma, PrismaClient, type RiskState } from "@prisma/client";
 import { config as loadEnv } from "dotenv";
@@ -690,6 +690,181 @@ async function upsertDemoRisks(admin: { id: string; name: string; email: string 
   }
 }
 
+async function upsertDemoTemplates(admin: { id: string; name: string; email: string }) {
+  const now = new Date();
+
+  type SnapshotLV = { id: string; name: string; numericValue: string; displayOrder: number; isActive: boolean };
+  type SnapshotCell = { id: string; likelihoodValueId: string; impactValueId: string; riskLevelId: string };
+
+  function buildSnapshot(opts: {
+    name: string;
+    description: string;
+    likelihoods: Array<{ name: string; numeric: number }>;
+    impacts: Array<{ name: string; numeric: number }>;
+    riskLevels: Array<{ name: string; color: string }>;
+    matrix: string[][];
+    responseStrategies: string[];
+  }) {
+    const likelihoods: SnapshotLV[] = opts.likelihoods.map((lv, i) => ({
+      id: randomUUID(), name: lv.name, numericValue: String(lv.numeric), displayOrder: i + 1, isActive: true
+    }));
+    const impacts: SnapshotLV[] = opts.impacts.map((iv, i) => ({
+      id: randomUUID(), name: iv.name, numericValue: String(iv.numeric), displayOrder: i + 1, isActive: true
+    }));
+    const levels = opts.riskLevels.map((rl, i) => ({
+      id: randomUUID(), name: rl.name, description: null, color: rl.color, displayOrder: i + 1, isActive: true
+    }));
+    const levelByName = new Map(levels.map((rl) => [rl.name, rl]));
+
+    const cells: SnapshotCell[] = impacts.flatMap((impact, impactIndex) =>
+      likelihoods.map((likelihood, likelihoodIndex) => ({
+        id: randomUUID(),
+        likelihoodValueId: likelihood.id,
+        impactValueId: impact.id,
+        riskLevelId: levelByName.get(opts.matrix[impactIndex]?.[likelihoodIndex] ?? opts.riskLevels[0]!.name)!.id
+      }))
+    );
+
+    return {
+      register: {
+        name: opts.name,
+        description: opts.description,
+        riskIdPrefix: null,
+        riskIdZeroPaddingEnabled: false,
+        riskIdZeroPaddingWidth: 4,
+        defaultNewRiskState: "OPEN",
+        reviewsEnabled: true,
+        defaultReviewFrequencyMonths: 12,
+        reviewAttestationText: null,
+        allowViewerExport: false
+      },
+      customFields: [],
+      likelihoodValues: likelihoods,
+      impactValues: impacts,
+      riskLevels: levels,
+      matrixCells: cells,
+      responseStrategies: opts.responseStrategies.map((name, i) => ({
+        id: randomUUID(), name, displayOrder: i + 1, isActive: true
+      }))
+    };
+  }
+
+  const templates = [
+    {
+      name: "Standard Risk Register",
+      description: "A 5×5 risk register template with the standard likelihood, impact, and risk level defaults. A good starting point for most general-purpose risk tracking programmes.",
+      snapshot: buildSnapshot({
+        name: "Standard Risk Register",
+        description: "A 5×5 risk register template with the standard likelihood, impact, and risk level defaults.",
+        likelihoods: [
+          { name: "Rare", numeric: 1 },
+          { name: "Unlikely", numeric: 2 },
+          { name: "Possible", numeric: 3 },
+          { name: "Likely", numeric: 4 },
+          { name: "Almost Certain", numeric: 5 }
+        ],
+        impacts: [
+          { name: "Insignificant", numeric: 1 },
+          { name: "Minor", numeric: 2 },
+          { name: "Moderate", numeric: 3 },
+          { name: "Major", numeric: 4 },
+          { name: "Severe", numeric: 5 }
+        ],
+        riskLevels: [
+          { name: "Low", color: "#2f9e44" },
+          { name: "Medium", color: "#f59f00" },
+          { name: "High", color: "#f76707" },
+          { name: "Critical", color: "#e03131" }
+        ],
+        matrix: [
+          ["Low", "Low", "Low", "Medium", "Medium"],
+          ["Low", "Low", "Medium", "Medium", "High"],
+          ["Low", "Medium", "Medium", "High", "High"],
+          ["Medium", "Medium", "High", "High", "Critical"],
+          ["Medium", "High", "High", "Critical", "Critical"]
+        ],
+        responseStrategies: ["Accept", "Mitigate", "Transfer", "Avoid"]
+      })
+    },
+    {
+      name: "Streamlined Risk Register",
+      description: "A simplified 3×3 risk register template for teams that prefer fewer scoring dimensions. Three likelihood levels, three impact levels, and a three-tier risk rating.",
+      snapshot: buildSnapshot({
+        name: "Streamlined Risk Register",
+        description: "A simplified 3×3 risk register template for teams that prefer fewer scoring dimensions.",
+        likelihoods: [
+          { name: "Low", numeric: 1 },
+          { name: "Medium", numeric: 2 },
+          { name: "High", numeric: 3 }
+        ],
+        impacts: [
+          { name: "Low", numeric: 1 },
+          { name: "Medium", numeric: 2 },
+          { name: "High", numeric: 3 }
+        ],
+        riskLevels: [
+          { name: "Low", color: "#2f9e44" },
+          { name: "Medium", color: "#f59f00" },
+          { name: "High", color: "#f76707" }
+        ],
+        matrix: [
+          ["Low", "Low", "Medium"],
+          ["Low", "Medium", "High"],
+          ["Medium", "High", "High"]
+        ],
+        responseStrategies: ["Accept", "Mitigate", "Transfer", "Avoid"]
+      })
+    }
+  ];
+
+  for (const template of templates) {
+    const existing = await prisma.registerTemplate.findFirst({
+      where: { name: template.name },
+      select: { id: true }
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const created = await tx.registerTemplate.create({
+        data: {
+          name: template.name,
+          description: template.description,
+          isActive: true,
+          createdByUserId: admin.id
+        }
+      });
+
+      await tx.registerTemplateVersion.create({
+        data: {
+          templateId: created.id,
+          versionNumber: 1,
+          status: "PUBLISHED",
+          snapshotJson: template.snapshot as object,
+          createdByUserId: admin.id,
+          publishedAt: now
+        }
+      });
+
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: admin.id,
+          actorDisplayName: admin.name,
+          actorEmail: admin.email,
+          action: "TEMPLATE_CREATED",
+          objectType: "REGISTER_TEMPLATE",
+          objectId: created.id,
+          objectDisplayName: template.name,
+          scopeType: "SYSTEM",
+          summary: `Template created: "${template.name}"`
+        }
+      });
+    });
+  }
+}
+
 async function main() {
   const email = optional("SEED_ADMIN_EMAIL", "admin@customrisk.local").trim().toLowerCase();
   const name = optional("SEED_ADMIN_NAME", "System Admin").trim();
@@ -744,8 +919,9 @@ async function main() {
     const users = await upsertDemoUsers(demoPasswordHash);
     await upsertDemoRegisters(admin, users);
     await upsertDemoRisks(admin, users);
+    await upsertDemoTemplates(admin);
 
-    console.log("Demo data ready: 2 registers, 3 demo users, 16 representative risks");
+    console.log("Demo data ready: 2 registers, 3 demo users, 16 representative risks, 2 register templates");
     if (!process.env.SEED_DEMO_USER_PASSWORD) {
       console.log("Demo users were created with random passwords; set SEED_DEMO_USER_PASSWORD to make them login-capable.");
     }

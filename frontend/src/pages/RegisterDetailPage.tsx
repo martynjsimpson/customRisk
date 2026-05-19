@@ -93,7 +93,7 @@ export function RegisterDetailPage() {
           {registerQuery.data ? <RiskRegisterPanel register={registerQuery.data} /> : null}
         </Tabs.Panel>
         <Tabs.Panel value="configuration" pt="md">
-          {canManage ? <RegisterConfigurationPanel registerId={registerId} /> : null}
+          {canManage ? <RegisterConfigurationPanel registerId={registerId} canManage={canManage} /> : null}
         </Tabs.Panel>
         <Tabs.Panel value="permissions" pt="md">
           <Stack>
