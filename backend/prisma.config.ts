@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig } from "prisma/config";
 
-function getDatabaseUrl(): string {
+function getDatabaseUrl(): string | undefined {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 
   // Use import.meta.dirname (always the directory of this file = backend/) rather
@@ -21,7 +21,10 @@ function getDatabaseUrl(): string {
     }
   }
 
-  throw new Error("DATABASE_URL is not set.");
+  // Return undefined so prisma generate works without a database (e.g. during
+  // Docker build). Commands that actually connect (migrate deploy) will fail
+  // with a clear Prisma error if DATABASE_URL is genuinely missing at that point.
+  return undefined;
 }
 
 export default defineConfig({
