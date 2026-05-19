@@ -26,9 +26,7 @@ function getDatabaseUrl(): string {
 
 export default defineConfig({
   schema: path.join("prisma", "schema.prisma"),
-  datasources: {
-    db: {
-      url: getDatabaseUrl(),
-    },
+  datasource: {
+    url: getDatabaseUrl(),
   },
 });
