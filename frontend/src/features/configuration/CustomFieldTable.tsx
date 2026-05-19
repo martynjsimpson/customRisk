@@ -29,6 +29,7 @@ interface CustomFieldTableProps {
   onOpenOptions: (field: CustomFieldDefinition) => void;
   onActivateField: (fieldId: string) => void;
   onDeactivateField: (fieldId: string) => void;
+  readOnly?: boolean;
 }
 
 const fieldTypeLabels: Record<CustomFieldType, string> = {
@@ -69,13 +70,14 @@ interface SortableRowProps {
   onOpenOptions: (field: CustomFieldDefinition) => void;
   onActivateField: (fieldId: string) => void;
   onDeactivateField: (fieldId: string) => void;
+  readOnly?: boolean;
 }
 
-function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDeactivateField }: SortableRowProps) {
+function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDeactivateField, readOnly }: SortableRowProps) {
   const isCore = field.kind === "core";
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
-    disabled: isCore
+    disabled: isCore || readOnly
   });
 
   const style = {
@@ -87,7 +89,7 @@ function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDea
   return (
     <Table.Tr ref={setNodeRef} style={style} {...(isCore ? {} : attributes)}>
       <Table.Td style={{ width: 36 }}>
-        {isCore ? null : (
+        {isCore || readOnly ? null : (
           <ActionIcon variant="transparent" color="gray" style={{ cursor: "grab" }} {...listeners}>
             <IconGripVertical size={16} />
           </ActionIcon>
@@ -101,31 +103,33 @@ function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDea
           {isCore ? "Core" : field.isActive ? "Active" : "Inactive"}
         </Badge>
       </Table.Td>
-      <Table.Td>
-        <Group justify="flex-end" gap="xs">
-          {field.kind === "custom" && field.fieldType === "DROPDOWN" ? (
-            <Button variant="subtle" onClick={() => onOpenOptions(field)}>
-              Options
-            </Button>
-          ) : null}
-          {field.kind === "custom" ? (
-            <Button variant="subtle" onClick={() => onEditField(field)}>
-              Edit
-            </Button>
-          ) : null}
-          {field.kind === "custom" ? (
-            field.isActive ? (
-              <Button color="red" variant="subtle" onClick={() => onDeactivateField(field.id)}>
-                Deactivate
+      {!readOnly ? (
+        <Table.Td>
+          <Group justify="flex-end" gap="xs">
+            {field.kind === "custom" && field.fieldType === "DROPDOWN" ? (
+              <Button variant="subtle" onClick={() => onOpenOptions(field)}>
+                Options
               </Button>
-            ) : (
-              <Button variant="subtle" onClick={() => onActivateField(field.id)}>
-                Activate
+            ) : null}
+            {field.kind === "custom" ? (
+              <Button variant="subtle" onClick={() => onEditField(field)}>
+                Edit
               </Button>
-            )
-          ) : null}
-        </Group>
-      </Table.Td>
+            ) : null}
+            {field.kind === "custom" ? (
+              field.isActive ? (
+                <Button color="red" variant="subtle" onClick={() => onDeactivateField(field.id)}>
+                  Deactivate
+                </Button>
+              ) : (
+                <Button variant="subtle" onClick={() => onActivateField(field.id)}>
+                  Activate
+                </Button>
+              )
+            ) : null}
+          </Group>
+        </Table.Td>
+      ) : <Table.Td />}
     </Table.Tr>
   );
 }
@@ -136,7 +140,8 @@ export function CustomFieldTable({
   onEditField,
   onOpenOptions,
   onActivateField,
-  onDeactivateField
+  onDeactivateField,
+  readOnly
 }: CustomFieldTableProps) {
   const [orderedFields, setOrderedFields] = useState<CombinedField[]>(() => buildOrderedFields(fields));
 
@@ -170,30 +175,33 @@ export function CustomFieldTable({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th style={{ width: 36 }} />
-              <Table.Th>Name</Table.Th>
-              <Table.Th>Type</Table.Th>
-              <Table.Th>Required</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {orderedFields.map((field) => (
-              <SortableRow
-                key={field.id}
-                field={field}
+        <Table.ScrollContainer minWidth={760}>
+          <Table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th style={{ width: 36 }} />
+                <Table.Th>Name</Table.Th>
+                <Table.Th>Type</Table.Th>
+                <Table.Th>Required</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.Th />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {orderedFields.map((field) => (
+                <SortableRow
+                  key={field.id}
+                  field={field}
                 onEditField={onEditField}
                 onOpenOptions={onOpenOptions}
                 onActivateField={onActivateField}
                 onDeactivateField={onDeactivateField}
+                readOnly={readOnly}
               />
             ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       </SortableContext>
     </DndContext>
   );

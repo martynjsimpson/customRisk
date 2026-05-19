@@ -26,71 +26,73 @@ export function AuditEventTable({
   };
 
   return (
-    <Table>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th w={32} />
-          <Table.Th>When</Table.Th>
-          <Table.Th>Actor</Table.Th>
-          <Table.Th>Action</Table.Th>
-          {showRegister && <Table.Th>Register</Table.Th>}
-          {showObject && <Table.Th>Object</Table.Th>}
-          <Table.Th>Summary</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {events.map((event) => {
-          const canExpand = hasAuditDetail(event);
-          const isExpanded = expandedIds.has(event.id);
-
-          return (
-            <Fragment key={event.id}>
-              <Table.Tr
-                onClick={canExpand ? () => toggle(event.id) : undefined}
-                style={canExpand ? { cursor: "pointer" } : undefined}
-              >
-                <Table.Td>
-                  {canExpand &&
-                    (isExpanded ? (
-                      <IconChevronDown size={14} color="gray" />
-                    ) : (
-                      <IconChevronRight size={14} color="gray" />
-                    ))}
-                </Table.Td>
-                <Table.Td>{new Date(event.occurredAt).toLocaleString()}</Table.Td>
-                <Table.Td>{event.actor?.name ?? "System"}</Table.Td>
-                <Table.Td>
-                  <Badge>{event.action}</Badge>
-                </Table.Td>
-                {showRegister && <Table.Td>{event.registerDisplayName ?? "—"}</Table.Td>}
-                {showObject && <Table.Td>{event.objectDisplayName ?? event.objectId}</Table.Td>}
-                <Table.Td>{event.summary}</Table.Td>
-              </Table.Tr>
-              {canExpand && isExpanded && (
-                <Table.Tr>
-                  <Table.Td
-                    colSpan={5 + (showObject ? 1 : 0) + (showRegister ? 1 : 0)}
-                    p={0}
-                    style={{
-                      backgroundColor:
-                        "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
-                    }}
-                  >
-                    <AuditEventDetail event={event} />
-                  </Table.Td>
-                </Table.Tr>
-              )}
-            </Fragment>
-          );
-        })}
-        {events.length === 0 ? (
+    <Table.ScrollContainer minWidth={760}>
+      <Table>
+        <Table.Thead>
           <Table.Tr>
-            <Table.Td colSpan={5 + (showObject ? 1 : 0) + (showRegister ? 1 : 0)}>
-              <Text c="dimmed">No audit events found.</Text>
-            </Table.Td>
+            <Table.Th w={32} />
+            <Table.Th>When</Table.Th>
+            <Table.Th>Actor</Table.Th>
+            <Table.Th>Action</Table.Th>
+            {showRegister && <Table.Th>Register</Table.Th>}
+            {showObject && <Table.Th>Object</Table.Th>}
+            <Table.Th>Summary</Table.Th>
           </Table.Tr>
-        ) : null}
-      </Table.Tbody>
-    </Table>
+        </Table.Thead>
+        <Table.Tbody>
+          {events.map((event) => {
+            const canExpand = hasAuditDetail(event);
+            const isExpanded = expandedIds.has(event.id);
+
+            return (
+              <Fragment key={event.id}>
+                <Table.Tr
+                  onClick={canExpand ? () => toggle(event.id) : undefined}
+                  style={canExpand ? { cursor: "pointer" } : undefined}
+                >
+                  <Table.Td>
+                    {canExpand &&
+                      (isExpanded ? (
+                        <IconChevronDown size={14} color="gray" />
+                      ) : (
+                        <IconChevronRight size={14} color="gray" />
+                      ))}
+                  </Table.Td>
+                  <Table.Td>{new Date(event.occurredAt).toLocaleString()}</Table.Td>
+                  <Table.Td>{event.actor?.name ?? "System"}</Table.Td>
+                  <Table.Td>
+                    <Badge>{event.action}</Badge>
+                  </Table.Td>
+                  {showRegister && <Table.Td>{event.registerDisplayName ?? "—"}</Table.Td>}
+                  {showObject && <Table.Td>{event.objectDisplayName ?? event.objectId}</Table.Td>}
+                  <Table.Td>{event.summary}</Table.Td>
+                </Table.Tr>
+                {canExpand && isExpanded && (
+                  <Table.Tr>
+                    <Table.Td
+                      colSpan={5 + (showObject ? 1 : 0) + (showRegister ? 1 : 0)}
+                      p={0}
+                      style={{
+                        backgroundColor:
+                          "light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
+                      }}
+                    >
+                      <AuditEventDetail event={event} />
+                    </Table.Td>
+                  </Table.Tr>
+                )}
+              </Fragment>
+            );
+          })}
+          {events.length === 0 ? (
+            <Table.Tr>
+              <Table.Td colSpan={5 + (showObject ? 1 : 0) + (showRegister ? 1 : 0)}>
+                <Text c="dimmed">No audit events found.</Text>
+              </Table.Td>
+            </Table.Tr>
+          ) : null}
+        </Table.Tbody>
+      </Table>
+    </Table.ScrollContainer>
   );
 }

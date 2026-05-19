@@ -15,9 +15,10 @@ import { invalidateScoringConfiguration } from "./scoringConfigInvalidation";
 
 interface ImpactConfigTabProps {
   registerId: string;
+  draftConfigMode?: boolean;
 }
 
-export function ImpactConfigTab({ registerId }: ImpactConfigTabProps) {
+export function ImpactConfigTab({ registerId, draftConfigMode }: ImpactConfigTabProps) {
   const queryClient = useQueryClient();
   const [impactModalOpen, setImpactModalOpen] = useState(false);
   const [editingImpact, setEditingImpact] = useState<ImpactValue | null>(null);
@@ -90,55 +91,59 @@ export function ImpactConfigTab({ registerId }: ImpactConfigTabProps) {
     <Stack>
       <Group justify="space-between">
         <Title order={3}>Impact Values</Title>
-        <Button onClick={openCreateImpact}>Add impact</Button>
+        {!draftConfigMode ? <Button onClick={openCreateImpact}>Add impact</Button> : null}
       </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load configuration" />
       <ApiErrorAlert error={deactivateImpactMutation.error} fallback="Unable to deactivate impact value" />
       <ApiErrorAlert error={activateImpactMutation.error} fallback="Unable to activate impact value" />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Order</Table.Th>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Numeric value</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {impacts.map((value) => (
-            <Table.Tr key={value.id}>
-              <Table.Td>{value.displayOrder}</Table.Td>
-              <Table.Td>{value.name}</Table.Td>
-              <Table.Td>{value.numericValue}</Table.Td>
-              <Table.Td>
-                <Badge color={value.isActive ? "green" : "gray"}>
-                  {value.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </Table.Td>
-              <Table.Td>
-                <Group justify="flex-end" gap="xs">
-                  <Button variant="subtle" onClick={() => openEditImpact(value)}>Edit</Button>
-                  {value.isActive ? (
-                    <Button color="red" variant="subtle" onClick={() => deactivateImpactMutation.mutate(value.id)}>
-                      Deactivate
-                    </Button>
-                  ) : (
-                    <Button variant="subtle" onClick={() => activateImpactMutation.mutate(value.id)}>
-                      Activate
-                    </Button>
-                  )}
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-          {impacts.length === 0 ? (
+      <Table.ScrollContainer minWidth={720}>
+        <Table>
+          <Table.Thead>
             <Table.Tr>
-              <Table.Td colSpan={5}><Text c="dimmed">No impact values configured</Text></Table.Td>
+              <Table.Th>Order</Table.Th>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Numeric value</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th />
             </Table.Tr>
-          ) : null}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {impacts.map((value) => (
+              <Table.Tr key={value.id}>
+                <Table.Td>{value.displayOrder}</Table.Td>
+                <Table.Td>{value.name}</Table.Td>
+                <Table.Td>{value.numericValue}</Table.Td>
+                <Table.Td>
+                  <Badge color={value.isActive ? "green" : "gray"}>
+                    {value.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </Table.Td>
+                {!draftConfigMode ? (
+                  <Table.Td>
+                    <Group justify="flex-end" gap="xs">
+                      <Button variant="subtle" onClick={() => openEditImpact(value)}>Edit</Button>
+                      {value.isActive ? (
+                        <Button color="red" variant="subtle" onClick={() => deactivateImpactMutation.mutate(value.id)}>
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button variant="subtle" onClick={() => activateImpactMutation.mutate(value.id)}>
+                          Activate
+                        </Button>
+                      )}
+                    </Group>
+                  </Table.Td>
+                ) : <Table.Td />}
+              </Table.Tr>
+            ))}
+            {impacts.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={5}><Text c="dimmed">No impact values configured</Text></Table.Td>
+              </Table.Tr>
+            ) : null}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
 
       <Modal
         opened={impactModalOpen}

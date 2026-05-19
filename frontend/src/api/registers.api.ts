@@ -4,6 +4,17 @@ import type { ApiResponse, ListMeta } from "./types";
 
 export type { ListMeta };
 
+export interface LinkedTemplate {
+  templateId: string;
+  templateName: string;
+  templateIsActive: boolean;
+  linkedVersionId: string;
+  linkedVersionNumber: number;
+  latestPublishedVersionId: string | null;
+  latestPublishedVersionNumber: number | null;
+  isLatest: boolean;
+}
+
 export interface RegisterRecord {
   id: string;
   name: string;
@@ -19,6 +30,7 @@ export interface RegisterRecord {
   openRisksCount: number;
   overdueRisksCount: number;
   updatedAt: string;
+  linkedTemplate: LinkedTemplate | null;
 }
 
 export interface RegisterPermission {
@@ -108,4 +120,8 @@ export async function removeRegisterPermission(registerId: string, permissionId:
     `/registers/${registerId}/permissions/${permissionId}`
   );
   return response.data.data;
+}
+
+export async function unlinkRegisterFromTemplate(registerId: string): Promise<void> {
+  await apiClient.delete(`/registers/${registerId}/template-link`);
 }

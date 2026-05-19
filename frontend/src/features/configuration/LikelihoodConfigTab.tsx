@@ -15,9 +15,10 @@ import { invalidateScoringConfiguration } from "./scoringConfigInvalidation";
 
 interface LikelihoodConfigTabProps {
   registerId: string;
+  draftConfigMode?: boolean;
 }
 
-export function LikelihoodConfigTab({ registerId }: LikelihoodConfigTabProps) {
+export function LikelihoodConfigTab({ registerId, draftConfigMode }: LikelihoodConfigTabProps) {
   const queryClient = useQueryClient();
   const [likelihoodModalOpen, setLikelihoodModalOpen] = useState(false);
   const [editingLikelihood, setEditingLikelihood] = useState<LikelihoodValue | null>(null);
@@ -90,55 +91,59 @@ export function LikelihoodConfigTab({ registerId }: LikelihoodConfigTabProps) {
     <Stack>
       <Group justify="space-between">
         <Title order={3}>Likelihood Values</Title>
-        <Button onClick={openCreateLikelihood}>Add likelihood</Button>
+        {!draftConfigMode ? <Button onClick={openCreateLikelihood}>Add likelihood</Button> : null}
       </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load configuration" />
       <ApiErrorAlert error={deactivateLikelihoodMutation.error} fallback="Unable to deactivate likelihood value" />
       <ApiErrorAlert error={activateLikelihoodMutation.error} fallback="Unable to activate likelihood value" />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Order</Table.Th>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Numeric value</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th />
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {likelihoods.map((value) => (
-            <Table.Tr key={value.id}>
-              <Table.Td>{value.displayOrder}</Table.Td>
-              <Table.Td>{value.name}</Table.Td>
-              <Table.Td>{value.numericValue}</Table.Td>
-              <Table.Td>
-                <Badge color={value.isActive ? "green" : "gray"}>
-                  {value.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </Table.Td>
-              <Table.Td>
-                <Group justify="flex-end" gap="xs">
-                  <Button variant="subtle" onClick={() => openEditLikelihood(value)}>Edit</Button>
-                  {value.isActive ? (
-                    <Button color="red" variant="subtle" onClick={() => deactivateLikelihoodMutation.mutate(value.id)}>
-                      Deactivate
-                    </Button>
-                  ) : (
-                    <Button variant="subtle" onClick={() => activateLikelihoodMutation.mutate(value.id)}>
-                      Activate
-                    </Button>
-                  )}
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-          {likelihoods.length === 0 ? (
+      <Table.ScrollContainer minWidth={720}>
+        <Table>
+          <Table.Thead>
             <Table.Tr>
-              <Table.Td colSpan={5}><Text c="dimmed">No likelihood values configured</Text></Table.Td>
+              <Table.Th>Order</Table.Th>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Numeric value</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th />
             </Table.Tr>
-          ) : null}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {likelihoods.map((value) => (
+              <Table.Tr key={value.id}>
+                <Table.Td>{value.displayOrder}</Table.Td>
+                <Table.Td>{value.name}</Table.Td>
+                <Table.Td>{value.numericValue}</Table.Td>
+                <Table.Td>
+                  <Badge color={value.isActive ? "green" : "gray"}>
+                    {value.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </Table.Td>
+                {!draftConfigMode ? (
+                  <Table.Td>
+                    <Group justify="flex-end" gap="xs">
+                      <Button variant="subtle" onClick={() => openEditLikelihood(value)}>Edit</Button>
+                      {value.isActive ? (
+                        <Button color="red" variant="subtle" onClick={() => deactivateLikelihoodMutation.mutate(value.id)}>
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button variant="subtle" onClick={() => activateLikelihoodMutation.mutate(value.id)}>
+                          Activate
+                        </Button>
+                      )}
+                    </Group>
+                  </Table.Td>
+                ) : <Table.Td />}
+              </Table.Tr>
+            ))}
+            {likelihoods.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={5}><Text c="dimmed">No likelihood values configured</Text></Table.Td>
+              </Table.Tr>
+            ) : null}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
 
       <Modal
         opened={likelihoodModalOpen}

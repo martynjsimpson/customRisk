@@ -108,50 +108,52 @@ export function RiskDetailModal({
             <Title order={3}>{selectedRiskQuery.data.displayRiskId}</Title>
             <ReviewStatusBadge status={selectedRiskQuery.data.reviewStatus} />
           </Group>
-          <Table>
-            <Table.Tbody>
-              {[
-                ...CORE_RISK_FIELDS.map((field) => ({ kind: "core" as const, ...field })),
-                ...activeCustomFields.map((def) => {
-                  const entry = selectedRiskQuery.data!.customFields.find(
-                    (field) => field.customFieldDefinition.id === def.id
-                  );
-                  return {
-                    kind: "custom" as const,
-                    id: def.id,
-                    displayOrder: def.displayOrder,
-                    fieldName: def.fieldName,
-                    entry:
-                      entry ?? {
-                        id: def.id,
-                        customFieldDefinition: def,
-                        textValue: null,
-                        numberValue: null,
-                        booleanValue: null,
-                        dateValue: null,
-                        person: null,
-                        personUser: null,
-                        dropdownOption: null
-                      }
-                  };
-                })
-              ]
-                .sort((a, b) => a.displayOrder - b.displayOrder)
-                .map((field) =>
-                  field.kind === "core" ? (
-                    <Table.Tr key={field.id}>
-                      <Table.Th>{field.fieldName}</Table.Th>
-                      <Table.Td>{coreDetailValue(selectedRiskQuery.data!, field.id)}</Table.Td>
-                    </Table.Tr>
-                  ) : (
-                    <Table.Tr key={field.id}>
-                      <Table.Th>{field.fieldName}</Table.Th>
-                      <Table.Td>{customDetailValue(field.entry)}</Table.Td>
-                    </Table.Tr>
-                  )
-                )}
-            </Table.Tbody>
-          </Table>
+          <Table.ScrollContainer minWidth={720}>
+            <Table>
+              <Table.Tbody>
+                {[
+                  ...CORE_RISK_FIELDS.map((field) => ({ kind: "core" as const, ...field })),
+                  ...activeCustomFields.map((def) => {
+                    const entry = selectedRiskQuery.data!.customFields.find(
+                      (field) => field.customFieldDefinition.id === def.id
+                    );
+                    return {
+                      kind: "custom" as const,
+                      id: def.id,
+                      displayOrder: def.displayOrder,
+                      fieldName: def.fieldName,
+                      entry:
+                        entry ?? {
+                          id: def.id,
+                          customFieldDefinition: def,
+                          textValue: null,
+                          numberValue: null,
+                          booleanValue: null,
+                          dateValue: null,
+                          person: null,
+                          personUser: null,
+                          dropdownOption: null
+                        }
+                    };
+                  })
+                ]
+                  .sort((a, b) => a.displayOrder - b.displayOrder)
+                  .map((field) =>
+                    field.kind === "core" ? (
+                      <Table.Tr key={field.id}>
+                        <Table.Th>{field.fieldName}</Table.Th>
+                        <Table.Td>{coreDetailValue(selectedRiskQuery.data!, field.id)}</Table.Td>
+                      </Table.Tr>
+                    ) : (
+                      <Table.Tr key={field.id}>
+                        <Table.Th>{field.fieldName}</Table.Th>
+                        <Table.Td>{customDetailValue(field.entry)}</Table.Td>
+                      </Table.Tr>
+                    )
+                  )}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
           <Title order={4}>Actions</Title>
           <Group justify="flex-start" gap="xs">
             {canReview ? (
@@ -172,31 +174,33 @@ export function RiskDetailModal({
           </Group>
           <Title order={4}>Review history</Title>
           <ApiErrorAlert error={reviewHistoryQuery.error} fallback="Unable to load review history" />
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Reviewed</Table.Th>
-                <Table.Th>Reviewer</Table.Th>
-                <Table.Th>Comment</Table.Th>
-                <Table.Th>Next review</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {(reviewHistoryQuery.data ?? []).map((review) => (
-                <Table.Tr key={review.id}>
-                  <Table.Td>{new Date(review.reviewedAt).toLocaleString()}</Table.Td>
-                  <Table.Td>{review.reviewedBy.name}</Table.Td>
-                  <Table.Td>{review.comment ?? ""}</Table.Td>
-                  <Table.Td>{review.calculatedNextReviewDate}</Table.Td>
-                </Table.Tr>
-              ))}
-              {reviewHistoryQuery.data?.length === 0 ? (
+          <Table.ScrollContainer minWidth={720}>
+            <Table>
+              <Table.Thead>
                 <Table.Tr>
-                  <Table.Td colSpan={4}><Text c="dimmed">No reviews recorded.</Text></Table.Td>
+                  <Table.Th>Reviewed</Table.Th>
+                  <Table.Th>Reviewer</Table.Th>
+                  <Table.Th>Comment</Table.Th>
+                  <Table.Th>Next review</Table.Th>
                 </Table.Tr>
-              ) : null}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody>
+                {(reviewHistoryQuery.data ?? []).map((review) => (
+                  <Table.Tr key={review.id}>
+                    <Table.Td>{new Date(review.reviewedAt).toLocaleString()}</Table.Td>
+                    <Table.Td>{review.reviewedBy.name}</Table.Td>
+                    <Table.Td>{review.comment ?? ""}</Table.Td>
+                    <Table.Td>{review.calculatedNextReviewDate}</Table.Td>
+                  </Table.Tr>
+                ))}
+                {reviewHistoryQuery.data?.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td colSpan={4}><Text c="dimmed">No reviews recorded.</Text></Table.Td>
+                  </Table.Tr>
+                ) : null}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
           <Title order={4}>Audit history</Title>
           <ApiErrorAlert error={riskAuditQuery.error} fallback="Unable to load risk audit history" />
           <AuditEventTable events={riskAuditQuery.data?.data ?? []} />
