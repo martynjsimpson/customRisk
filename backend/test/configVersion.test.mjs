@@ -251,8 +251,8 @@ test("publishDraft advances linkedTemplateVersionId and applies register setting
   // linkedTemplateVersionId is set inside the register update
   assert.match(service, /linkedTemplateVersionId: draft\.sourceTemplateVersionId/);
 
-  // Register settings are conditionally applied
-  assert.match(service, /Apply register settings from snapshot only when draft originated from a template/);
+  // Register settings are spread from the snapshot inside the template-origin conditional
+  assert.match(service, /allowViewerExport: regSettings\.allowViewerExport/);
 });
 
 test("unlinkRegisterFromTemplate service writes audit event and route is System Admin + feature-flag gated", async () => {
