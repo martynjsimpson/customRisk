@@ -59,7 +59,9 @@ jobs:
         run: npm run lint
 
       - name: Apply database migrations
-        run: npm run db:migrate
+        run: |
+          echo "DATABASE_URL=${DATABASE_URL}" > backend/.env
+          npm run db:migrate
 
       - name: Test backend
         run: npm run test:backend
