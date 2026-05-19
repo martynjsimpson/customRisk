@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 
 import { ApiError } from "../errors/apiError.js";
 import {
@@ -33,7 +34,7 @@ function actorOrThrow(request: Request) {
 }
 
 export async function listUsersController(
-  request: Request<Record<string, string>, unknown, unknown, ListUsersQuery>,
+  request: Request<ParamsDictionary, unknown, unknown, ListUsersQuery>,
   response: Response
 ) {
   const result = await listUsers(request.query);
@@ -41,7 +42,7 @@ export async function listUsersController(
 }
 
 export async function createUserController(
-  request: Request<Record<string, string>, unknown, CreateUserBody>,
+  request: Request<ParamsDictionary, unknown, CreateUserBody>,
   response: Response
 ) {
   sendData(response, await createUser(actorOrThrow(request), request.body), 201);
@@ -71,14 +72,14 @@ export async function unlockUserController(request: Request<UserIdParams>, respo
 }
 
 export async function updateMyProfileController(
-  request: Request<Record<string, string>, unknown, UpdateMyProfileBody>,
+  request: Request<ParamsDictionary, unknown, UpdateMyProfileBody>,
   response: Response
 ) {
   sendData(response, await updateMyProfile(actorOrThrow(request), request.body));
 }
 
 export async function changeMyPasswordController(
-  request: Request<Record<string, string>, unknown, ChangePasswordBody>,
+  request: Request<ParamsDictionary, unknown, ChangePasswordBody>,
   response: Response
 ) {
   await changeMyPassword(actorOrThrow(request), request.body);
@@ -90,7 +91,7 @@ export async function getMyPreferencesController(request: Request, response: Res
 }
 
 export async function updateMyPreferencesController(
-  request: Request<Record<string, string>, unknown, UpdatePreferencesBody>,
+  request: Request<ParamsDictionary, unknown, UpdatePreferencesBody>,
   response: Response
 ) {
   sendData(response, await updateMyPreferences(actorOrThrow(request), request.body));

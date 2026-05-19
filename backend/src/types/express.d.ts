@@ -1,4 +1,5 @@
 import type { Request } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 
 export interface AuthenticatedActor {
   id: string;
@@ -19,12 +20,12 @@ declare global {
   }
 }
 
-export type TypedRequestBody<TBody> = Request<Record<string, string>, unknown, TBody>;
+export type TypedRequestBody<TBody> = Request<ParamsDictionary, unknown, TBody>;
 
-export type TypedRequestQuery<TQuery> = Request<Record<string, string>, unknown, unknown, TQuery>;
+export type TypedRequestQuery<TQuery> = Request<ParamsDictionary, unknown, unknown, TQuery>;
 
 export type TypedRequest<
   TBody = unknown,
   TQuery = unknown,
-  TParams extends Record<string, string> = Record<string, string>
+  TParams extends ParamsDictionary = ParamsDictionary
 > = Request<TParams, unknown, TBody, TQuery>;

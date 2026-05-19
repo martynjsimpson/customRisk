@@ -15,6 +15,22 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-05-19
+
+### Changed
+
+- **Dependency updates**
+  - `eslint` bumped from 9.27.0 to 10.4.0; `@eslint/js` bumped from 9.27.0 to 10.4.0.
+  - `express` bumped from 4.22.1 to 5.2.1; `@types/express` bumped from 4.17.x to 5.0.6.
+  - `dependabot/fetch-metadata` GitHub Actions step bumped from v2 to v3.
+  - Patch and minor bumps: `vite` 8.0.13, `@vitejs/plugin-react` 6.0.2, `@tanstack/react-query` 5.100.10, `@tabler/icons-react` 3.44.0, `tsx` 4.22.3, `express-rate-limit` 8.5.2, `axios` 1.16.1, `@types/node` 20.19.41, `@types/react` 18.3.29.
+
+### Fixed
+
+- Express 5 changed `req.query` to a read-only getter. The `validateRequest` middleware was assigning parsed/coerced query data back to `req.query`, throwing a silent `TypeError` on every query-validated route. Fixed using `Object.defineProperty` to override the inherited getter on the request instance.
+- Express 5 requires named wildcards in route paths (path-to-regexp v8). The production SPA catch-all route `"*"` updated to `"/{*path}"`.
+- `@types/express` v5 widened `ParamsDictionary` to `{ [key: string]: string | string[] }`. Updated `TypedRequestBody`, `TypedRequestQuery`, and `TypedRequest` utility types in `express.d.ts`, and updated five controller files to import and use `ParamsDictionary` directly from `express-serve-static-core`. Route parameter lookups in `requirePermission` middleware now use a typed `routeParam()` helper that narrows `string | string[]` to `string`.
+
 ## [1.2.0] - 2026-05-19
 
 All features in this release require `FEATURE_DRAFT_CONFIG=true`.
@@ -208,7 +224,8 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/martynjsimpson/customRisk/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/martynjsimpson/customRisk/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/martynjsimpson/customRisk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/martynjsimpson/customRisk/compare/v0.1.5...v1.0.0

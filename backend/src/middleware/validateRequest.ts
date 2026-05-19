@@ -37,7 +37,8 @@ export function validateRequest(schemas: RequestSchemas) {
         next(new ApiError(400, "VALIDATION_ERROR", "Invalid query parameters", zodToFields(result.error)));
         return;
       }
-      req.query = result.data as typeof req.query;
+      // Express 5 made req.query a read-only getter; override with validated/coerced data
+      Object.defineProperty(req, "query", { value: result.data, writable: true, configurable: true, enumerable: true });
     }
 
     if (schemas.body !== undefined) {
