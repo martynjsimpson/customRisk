@@ -16,7 +16,6 @@ import {
 import { createRegisterFromTemplate } from "../services/registers.service.js";
 import type {
   TemplateParams,
-  TemplateVersionParams,
   CompareParams,
   ListTemplatesQuery,
   CreateTemplateWithSnapshotBody,
