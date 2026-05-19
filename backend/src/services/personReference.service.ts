@@ -12,6 +12,28 @@ export interface PersonDisplay {
   isActive: boolean;
 }
 
+export const unresolvedPersonReferenceSelect = {
+  id: true,
+  email: true,
+  displayName: true,
+  createdAt: true,
+  ownerRisks: {
+    select: {
+      id: true,
+      displayRiskId: true,
+      title: true,
+      registerId: true
+    }
+  },
+  customFieldValues: {
+    select: {
+      id: true,
+      riskId: true,
+      customFieldDefinition: { select: { fieldName: true } }
+    }
+  }
+} satisfies Prisma.PersonReferenceSelect;
+
 export type PersonInput =
   | { type: "user"; userId: string }
   | { type: "email"; email: string; displayName?: string };
@@ -143,6 +165,14 @@ export async function searchPersons(
   }
 
   return results;
+}
+
+export async function listUnresolvedPersonReferences() {
+  return prisma.personReference.findMany({
+    where: { userId: null },
+    select: unresolvedPersonReferenceSelect,
+    orderBy: { createdAt: "desc" }
+  });
 }
 
 export async function linkPersonReferenceToUser(

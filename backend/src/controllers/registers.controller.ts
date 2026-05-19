@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
 
-import { ApiError } from "../errors/apiError.js";
 import {
   createRegister,
   getRegister,
@@ -23,15 +22,7 @@ import type {
   RegisterIdParams,
   UpdateRegisterBody
 } from "../validators/registers.schemas.js";
-import type { AuthenticatedActor } from "../types/express.js";
-
-function actorOrThrow(request: { actor?: AuthenticatedActor }) {
-  if (!request.actor) {
-    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
-  }
-
-  return request.actor;
-}
+import { actorOrThrow } from "../utils/actorOrThrow.js";
 
 export async function listRegistersController(
   request: Request<ParamsDictionary, unknown, unknown, ListRegistersQuery>,
@@ -106,7 +97,7 @@ export async function unlinkRegisterFromTemplateController(
   request: Request<RegisterIdParams>,
   response: Response
 ) {
-  const actor = request.actor!;
+  const actor = actorOrThrow(request);
   await unlinkRegisterFromTemplate(
     request.params.registerId,
     actor.id,

@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
 
-import { ApiError } from "../errors/apiError.js";
 import {
   changeMyPassword,
   createUser,
@@ -24,14 +23,7 @@ import type {
   UpdateUserBody,
   UserIdParams
 } from "../validators/users.schemas.js";
-
-function actorOrThrow(request: Request) {
-  if (!request.actor) {
-    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
-  }
-
-  return request.actor;
-}
+import { actorOrThrow } from "../utils/actorOrThrow.js";
 
 export async function listUsersController(
   request: Request<ParamsDictionary, unknown, unknown, ListUsersQuery>,

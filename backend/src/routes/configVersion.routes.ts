@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router } from "express";
 
 import {
   analyseImpactController,
@@ -11,18 +11,11 @@ import {
 } from "../controllers/configVersion.controller.js";
 import { requireRegisterManagement } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
+import { asyncRoute } from "../utils/asyncRoute.js";
 import {
   registerIdParamsSchema,
   updateDraftBodySchema
 } from "../validators/configVersion.schemas.js";
-
-type AsyncHandler = (request: Request<any, any, any, any>, response: Response, next: NextFunction) => unknown;
-
-function asyncRoute(handler: AsyncHandler): RequestHandler {
-  return (request, response, next) => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 export function createConfigVersionSubRouter() {
   const router = Router({ mergeParams: true });

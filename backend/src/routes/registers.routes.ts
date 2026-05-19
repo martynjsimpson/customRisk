@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router } from "express";
 
 import { listRegisterAuditController } from "../controllers/audit.controller.js";
 import {
@@ -30,19 +30,12 @@ import {
   updateRegisterSchema
 } from "../validators/registers.schemas.js";
 import { requireFeature } from "../middleware/requireFeature.js";
+import { asyncRoute } from "../utils/asyncRoute.js";
 import { createConfigExportImportSubRouter } from "./configExportImport.routes.js";
 import { createConfigVersionSubRouter } from "./configVersion.routes.js";
 import { createConfigurationSubRouter } from "./configuration.routes.js";
 import { createRisksSubRouter } from "./risks.routes.js";
 import { createRegisterTemplateSubRouter } from "./template.routes.js";
-
-type AsyncHandler = (request: Request<any, any, any, any>, response: Response, next: NextFunction) => unknown;
-
-function asyncRoute(handler: AsyncHandler): RequestHandler {
-  return (request, response, next) => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 export function createRegistersRouter() {
   const router = Router();
