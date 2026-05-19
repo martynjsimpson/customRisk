@@ -107,3 +107,56 @@ test("MainLayout renders Templates nav link only for System Admins with draftCon
   // Flag is read from useFeatureFlags hook
   assert.match(layout, /useFeatureFlags/);
 });
+
+test("registers API exports unlinkRegisterFromTemplate and LinkedTemplate type", async () => {
+  const api = await readFile(new URL("../src/api/registers.api.ts", import.meta.url), "utf8");
+
+  assert.match(api, /export async function unlinkRegisterFromTemplate/);
+  assert.match(api, /template-link/);
+  assert.match(api, /export interface LinkedTemplate/);
+  assert.match(api, /linkedTemplate: LinkedTemplate \| null/);
+});
+
+test("TemplateLinkPanel renders template link row and gates unlink on isSystemAdmin", async () => {
+  const panel = await readFile(
+    new URL("../src/features/configuration/TemplateLinkPanel.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Returns null when not linked or not canManage
+  assert.match(panel, /if \(!canManage.*\) return null/);
+  assert.match(panel, /if \(!linked\) return null/);
+
+  // Compare and unlink actions are present
+  assert.match(panel, /compareRegisterToTemplate/);
+  assert.match(panel, /unlinkRegisterFromTemplate/);
+  assert.match(panel, /applyTemplateUpdateToDraft/);
+
+  // Unlink is gated on isSystemAdmin
+  assert.match(panel, /isSystemAdmin/);
+
+  // isLatest drives badge colour and Apply latest visibility
+  assert.match(panel, /linked\.isLatest/);
+  assert.match(panel, /canApplyLatest/);
+});
+
+test("RegisterSettingsTab unlocks fields when a draft is in progress", async () => {
+  const tab = await readFile(
+    new URL("../src/features/configuration/RegisterSettingsTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Fetches draft status using the shared query key
+  assert.match(tab, /getConfigVersionStatus/);
+  assert.match(tab, /config-version-status/);
+  assert.match(tab, /hasDraft/);
+
+  // settingsLocked is false when a draft exists (fields editable)
+  assert.match(tab, /settingsLocked = draftConfigMode && !hasDraft/);
+
+  // disabled props use settingsLocked, not draftConfigMode directly
+  assert.match(tab, /disabled=\{!canManage \|\| settingsLocked\}/);
+
+  // When locked, mutation only sends name; when unlocked, sends all fields
+  assert.match(tab, /settingsLocked/);
+});
