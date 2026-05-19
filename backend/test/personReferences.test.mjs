@@ -71,9 +71,11 @@ test("persons search route requires authentication and validates query", async (
 
 test("persons unresolved route is restricted to system admins", async () => {
   const routes = await readFile(new URL("../src/routes/persons.routes.ts", import.meta.url), "utf8");
+  const service = await readFile(new URL("../src/services/personReference.service.ts", import.meta.url), "utf8");
   assert.match(routes, /router\.get\(\s*["']\/unresolved["']/);
   assert.match(routes, /requireSystemAdmin/);
-  assert.match(routes, /userId: null/);
+  assert.match(service, /listUnresolvedPersonReferences/);
+  assert.match(service, /where:\s*\{\s*userId:\s*null\s*\}/);
 });
 
 test("auth service links person reference to user on successful login", async () => {

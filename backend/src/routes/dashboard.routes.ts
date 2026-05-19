@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router } from "express";
 
 import {
   getAdminSummaryController,
@@ -6,14 +6,7 @@ import {
   getMyWorkController
 } from "../controllers/dashboard.controller.js";
 import { authenticate } from "../middleware/authenticate.js";
-
-type AsyncHandler = (request: Request<any, any, any, any>, response: Response, next: NextFunction) => unknown;
-
-function asyncRoute(handler: AsyncHandler): RequestHandler {
-  return (request, response, next) => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
+import { asyncRoute } from "../utils/asyncRoute.js";
 
 export function createDashboardRouter() {
   const router = Router();

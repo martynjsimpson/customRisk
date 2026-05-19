@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router } from "express";
 
 import {
   activateCustomFieldController,
@@ -36,6 +36,7 @@ import {
   requireRegisterManagement
 } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
+import { asyncRoute } from "../utils/asyncRoute.js";
 import {
   createCustomFieldOptionSchema,
   createCustomFieldSchema,
@@ -59,14 +60,6 @@ import {
   updateRiskLevelSchema
 } from "../validators/scoringConfig.schemas.js";
 import { registerIdParamsSchema } from "../validators/registers.schemas.js";
-
-type AsyncHandler = (request: Request<any, any, any, any>, response: Response, next: NextFunction) => unknown;
-
-function asyncRoute(handler: AsyncHandler): RequestHandler {
-  return (request, response, next) => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 export function createConfigurationSubRouter() {
   const router = Router({ mergeParams: true });

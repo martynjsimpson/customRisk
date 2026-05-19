@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router } from "express";
 
 import {
   listTemplatesController,
@@ -18,6 +18,7 @@ import {
   requireSystemAdmin
 } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
+import { asyncRoute } from "../utils/asyncRoute.js";
 import {
   templateParamsSchema,
   listTemplatesQuerySchema,
@@ -29,14 +30,6 @@ import {
   compareParamsSchema
 } from "../validators/template.schemas.js";
 import { registerIdParamsSchema } from "../validators/registers.schemas.js";
-
-type AsyncHandler = (request: Request<any, any, any, any>, response: Response, next: NextFunction) => unknown;
-
-function asyncRoute(handler: AsyncHandler): RequestHandler {
-  return (request, response, next) => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 /**
  * Global template routes — all mounted at /templates, all require System Admin.

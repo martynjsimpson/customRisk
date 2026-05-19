@@ -8,18 +8,8 @@ import type {
   CreateImpactValueBody,
   UpdateImpactValueBody
 } from "../validators/scoringConfig.schemas.js";
-import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
-
-async function assertRegisterExists(registerId: string) {
-  const register = await prisma.register.findUnique({
-    where: { id: registerId },
-    select: { id: true }
-  });
-
-  if (!register) {
-    throw new ApiError(404, "NOT_FOUND", "Register not found");
-  }
-}
+import { buildFieldChanges } from "./audit.service.js";
+import { createScoringValueCrud } from "./scoringValueCrud.helper.js";
 
 const impactAuditFields = [
   { name: "name", label: "Name", valueType: "TEXT" },
@@ -36,41 +26,102 @@ function mapImpactPrismaError(error: unknown): never {
   throw error;
 }
 
-async function findImpactValue(registerId: string, impactId: string) {
-  const value = await prisma.impactValue.findFirst({
-    where: { id: impactId, registerId }
-  });
-
-  if (!value) {
-    throw new ApiError(404, "NOT_FOUND", "Impact value not found");
-  }
-
-  return value;
-}
-
-async function assertImpactWillKeepActiveValue(registerId: string, excludeId?: string) {
-  const activeCount = await prisma.impactValue.count({
-    where: {
-      registerId,
-      isActive: true,
-      id: excludeId ? { not: excludeId } : undefined
+const impactValueCrud = createScoringValueCrud({
+  notFoundMessage: "Impact value not found",
+  duplicateErrorMapper: mapImpactPrismaError,
+  activeEntityLabel: "impact value",
+  activeEntityFieldError: "Cannot deactivate the final active impact value",
+  findMany: (registerId) =>
+    prisma.impactValue.findMany({
+      where: { registerId },
+      orderBy: { displayOrder: "asc" }
+    }),
+  findOne: (registerId, impactId) =>
+    prisma.impactValue.findFirst({
+      where: { id: impactId, registerId }
+    }),
+  countActive: (registerId, excludeId) =>
+    prisma.impactValue.count({
+      where: {
+        registerId,
+        isActive: true,
+        id: excludeId ? { not: excludeId } : undefined
+      }
+    }),
+  createValue: (tx, registerId, input: CreateImpactValueBody) =>
+    tx.impactValue.create({
+      data: {
+        registerId,
+        name: input.name,
+        numericValue: input.numericValue,
+        displayOrder: input.displayOrder,
+        isActive: input.isActive
+      }
+    }),
+  updateValue: (tx, impactId, input: UpdateImpactValueBody) =>
+    tx.impactValue.update({
+      where: { id: impactId },
+      data: {
+        name: input.name,
+        numericValue: input.numericValue,
+        displayOrder: input.displayOrder,
+        isActive: input.isActive
+      }
+    }),
+  deactivateValue: (tx, impactId) =>
+    tx.impactValue.update({
+      where: { id: impactId },
+      data: { isActive: false }
+    }),
+  buildCreatedAuditEvent: (actor, registerId, value) => ({
+    action: auditActions.impactValueCreated,
+    actor,
+    objectType: "IMPACT_VALUE",
+    objectId: value.id,
+    objectDisplayName: value.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Impact value created",
+    metadataJson: {
+      numericValue: value.numericValue.toString(),
+      displayOrder: value.displayOrder,
+      isActive: value.isActive
     }
-  });
-
-  if (activeCount === 0) {
-    throw new ApiError(422, "UNPROCESSABLE", "At least one active impact value must remain", {
-      isActive: "Cannot deactivate the final active impact value"
-    });
-  }
-}
+  }),
+  buildUpdatedAuditEvent: (actor, registerId, existing, updated) => ({
+    action: auditActions.impactValueUpdated,
+    actor,
+    objectType: "IMPACT_VALUE",
+    objectId: updated.id,
+    objectDisplayName: updated.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Impact value updated",
+    fieldChanges: buildFieldChanges(existing, updated, impactAuditFields)
+  }),
+  buildDeactivatedAuditEvent: (actor, registerId, existing, updated) => ({
+    action: auditActions.impactValueDeactivated,
+    actor,
+    objectType: "IMPACT_VALUE",
+    objectId: updated.id,
+    objectDisplayName: updated.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Impact value deactivated",
+    fieldChanges: [
+      {
+        fieldName: "isActive",
+        fieldLabel: "Active",
+        previousValue: existing.isActive,
+        newValue: false,
+        valueType: "BOOLEAN"
+      }
+    ]
+  })
+});
 
 export async function listImpactValues(registerId: string) {
-  await assertRegisterExists(registerId);
-
-  return prisma.impactValue.findMany({
-    where: { registerId },
-    orderBy: { displayOrder: "asc" }
-  });
+  return impactValueCrud.list(registerId);
 }
 
 export async function createImpactValue(
@@ -78,44 +129,7 @@ export async function createImpactValue(
   registerId: string,
   input: CreateImpactValueBody
 ) {
-  await assertRegisterExists(registerId);
-
-  try {
-    return await prisma.$transaction(async (tx) => {
-      const value = await tx.impactValue.create({
-        data: {
-          registerId,
-          name: input.name,
-          numericValue: input.numericValue,
-          displayOrder: input.displayOrder,
-          isActive: input.isActive
-        }
-      });
-
-      await recordAuditEvent(
-        {
-          action: auditActions.impactValueCreated,
-          actor,
-          objectType: "IMPACT_VALUE",
-          objectId: value.id,
-          objectDisplayName: value.name,
-          scopeType: "REGISTER",
-          registerId,
-          summary: "Impact value created",
-          metadataJson: {
-            numericValue: value.numericValue.toString(),
-            displayOrder: value.displayOrder,
-            isActive: value.isActive
-          }
-        },
-        tx
-      );
-
-      return value;
-    });
-  } catch (error) {
-    mapImpactPrismaError(error);
-  }
+  return impactValueCrud.create(actor, registerId, input);
 }
 
 export async function updateImpactValue(
@@ -124,44 +138,7 @@ export async function updateImpactValue(
   impactId: string,
   input: UpdateImpactValueBody
 ) {
-  const existing = await findImpactValue(registerId, impactId);
-
-  if (input.isActive === false && existing.isActive) {
-    await assertImpactWillKeepActiveValue(registerId, impactId);
-  }
-
-  try {
-    return await prisma.$transaction(async (tx) => {
-      const updated = await tx.impactValue.update({
-        where: { id: impactId },
-        data: {
-          name: input.name,
-          numericValue: input.numericValue,
-          displayOrder: input.displayOrder,
-          isActive: input.isActive
-        }
-      });
-
-      await recordAuditEvent(
-        {
-          action: auditActions.impactValueUpdated,
-          actor,
-          objectType: "IMPACT_VALUE",
-          objectId: updated.id,
-          objectDisplayName: updated.name,
-          scopeType: "REGISTER",
-          registerId,
-          summary: "Impact value updated",
-          fieldChanges: buildFieldChanges(existing, updated, impactAuditFields)
-        },
-        tx
-      );
-
-      return updated;
-    });
-  } catch (error) {
-    mapImpactPrismaError(error);
-  }
+  return impactValueCrud.update(actor, registerId, impactId, input);
 }
 
 export async function deactivateImpactValue(
@@ -169,41 +146,5 @@ export async function deactivateImpactValue(
   registerId: string,
   impactId: string
 ) {
-  const existing = await findImpactValue(registerId, impactId);
-
-  if (existing.isActive) {
-    await assertImpactWillKeepActiveValue(registerId, impactId);
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const updated = await tx.impactValue.update({
-      where: { id: impactId },
-      data: { isActive: false }
-    });
-
-    await recordAuditEvent(
-      {
-        action: auditActions.impactValueDeactivated,
-        actor,
-        objectType: "IMPACT_VALUE",
-        objectId: updated.id,
-        objectDisplayName: updated.name,
-        scopeType: "REGISTER",
-        registerId,
-        summary: "Impact value deactivated",
-        fieldChanges: [
-          {
-            fieldName: "isActive",
-            fieldLabel: "Active",
-            previousValue: existing.isActive,
-            newValue: false,
-            valueType: "BOOLEAN"
-          }
-        ]
-      },
-      tx
-    );
-
-    return updated;
-  });
+  return impactValueCrud.deactivate(actor, registerId, impactId);
 }

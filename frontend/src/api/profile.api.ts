@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { CurrentUser } from "../auth/session";
+import type { CurrentUser } from "./contracts";
 import type { ApiResponse } from "./types";
 
 export async function updateMyProfile(name: string) {
