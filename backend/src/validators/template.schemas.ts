@@ -28,7 +28,7 @@ export const createTemplateBodySchema = z.object({
 // Snapshot top-level shape validator — we trust the internal shape and validate further in service layer
 const snapshotJsonSchema = z
   .object({
-    register: z.record(z.unknown()),
+    register: z.record(z.string(), z.unknown()),
     customFields: z.array(z.unknown()),
     likelihoodValues: z.array(z.unknown()),
     impactValues: z.array(z.unknown()),
