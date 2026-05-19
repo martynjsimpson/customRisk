@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { getRegisterConfiguration, type RegisterConfigurationBundle } from "../../api/customFields.api";
+import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { invalidateScoringConfiguration } from "./scoringConfigInvalidation";
 
 interface ScoringValueConfigTabProps<TValue extends ScoringValueRecord> {
   registerId: string;
   draftConfigMode?: boolean;
+  draftSection: "likelihoodValues" | "impactValues";
   labels: {
     title: string;
     addButton: string;
@@ -53,6 +55,7 @@ interface ScoringValueMutationInput {
 export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
   registerId,
   draftConfigMode,
+  draftSection,
   labels,
   selectValues,
   createValue,
@@ -71,11 +74,44 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
     queryFn: () => getRegisterConfiguration(registerId),
     enabled: Boolean(registerId)
   });
+  const statusQuery = useQuery({
+    queryKey: ["config-version-status", registerId],
+    queryFn: () => getConfigVersionStatus(registerId),
+    enabled: Boolean(registerId) && Boolean(draftConfigMode)
+  });
 
   const values = configQuery.data ? selectValues(configQuery.data) : [];
+  const hasDraft = statusQuery.data?.hasDraft ?? false;
+  const isReadOnly = Boolean(draftConfigMode) && !hasDraft;
+
+  const buildDraftValues = (updater: (current: TValue[]) => TValue[]) =>
+    updater(values).map((value) => ({
+      id: value.id,
+      name: value.name,
+      numericValue: value.numericValue,
+      displayOrder: value.displayOrder,
+      isActive: value.isActive
+    }));
 
   const createValueMutation = useMutation({
-    mutationFn: () => createValue(registerId, form.values),
+    mutationFn: () => {
+      if (!hasDraft) {
+        return createValue(registerId, form.values);
+      }
+
+      return updateDraftConfig(registerId, {
+        [draftSection]: buildDraftValues(
+          (current) =>
+            [...current, {
+              id: crypto.randomUUID(),
+              name: form.values.name,
+              numericValue: String(form.values.numericValue),
+              displayOrder: form.values.displayOrder,
+              isActive: form.values.isActive
+            } as TValue].sort((a, b) => a.displayOrder - b.displayOrder)
+        )
+      });
+    },
     onSuccess: async () => {
       setModalOpen(false);
       form.reset();
@@ -83,7 +119,30 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
     }
   });
   const updateValueMutation = useMutation({
-    mutationFn: () => updateValue(registerId, editingValue!.id, form.values),
+    mutationFn: () => {
+      if (!hasDraft) {
+        return updateValue(registerId, editingValue!.id, form.values);
+      }
+
+      return updateDraftConfig(registerId, {
+        [draftSection]: buildDraftValues(
+          (current) =>
+            current
+              .map((value) =>
+                value.id === editingValue!.id
+                  ? {
+                      ...value,
+                      name: form.values.name,
+                      numericValue: String(form.values.numericValue),
+                      displayOrder: form.values.displayOrder,
+                      isActive: form.values.isActive
+                    }
+                  : value
+              )
+              .sort((a, b) => a.displayOrder - b.displayOrder)
+        )
+      });
+    },
     onSuccess: async () => {
       setModalOpen(false);
       setEditingValue(null);
@@ -91,11 +150,25 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
     }
   });
   const deactivateValueMutation = useMutation({
-    mutationFn: (id: string) => deactivateValue(registerId, id),
+    mutationFn: (id: string) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            [draftSection]: buildDraftValues(
+              (current) => current.map((value) => (value.id === id ? { ...value, isActive: false } : value))
+            )
+          })
+        : deactivateValue(registerId, id),
     onSuccess: async () => invalidateScoringConfiguration(queryClient, registerId)
   });
   const activateValueMutation = useMutation({
-    mutationFn: (id: string) => updateValue(registerId, id, { isActive: true }),
+    mutationFn: (id: string) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            [draftSection]: buildDraftValues(
+              (current) => current.map((value) => (value.id === id ? { ...value, isActive: true } : value))
+            )
+          })
+        : updateValue(registerId, id, { isActive: true }),
     onSuccess: async () => invalidateScoringConfiguration(queryClient, registerId)
   });
 
@@ -125,7 +198,7 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
     <Stack>
       <Group justify="space-between">
         <Title order={3}>{labels.title}</Title>
-        {!draftConfigMode ? <Button onClick={openCreateModal}>{labels.addButton}</Button> : null}
+        {!isReadOnly ? <Button onClick={openCreateModal}>{labels.addButton}</Button> : null}
       </Group>
       <ApiErrorAlert error={configQuery.error} fallback={labels.loadError} />
       <ApiErrorAlert error={deactivateValueMutation.error} fallback={labels.deactivateError} />
@@ -157,7 +230,7 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
                       {value.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </Table.Td>
-                  {!draftConfigMode ? (
+                  {!isReadOnly ? (
                     <Table.Td>
                       <Group justify="flex-end" gap="xs">
                         <Button variant="subtle" onClick={() => openEditModal(value)}>Edit</Button>

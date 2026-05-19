@@ -3,23 +3,28 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import {
+  type CustomFieldDefinition,
+  type CustomFieldOption,
+  getRegisterConfiguration,
+  listCustomFieldOptions,
+  type SaveCustomFieldOptionInput
+} from "../../api/customFields.api";
+import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
+import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { CORE_RISK_FIELDS } from "../risks/coreRiskFields";
+import { CustomFieldModal, parseInitialOptions } from "./CustomFieldModal";
+import { CustomFieldOptionsModal } from "./CustomFieldOptionsModal";
+import { CustomFieldTable } from "./CustomFieldTable";
+import { invalidateCustomFieldConfiguration } from "./customFieldConfigInvalidation";
+import {
   activateCustomField,
   createCustomField,
   createCustomFieldOption,
   deactivateCustomField,
   deactivateCustomFieldOption,
-  getRegisterConfiguration,
-  listCustomFieldOptions,
   updateCustomField,
-  updateCustomFieldOption,
-  type CustomFieldDefinition,
-  type CustomFieldOption
+  updateCustomFieldOption
 } from "../../api/customFields.api";
-import { ApiErrorAlert } from "../../components/ApiErrorAlert";
-import { CustomFieldModal, parseInitialOptions } from "./CustomFieldModal";
-import { CustomFieldOptionsModal } from "./CustomFieldOptionsModal";
-import { CustomFieldTable } from "./CustomFieldTable";
-import { invalidateCustomFieldConfiguration } from "./customFieldConfigInvalidation";
 
 interface FieldConfigTabProps {
   registerId: string;
@@ -39,85 +44,243 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     queryFn: () => getRegisterConfiguration(registerId),
     enabled: Boolean(registerId)
   });
+  const statusQuery = useQuery({
+    queryKey: ["config-version-status", registerId],
+    queryFn: () => getConfigVersionStatus(registerId),
+    enabled: Boolean(registerId) && Boolean(draftConfigMode)
+  });
+  const hasDraft = statusQuery.data?.hasDraft ?? false;
+  const isReadOnly = Boolean(draftConfigMode) && !hasDraft;
   const optionsQuery = useQuery({
     queryKey: ["custom-field-options", registerId, selectedField?.id],
     queryFn: () => listCustomFieldOptions(registerId, selectedField!.id),
-    enabled: Boolean(registerId) && Boolean(selectedField)
+    enabled: Boolean(registerId) && Boolean(selectedField) && !hasDraft
   });
 
   const fields = useMemo(() => configQuery.data?.customFields ?? [], [configQuery.data?.customFields]);
-  const nextFieldDisplayOrder = useMemo(
-    () => (fields.reduce((maxOrder, field) => Math.max(maxOrder, field.displayOrder), 0) || 0) + 10,
-    [fields]
+  const maxCoreDisplayOrder = useMemo(
+    () => CORE_RISK_FIELDS.reduce((maxOrder, field) => Math.max(maxOrder, field.displayOrder), 0),
+    []
   );
-  const selectedFieldOptions = optionsQuery.data ?? [];
+  const nextFieldDisplayOrder = useMemo(
+    () => Math.max(fields.reduce((maxOrder, field) => Math.max(maxOrder, field.displayOrder), 0), maxCoreDisplayOrder) + 10,
+    [fields, maxCoreDisplayOrder]
+  );
+  const selectedFieldOptions = hasDraft ? (selectedField?.options ?? []) : (optionsQuery.data ?? []);
 
-  const reorderFieldMutation = useMutation({
-    mutationFn: ({ fieldId, displayOrder }: { fieldId: string; displayOrder: number }) =>
-      updateCustomField(registerId, fieldId, { displayOrder }),
+  const buildDraftFields = (
+    updater: (current: CustomFieldDefinition[]) => CustomFieldDefinition[]
+  ) =>
+    updater(fields).map((field) => ({
+      id: field.id,
+      fieldName: field.fieldName,
+      fieldType: field.fieldType,
+      helpText: field.helpText,
+      isRequired: field.isRequired,
+      displayOrder: field.displayOrder,
+      isActive: field.isActive,
+      options: field.options.map((option) => ({
+        id: option.id,
+        label: option.label,
+        displayOrder: option.displayOrder,
+        isActive: option.isActive
+      }))
+    }));
+
+  const reorderFieldMutation = useMutation<unknown, Error, { fieldId: string; displayOrder: number }>({
+    mutationFn: ({ fieldId, displayOrder }) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              current
+                .map((field) => (field.id === fieldId ? { ...field, displayOrder } : field))
+                .sort((a, b) => a.displayOrder - b.displayOrder)
+            )
+          })
+        : updateCustomField(registerId, fieldId, { displayOrder }),
     onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
 
-  const createFieldMutation = useMutation({
-    mutationFn: (values: Parameters<typeof createCustomField>[1]) => createCustomField(registerId, values),
+  const createFieldMutation = useMutation<unknown, Error, {
+    fieldName: string;
+    fieldType: CustomFieldDefinition["fieldType"];
+    helpText: string | null;
+    isRequired: boolean;
+    displayOrder: number;
+    isActive: boolean;
+    options?: Array<{ label: string; displayOrder: number; isActive?: boolean }>;
+  }>({
+    mutationFn: (values) => {
+      const newFieldId = crypto.randomUUID();
+
+      return hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              [
+                ...current,
+                {
+                  id: newFieldId,
+                  registerId,
+                  fieldName: values.fieldName,
+                  fieldType: values.fieldType,
+                  helpText: values.helpText,
+                  isRequired: values.isRequired,
+                  displayOrder: values.displayOrder,
+                  isActive: values.isActive,
+                  options: (values.options ?? []).map((option) => ({
+                    id: crypto.randomUUID(),
+                    customFieldDefinitionId: newFieldId,
+                    label: option.label,
+                    displayOrder: option.displayOrder,
+                    isActive: option.isActive ?? true
+                  }))
+                }
+              ].sort((a, b) => a.displayOrder - b.displayOrder)
+            )
+          })
+        : createCustomField(registerId, values);
+    },
     onSuccess: async () => {
       setFieldModalOpen(false);
       await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
   });
-  const updateFieldMutation = useMutation({
+  const updateFieldMutation = useMutation<unknown, Error, {
+    fieldId: string;
+    values: {
+      fieldName?: string;
+      helpText?: string | null;
+      isRequired?: boolean;
+      isActive?: boolean;
+      displayOrder?: number;
+    };
+  }>({
     mutationFn: ({
       fieldId,
       values
-    }: {
-      fieldId: string;
-      values: Parameters<typeof updateCustomField>[2];
-    }) => updateCustomField(registerId, fieldId, values),
+    }) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              current
+                .map((field) => (field.id === fieldId ? { ...field, ...values } : field))
+                .sort((a, b) => a.displayOrder - b.displayOrder)
+            )
+          })
+        : updateCustomField(registerId, fieldId, values),
     onSuccess: async () => {
       setFieldModalOpen(false);
       setEditingField(null);
       await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
   });
-  const activateFieldMutation = useMutation({
-    mutationFn: (fieldId: string) => activateCustomField(registerId, fieldId),
+  const activateFieldMutation = useMutation<unknown, Error, string>({
+    mutationFn: (fieldId) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              current.map((field) => (field.id === fieldId ? { ...field, isActive: true } : field))
+            )
+          })
+        : activateCustomField(registerId, fieldId),
     onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
-  const deactivateFieldMutation = useMutation({
-    mutationFn: (fieldId: string) => deactivateCustomField(registerId, fieldId),
+  const deactivateFieldMutation = useMutation<unknown, Error, string>({
+    mutationFn: (fieldId) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              current.map((field) => (field.id === fieldId ? { ...field, isActive: false } : field))
+            )
+          })
+        : deactivateCustomField(registerId, fieldId),
     onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
-  const createOptionMutation = useMutation({
+  const createOptionMutation = useMutation<unknown, Error, {
+    fieldId: string;
+    values: SaveCustomFieldOptionInput;
+  }>({
     mutationFn: ({
       fieldId,
       values
-    }: {
-      fieldId: string;
-      values: Parameters<typeof createCustomFieldOption>[2];
-    }) => createCustomFieldOption(registerId, fieldId, values),
+    }) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              current.map((field) =>
+                field.id === fieldId
+                  ? {
+                      ...field,
+                      options: [
+                        ...field.options,
+                        {
+                          id: crypto.randomUUID(),
+                          customFieldDefinitionId: fieldId,
+                          label: values.label,
+                          displayOrder: values.displayOrder,
+                          isActive: values.isActive
+                        }
+                      ].sort((a, b) => a.displayOrder - b.displayOrder)
+                    }
+                  : field
+              )
+            )
+          })
+        : createCustomFieldOption(registerId, fieldId, values),
     onSuccess: async () => {
       setEditingOption(null);
       await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
   });
-  const updateOptionMutation = useMutation({
+  const updateOptionMutation = useMutation<unknown, Error, {
+    fieldId: string;
+    optionId: string;
+    values: Partial<SaveCustomFieldOptionInput>;
+  }>({
     mutationFn: ({
       fieldId,
       optionId,
       values
-    }: {
-      fieldId: string;
-      optionId: string;
-      values: Parameters<typeof updateCustomFieldOption>[3];
-    }) => updateCustomFieldOption(registerId, fieldId, optionId, values),
+    }) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              current.map((field) =>
+                field.id === fieldId
+                  ? {
+                      ...field,
+                      options: field.options
+                        .map((option) => (option.id === optionId ? { ...option, ...values } : option))
+                        .sort((a, b) => a.displayOrder - b.displayOrder)
+                    }
+                  : field
+              )
+            )
+          })
+        : updateCustomFieldOption(registerId, fieldId, optionId, values),
     onSuccess: async () => {
       setEditingOption(null);
       await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
   });
-  const deactivateOptionMutation = useMutation({
-    mutationFn: ({ fieldId, optionId }: { fieldId: string; optionId: string }) =>
-      deactivateCustomFieldOption(registerId, fieldId, optionId),
+  const deactivateOptionMutation = useMutation<unknown, Error, { fieldId: string; optionId: string }>({
+    mutationFn: ({ fieldId, optionId }) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              current.map((field) =>
+                field.id === fieldId
+                  ? {
+                      ...field,
+                      options: field.options.map((option) =>
+                        option.id === optionId ? { ...option, isActive: false } : option
+                      )
+                    }
+                  : field
+              )
+            )
+          })
+        : deactivateCustomFieldOption(registerId, fieldId, optionId),
     onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
 
@@ -141,7 +304,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     <Stack>
       <Group justify="space-between">
         <Title order={2}>Field Configuration</Title>
-        {!draftConfigMode ? <Button onClick={openCreateField}>Add field</Button> : null}
+        {!isReadOnly ? <Button onClick={openCreateField}>Add field</Button> : null}
       </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load register configuration" />
       <ApiErrorAlert error={activateFieldMutation.error} fallback="Unable to activate field" />
@@ -153,7 +316,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         onOpenOptions={openOptions}
         onActivateField={(fieldId) => activateFieldMutation.mutate(fieldId)}
         onDeactivateField={(fieldId) => deactivateFieldMutation.mutate(fieldId)}
-        readOnly={draftConfigMode}
+        readOnly={isReadOnly}
       />
 
       <CustomFieldModal
@@ -197,6 +360,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         selectedField={selectedField}
         options={selectedFieldOptions}
         editingOption={editingOption}
+        readOnly={isReadOnly}
         loadError={optionsQuery.error}
         createError={createOptionMutation.error}
         updateError={updateOptionMutation.error}

@@ -15,6 +15,26 @@ Version levels:
 
 ## [Unreleased]
 
+### Added
+
+- **Frontend behavioral test coverage**
+  - Added a dedicated frontend runtime test stack using `vitest`, `jsdom`, `@testing-library/react`, and `@testing-library/user-event`.
+  - Added the first behavioral regression test for register draft field configuration, covering custom field creation and the expected post-save UI update.
+  - Split frontend test execution into static source-assertion checks and runtime behavioral checks.
+
+### Changed
+
+- **Documentation and workflow**
+  - Added an ADR recording the decision to use a lightweight frontend runtime test stack for browser-like component behavior checks.
+  - Updated development workflow, AI build guidance, and technical architecture documentation to reflect the frontend testing strategy and quality gates.
+
+### Fixed
+
+- **Draft configuration editing**
+  - Restored draft-mode editing for likelihood values, impact values, risk levels, and the risk matrix after refactoring had inverted the editability checks and left draft changes disconnected from the draft snapshot update path.
+  - Restored draft-mode editing for custom field configuration, including dropdown options, and fixed draft config projection so draft custom fields and options are returned in the frontend's expected shape.
+  - New custom fields now default to a display order after the built-in core fields, preventing newly created fields from appearing unexpectedly at the top of the configuration table.
+
 ## [1.5.0] - 2026-05-19
 
 ### Changed

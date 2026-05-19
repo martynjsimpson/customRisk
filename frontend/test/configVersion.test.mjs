@@ -160,3 +160,51 @@ test("RegisterSettingsTab unlocks fields when a draft is in progress", async () 
   // When locked, mutation only sends name; when unlocked, sends all fields
   assert.match(tab, /settingsLocked/);
 });
+
+test("scoring configuration tabs unlock only when a draft exists and write through updateDraftConfig", async () => {
+  const scoringValueTab = await readFile(
+    new URL("../src/features/configuration/ScoringValueConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+  const riskLevelTab = await readFile(
+    new URL("../src/features/configuration/RiskLevelConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+  const matrixTab = await readFile(
+    new URL("../src/features/configuration/MatrixConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+  const api = await readFile(new URL("../src/api/configVersion.api.ts", import.meta.url), "utf8");
+
+  assert.match(api, /export async function updateDraftConfig/);
+  assert.match(scoringValueTab, /getConfigVersionStatus/);
+  assert.match(scoringValueTab, /const isReadOnly = Boolean\(draftConfigMode\) && !hasDraft/);
+  assert.match(scoringValueTab, /updateDraftConfig/);
+  assert.match(riskLevelTab, /const isReadOnly = Boolean\(draftConfigMode\) && !hasDraft/);
+  assert.match(riskLevelTab, /updateDraftConfig/);
+  assert.match(matrixTab, /const isReadOnly = Boolean\(draftConfigMode\) && !hasDraft/);
+  assert.match(matrixTab, /updateDraftConfig/);
+});
+
+test("field configuration unlocks only when a draft exists and dropdown options stay on the draft snapshot", async () => {
+  const fieldTab = await readFile(
+    new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+  const optionsModal = await readFile(
+    new URL("../src/features/configuration/CustomFieldOptionsModal.tsx", import.meta.url),
+    "utf8"
+  );
+  const registerConfigService = await readFile(
+    new URL("../../backend/src/services/registerConfig.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(fieldTab, /getConfigVersionStatus/);
+  assert.match(fieldTab, /const isReadOnly = Boolean\(draftConfigMode\) && !hasDraft/);
+  assert.match(fieldTab, /enabled: Boolean\(registerId\) && Boolean\(selectedField\) && !hasDraft/);
+  assert.match(fieldTab, /const selectedFieldOptions = hasDraft \? \(selectedField\?\.options \?\? \[\]\) : \(optionsQuery\.data \?\? \[\]\);/);
+  assert.match(fieldTab, /updateDraftConfig/);
+  assert.match(optionsModal, /readOnly\?: boolean/);
+  assert.match(registerConfigService, /customFieldDefinitionId: field\.id/);
+});

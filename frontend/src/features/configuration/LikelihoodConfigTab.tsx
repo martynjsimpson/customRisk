@@ -16,6 +16,7 @@ export function LikelihoodConfigTab({ registerId, draftConfigMode }: LikelihoodC
     <ScoringValueConfigTab<LikelihoodValue>
       registerId={registerId}
       draftConfigMode={draftConfigMode}
+      draftSection="likelihoodValues"
       labels={{
         title: "Likelihood Values",
         addButton: "Add likelihood",

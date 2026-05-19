@@ -18,6 +18,7 @@ import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { updateDraftConfig, getConfigVersionStatus } from "../../api/configVersion.api";
 import {
   createRiskLevel,
   deactivateRiskLevel,
@@ -32,6 +33,8 @@ interface RiskLevelConfigTabProps {
   registerId: string;
   draftConfigMode?: boolean;
 }
+
+type DraftRiskLevelRecord = Omit<RiskLevel, "registerId">;
 
 const hexColorPattern = /^#[0-9A-Fa-f]{6}$/;
 const fallbackColorPickerValue = "#868e96";
@@ -54,45 +57,99 @@ export function RiskLevelConfigTab({ registerId, draftConfigMode }: RiskLevelCon
     queryFn: () => getRegisterConfiguration(registerId),
     enabled: Boolean(registerId)
   });
+  const statusQuery = useQuery({
+    queryKey: ["config-version-status", registerId],
+    queryFn: () => getConfigVersionStatus(registerId),
+    enabled: Boolean(registerId) && Boolean(draftConfigMode)
+  });
 
   const riskLevels = configQuery.data?.riskLevels ?? [];
+  const hasDraft = statusQuery.data?.hasDraft ?? false;
+  const isReadOnly = Boolean(draftConfigMode) && !hasDraft;
+  const buildDraftRiskLevels = (
+    updater: (current: DraftRiskLevelRecord[]) => DraftRiskLevelRecord[]
+  ) =>
+    updater(riskLevels.map(({ registerId: _registerId, ...value }) => value)).map((value) => ({
+      id: value.id,
+      name: value.name,
+      description: value.description,
+      color: value.color,
+      displayOrder: value.displayOrder,
+      isActive: value.isActive
+    }));
 
-  const createRiskLevelMutation = useMutation({
-    mutationFn: () =>
-      createRiskLevel(registerId, {
+  const createRiskLevelMutation = useMutation<unknown>({
+    mutationFn: () => {
+      const payload = {
         name: riskLevelForm.values.name,
         description: riskLevelForm.values.description || null,
         color: riskLevelForm.values.color || null,
         displayOrder: riskLevelForm.values.displayOrder,
         isActive: riskLevelForm.values.isActive
-      }),
+      };
+
+      return hasDraft
+        ? updateDraftConfig(registerId, {
+            riskLevels: buildDraftRiskLevels((current) =>
+              [...current, { id: crypto.randomUUID(), ...payload }].sort(
+                (a, b) => a.displayOrder - b.displayOrder
+              )
+            )
+          })
+        : createRiskLevel(registerId, payload);
+    },
     onSuccess: async () => {
       setRiskLevelModalOpen(false);
       riskLevelForm.reset();
       await invalidateScoringConfiguration(queryClient, registerId);
     }
   });
-  const updateRiskLevelMutation = useMutation({
-    mutationFn: () =>
-      updateRiskLevel(registerId, editingRiskLevel!.id, {
+  const updateRiskLevelMutation = useMutation<unknown>({
+    mutationFn: () => {
+      const payload = {
         name: riskLevelForm.values.name,
         description: riskLevelForm.values.description || null,
         color: riskLevelForm.values.color || null,
         displayOrder: riskLevelForm.values.displayOrder,
         isActive: riskLevelForm.values.isActive
-      }),
+      };
+
+      return hasDraft
+        ? updateDraftConfig(registerId, {
+            riskLevels: buildDraftRiskLevels((current) =>
+              current
+                .map((value) => (value.id === editingRiskLevel!.id ? { ...value, ...payload } : value))
+                .sort((a, b) => a.displayOrder - b.displayOrder)
+            )
+          })
+        : updateRiskLevel(registerId, editingRiskLevel!.id, payload);
+    },
     onSuccess: async () => {
       setRiskLevelModalOpen(false);
       setEditingRiskLevel(null);
       await invalidateScoringConfiguration(queryClient, registerId);
     }
   });
-  const deactivateRiskLevelMutation = useMutation({
-    mutationFn: (id: string) => deactivateRiskLevel(registerId, id),
+  const deactivateRiskLevelMutation = useMutation<unknown, Error, string>({
+    mutationFn: (id: string) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            riskLevels: buildDraftRiskLevels((current) =>
+              current.map((value) => (value.id === id ? { ...value, isActive: false } : value))
+            )
+          })
+        : deactivateRiskLevel(registerId, id),
     onSuccess: async () => invalidateScoringConfiguration(queryClient, registerId)
   });
-  const activateRiskLevelMutation = useMutation({
-    mutationFn: (id: string) => updateRiskLevel(registerId, id, { isActive: true }),
+  const activateRiskLevelMutation = useMutation<unknown, Error, string>({
+    mutationFn: (id: string) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            riskLevels: buildDraftRiskLevels((current) =>
+              current.map((value) => (value.id === id ? { ...value, isActive: true } : value))
+            )
+          })
+        : updateRiskLevel(registerId, id, { isActive: true }),
     onSuccess: async () => invalidateScoringConfiguration(queryClient, registerId)
   });
 
@@ -123,7 +180,7 @@ export function RiskLevelConfigTab({ registerId, draftConfigMode }: RiskLevelCon
     <Stack>
       <Group justify="space-between">
         <Title order={3}>Risk Levels</Title>
-        {!draftConfigMode ? <Button onClick={openCreateRiskLevel}>Add risk level</Button> : null}
+        {!isReadOnly ? <Button onClick={openCreateRiskLevel}>Add risk level</Button> : null}
       </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load configuration" />
       <ApiErrorAlert error={deactivateRiskLevelMutation.error} fallback="Unable to deactivate risk level" />
@@ -165,7 +222,7 @@ export function RiskLevelConfigTab({ registerId, draftConfigMode }: RiskLevelCon
                     {value.isActive ? "Active" : "Inactive"}
                   </Badge>
                 </Table.Td>
-                {!draftConfigMode ? (
+                {!isReadOnly ? (
                   <Table.Td>
                     <Group justify="flex-end" gap="xs">
                       <Button variant="subtle" onClick={() => openEditRiskLevel(value)}>Edit</Button>

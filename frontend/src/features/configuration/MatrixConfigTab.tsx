@@ -2,7 +2,9 @@ import { Button, Checkbox, Group, Select, Stack, Table, Text, Title } from "@man
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
-import { getMatrix, updateMatrix } from "../../api/scoring.api";
+import { getRegisterConfiguration } from "../../api/customFields.api";
+import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
+import { updateMatrix } from "../../api/scoring.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { getReadableTextColor } from "../../utils/color";
 import { invalidateScoringConfiguration } from "./scoringConfigInvalidation";
@@ -17,34 +19,59 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
   const [matrixValues, setMatrixValues] = useState<Record<string, string>>({});
   const [recalculateExistingRisks, setRecalculateExistingRisks] = useState(false);
 
-  const matrixQuery = useQuery({
-    queryKey: ["register-matrix", registerId],
-    queryFn: () => getMatrix(registerId),
+  const configQuery = useQuery({
+    queryKey: ["register-config", registerId],
+    queryFn: () => getRegisterConfiguration(registerId),
     enabled: Boolean(registerId)
   });
+  const statusQuery = useQuery({
+    queryKey: ["config-version-status", registerId],
+    queryFn: () => getConfigVersionStatus(registerId),
+    enabled: Boolean(registerId) && Boolean(draftConfigMode)
+  });
+  const hasDraft = statusQuery.data?.hasDraft ?? false;
+  const isReadOnly = Boolean(draftConfigMode) && !hasDraft;
 
   useEffect(() => {
-    if (!matrixQuery.data) return;
+    if (!configQuery.data) return;
     const initial: Record<string, string> = {};
-    for (const cell of matrixQuery.data.cells) {
+    for (const cell of configQuery.data.matrixCells) {
       initial[`${cell.likelihoodValueId}:${cell.impactValueId}`] = cell.riskLevelId;
     }
     setMatrixValues(initial);
-  }, [matrixQuery.data]);
+  }, [configQuery.data]);
 
   const invalidateAll = () => invalidateScoringConfiguration(queryClient, registerId);
 
-  const saveMatrixMutation = useMutation({
+  const saveMatrixMutation = useMutation<unknown>({
     mutationFn: () =>
-      updateMatrix(registerId, {
-        cells: Object.entries(matrixValues)
-          .filter(([, riskLevelId]) => Boolean(riskLevelId))
-          .map(([cellKey, riskLevelId]) => {
-            const [likelihoodValueId, impactValueId] = cellKey.split(":") as [string, string];
-            return { likelihoodValueId, impactValueId, riskLevelId };
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            matrixCells: Object.entries(matrixValues)
+              .filter(([, riskLevelId]) => Boolean(riskLevelId))
+              .map(([cellKey, riskLevelId]) => {
+                const [likelihoodValueId, impactValueId] = cellKey.split(":") as [string, string];
+                const existingCell = configQuery.data?.matrixCells.find(
+                  (cell) =>
+                    cell.likelihoodValueId === likelihoodValueId && cell.impactValueId === impactValueId
+                );
+                return {
+                  id: existingCell?.id ?? crypto.randomUUID(),
+                  likelihoodValueId,
+                  impactValueId,
+                  riskLevelId
+                };
+              })
+          })
+        : updateMatrix(registerId, {
+            cells: Object.entries(matrixValues)
+              .filter(([, riskLevelId]) => Boolean(riskLevelId))
+              .map(([cellKey, riskLevelId]) => {
+                const [likelihoodValueId, impactValueId] = cellKey.split(":") as [string, string];
+                return { likelihoodValueId, impactValueId, riskLevelId };
+              }),
+            recalculateExistingRisks
           }),
-        recalculateExistingRisks
-      }),
     onSuccess: async () => {
       await Promise.all([
         invalidateAll(),
@@ -53,9 +80,9 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
     }
   });
 
-  const activeLikelihoods = (matrixQuery.data?.likelihoodValues ?? []).filter((value) => value.isActive);
-  const activeImpacts = (matrixQuery.data?.impactValues ?? []).filter((value) => value.isActive);
-  const activeRiskLevels = (matrixQuery.data?.riskLevels ?? []).filter((value) => value.isActive);
+  const activeLikelihoods = (configQuery.data?.likelihoodValues ?? []).filter((value) => value.isActive);
+  const activeImpacts = (configQuery.data?.impactValues ?? []).filter((value) => value.isActive);
+  const activeRiskLevels = (configQuery.data?.riskLevels ?? []).filter((value) => value.isActive);
   const activeRiskLevelOptions = activeRiskLevels.map((r) => ({ value: r.id, label: r.name }));
   const riskLevelColorMap = new Map(activeRiskLevels.map((r) => [r.id, r.color]));
 
@@ -63,7 +90,7 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
     <Stack>
       <Group justify="space-between">
         <Title order={3}>Risk Matrix</Title>
-        {!draftConfigMode ? (
+        {!isReadOnly ? (
           <Group>
             <Checkbox
               label="Recalculate existing risks"
@@ -76,7 +103,7 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
           </Group>
         ) : null}
       </Group>
-      <ApiErrorAlert error={matrixQuery.error} fallback="Unable to load matrix" />
+      <ApiErrorAlert error={configQuery.error} fallback="Unable to load matrix" />
       <ApiErrorAlert error={saveMatrixMutation.error} fallback="Unable to save matrix" />
       {activeLikelihoods.length === 0 || activeImpacts.length === 0 ? (
         <Text c="dimmed">
@@ -114,7 +141,7 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
                         value={matrixValues[cellKey] ?? null}
                         placeholder="Select level"
                         size="xs"
-                        disabled={draftConfigMode}
+                        disabled={isReadOnly}
                         styles={{
                           input: {
                             backgroundColor: selectedColor ?? undefined,

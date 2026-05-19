@@ -23,7 +23,7 @@ test("frontend exposes the required MVP acceptance workflows", async () => {
   assert.match(configurationPanel, /FieldConfigTab/);
   assert.match(configurationPanel, /ScoringConfigurationPanel/);
   assert.match(fieldConfig, /Add field/);
-  assert.match(fieldConfig, /createCustomField/);
+  assert.match(fieldConfig, /updateDraftConfig/);
   assert.match(fieldConfig, /CustomFieldTable/);
   assert.match(fieldTable, /CORE_RISK_FIELDS/);
   assert.match(matrixConfig, /Save matrix/);

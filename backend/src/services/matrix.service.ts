@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { auditActions } from "../audit/auditActions.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
+import type { RegisterConfigSnapshot } from "../types/configSnapshot.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import type {
   UpdateMatrixBody,
@@ -165,6 +166,38 @@ async function recalculateRiskLevels(
 
 export async function getMatrix(registerId: string) {
   await assertRegisterExists(registerId);
+
+  const register = await prisma.register.findUnique({
+    where: { id: registerId },
+    select: { draftConfigVersionId: true }
+  });
+
+  if (register?.draftConfigVersionId) {
+    const draft = await prisma.registerConfigVersion.findUnique({
+      where: { id: register.draftConfigVersionId },
+      select: { snapshotJson: true }
+    });
+
+    if (draft) {
+      const snapshot = draft.snapshotJson as unknown as RegisterConfigSnapshot;
+      const likelihoodById = new Map(snapshot.likelihoodValues.map((value) => [value.id, value]));
+      const impactById = new Map(snapshot.impactValues.map((value) => [value.id, value]));
+      const riskLevelById = new Map(snapshot.riskLevels.map((value) => [value.id, value]));
+
+      return {
+        likelihoodValues: snapshot.likelihoodValues,
+        impactValues: snapshot.impactValues,
+        riskLevels: snapshot.riskLevels,
+        cells: snapshot.matrixCells.map((cell) => ({
+          ...cell,
+          registerId,
+          likelihoodValue: likelihoodById.get(cell.likelihoodValueId) ?? null,
+          impactValue: impactById.get(cell.impactValueId) ?? null,
+          riskLevel: riskLevelById.get(cell.riskLevelId) ?? null
+        }))
+      };
+    }
+  }
 
   const [likelihoodValues, impactValues, riskLevels, cells] = await Promise.all([
     prisma.likelihoodValue.findMany({ where: { registerId }, orderBy: { displayOrder: "asc" } }),

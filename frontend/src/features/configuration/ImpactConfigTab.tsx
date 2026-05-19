@@ -16,6 +16,7 @@ export function ImpactConfigTab({ registerId, draftConfigMode }: ImpactConfigTab
     <ScoringValueConfigTab<ImpactValue>
       registerId={registerId}
       draftConfigMode={draftConfigMode}
+      draftSection="impactValues"
       labels={{
         title: "Impact Values",
         addButton: "Add impact",
