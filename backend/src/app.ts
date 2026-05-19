@@ -45,7 +45,7 @@ export function createApp(options: CreateAppOptions = {}) {
   if (process.env.NODE_ENV === "production") {
     const publicDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../public");
     app.use(express.static(publicDir));
-    app.get("*", (req, res, next) => {
+    app.get("/{*path}", (req, res, next) => {
       if (req.path.startsWith("/api/")) {
         next();
         return;

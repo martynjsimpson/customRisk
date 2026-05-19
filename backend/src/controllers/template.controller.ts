@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 
 import { actorOrThrow } from "../utils/actorOrThrow.js";
 import { sendData } from "../utils/apiResponse.js";
@@ -28,7 +29,7 @@ import type { RegisterIdParams } from "../validators/registers.schemas.js";
 import type { RegisterConfigSnapshot } from "../types/configSnapshot.js";
 
 export async function listTemplatesController(
-  request: Request<Record<string, string>, unknown, unknown, ListTemplatesQuery>,
+  request: Request<ParamsDictionary, unknown, unknown, ListTemplatesQuery>,
   response: Response
 ) {
   sendData(response, await listTemplates(request.query.includeInactive));
@@ -42,7 +43,7 @@ export async function getTemplateController(
 }
 
 export async function createTemplateController(
-  request: Request<Record<string, string>, unknown, CreateTemplateWithSnapshotBody>,
+  request: Request<ParamsDictionary, unknown, CreateTemplateWithSnapshotBody>,
   response: Response
 ) {
   const actor = actorOrThrow(request);
@@ -119,7 +120,7 @@ export async function publishTemplateVersionController(
 }
 
 export async function createRegisterFromTemplateController(
-  request: Request<Record<string, string>, unknown, CreateRegisterFromTemplateBody>,
+  request: Request<ParamsDictionary, unknown, CreateRegisterFromTemplateBody>,
   response: Response
 ) {
   const actor = actorOrThrow(request);

@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 
 import { ApiError } from "../errors/apiError.js";
 import {
@@ -23,7 +24,7 @@ function actorOrThrow(request: { actor?: AuthenticatedActor }) {
 }
 
 export async function listSystemAuditController(
-  request: Request<Record<string, string>, unknown, unknown, AuditQuery>,
+  request: Request<ParamsDictionary, unknown, unknown, AuditQuery>,
   response: Response
 ) {
   const result = await listSystemAuditEvents(actorOrThrow(request), request.query);

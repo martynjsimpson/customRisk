@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 
 import { ApiError } from "../errors/apiError.js";
 import {
@@ -33,7 +34,7 @@ function actorOrThrow(request: { actor?: AuthenticatedActor }) {
 }
 
 export async function listRegistersController(
-  request: Request<Record<string, string>, unknown, unknown, ListRegistersQuery>,
+  request: Request<ParamsDictionary, unknown, unknown, ListRegistersQuery>,
   response: Response
 ) {
   const result = await listRegisters(actorOrThrow(request), request.query);
@@ -41,7 +42,7 @@ export async function listRegistersController(
 }
 
 export async function createRegisterController(
-  request: Request<Record<string, string>, unknown, CreateRegisterBody>,
+  request: Request<ParamsDictionary, unknown, CreateRegisterBody>,
   response: Response
 ) {
   sendData(response, await createRegister(actorOrThrow(request), request.body), 201);

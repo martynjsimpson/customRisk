@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { ParamsDictionary } from "express-serve-static-core";
 
 import { ApiError } from "../errors/apiError.js";
 import { sendData } from "../utils/apiResponse.js";
@@ -50,7 +51,7 @@ function clearRefreshCookie(response: Response) {
 }
 
 export async function loginController(
-  request: Request<Record<string, string>, unknown, LoginRequestBody>,
+  request: Request<ParamsDictionary, unknown, LoginRequestBody>,
   response: Response
 ) {
   const session = await login(request.body.email, request.body.password);

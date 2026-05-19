@@ -28,11 +28,16 @@ export function requireSystemAdmin(request: Request, _response: Response, next: 
   }
 }
 
+function routeParam(request: Request, name: string): string | undefined {
+  const value = request.params[name];
+  return typeof value === "string" ? value : undefined;
+}
+
 export function requireRegisterAccess(paramName = "registerId") {
   return async (request: Request, _response: Response, next: NextFunction) => {
     try {
       const actor = requireActor(request);
-      const registerId = request.params[paramName];
+      const registerId = routeParam(request, paramName);
       if (!registerId || !(await canViewRegister(actor, registerId))) {
         throw hiddenNotFound();
       }
@@ -47,7 +52,7 @@ export function requireRegisterManagement(paramName = "registerId") {
   return async (request: Request, _response: Response, next: NextFunction) => {
     try {
       const actor = requireActor(request);
-      const registerId = request.params[paramName];
+      const registerId = routeParam(request, paramName);
       if (!registerId || !(await canManageRegister(actor, registerId))) {
         throw hiddenNotFound();
       }
@@ -62,8 +67,8 @@ export function requireRiskView(registerParam = "registerId", riskParam = "riskI
   return async (request: Request, _response: Response, next: NextFunction) => {
     try {
       const actor = requireActor(request);
-      const registerId = request.params[registerParam];
-      const riskId = request.params[riskParam];
+      const registerId = routeParam(request, registerParam);
+      const riskId = routeParam(request, riskParam);
       if (!registerId || !riskId || !(await canViewRisk(actor, registerId, riskId))) {
         throw hiddenNotFound();
       }
@@ -78,8 +83,8 @@ export function requireRiskEdit(registerParam = "registerId", riskParam = "riskI
   return async (request: Request, _response: Response, next: NextFunction) => {
     try {
       const actor = requireActor(request);
-      const registerId = request.params[registerParam];
-      const riskId = request.params[riskParam];
+      const registerId = routeParam(request, registerParam);
+      const riskId = routeParam(request, riskParam);
       if (!registerId || !riskId || !(await canEditRisk(actor, registerId, riskId))) {
         throw hiddenNotFound();
       }
@@ -94,7 +99,7 @@ export function requireExportAccess(paramName = "registerId") {
   return async (request: Request, _response: Response, next: NextFunction) => {
     try {
       const actor = requireActor(request);
-      const registerId = request.params[paramName];
+      const registerId = routeParam(request, paramName);
       if (!registerId || !(await canExportRegister(actor, registerId))) {
         throw hiddenNotFound();
       }
