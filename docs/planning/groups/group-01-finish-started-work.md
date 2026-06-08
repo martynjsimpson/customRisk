@@ -12,33 +12,32 @@ This group is the shortest path to reducing doc/code drift. It focuses on work t
 
 ### Phase 1 — Profile and Preferences
 
-- `PM1-01` Partial: self-service profile and password change exist, but password change currently revokes all refresh tokens rather than preserving the current session.
-- `PM1-03` Partial: preferences storage and endpoints exist, but nested preference updates are only shallow-merged.
-- `PM1-05` Partial: preference bootstrap exists, but it still sits on the protected-route critical path and lacks a clear query-cache pattern.
+- `PM1-01` Partial: password change calls `revokeActiveRefreshTokens` with no exclusion for the current token, so the user gets logged out immediately after changing their password. Fix: pass the current token hash down from the route and exclude it from revocation.
+- `PM1-03` Partial (latent): the backend merge is a single-level spread, so sending a partial nested object overwrites the rest. Not currently broken because the frontend always reconstructs the full `riskTableColumns` object before calling the API. Fix at the backend before adding more nested preference keys.
+- `PM1-05` Partial: bootstrap failure handling and immediate mutation updates are done. The missing deliverable is query-cache integration — preferences live in `useState` in the session context rather than a React Query cache.
 
 ### Phase 2 — Person Identity
 
-- `PM2-02` Partial: unresolved email person values work for custom person fields, but not for the main Risk Owner flow.
-- `PM2-05` Partial: unresolved-person review and assignment auditing exist, but effective permission logic still relies on legacy `ownerUserId` checks.
+- `PM2-02` Partial: the risk schema and service only accept `ownerUserId` for Risk Owner — there is no email-only input path. Custom person fields support unresolved email values; Risk Owner does not. The design decision ("whether Risk Owner can be email-only") was never made, so it was never built.
+- `PM2-05` Partial: `riskAccess.ts` and the edit guard in `risks.service.ts` both check `ownerUserId` only, never `ownerPersonId`. Safe today because PM2-02's gap means every Risk Owner has an `ownerUserId`. Will break the moment an email-only owner is supported, so this should be fixed alongside PM2-02.
 
 ### Phase 4 — Configuration Lifecycle and Templates
 
-- verification shows Phase 4 is effectively implemented end-to-end.
-- use this phase mainly for polish, regression checking, and clarifying any acceptance criteria that are now satisfied by a slightly different implementation shape than originally planned.
-
-### Phase 14 — Hardening Already Started
-
-- `PM14-04` Partial: session/token behavior is reasonably centralised, but there is no explicit multi-instance job-locking or scaling plan.
-- `PM14-08` Partial: some compliance evidence surfaces exist, but not a consolidated control pack.
-- `PM14-09` Partial: the UI has responsive basics, but there is no dedicated mobile/PWA decision or review output.
+- Verification shows Phase 4 is effectively implemented end-to-end.
+- Use this phase mainly for polish, regression checking, and clarifying any acceptance criteria satisfied by a slightly different implementation shape than originally planned.
 
 ## Recommended order inside this group
 
-1. Finish `PM2-02` and `PM2-05` so person identity and permissions stop straddling old and new ownership models.
-2. Finish `PM1-01`, `PM1-03`, and `PM1-05` to tighten session and preference behavior.
-3. Run one explicit "Phase 4 acceptance closeout" pass rather than reopening the implementation scope.
-4. Capture `PM14-04`, `PM14-08`, and `PM14-09` as explicit platform follow-through once the product-facing gaps above are closed.
+1. Finish `PM2-02` and `PM2-05` together — they are coupled and must land at the same time.
+2. Finish `PM1-01` (session preservation after password change).
+3. Fix `PM1-03` backend merge depth before any new nested preference keys are added.
+4. Address `PM1-05` query-cache integration when preference complexity warrants it.
+5. Run one explicit "Phase 4 acceptance closeout" pass.
 
 ## Exit condition
 
 This group is done when the shipped features no longer need caveats like "mostly works except..." in the planning index.
+
+## Note on Phase 14
+
+PM14-04, PM14-08, and PM14-09 were previously listed here as partial but are correctly classified as Planned (not started). They belong in a later group once the product-facing gaps above are closed.
