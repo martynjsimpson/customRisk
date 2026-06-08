@@ -21,7 +21,9 @@ test("permission helpers cover system, register, viewer, owner, and export acces
   const canEditRiskBody = riskAccess.match(/export async function canEditRisk[\s\S]*?export async function canDeleteRisk/)?.[0] ?? "";
   assert.doesNotMatch(canEditRiskBody, /REGISTER_VIEWER/);
 
-  assert.match(riskService, /if \(role === "RISK_OWNER"\) \{\s*where\.ownerUserId = actor\.id;\s*\}/);
+  assert.match(riskService, /if \(role === "RISK_OWNER"\) \{/);
+  assert.match(riskService, /ownerUserId: actor\.id/);
+  assert.match(riskService, /ownerPerson: \{ userId: actor\.id \}/);
   assert.match(riskService, /Only System Admins and Register Admins can create risks/);
   assert.match(riskService, /Risk Owners cannot edit Created Date/);
 });
