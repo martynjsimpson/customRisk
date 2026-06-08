@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import { auditQuerySchema } from "../src/validators/audit.schemas.ts";
+import { buildCsv, escapeCsvValue } from "../src/utils/csv.ts";
 
 test("audit query schema supports all audit filters including search and actorName", () => {
   const parsed = auditQuerySchema.parse({
@@ -213,4 +214,95 @@ test("audit routes and redaction protect sensitive audit evidence", async () => 
   assert.match(auditWriter, /"\[REDACTED\]"/);
   assert.match(auditRead, /fieldChanges: event\.fieldChanges/);
   assert.match(auditRead, /hasSnapshot: Boolean\(event\.riskSnapshot\)/);
+});
+
+test("buildCsv produces CRLF-delimited rows with all values quoted and nulls as empty string", () => {
+  const result = buildCsv(
+    ["ID", "Actor", "IP Address", "Notes"],
+    [
+      ["evt-1", "Alice", "203.0.113.1", null],
+      ["evt-2", null, undefined, { extra: "data" }]
+    ]
+  );
+
+  const lines = result.split("\r\n");
+  assert.equal(lines.length, 3);
+  assert.equal(lines[0], '"ID","Actor","IP Address","Notes"');
+  assert.match(lines[1], /"evt-1"/);
+  assert.match(lines[1], /"Alice"/);
+  assert.match(lines[1], /"203\.0\.113\.1"/);
+  assert.match(lines[1], /,""$/);          // null → ""
+  assert.match(lines[2], /^"evt-2",""/);   // null actor → ""
+  assert.match(lines[2], /extra/);         // object serialised as JSON
+
+  // escapeCsvValue: plain text passes through, special chars are quoted
+  assert.equal(escapeCsvValue(null), "");
+  assert.equal(escapeCsvValue(undefined), "");
+  assert.equal(escapeCsvValue("plain"), "plain");
+  assert.equal(escapeCsvValue('say "hi"'), '"say ""hi"""');
+  assert.equal(escapeCsvValue("a,b"), '"a,b"');
+});
+
+test("CSV export headers include IP Address and all required audit columns", async () => {
+  const service = await readFile(new URL("../src/services/audit.service.ts", import.meta.url), "utf8");
+
+  for (const header of [
+    "Event ID", "Date/Time", "Actor Name", "Actor Email", "IP Address",
+    "Action", "Object Type", "Object", "Scope", "Register", "Risk ID",
+    "Summary", "Changed Fields", "Metadata"
+  ]) {
+    assert.match(service, new RegExp(`"${header}"`), `missing CSV header: ${header}`);
+  }
+
+  // eventToCsvRow maps the IP address field from the event
+  assert.match(service, /event\.ipAddress/);
+  assert.match(service, /eventToCsvRow/);
+});
+
+test("CSV export enforces 5,000-row limit and counts rows before fetching data", async () => {
+  const service = await readFile(new URL("../src/services/audit.service.ts", import.meta.url), "utf8");
+
+  assert.match(service, /EXPORT_LIMIT/);
+  assert.match(service, /5000/);
+  assert.match(service, /count > EXPORT_LIMIT/);
+  assert.match(service, /5,000 rows exceeded/);
+
+  // auditEvent.count must appear before auditEvent.findMany in the export functions
+  const countPos = service.lastIndexOf("auditEvent.count");
+  const findManyPos = service.lastIndexOf("auditEvent.findMany");
+  assert.ok(countPos < findManyPos, "row count check must precede data fetch");
+});
+
+test("audit CSV export endpoints are registered for system and register scope with correct auth", async () => {
+  const auditRoutes = await readFile(new URL("../src/routes/audit.routes.ts", import.meta.url), "utf8");
+  const registerRoutes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
+
+  // System export: inside the audit router, requires system admin
+  assert.match(auditRoutes, /\/system\/export/);
+  assert.match(auditRoutes, /requireSystemAdmin/);
+  assert.match(auditRoutes, /exportSystemAuditController/);
+
+  // Register export: scoped to registerId, requires register management
+  assert.match(registerRoutes, /registerId.*audit.*export|audit.*export.*registerId/);
+  assert.match(registerRoutes, /requireRegisterManagement/);
+  assert.match(registerRoutes, /exportRegisterAuditController/);
+});
+
+test("IP address flows from AsyncLocalStorage context through middleware into recorded audit events", async () => {
+  const context = await readFile(new URL("../src/audit/auditContext.ts", import.meta.url), "utf8");
+  const middleware = await readFile(new URL("../src/middleware/observability.ts", import.meta.url), "utf8");
+  const service = await readFile(new URL("../src/services/audit.service.ts", import.meta.url), "utf8");
+
+  // Context module wraps AsyncLocalStorage with typed get/run helpers
+  assert.match(context, /AsyncLocalStorage/);
+  assert.match(context, /runWithAuditContext/);
+  assert.match(context, /getAuditIpAddress/);
+
+  // Observability middleware seeds the context so every request carries an IP
+  assert.match(middleware, /runWithAuditContext/);
+  assert.match(middleware, /ipAddress/);
+
+  // recordAuditEvent reads the context and persists the IP on the event
+  assert.match(service, /getAuditIpAddress\(\)/);
+  assert.match(service, /ipAddress: getAuditIpAddress\(\)/);
 });

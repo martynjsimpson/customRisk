@@ -190,3 +190,76 @@ test("all three audit log locations use AuditEventTable so review audit wording 
   assert.match(auditLogPanel, /AuditEventTable/);
   assert.match(riskDetail, /AuditEventTable/);
 });
+
+test("AuditFilters includes IP address filter field", async () => {
+  const filters = await readFile(
+    new URL("../src/features/audit/AuditFilters.tsx", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(filters, /label="IP Address"/);
+  assert.match(filters, /filters\.ipAddress/);
+  // onChange wires input value back to the ipAddress filter key
+  assert.match(filters, /ipAddress.*event\.currentTarget\.value/);
+});
+
+test("AuditLogPanel exposes Export CSV button wired to exportFn prop with error handling", async () => {
+  const panel = await readFile(
+    new URL("../src/features/audit/AuditLogPanel.tsx", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(panel, /exportFn/);
+  assert.match(panel, /Export CSV/);
+  assert.match(panel, /handleExport/);
+  // exportFn is called with the current filters
+  assert.match(panel, /exportFn\(filters\)/);
+  // Loading state and error feedback are handled
+  assert.match(panel, /exporting/);
+  assert.match(panel, /exportError/);
+  assert.match(panel, /Alert/);
+});
+
+test("AuditPage and RegisterAuditPanel wire exportFn to their respective export API calls", async () => {
+  const auditPage = await readFile(
+    new URL("../src/pages/AuditPage.tsx", import.meta.url),
+    "utf8"
+  );
+  const registerAudit = await readFile(
+    new URL("../src/features/audit/RegisterAuditPanel.tsx", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(auditPage, /exportFn={exportSystemAudit}/);
+  assert.match(auditPage, /exportSystemAudit/);
+  assert.match(registerAudit, /exportFn/);
+  assert.match(registerAudit, /exportRegisterAudit/);
+});
+
+test("AuditEventTable showIpAddress prop gates the IP Address column and adjusts colSpan", async () => {
+  const table = await readFile(
+    new URL("../src/features/audit/AuditEventTable.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Prop is declared with a default
+  assert.match(table, /showIpAddress/);
+  assert.match(table, /showIpAddress = true/);
+
+  // Header and data cell are both conditional on the prop
+  assert.match(table, /showIpAddress.*IP Address/);
+  assert.match(table, /showIpAddress.*ipAddress/);
+
+  // colSpan subtracts 1 when IP address column is hidden
+  assert.match(table, /showIpAddress.*0.*1|showIpAddress \? 0 : 1/);
+});
+
+test("RiskDetailModal passes showIpAddress=false to AuditEventTable", async () => {
+  const modal = await readFile(
+    new URL("../src/features/risks/RiskDetailModal.tsx", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(modal, /AuditEventTable/);
+  assert.match(modal, /showIpAddress=\{false\}/);
+});
