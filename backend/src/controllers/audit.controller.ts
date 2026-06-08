@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
 
 import {
+  exportRegisterAuditEvents,
+  exportSystemAuditEvents,
   getAuditEvent,
   getAuditEventSnapshot,
   listRegisterAuditEvents,
@@ -59,4 +61,26 @@ export async function getAuditEventSnapshotController(
   response: Response
 ) {
   sendData(response, await getAuditEventSnapshot(actorOrThrow(request), request.params.auditEventId));
+}
+
+export async function exportSystemAuditController(
+  request: Request<ParamsDictionary, unknown, unknown, AuditQuery>,
+  response: Response
+) {
+  const csv = await exportSystemAuditEvents(actorOrThrow(request), request.query);
+  const date = new Date().toISOString().slice(0, 10);
+  response.setHeader("Content-Type", "text/csv; charset=utf-8");
+  response.setHeader("Content-Disposition", `attachment; filename="audit-export-${date}.csv"`);
+  response.send(csv);
+}
+
+export async function exportRegisterAuditController(
+  request: Request<RegisterIdParams, unknown, unknown, AuditQuery>,
+  response: Response
+) {
+  const csv = await exportRegisterAuditEvents(actorOrThrow(request), request.params.registerId, request.query);
+  const date = new Date().toISOString().slice(0, 10);
+  response.setHeader("Content-Type", "text/csv; charset=utf-8");
+  response.setHeader("Content-Disposition", `attachment; filename="audit-export-${date}.csv"`);
+  response.send(csv);
 }

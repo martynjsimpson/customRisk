@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { listRegisterAuditController } from "../controllers/audit.controller.js";
+import { exportRegisterAuditController, listRegisterAuditController } from "../controllers/audit.controller.js";
 import {
   addRegisterPermissionController,
   createRegisterController,
@@ -55,6 +55,7 @@ export function createRegistersRouter() {
   router.use("/", requireFeature("draftConfig"), createRegisterTemplateSubRouter());
 
   router.get("/:registerId/summary", validateRequest({ params: registerIdParamsSchema }), requireRegisterAccess(), asyncRoute(getRegisterSummaryController));
+  router.get("/:registerId/audit/export", validateRequest({ params: registerIdParamsSchema, query: auditQuerySchema }), requireRegisterManagement(), asyncRoute(exportRegisterAuditController));
   router.get("/:registerId/audit", validateRequest({ params: registerIdParamsSchema, query: auditQuerySchema }), requireRegisterManagement(), asyncRoute(listRegisterAuditController));
   router.get("/:registerId", validateRequest({ params: registerIdParamsSchema }), requireRegisterAccess(), asyncRoute(getRegisterController));
   router.patch("/:registerId", validateRequest({ params: registerIdParamsSchema, body: updateRegisterSchema }), requireRegisterManagement(), asyncRoute(updateRegisterController));
