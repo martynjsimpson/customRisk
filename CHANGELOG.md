@@ -15,6 +15,17 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-08
+
+### Added
+
+- **Audit log: actor IP address capture**
+  - Added a first-class `ip_address` column to the `audit_event` table, promoted from the previous design where IP was listed as optional `metadata_json` content but never implemented.
+  - Actor IP address is now captured automatically for all HTTP-initiated audit events using an `AsyncLocalStorage`-based audit context seeded in `requestContextMiddleware`. No call-site changes are required — the IP is transparently available to every audit write within a request.
+  - System-triggered events (no HTTP context) record `null` for IP address, consistent with how actor fields behave in those cases.
+  - IP address is displayed as a dedicated column in the audit event table alongside Actor, and is exposed as a filter in the audit filter bar on the system audit page and register audit panels.
+  - The IP address filter queries the new column directly, replacing the previous speculative `metadata_json` JSON-path filter that had no data to match against.
+
 ## [1.5.0] - 2026-05-19
 
 ### Added
