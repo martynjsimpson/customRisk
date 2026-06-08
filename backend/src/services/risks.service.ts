@@ -329,6 +329,7 @@ const riskAuditSelect = {
   state: true,
   ownerUserId: true,
   ownerPersonId: true,
+  ownerPerson: { select: { userId: true } },
   createdDate: true,
   likelihoodValueId: true,
   impactValueId: true,
@@ -380,7 +381,16 @@ export async function listRisks(
   }
 
   if (role === "RISK_OWNER") {
-    where.ownerUserId = actor.id;
+    const searchOr = where.OR;
+    where.OR = undefined;
+    where.ownerUserId = undefined;
+    const ownershipFilter: Prisma.RiskWhereInput = {
+      OR: [
+        { ownerUserId: actor.id },
+        { ownerPerson: { userId: actor.id } }
+      ]
+    };
+    where.AND = searchOr ? [ownershipFilter, { OR: searchOr }] : [ownershipFilter];
   }
 
   applyReviewFilters(where, query, register.reviewsEnabled);
@@ -455,7 +465,7 @@ export async function updateRisk(
     if (role === "NONE" || role === "REGISTER_VIEWER") {
       throw new ApiError(404, "NOT_FOUND", "Risk not found");
     }
-    if (role === "RISK_OWNER" && existing.ownerUserId !== actor.id) {
+    if (role === "RISK_OWNER" && existing.ownerUserId !== actor.id && existing.ownerPerson?.userId !== actor.id) {
       throw new ApiError(404, "NOT_FOUND", "Risk not found");
     }
     if (role === "RISK_OWNER" && input.createdDate !== undefined) {

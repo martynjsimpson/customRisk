@@ -25,7 +25,10 @@ export async function canViewRisk(
     where: {
       id: riskId,
       registerId,
-      ownerUserId: actor.id
+      OR: [
+        { ownerUserId: actor.id },
+        { ownerPerson: { userId: actor.id } }
+      ]
     },
     select: { id: true }
   });
@@ -52,7 +55,10 @@ export async function canEditRisk(
     where: {
       id: riskId,
       registerId,
-      ownerUserId: actor.id
+      OR: [
+        { ownerUserId: actor.id },
+        { ownerPerson: { userId: actor.id } }
+      ]
     },
     select: { id: true }
   });
