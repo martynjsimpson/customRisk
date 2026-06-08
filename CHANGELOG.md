@@ -19,6 +19,9 @@ Version levels:
 
 ### Fixed
 
+- **Seed script: fixed crash on fresh database setup**
+  - `db:setup` (and `seed:admin`) failed with a `PrismaClientInitializationError` after the app moved to the `PrismaPg` driver adapter. The seed was still constructing `PrismaClient` without an adapter. It now uses the same `pg.Pool` + `PrismaPg` setup as the rest of the backend.
+
 - **Risk update: `nextReviewDate` no longer recalculates on unrelated saves**
   - Editing a risk (e.g. changing state) could silently shift `nextReviewDate` even when the user did not touch the created date. This happened because the recalculation was triggered whenever `createdDate` was present in the request, not only when it changed. The condition now checks that `createdDate` actually differs from the stored value before recalculating.
 

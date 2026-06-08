@@ -1,8 +1,10 @@
 import { randomBytes, randomUUID } from "node:crypto";
 
 import { Prisma, PrismaClient, type RiskState } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { config as loadEnv } from "dotenv";
 import { dirname, resolve } from "node:path";
+import pg from "pg";
 import { fileURLToPath } from "node:url";
 
 import { hashPassword, validatePasswordPolicy } from "../src/auth/password.js";
@@ -11,7 +13,8 @@ const seedDir = dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: resolve(seedDir, "../../.env") });
 loadEnv();
 
-const prisma = new PrismaClient();
+const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: new PrismaPg(pgPool) });
 
 const likelihoodDefaults = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
 const impactDefaults = ["Insignificant", "Minor", "Moderate", "Major", "Severe"];
