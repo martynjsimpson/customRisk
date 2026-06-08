@@ -5,30 +5,12 @@ import { ApiError } from "../errors/apiError.js";
 import { sendData } from "../utils/apiResponse.js";
 import { getCurrentSession, login, logout, refreshSession } from "../services/auth.service.js";
 import type { LoginRequestBody } from "../validators/auth.schemas.js";
+import { REFRESH_COOKIE_NAME, getRefreshTokenFromRequest } from "../utils/cookies.js";
 
-const REFRESH_COOKIE_NAME = "refreshToken";
 const AUTH_COOKIE_PATH = "/api/v1/auth";
 
-function parseCookies(cookieHeader: string | undefined) {
-  const cookies = new Map<string, string>();
-
-  if (!cookieHeader) {
-    return cookies;
-  }
-
-  for (const part of cookieHeader.split(";")) {
-    const [rawName, ...rawValue] = part.trim().split("=");
-    if (!rawName || rawValue.length === 0) {
-      continue;
-    }
-    cookies.set(rawName, decodeURIComponent(rawValue.join("=")));
-  }
-
-  return cookies;
-}
-
 function getRefreshToken(request: Request) {
-  return parseCookies(request.headers.cookie).get(REFRESH_COOKIE_NAME);
+  return getRefreshTokenFromRequest(request);
 }
 
 function setRefreshCookie(response: Response, token: string, expiresAt: Date) {

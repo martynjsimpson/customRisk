@@ -14,7 +14,6 @@ import { useForm } from "@mantine/form";
 import { type MantineColorScheme, useMantineColorScheme } from "@mantine/core";
 import { useMutation } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
-import { useNavigate } from "react-router-dom";
 
 import { changeMyPassword, updateMyProfile } from "../api/profile.api";
 import { updateMyPreferences } from "../api/preferences.api";
@@ -23,9 +22,8 @@ import { useAuth } from "../auth/session";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
 
 export function ProfilePage() {
-  const { user, setPreferences, logout } = useAuth();
+  const { user, setPreferences } = useAuth();
   const flags = useFeatureFlags();
-  const navigate = useNavigate();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   const nameForm = useForm({
@@ -51,10 +49,9 @@ export function ProfilePage() {
   const changePasswordMutation = useMutation({
     mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
       changeMyPassword(currentPassword, newPassword),
-    onSuccess: async () => {
-      notifications.show({ message: "Password changed. Please log in again.", color: "green" });
-      await logout();
-      navigate("/login");
+    onSuccess: () => {
+      passwordForm.reset();
+      notifications.show({ message: "Password changed. Other active sessions have been signed out.", color: "green" });
     }
   });
 
@@ -138,7 +135,7 @@ export function ProfilePage() {
                 {...passwordForm.getInputProps("confirmPassword")}
               />
               <Text size="xs" c="dimmed">
-                Changing your password will end all other active sessions.
+                Changing your password will sign out all other active sessions.
               </Text>
               <Group>
                 <Button type="submit" loading={changePasswordMutation.isPending}>

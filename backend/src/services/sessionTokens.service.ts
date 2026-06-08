@@ -7,10 +7,15 @@ type SessionTokenClient = typeof prisma | Prisma.TransactionClient;
 
 export async function revokeActiveRefreshTokens(
   userId: string,
-  client: SessionTokenClient = prisma
+  client: SessionTokenClient = prisma,
+  excludeTokenHash?: string
 ) {
   await client.refreshToken.updateMany({
-    where: { userId, revokedAt: null },
+    where: {
+      userId,
+      revokedAt: null,
+      ...(excludeTokenHash ? { tokenHash: { not: excludeTokenHash } } : {})
+    },
     data: { revokedAt: new Date() }
   });
 }

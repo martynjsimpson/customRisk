@@ -7,6 +7,7 @@ import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent, type AuditFieldChangeInput } from "./audit.service.js";
 import { linkPersonReferenceToUser } from "./personReference.service.js";
+import { hashRefreshToken } from "../auth/refreshTokens.js";
 import { revokeActiveRefreshTokens } from "./sessionTokens.service.js";
 import type {
   ChangePasswordBody,
@@ -358,7 +359,7 @@ export async function updateMyProfile(actor: AuthenticatedActor, input: UpdateMy
   });
 }
 
-export async function changeMyPassword(actor: AuthenticatedActor, input: ChangePasswordBody) {
+export async function changeMyPassword(actor: AuthenticatedActor, input: ChangePasswordBody, currentRefreshToken?: string) {
   const user = await prisma.user.findUnique({
     where: { id: actor.id },
     select: { ...userSelect, passwordHash: true }
@@ -391,7 +392,8 @@ export async function changeMyPassword(actor: AuthenticatedActor, input: ChangeP
       }
     });
 
-    await revokeActiveRefreshTokens(actor.id, tx);
+    const excludeHash = currentRefreshToken ? hashRefreshToken(currentRefreshToken) : undefined;
+    await revokeActiveRefreshTokens(actor.id, tx, excludeHash);
 
     await recordAuditEvent(
       {
