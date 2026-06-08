@@ -118,6 +118,12 @@ export function AuditFilters({ filters, onChange }: AuditFiltersProps) {
         onChange={(event) => onChange({ actorName: event.currentTarget.value || undefined })}
       />
       <TextInput
+        label="IP Address"
+        placeholder="e.g. 192.168.1.1"
+        value={filters.ipAddress ?? ""}
+        onChange={(event) => onChange({ ipAddress: event.currentTarget.value || undefined })}
+      />
+      <TextInput
         label="From date"
         type="date"
         value={filters.dateFrom ?? ""}
