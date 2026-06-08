@@ -17,6 +17,14 @@ Version levels:
 
 ## [1.6.0] - 2026-06-08
 
+### Fixed
+
+- **Risk detail modal: layout and display improvements**
+  - Modal is now wider (900 px) and uses an auto-sizing scroll area, preventing horizontal overflow on risk detail, review history, and audit history tables.
+  - IP address column is hidden from the audit history table within the risk detail modal, where it is not relevant.
+
+
+
 ### Added
 
 - **Audit log: CSV export**

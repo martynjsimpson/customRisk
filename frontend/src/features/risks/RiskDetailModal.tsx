@@ -1,4 +1,4 @@
-import { Button, Group, Loader, Modal, Stack, Table, Text, Title } from "@mantine/core";
+import { Button, Group, Loader, Modal, ScrollArea, Stack, Table, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -100,7 +100,7 @@ export function RiskDetailModal({
   });
 
   return (
-    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title="Risk Detail" size="lg">
+    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title="Risk Detail" size="900px" scrollAreaComponent={ScrollArea.Autosize}>
       <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk detail" />
       {selectedRiskQuery.data ? (
         <Stack>
@@ -108,7 +108,7 @@ export function RiskDetailModal({
             <Title order={3}>{selectedRiskQuery.data.displayRiskId}</Title>
             <ReviewStatusBadge status={selectedRiskQuery.data.reviewStatus} />
           </Group>
-          <Table.ScrollContainer minWidth={720}>
+          <Table.ScrollContainer minWidth={400}>
             <Table>
               <Table.Tbody>
                 {[
@@ -203,7 +203,7 @@ export function RiskDetailModal({
           </Table.ScrollContainer>
           <Title order={4}>Audit history</Title>
           <ApiErrorAlert error={riskAuditQuery.error} fallback="Unable to load risk audit history" />
-          <AuditEventTable events={riskAuditQuery.data?.data ?? []} />
+          <AuditEventTable events={riskAuditQuery.data?.data ?? []} showIpAddress={false} />
         </Stack>
       ) : selectedRiskQuery.isLoading ? (
         <Loader />
