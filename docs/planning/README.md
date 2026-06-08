@@ -1,50 +1,52 @@
 # Planning Docs — Structure Guide
 
-This directory contains three distinct types of document. They work together but serve different purposes.
+This directory now has two layers:
+
+1. verified planning docs that answer "what is actually left?";
+2. original phase docs that preserve the ticket-level intent and dependency detail.
+
+Start with [post-mvp-backlog.md](post-mvp-backlog.md). It is the verified master index based on the current codebase, not just the historic document statuses.
 
 ---
 
-## `post-mvp-backlog.md` — Master index
+## Verified remaining-work docs
 
-The single entry point for post-MVP planning. Contains:
+These are the best entry points when deciding what to work on next:
 
-- the phase index table (phase number, theme, status, ticket range, links);
-- the sequencing and parallelism summary;
-- cross-phase dependency narrative;
-- the governance checklist every ticket must follow before starting and before marking done.
-
-**Start here** when reasoning about sequencing, deciding what to build next, or onboarding to the backlog.
+- [post-mvp-backlog.md](post-mvp-backlog.md) — verified master index and recommended execution order
+- [groups/group-01-finish-started-work.md](groups/group-01-finish-started-work.md) — gaps in already-shipped phases
+- [groups/group-02-auth-fields-and-scoring.md](groups/group-02-auth-fields-and-scoring.md) — enterprise auth, advanced fields, scoring
+- [groups/group-03-actions-reviews-and-notifications.md](groups/group-03-actions-reviews-and-notifications.md) — child actions, advanced reviews, notifications
+- [groups/group-04-portability-reporting-and-integrations.md](groups/group-04-portability-reporting-and-integrations.md) — import/export, reporting, attachments, integrations
 
 ---
 
-## `PM0-*.md` — Phase 0 governance documents
+## `PM0-*.md` — Governance references
 
-Five documents produced as the deliverables of Phase 0. They define the rules and patterns that every subsequent phase must follow:
+These remain the governing design references for post-MVP work:
 
 | File | Purpose |
 |---|---|
-| `PM0-01-scope-baseline.md` | Maps every PRD capability and MVP deferral to a post-MVP phase; records non-goals |
-| `PM0-02-data-model-extension.md` | Safe schema-extension principles and migration sequencing rules |
-| `PM0-03-api-versioning-compatibility.md` | API versioning decisions, route namespace conventions, error-code extension rules |
-| `PM0-04-audit-permission-extension.md` | Audit and permission model extension rules for new object types |
-| `PM0-05-feature-flag-migration-toggles.md` | Feature flag and migration toggle pattern for staged post-MVP features |
+| `PM0-01-scope-baseline.md` | Maps PRD capabilities and non-goals to post-MVP phases |
+| `PM0-02-data-model-extension.md` | Safe schema-extension and migration sequencing rules |
+| `PM0-03-api-versioning-compatibility.md` | API versioning and route-extension rules |
+| `PM0-04-audit-permission-extension.md` | Audit and permission extension rules |
+| `PM0-05-feature-flag-migration-toggles.md` | Feature flag and staged rollout pattern |
 
-These are **governance references**, not ticket lists. Each phase file's dependency preamble points to the relevant PM0 docs for that phase.
-
----
-
-## `phases/phase-NN-*.md` — Implementation ticket files
-
-One file per post-MVP phase (Phase 1 through Phase 14). Each file contains:
-
-- a phase goal;
-- a dependency preamble (must-have prerequisites, parallel phases, what this phase unlocks);
-- individual `PM{phase}-{N}` tickets with goals, deliverables, and acceptance criteria.
-
-**Use these files** when doing implementation work on a specific phase.
+They are not "what next?" docs, but they are still active references when implementing remaining work.
 
 ---
 
-## `ai-build-instructions.md`
+## `phases/phase-NN-*.md` — Original ticket detail
 
-Instructions for AI build agents working on this codebase. Not a planning document.
+These files still hold the detailed phase-by-phase ticket definitions. Some status markers in them have now been corrected where verification was conclusive, but the new grouped docs are the primary source for prioritisation.
+
+Use the phase files when you need the original acceptance criteria for a specific ticket.
+
+---
+
+## Non-planning notes
+
+- `ai-build-instructions.md` — AI build-agent instructions
+- `config-write-api-deprecation-note.md` — working note
+- `openapi-swagger-ui-future-consideration.md` — working note
