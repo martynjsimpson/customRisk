@@ -19,6 +19,11 @@ Version levels:
 
 ### Added
 
+- **Audit log: CSV export**
+  - Export button added to the system audit page and register audit panels, exporting all rows matching the current filters.
+  - Exports are capped at 5,000 rows; an error is shown if the limit is exceeded, prompting the user to narrow their filters.
+  - JSON content (changed fields, metadata) is handled gracefully — changed fields are rendered as a readable comma-separated field-name list; metadata is stringified.
+
 - **Audit log: actor IP address capture**
   - Actor IP address is now recorded as a first-class field on all audit events initiated by an HTTP request, and displayed as a dedicated column in the audit table alongside Actor.
   - IP address is available as a filter on the system audit page and register audit panels.
