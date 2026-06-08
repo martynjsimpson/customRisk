@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  exportSystemAuditController,
   getAuditEventController,
   getAuditEventSnapshotController,
   listSystemAuditController
@@ -18,6 +19,12 @@ export function createAuditRouter() {
   const router = Router();
 
   router.use(authenticate);
+  router.get(
+    "/system/export",
+    validateRequest({ query: auditQuerySchema }),
+    requireSystemAdmin,
+    asyncRoute(exportSystemAuditController)
+  );
   router.get(
     "/system",
     validateRequest({ query: auditQuerySchema }),
