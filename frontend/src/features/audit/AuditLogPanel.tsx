@@ -1,4 +1,5 @@
-import { Pagination, Stack } from "@mantine/core";
+import { Alert, Button, Group, Pagination, Stack } from "@mantine/core";
+import { IconDownload } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -13,6 +14,7 @@ const PAGE_SIZE = 25;
 interface AuditLogPanelProps {
   queryKey: unknown[];
   queryFn: (query: AuditQuery) => Promise<ApiResponse<AuditEvent[], ListMeta>>;
+  exportFn: (query: AuditQuery) => Promise<void>;
   showObject?: boolean;
   showRegister?: boolean;
 }
@@ -20,11 +22,14 @@ interface AuditLogPanelProps {
 export function AuditLogPanel({
   queryKey,
   queryFn,
+  exportFn,
   showObject = false,
   showRegister = false
 }: AuditLogPanelProps) {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<AuditQuery>({});
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const auditQuery = useQuery({
     queryKey: [...queryKey, filters, page],
@@ -37,9 +42,42 @@ export function AuditLogPanel({
     setFilters((current) => ({ ...current, ...patch }));
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await exportFn(filters);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: unknown } };
+      let message: string | null = null;
+      try {
+        const raw = axiosErr.response?.data;
+        const parsed = typeof raw === "string" ? (JSON.parse(raw) as unknown) : raw;
+        const data = parsed as { error?: { message?: string } } | null;
+        message = data?.error?.message ?? null;
+      } catch {
+        message = null;
+      }
+      setExportError(message ?? "Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <Stack>
-      <AuditFilters filters={filters} onChange={handleFilterChange} />
+      <Group justify="space-between" align="flex-end">
+        <AuditFilters filters={filters} onChange={handleFilterChange} />
+        <Button
+          variant="default"
+          leftSection={<IconDownload size={16} />}
+          loading={exporting}
+          onClick={handleExport}
+        >
+          Export CSV
+        </Button>
+      </Group>
+      {exportError && <Alert color="red">{exportError}</Alert>}
       <ApiErrorAlert error={auditQuery.error} fallback="Unable to load audit events" />
       <AuditEventTable
         events={auditQuery.data?.data ?? []}

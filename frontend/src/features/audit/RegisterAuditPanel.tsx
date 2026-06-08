@@ -1,6 +1,6 @@
 import { Stack, Title } from "@mantine/core";
 
-import { listRegisterAudit } from "../../api/audit.api";
+import { exportRegisterAudit, listRegisterAudit } from "../../api/audit.api";
 import { AuditLogPanel } from "./AuditLogPanel";
 
 export function RegisterAuditPanel({ registerId }: { registerId: string }) {
@@ -10,6 +10,7 @@ export function RegisterAuditPanel({ registerId }: { registerId: string }) {
       <AuditLogPanel
         queryKey={["audit", "register", registerId]}
         queryFn={(query) => listRegisterAudit(registerId, query)}
+        exportFn={(query) => exportRegisterAudit(registerId, query)}
       />
     </Stack>
   );
