@@ -77,7 +77,9 @@ test("audit read service restricts event details and snapshots by scope", async 
   assert.match(service, /canViewRisk/);
   assert.match(service, /canManageRegister/);
   assert.match(service, /getAuditEventSnapshot/);
-  assert.match(service, /path: \["ipAddress"\]/);
+  // IP address is applied as a filter and returned in the mapped response
+  assert.match(service, /ipAddress: input\.ipAddress/);
+  assert.match(service, /ipAddress: event\.ipAddress/);
 });
 
 test("hard-delete snapshot preserves required risk context before deletion", async () => {
