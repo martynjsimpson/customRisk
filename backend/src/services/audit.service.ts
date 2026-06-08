@@ -6,6 +6,7 @@ import type {
 } from "@prisma/client";
 
 import type { AuditAction } from "../audit/auditActions.js";
+import { getAuditIpAddress } from "../audit/auditContext.js";
 import { getAuditClient, safeAuditValue, type PrismaAuditClient } from "../audit/auditWriter.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
@@ -77,12 +78,7 @@ function buildAuditWhere(input: Partial<AuditQuery> = {}): Prisma.AuditEventWher
     registerId: input.registerId,
     riskId: input.riskId,
     displayRiskId: input.displayRiskId,
-    metadataJson: input.ipAddress
-      ? {
-          path: ["ipAddress"],
-          equals: input.ipAddress
-        }
-      : undefined
+    ipAddress: input.ipAddress
   };
 
   const andConditions: Prisma.AuditEventWhereInput[] = [];
@@ -135,6 +131,7 @@ function mapAuditEvent(event: Prisma.AuditEventGetPayload<{ include: { fieldChan
     displayRiskId: event.displayRiskId,
     summary: event.summary,
     metadataJson: event.metadataJson,
+    ipAddress: event.ipAddress,
     fieldChanges: event.fieldChanges,
     hasSnapshot: Boolean(event.riskSnapshot)
   };
@@ -266,7 +263,8 @@ export async function recordAuditEvent(input: RecordAuditEventInput, client?: Pr
       riskId: input.riskId,
       displayRiskId: input.displayRiskId,
       summary: input.summary,
-      metadataJson: input.metadataJson ?? undefined
+      metadataJson: input.metadataJson ?? undefined,
+      ipAddress: getAuditIpAddress() ?? null
     }
   });
 

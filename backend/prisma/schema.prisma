@@ -552,6 +552,7 @@ model AuditEvent {
   displayRiskId         String?         @map("display_risk_id")
   summary            String          @db.Text
   metadataJson       Json?           @map("metadata_json") @db.JsonB
+  ipAddress          String?         @map("ip_address")
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
 
   actor   User?     @relation("AuditEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
