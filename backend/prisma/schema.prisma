@@ -551,6 +551,7 @@ model AuditEvent {
   riskId                String?         @map("risk_id") @db.Uuid
   displayRiskId         String?         @map("display_risk_id")
   summary            String          @db.Text
+  ipAddress          String?         @map("ip_address")
   metadataJson       Json?           @map("metadata_json") @db.JsonB
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
 

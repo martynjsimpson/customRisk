@@ -504,7 +504,9 @@ export async function updateRisk(
         : undefined;
     const createdDate = input.createdDate ? utcDateOnly(input.createdDate) : existing.createdDate;
     const shouldRecalculateNextReviewDate =
-      input.createdDate !== undefined && existing.lastReviewedAt === null;
+      input.createdDate !== undefined &&
+      existing.lastReviewedAt === null &&
+      utcDateOnly(input.createdDate).getTime() !== existing.createdDate.getTime();
 
     const customFieldValues =
       input.customFieldValues !== undefined

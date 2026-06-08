@@ -1,8 +1,10 @@
 import { randomBytes, randomUUID } from "node:crypto";
 
 import { Prisma, PrismaClient, type RiskState } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { config as loadEnv } from "dotenv";
 import { dirname, resolve } from "node:path";
+import pg from "pg";
 import { fileURLToPath } from "node:url";
 
 import { hashPassword, validatePasswordPolicy } from "../src/auth/password.js";
@@ -11,7 +13,8 @@ const seedDir = dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: resolve(seedDir, "../../.env") });
 loadEnv();
 
-const prisma = new PrismaClient();
+const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: new PrismaPg(pgPool) });
 
 const likelihoodDefaults = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
 const impactDefaults = ["Insignificant", "Minor", "Moderate", "Major", "Severe"];
@@ -590,7 +593,7 @@ async function nextRiskIdentity(registerId: string) {
   return { riskSequence, displayRiskId };
 }
 
-async function upsertDemoRisks(admin: { id: string; name: string; email: string }, users: Map<string, { id: string }>) {
+async function upsertDemoRisks(admin: { id: string; name: string; email: string }, users: Map<string, { id: string; email: string; name: string }>) {
   for (const demoRisk of demoRisks) {
     const register = await prisma.register.findUniqueOrThrow({
       where: { name: demoRisk.registerName },
@@ -610,6 +613,13 @@ async function upsertDemoRisks(admin: { id: string; name: string; email: string 
     if (!owner || !likelihood || !impact || !responseStrategy) {
       throw new Error(`Demo risk "${demoRisk.title}" references missing seed data`);
     }
+
+    const ownerPersonRef = await prisma.personReference.upsert({
+      where: { email: owner.email.toLowerCase() },
+      create: { email: owner.email.toLowerCase(), userId: owner.id, displayName: owner.name, resolvedAt: new Date() },
+      update: { userId: owner.id, displayName: owner.name, resolvedAt: new Date() },
+      select: { id: true }
+    });
 
     const matrixCell = await prisma.riskMatrixCell.findUniqueOrThrow({
       where: {
@@ -644,6 +654,7 @@ async function upsertDemoRisks(admin: { id: string; name: string; email: string 
         description: demoRisk.description,
         state: demoRisk.state,
         ownerUserId: owner.id,
+        ownerPersonId: ownerPersonRef.id,
         createdDate,
         likelihoodValueId: likelihood.id,
         impactValueId: impact.id,
@@ -661,6 +672,7 @@ async function upsertDemoRisks(admin: { id: string; name: string; email: string 
         description: demoRisk.description,
         state: demoRisk.state,
         ownerUserId: owner.id,
+        ownerPersonId: ownerPersonRef.id,
         createdDate,
         likelihoodValueId: likelihood.id,
         impactValueId: impact.id,

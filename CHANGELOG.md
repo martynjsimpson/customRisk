@@ -15,6 +15,34 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-08
+
+### Fixed
+
+- **Seed script: fixed crash on fresh database setup**
+  - `db:setup` (and `seed:admin`) failed with a `PrismaClientInitializationError` after the app moved to the `PrismaPg` driver adapter. The seed was still constructing `PrismaClient` without an adapter. It now uses the same `pg.Pool` + `PrismaPg` setup as the rest of the backend.
+
+- **Risk update: `nextReviewDate` no longer recalculates on unrelated saves**
+  - Editing a risk (e.g. changing state) could silently shift `nextReviewDate` even when the user did not touch the created date. This happened because the recalculation was triggered whenever `createdDate` was present in the request, not only when it changed. The condition now checks that `createdDate` actually differs from the stored value before recalculating.
+
+- **Risk detail modal: layout and display improvements**
+  - Modal is now wider (900 px) and uses an auto-sizing scroll area, preventing horizontal overflow on risk detail, review history, and audit history tables.
+  - IP address column is hidden from the audit history table within the risk detail modal, where it is not relevant.
+
+
+
+### Added
+
+- **Audit log: CSV export**
+  - Export button added to the system audit page and register audit panels, exporting all rows matching the current filters.
+  - Exports are capped at 5,000 rows; an error is shown if the limit is exceeded, prompting the user to narrow their filters.
+  - JSON content (changed fields, metadata) is handled gracefully — changed fields are rendered as a readable comma-separated field-name list; metadata is stringified.
+
+- **Audit log: actor IP address capture**
+  - Actor IP address is now recorded as a first-class field on all audit events initiated by an HTTP request, and displayed as a dedicated column in the audit table alongside Actor.
+  - IP address is available as a filter on the system audit page and register audit panels.
+  - System-triggered events (no HTTP context) record null for IP address.
+
 ## [1.5.0] - 2026-05-19
 
 ### Added

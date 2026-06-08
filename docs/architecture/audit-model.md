@@ -77,7 +77,8 @@ audit event remains the authoritative evidence that an export occurred.
 The primary event record. It stores:
 
 - when the event occurred;
-- who performed it, if known;
+- who performed it, if known (actor user ID, display name, email);
+- the actor's IP address at time of event, if available;
 - what action happened;
 - the affected object type and object ID;
 - the event scope (`SYSTEM`, `REGISTER`, or `RISK`);
@@ -245,13 +246,15 @@ For user-initiated events:
 
 - `actor_user_id` must be populated where available;
 - `actor_display_name` should copy the actor name at event time;
-- `actor_email` should copy the actor email at event time.
+- `actor_email` should copy the actor email at event time;
+- `ip_address` is populated automatically from the HTTP request context — callers do not need to pass it explicitly.
 
 For system-triggered events:
 
 - `actor_user_id` may be null;
 - `actor_display_name` may be `System` where useful;
-- `actor_email` should be null.
+- `actor_email` should be null;
+- `ip_address` will be null (no HTTP request context).
 
 For failed authentication where no matching user exists:
 
@@ -300,7 +303,6 @@ investigation, or detail views but does not deserve a first-class column.
 
 Examples include:
 
-- IP address where captured;
 - user agent where useful;
 - authentication method;
 - export filters and row count;
@@ -309,6 +311,9 @@ Examples include:
   are no before/after field-change rows for a creation event.
 
 Do not store full request bodies or secret values.
+
+Note: IP address is a first-class column (`ip_address`), not a `metadata_json`
+entry. See section 8.1.
 
 ---
 
@@ -438,16 +443,16 @@ The following filters are implemented across all three audit list endpoints
 | Register | `registerId` | Exact UUID match (also used as a scope filter for register-level endpoints) |
 | Risk | `riskId` | Exact UUID match |
 | Display risk ID | `displayRiskId` | Exact match |
-| IP address | `ipAddress` | Exact match against `metadataJson.ipAddress` |
+| IP address | `ipAddress` | Exact match on `ip_address` column |
 
 Multiple filters combine as `AND`.
 
 ### 12.2 UI Filter Surfaces
 
 The system Audit page and Register Audit panel expose a filter bar with: Search,
-Actor, date range (From / To), Action (grouped select, all 37 current actions),
-and Object type. Changing any filter resets pagination to page 1. The dashboard
-Recent Audit Activity widget is intentionally unfiltered.
+Actor, IP Address, date range (From / To), Action (grouped select, all 37 current
+actions), and Object type. Changing any filter resets pagination to page 1. The
+dashboard Recent Audit Activity widget is intentionally unfiltered.
 
 ### 12.3 Sorting
 

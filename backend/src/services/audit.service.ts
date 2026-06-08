@@ -6,12 +6,14 @@ import type {
 } from "@prisma/client";
 
 import type { AuditAction } from "../audit/auditActions.js";
+import { getAuditIpAddress } from "../audit/auditContext.js";
 import { getAuditClient, safeAuditValue, type PrismaAuditClient } from "../audit/auditWriter.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import { canManageRegister } from "../permissions/registerAccess.js";
 import { canViewRisk } from "../permissions/riskAccess.js";
 import type { AuthenticatedActor } from "../types/express.js";
+import { buildCsv } from "../utils/csv.js";
 import type { AuditQuery } from "../validators/audit.schemas.js";
 
 export interface AuditActorInput {
@@ -77,12 +79,7 @@ function buildAuditWhere(input: Partial<AuditQuery> = {}): Prisma.AuditEventWher
     registerId: input.registerId,
     riskId: input.riskId,
     displayRiskId: input.displayRiskId,
-    metadataJson: input.ipAddress
-      ? {
-          path: ["ipAddress"],
-          equals: input.ipAddress
-        }
-      : undefined
+    ipAddress: input.ipAddress
   };
 
   const andConditions: Prisma.AuditEventWhereInput[] = [];
@@ -135,6 +132,7 @@ function mapAuditEvent(event: Prisma.AuditEventGetPayload<{ include: { fieldChan
     displayRiskId: event.displayRiskId,
     summary: event.summary,
     metadataJson: event.metadataJson,
+    ipAddress: event.ipAddress,
     fieldChanges: event.fieldChanges,
     hasSnapshot: Boolean(event.riskSnapshot)
   };
@@ -266,7 +264,8 @@ export async function recordAuditEvent(input: RecordAuditEventInput, client?: Pr
       riskId: input.riskId,
       displayRiskId: input.displayRiskId,
       summary: input.summary,
-      metadataJson: input.metadataJson ?? undefined
+      metadataJson: input.metadataJson ?? undefined,
+      ipAddress: getAuditIpAddress() ?? null
     }
   });
 
@@ -345,4 +344,93 @@ export async function listAuditEvents(input: AuditQueryInput = {}, client?: Pris
     data: data.map(mapAuditEvent),
     meta: { total, page, pageSize }
   };
+}
+
+const EXPORT_LIMIT = 5000;
+const EXPORT_CSV_HEADERS = [
+  "Event ID",
+  "Date/Time",
+  "Actor Name",
+  "Actor Email",
+  "IP Address",
+  "Action",
+  "Object Type",
+  "Object",
+  "Scope",
+  "Register",
+  "Risk ID",
+  "Summary",
+  "Changed Fields",
+  "Metadata"
+];
+
+type AuditEventWithFieldChanges = Prisma.AuditEventGetPayload<{ include: { fieldChanges: true } }>;
+
+function eventToCsvRow(event: AuditEventWithFieldChanges): unknown[] {
+  return [
+    event.id,
+    event.occurredAt.toISOString(),
+    event.actorDisplayName ?? "",
+    event.actorEmail ?? "",
+    event.ipAddress ?? "",
+    event.action,
+    event.objectType,
+    event.objectDisplayName ?? "",
+    event.scopeType,
+    event.registerDisplayName ?? "",
+    event.displayRiskId ?? "",
+    event.summary,
+    event.fieldChanges.map((fc) => fc.fieldName).join(", "),
+    event.metadataJson !== null && event.metadataJson !== undefined ? JSON.stringify(event.metadataJson) : ""
+  ];
+}
+
+export async function exportSystemAuditEvents(actor: AuthenticatedActor, query: AuditQuery): Promise<string> {
+  if (!actor.isSystemAdmin) {
+    throw new ApiError(403, "FORBIDDEN", "System Admin permission is required");
+  }
+
+  const where = buildAuditWhere(query);
+  const count = await prisma.auditEvent.count({ where });
+
+  if (count > EXPORT_LIMIT) {
+    throw new ApiError(422, "UNPROCESSABLE", "Export limit of 5,000 rows exceeded. Apply filters to narrow the results.");
+  }
+
+  const events = await prisma.auditEvent.findMany({
+    where,
+    include: { fieldChanges: true },
+    orderBy: { occurredAt: "desc" }
+  });
+
+  return buildCsv(EXPORT_CSV_HEADERS, events.map(eventToCsvRow));
+}
+
+export async function exportRegisterAuditEvents(
+  actor: AuthenticatedActor,
+  registerId: string,
+  query: AuditQuery
+): Promise<string> {
+  if (!(await canManageRegister(actor, registerId))) {
+    throw new ApiError(403, "FORBIDDEN", "Register Admin permission is required");
+  }
+
+  const where: Prisma.AuditEventWhereInput = {
+    ...buildAuditWhere(query),
+    registerId
+  };
+
+  const count = await prisma.auditEvent.count({ where });
+
+  if (count > EXPORT_LIMIT) {
+    throw new ApiError(422, "UNPROCESSABLE", "Export limit of 5,000 rows exceeded. Apply filters to narrow the results.");
+  }
+
+  const events = await prisma.auditEvent.findMany({
+    where,
+    include: { fieldChanges: true },
+    orderBy: { occurredAt: "desc" }
+  });
+
+  return buildCsv(EXPORT_CSV_HEADERS, events.map(eventToCsvRow));
 }

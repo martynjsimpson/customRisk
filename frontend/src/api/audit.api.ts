@@ -31,6 +31,7 @@ export interface AuditEvent {
   riskId: string | null;
   displayRiskId: string | null;
   summary: string;
+  ipAddress: string | null;
   metadataJson: unknown;
   fieldChanges: Array<{
     id: string;
@@ -93,4 +94,34 @@ export async function getAuditSnapshot(auditEventId: string) {
     `/audit/events/${auditEventId}/snapshot`
   );
   return response.data.data;
+}
+
+function triggerCsvDownload(csv: string, filename: string) {
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export async function exportSystemAudit(query: AuditQuery = {}): Promise<void> {
+  const response = await apiClient.get<string>("/audit/system/export", {
+    params: cleanQuery(query),
+    responseType: "text"
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  triggerCsvDownload(response.data, `audit-system-export-${date}.csv`);
+}
+
+export async function exportRegisterAudit(registerId: string, query: AuditQuery = {}): Promise<void> {
+  const response = await apiClient.get<string>(`/registers/${registerId}/audit/export`, {
+    params: cleanQuery(query),
+    responseType: "text"
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  triggerCsvDownload(response.data, `audit-register-export-${date}.csv`);
 }
