@@ -31,6 +31,7 @@ export interface AuditEvent {
   riskId: string | null;
   displayRiskId: string | null;
   summary: string;
+  ipAddress: string | null;
   metadataJson: unknown;
   fieldChanges: Array<{
     id: string;
