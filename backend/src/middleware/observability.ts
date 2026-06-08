@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
 
+import { runWithAuditContext } from "../audit/auditContext.js";
 import { logger } from "../config/logger.js";
 import { metricsRegistry, normaliseHttpRoute, startTimer } from "../observability/metrics.js";
 import { createRequestContext, runWithObservabilityContext } from "../observability/requestContext.js";
@@ -23,7 +24,9 @@ export function requestContextMiddleware(): RequestHandler {
     response.setHeader("X-Request-Id", context.requestId);
     response.setHeader("X-Correlation-Id", context.correlationId);
 
-    runWithObservabilityContext(context, () => next());
+    runWithObservabilityContext(context, () =>
+      runWithAuditContext({ ipAddress: request.ip || undefined }, () => next())
+    );
   };
 }
 
