@@ -33,6 +33,7 @@ export function AuditEventTable({
             <Table.Th w={32} />
             <Table.Th>When</Table.Th>
             <Table.Th>Actor</Table.Th>
+            <Table.Th>IP Address</Table.Th>
             <Table.Th>Action</Table.Th>
             {showRegister && <Table.Th>Register</Table.Th>}
             {showObject && <Table.Th>Object</Table.Th>}
@@ -60,6 +61,7 @@ export function AuditEventTable({
                   </Table.Td>
                   <Table.Td>{new Date(event.occurredAt).toLocaleString()}</Table.Td>
                   <Table.Td>{event.actor?.name ?? "System"}</Table.Td>
+                  <Table.Td>{event.ipAddress ?? "—"}</Table.Td>
                   <Table.Td>
                     <Badge>{event.action}</Badge>
                   </Table.Td>
@@ -70,7 +72,7 @@ export function AuditEventTable({
                 {canExpand && isExpanded && (
                   <Table.Tr>
                     <Table.Td
-                      colSpan={5 + (showObject ? 1 : 0) + (showRegister ? 1 : 0)}
+                      colSpan={6 + (showObject ? 1 : 0) + (showRegister ? 1 : 0)}
                       p={0}
                       style={{
                         backgroundColor:
@@ -86,7 +88,7 @@ export function AuditEventTable({
           })}
           {events.length === 0 ? (
             <Table.Tr>
-              <Table.Td colSpan={5 + (showObject ? 1 : 0) + (showRegister ? 1 : 0)}>
+              <Table.Td colSpan={6 + (showObject ? 1 : 0) + (showRegister ? 1 : 0)}>
                 <Text c="dimmed">No audit events found.</Text>
               </Table.Td>
             </Table.Tr>
