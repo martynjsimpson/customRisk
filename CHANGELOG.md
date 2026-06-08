@@ -15,6 +15,19 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-08
+
+### Fixed
+
+- **Risk ownership: person-picker owners can now view and edit their own risks**
+  - Users assigned as Risk Owner through the person-picker field were not recognised for ownership-based access checks. They could not view or edit risks they owned unless they also held a broader register role. Ownership is now checked through both assignment paths consistently.
+
+- **Password change: current session is preserved**
+  - Changing your password previously signed you out of the session in which you made the change, forcing an immediate re-login. The current session is now kept active; all other sessions are still signed out.
+
+- **User preferences: nested preference groups are merged, not replaced**
+  - Saving a preference within a nested group (such as column visibility for one register) previously overwrote the entire group, losing settings for other registers or contexts. Each update now merges into the existing group rather than replacing it.
+
 ## [1.6.0] - 2026-06-08
 
 ### Fixed
@@ -299,7 +312,9 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/martynjsimpson/customRisk/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/martynjsimpson/customRisk/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/martynjsimpson/customRisk/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/martynjsimpson/customRisk/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/martynjsimpson/customRisk/compare/v1.2.0...v1.3.0
