@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import type { ParamsDictionary } from "express-serve-static-core";
 
-import { ApiError } from "../errors/apiError.js";
 import {
   getAuditEvent,
   getAuditEventSnapshot,
@@ -9,19 +8,11 @@ import {
   listRiskAuditEvents,
   listSystemAuditEvents
 } from "../services/audit.service.js";
-import type { AuthenticatedActor } from "../types/express.js";
+import { actorOrThrow } from "../utils/actorOrThrow.js";
 import { sendData } from "../utils/apiResponse.js";
 import type { AuditEventParams, AuditQuery } from "../validators/audit.schemas.js";
 import type { RiskIdParams } from "../validators/risks.schemas.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
-
-function actorOrThrow(request: { actor?: AuthenticatedActor }) {
-  if (!request.actor) {
-    throw new ApiError(401, "UNAUTHENTICATED", "Authentication is required");
-  }
-
-  return request.actor;
-}
 
 export async function listSystemAuditController(
   request: Request<ParamsDictionary, unknown, unknown, AuditQuery>,

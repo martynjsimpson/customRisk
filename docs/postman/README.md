@@ -23,7 +23,7 @@ The collection uses:
 
 - `{{baseUrl}}`, defaulted at collection level to `http://localhost:3000`
 - `{{accessToken}}`, automatically populated by the login request test script when `/auth/login` succeeds
-- UUID placeholders such as `{{registerId}}`, `{{riskId}}`, `{{userId}}`, `{{fieldId}}`, and related route parameters
+- UUID placeholders such as `{{registerId}}`, `{{riskId}}`, `{{userId}}`, `{{fieldId}}`, `{{templateId}}`, `{{templateVersionId}}`, and related route parameters
 
 ## Coverage
 
@@ -32,6 +32,13 @@ The collection is aligned to the current backend route set, including:
 - observability endpoints such as `/api/v1/health` and `/api/v1/metrics`
 - authentication and session routes
 - register, risk, review, audit, dashboard, person-search, and user-management routes
+- register configuration lifecycle routes such as draft status, draft publish, export, and import
+- template management routes, including register-template comparison and apply flows
 - self-service user profile and preference routes
+
+Some routes are only active when backend feature flags are enabled:
+
+- `draftConfig` gates config version, config import/export, and template endpoints
+- `userPreferences` gates self-service preference routes under `/api/v1/users/me/preferences`
 
 Requests for endpoints that are not currently implemented in the backend should not remain in this collection.

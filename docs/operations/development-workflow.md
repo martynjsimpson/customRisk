@@ -61,6 +61,7 @@ Work on the branch, commit regularly, then open a pull request when ready.
 - Give the PR a clear title describing what it does.
 - Include context in the description: what changed, why, any migration or deployment notes.
 - Check the PR template checklist before marking the PR ready.
+- If the change affects frontend user interaction, ensure the PR includes or updates runtime behavioral coverage rather than relying only on source-assertion tests.
 - For a solo project, self-review is acceptable. PRs still serve as a reviewable checkpoint and audit trail.
 
 CI checks must pass before merging (once CI is configured — see Task 6 of the
@@ -109,9 +110,18 @@ npm run smoke-test
 npm run test            # all packages
 npm run test:backend    # backend only
 npm run test:frontend   # frontend only
+npm --workspace @custom-risk/frontend run test:static   # source-shape guard tests
+npm --workspace @custom-risk/frontend run test:runtime  # jsdom/vitest behavioral tests
 npm run typecheck       # TypeScript typecheck all packages
 npm run lint            # baseline lint gate (TypeScript typecheck)
 ```
+
+### Frontend testing expectations
+
+- `frontend/test/*.test.mjs` covers static source assertions and lightweight guardrails such as feature wiring, route exposure, and script/package expectations.
+- `frontend/test/*.behavior.test.tsx` covers runtime component behavior using `vitest`, `jsdom`, and Testing Library.
+- Frontend changes that modify user interaction, mutation flows, conditional rendering, or cache-refresh behavior should include a runtime behavioral test when the regression would not be caught by a static assertion alone.
+- When fixing a UI bug, prefer adding a regression test that exercises the user-visible workflow, not only the implementation detail.
 
 ---
 

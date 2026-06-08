@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature. Returns the draft and publish status for this register's configuration.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/config-versions/status"
+method: GET
+order: 1000

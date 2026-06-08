@@ -4,7 +4,7 @@
 **Date:** 2026-05-09  
 **Status:** Active  
 **Applies to:** Current and future implementation  
-**Related ADR:** ADR-0001 — Technical Stack  
+**Related ADR:** ADR-0001 — Technical Stack; ADR-0008 — Frontend Runtime Test Stack  
 **Related documents:** Security Model v1.1, API Standards v1.0, Permission Model v1.1, Audit Model v1.1, Observability Notes
 
 ---
@@ -18,6 +18,7 @@ It specifies the technologies, libraries, runtime patterns, deployment model, au
 Decision reasoning is intentionally excluded from this document. Rationale and alternatives are recorded separately in:
 
 - `ADR-0001-technical-stack.md`
+- `ADR-0008-frontend-runtime-test-stack.md`
 
 This file should be treated as the implementation source of truth for the architecture. Any future change to the technical stack should be recorded through a new or superseding ADR before this document is updated.
 
@@ -122,7 +123,25 @@ TypeScript must be used throughout both frontend and backend code.
 | Date handling | Day.js |
 | HTTP client | Axios |
 
-#### 3.3.1 Frontend Libraries
+#### 3.3.2 Frontend Testing
+
+| Area | Standard |
+|---|---|
+| Static frontend guard tests | Node built-in test runner (`node --test`) |
+| Runtime frontend component tests | Vitest |
+| Browser-like test environment | jsdom |
+| UI interaction helpers | Testing Library (`@testing-library/react`, `@testing-library/user-event`) |
+
+#### 3.3.3 Frontend Testing Roles
+
+| Purpose | Tooling | Implementation Standard |
+|---|---|---|
+| Static source assertions | `node:test` with `.test.mjs` files | Use for low-cost guardrails that verify route exposure, feature wiring, package scripts, and source-level invariants. |
+| Runtime component behavior | Vitest + jsdom + Testing Library | Use for user-visible interaction flows such as modal entry, conditional button availability, mutation success, cache invalidation, and post-save UI refresh. |
+
+Static source assertions are not sufficient on their own for interactive frontend flows. When a defect could survive while the source still references the expected hooks or API functions, a runtime behavioral test is required.
+
+#### 3.3.4 Frontend Libraries
 
 | Purpose | Library | Implementation Standard |
 |---|---|---|
@@ -134,7 +153,7 @@ TypeScript must be used throughout both frontend and backend code.
 | Date handling | Day.js | Use for date formatting, relative dates, and review-date calculations. |
 | HTTP client | Axios | Use a configured Axios instance with base URL, auth token request interceptor, and 401 refresh handling. |
 
-#### 3.3.2 Frontend Structure
+#### 3.3.5 Frontend Structure
 
 Recommended frontend directory structure:
 
@@ -150,11 +169,17 @@ src/
     users/
     audit/
   hooks/         # Shared custom hooks
+  test/          # Frontend tests: static source assertions and runtime behavior tests
   types/         # Shared TypeScript types
   utils/         # Utility functions
   router.tsx     # Route definitions
   main.tsx       # Entry point
 ```
+
+Frontend test file conventions:
+
+- `frontend/test/*.test.mjs` for static source assertions and package-level guardrails
+- `frontend/test/*.behavior.test.tsx` for runtime behavioral tests executed with Vitest
 
 ---
 

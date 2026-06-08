@@ -1,0 +1,14 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and System Admin access. Creates a new register from a published template version.
+url: "{{baseUrl}}/api/v1/registers/from-template"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "templateVersionId": "{{templateVersionId}}",
+      "name": "Register cloned from template"
+    }
+order: 1700

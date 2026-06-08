@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and System Admin access. Deactivates a template.
+url: "{{baseUrl}}/api/v1/templates/{{templateId}}/deactivate"
+method: POST
+order: 1400

@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and register management access. Compares a register against a published template version.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/templates/compare/{{templateVersionId}}"
+method: GET
+order: 1800

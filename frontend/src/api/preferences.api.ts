@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { UserPreferences } from "../auth/session";
+import type { UserPreferences } from "./contracts";
 import type { ApiResponse } from "./types";
 
 export async function getMyPreferences() {

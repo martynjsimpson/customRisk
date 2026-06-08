@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { CurrentPermissions, CurrentUser, EnabledFeatures } from "../auth/session";
+import type { CurrentPermissions, CurrentUser, EnabledFeatures } from "./contracts";
 import type { ApiResponse } from "./types";
 
 export interface LoginRequest {

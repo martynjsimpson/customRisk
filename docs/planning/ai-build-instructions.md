@@ -73,6 +73,7 @@ Before starting an implementation task:
 6. Identify relevant security rules from `security-model.md`.
 7. Identify schema additions or backfill requirements from `PM0-02-data-model-extension.md`.
 8. Identify tests required by the backlog ticket.
+9. For frontend interaction changes, decide explicitly whether a runtime behavioral test is required; do not assume the static `.test.mjs` suite is sufficient.
 
 While implementing:
 
@@ -83,6 +84,10 @@ While implementing:
 - validate request bodies and query parameters server-side;
 - write audit events where required;
 - when creating or changing frontend UI that calls the backend, display API errors to the user using the app's shared error display pattern, including field-level validation messages where the API returns them;
+- when changing frontend interaction logic, choose the correct test layer deliberately:
+  - use the static `frontend/test/*.test.mjs` suite for source-shape guardrails;
+  - use `frontend/test/*.behavior.test.tsx` with `vitest` + `jsdom` + Testing Library for real user-visible behavior such as modal flows, conditional buttons, mutation success, and list refreshes;
+  - if a bug can exist while the source still "mentions the right functions", add or update a runtime behavioral test;
 - avoid committing secrets or logging sensitive values;
 - do not introduce a new framework, major library, or architectural pattern without approval;
 - before defining any new type, interface, constant, or enumeration in the frontend, search the existing codebase for an equivalent — if one exists, import it rather than redefining it;
@@ -98,6 +103,7 @@ Before finishing:
 
 - run `npx tsc --noEmit` in `frontend/` and confirm zero type errors;
 - run `npm test --workspaces --if-present` from the repo root and confirm all tests pass;
+- if frontend runtime behavior changed, ensure `npm --workspace @custom-risk/frontend run test:runtime` is part of the verification and not bypassed;
 - if either check fails, fix the code or tests before committing — do not commit a broken state;
 - confirm the task did not add out-of-scope or unapproved features;
 - update docs if implementation intentionally changes a documented decision;
@@ -148,6 +154,7 @@ A task is done when:
 - audit events are created where required;
 - required transactions protect related writes;
 - tests cover the main happy path and important failure paths;
+- frontend interaction changes that are prone to cache, modal, or conditional-rendering regressions include runtime behavioral coverage, not only static source assertions;
 - frontend UI, if included, is role-aware and handles loading/error/empty states;
 - no out-of-scope feature was introduced;
 - docs are updated if implementation intentionally changed a documented decision.

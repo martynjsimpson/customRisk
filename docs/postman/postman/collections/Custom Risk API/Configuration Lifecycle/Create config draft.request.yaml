@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature. Creates a new draft configuration version for the register.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/config-versions/draft"
+method: POST
+order: 1200

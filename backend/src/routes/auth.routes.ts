@@ -1,4 +1,4 @@
-import { Router, type RequestHandler } from "express";
+import { Router } from "express";
 
 import {
   loginController,
@@ -9,13 +9,8 @@ import {
 import { authenticate } from "../middleware/authenticate.js";
 import { loginRateLimit, refreshRateLimit } from "../middleware/rateLimit.js";
 import { validateRequest } from "../middleware/validateRequest.js";
+import { asyncRoute } from "../utils/asyncRoute.js";
 import { loginSchema } from "../validators/auth.schemas.js";
-
-function asyncRoute(handler: RequestHandler): RequestHandler {
-  return (request, response, next) => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 export function createAuthRouter() {
   const router = Router();

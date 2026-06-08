@@ -1,5 +1,5 @@
 import { useAuth } from "../auth/session";
-import type { EnabledFeatures } from "../auth/session";
+import type { EnabledFeatures } from "../api/contracts";
 
 const allOff: EnabledFeatures = {
   userPreferences: false,

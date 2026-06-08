@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and register management access. Applies a template version update into the current config draft.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/templates/apply/{{templateVersionId}}"
+method: POST
+order: 1900

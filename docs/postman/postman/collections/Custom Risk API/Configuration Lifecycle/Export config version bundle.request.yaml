@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature. Exports the register configuration snapshot as an importable payload.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/config-versions/export"
+method: GET
+order: 1700

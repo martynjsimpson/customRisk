@@ -1,5 +1,7 @@
 import { apiClient } from "./client";
 import { getAccessToken } from "../auth/session";
+import type { CustomFieldDefinition } from "./customFields.api";
+import type { ImpactValue, LikelihoodValue, RiskLevel } from "./scoring.api";
 import type { ApiResponse } from "./types";
 
 export interface ConfigVersionRecord {
@@ -29,6 +31,33 @@ export interface ImpactAnalysisResult {
   warnings: string[];
   blockers: string[];
   canPublish: boolean;
+}
+
+interface DraftMatrixCell {
+  id: string;
+  likelihoodValueId: string;
+  impactValueId: string;
+  riskLevelId: string;
+}
+
+export interface UpdateDraftConfigInput {
+  customFields?: Array<
+    Pick<
+      CustomFieldDefinition,
+      "id" | "fieldName" | "fieldType" | "helpText" | "isRequired" | "displayOrder" | "isActive"
+    > & {
+      options: Array<{
+        id: string;
+        label: string;
+        displayOrder: number;
+        isActive: boolean;
+      }>;
+    }
+  >;
+  likelihoodValues?: Array<Pick<LikelihoodValue, "id" | "name" | "numericValue" | "displayOrder" | "isActive">>;
+  impactValues?: Array<Pick<ImpactValue, "id" | "name" | "numericValue" | "displayOrder" | "isActive">>;
+  riskLevels?: Array<Pick<RiskLevel, "id" | "name" | "description" | "color" | "displayOrder" | "isActive">>;
+  matrixCells?: DraftMatrixCell[];
 }
 
 export async function getConfigVersionStatus(registerId: string): Promise<ConfigVersionStatus> {
@@ -66,6 +95,17 @@ export async function analyseImpact(registerId: string): Promise<ImpactAnalysisR
 export async function publishDraft(registerId: string): Promise<ConfigVersionRecord> {
   const response = await apiClient.post<ApiResponse<ConfigVersionRecord>>(
     `/registers/${registerId}/config-versions/draft/publish`
+  );
+  return response.data.data;
+}
+
+export async function updateDraftConfig(
+  registerId: string,
+  input: UpdateDraftConfigInput
+): Promise<ConfigVersionRecord> {
+  const response = await apiClient.patch<ApiResponse<ConfigVersionRecord>>(
+    `/registers/${registerId}/config-versions/draft`,
+    input
   );
   return response.data.data;
 }

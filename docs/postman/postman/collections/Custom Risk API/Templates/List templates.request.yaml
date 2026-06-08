@@ -1,0 +1,9 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and System Admin access. Lists templates, optionally including inactive ones.
+url: "{{baseUrl}}/api/v1/templates"
+method: GET
+queryParams:
+  - key: includeInactive
+    value: "false"
+    disabled: true
+order: 1000

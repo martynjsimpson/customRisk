@@ -1,5 +1,6 @@
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
+import type { RegisterConfigSnapshot } from "../types/configSnapshot.js";
 
 const registerConfigSelect = {
   id: true,
@@ -78,6 +79,49 @@ async function getReferencedConfigurationIds(registerId: string) {
 
 export async function getRegisterConfig(registerId: string) {
   const register = await assertRegisterExists(registerId);
+  const registerWithDraft = await prisma.register.findUnique({
+    where: { id: registerId },
+    select: { draftConfigVersionId: true }
+  });
+
+  if (registerWithDraft?.draftConfigVersionId) {
+    const draft = await prisma.registerConfigVersion.findUnique({
+      where: { id: registerWithDraft.draftConfigVersionId },
+      select: { snapshotJson: true }
+    });
+
+    if (draft) {
+      const snapshot = draft.snapshotJson as unknown as RegisterConfigSnapshot;
+      const likelihoodById = new Map(snapshot.likelihoodValues.map((value) => [value.id, value]));
+      const impactById = new Map(snapshot.impactValues.map((value) => [value.id, value]));
+      const riskLevelById = new Map(snapshot.riskLevels.map((value) => [value.id, value]));
+
+      return {
+        register: {
+          ...register,
+          ...snapshot.register
+        },
+        customFields: snapshot.customFields.map((field) => ({
+          ...field,
+          registerId,
+          options: field.options.map((option) => ({
+            ...option,
+            customFieldDefinitionId: field.id
+          }))
+        })),
+        likelihoodValues: snapshot.likelihoodValues,
+        impactValues: snapshot.impactValues,
+        riskLevels: snapshot.riskLevels,
+        matrixCells: snapshot.matrixCells.map((cell) => ({
+          ...cell,
+          likelihoodValue: likelihoodById.get(cell.likelihoodValueId) ?? null,
+          impactValue: impactById.get(cell.impactValueId) ?? null,
+          riskLevel: riskLevelById.get(cell.riskLevelId) ?? null
+        })),
+        responseStrategies: snapshot.responseStrategies
+      };
+    }
+  }
 
   const [customFields, likelihoodValues, impactValues, riskLevels, matrixCells, responseStrategies] =
     await Promise.all([

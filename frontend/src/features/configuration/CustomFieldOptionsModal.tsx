@@ -16,6 +16,7 @@ interface CustomFieldOptionsModalProps {
   selectedField: CustomFieldDefinition | null;
   options: CustomFieldOption[];
   editingOption: CustomFieldOption | null;
+  readOnly?: boolean;
   loadError: unknown;
   createError: unknown;
   updateError: unknown;
@@ -40,6 +41,7 @@ export function CustomFieldOptionsModal({
   selectedField,
   options,
   editingOption,
+  readOnly,
   loadError,
   createError,
   updateError,
@@ -85,11 +87,11 @@ export function CustomFieldOptionsModal({
         <ApiErrorAlert error={deactivateError} fallback="Unable to deactivate dropdown option" />
         <form onSubmit={form.onSubmit(onSubmit)}>
           <Stack>
-            <TextInput label="Option label" required {...form.getInputProps("label")} />
-            <NumberInput label="Display order" min={1} {...form.getInputProps("displayOrder")} />
-            <Checkbox label="Active" {...form.getInputProps("isActive", { type: "checkbox" })} />
+            <TextInput label="Option label" required disabled={readOnly} {...form.getInputProps("label")} />
+            <NumberInput label="Display order" min={1} disabled={readOnly} {...form.getInputProps("displayOrder")} />
+            <Checkbox label="Active" disabled={readOnly} {...form.getInputProps("isActive", { type: "checkbox" })} />
             <Group>
-              <Button type="submit" loading={isSaving}>
+              <Button type="submit" loading={isSaving} disabled={readOnly}>
                 Save option
               </Button>
               {editingOption ? (
@@ -120,22 +122,24 @@ export function CustomFieldOptionsModal({
                       {option.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>
-                    <Group justify="flex-end" gap="xs">
-                      <Button variant="subtle" onClick={() => onEditOption(option)}>
-                        Edit
-                      </Button>
-                      {option.isActive ? (
-                        <Button
-                          color="red"
-                          variant="subtle"
-                          onClick={() => onDeactivate(option.id)}
-                        >
-                          Deactivate
+                  {readOnly ? <Table.Td /> : (
+                    <Table.Td>
+                      <Group justify="flex-end" gap="xs">
+                        <Button variant="subtle" onClick={() => onEditOption(option)}>
+                          Edit
                         </Button>
-                      ) : null}
-                    </Group>
-                  </Table.Td>
+                        {option.isActive ? (
+                          <Button
+                            color="red"
+                            variant="subtle"
+                            onClick={() => onDeactivate(option.id)}
+                          >
+                            Deactivate
+                          </Button>
+                        ) : null}
+                      </Group>
+                    </Table.Td>
+                  )}
                 </Table.Tr>
               ))}
             </Table.Tbody>

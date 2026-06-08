@@ -8,18 +8,8 @@ import type {
   CreateLikelihoodValueBody,
   UpdateLikelihoodValueBody
 } from "../validators/scoringConfig.schemas.js";
-import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
-
-async function assertRegisterExists(registerId: string) {
-  const register = await prisma.register.findUnique({
-    where: { id: registerId },
-    select: { id: true }
-  });
-
-  if (!register) {
-    throw new ApiError(404, "NOT_FOUND", "Register not found");
-  }
-}
+import { buildFieldChanges } from "./audit.service.js";
+import { createScoringValueCrud } from "./scoringValueCrud.helper.js";
 
 const likelihoodAuditFields = [
   { name: "name", label: "Name", valueType: "TEXT" },
@@ -36,41 +26,102 @@ function mapLikelihoodPrismaError(error: unknown): never {
   throw error;
 }
 
-async function findLikelihoodValue(registerId: string, likelihoodId: string) {
-  const value = await prisma.likelihoodValue.findFirst({
-    where: { id: likelihoodId, registerId }
-  });
-
-  if (!value) {
-    throw new ApiError(404, "NOT_FOUND", "Likelihood value not found");
-  }
-
-  return value;
-}
-
-async function assertLikelihoodWillKeepActiveValue(registerId: string, excludeId?: string) {
-  const activeCount = await prisma.likelihoodValue.count({
-    where: {
-      registerId,
-      isActive: true,
-      id: excludeId ? { not: excludeId } : undefined
+const likelihoodValueCrud = createScoringValueCrud({
+  notFoundMessage: "Likelihood value not found",
+  duplicateErrorMapper: mapLikelihoodPrismaError,
+  activeEntityLabel: "likelihood value",
+  activeEntityFieldError: "Cannot deactivate the final active likelihood value",
+  findMany: (registerId) =>
+    prisma.likelihoodValue.findMany({
+      where: { registerId },
+      orderBy: { displayOrder: "asc" }
+    }),
+  findOne: (registerId, likelihoodId) =>
+    prisma.likelihoodValue.findFirst({
+      where: { id: likelihoodId, registerId }
+    }),
+  countActive: (registerId, excludeId) =>
+    prisma.likelihoodValue.count({
+      where: {
+        registerId,
+        isActive: true,
+        id: excludeId ? { not: excludeId } : undefined
+      }
+    }),
+  createValue: (tx, registerId, input: CreateLikelihoodValueBody) =>
+    tx.likelihoodValue.create({
+      data: {
+        registerId,
+        name: input.name,
+        numericValue: input.numericValue,
+        displayOrder: input.displayOrder,
+        isActive: input.isActive
+      }
+    }),
+  updateValue: (tx, likelihoodId, input: UpdateLikelihoodValueBody) =>
+    tx.likelihoodValue.update({
+      where: { id: likelihoodId },
+      data: {
+        name: input.name,
+        numericValue: input.numericValue,
+        displayOrder: input.displayOrder,
+        isActive: input.isActive
+      }
+    }),
+  deactivateValue: (tx, likelihoodId) =>
+    tx.likelihoodValue.update({
+      where: { id: likelihoodId },
+      data: { isActive: false }
+    }),
+  buildCreatedAuditEvent: (actor, registerId, value) => ({
+    action: auditActions.likelihoodValueCreated,
+    actor,
+    objectType: "LIKELIHOOD_VALUE",
+    objectId: value.id,
+    objectDisplayName: value.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Likelihood value created",
+    metadataJson: {
+      numericValue: value.numericValue.toString(),
+      displayOrder: value.displayOrder,
+      isActive: value.isActive
     }
-  });
-
-  if (activeCount === 0) {
-    throw new ApiError(422, "UNPROCESSABLE", "At least one active likelihood value must remain", {
-      isActive: "Cannot deactivate the final active likelihood value"
-    });
-  }
-}
+  }),
+  buildUpdatedAuditEvent: (actor, registerId, existing, updated) => ({
+    action: auditActions.likelihoodValueUpdated,
+    actor,
+    objectType: "LIKELIHOOD_VALUE",
+    objectId: updated.id,
+    objectDisplayName: updated.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Likelihood value updated",
+    fieldChanges: buildFieldChanges(existing, updated, likelihoodAuditFields)
+  }),
+  buildDeactivatedAuditEvent: (actor, registerId, existing, updated) => ({
+    action: auditActions.likelihoodValueDeactivated,
+    actor,
+    objectType: "LIKELIHOOD_VALUE",
+    objectId: updated.id,
+    objectDisplayName: updated.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Likelihood value deactivated",
+    fieldChanges: [
+      {
+        fieldName: "isActive",
+        fieldLabel: "Active",
+        previousValue: existing.isActive,
+        newValue: false,
+        valueType: "BOOLEAN"
+      }
+    ]
+  })
+});
 
 export async function listLikelihoodValues(registerId: string) {
-  await assertRegisterExists(registerId);
-
-  return prisma.likelihoodValue.findMany({
-    where: { registerId },
-    orderBy: { displayOrder: "asc" }
-  });
+  return likelihoodValueCrud.list(registerId);
 }
 
 export async function createLikelihoodValue(
@@ -78,44 +129,7 @@ export async function createLikelihoodValue(
   registerId: string,
   input: CreateLikelihoodValueBody
 ) {
-  await assertRegisterExists(registerId);
-
-  try {
-    return await prisma.$transaction(async (tx) => {
-      const value = await tx.likelihoodValue.create({
-        data: {
-          registerId,
-          name: input.name,
-          numericValue: input.numericValue,
-          displayOrder: input.displayOrder,
-          isActive: input.isActive
-        }
-      });
-
-      await recordAuditEvent(
-        {
-          action: auditActions.likelihoodValueCreated,
-          actor,
-          objectType: "LIKELIHOOD_VALUE",
-          objectId: value.id,
-          objectDisplayName: value.name,
-          scopeType: "REGISTER",
-          registerId,
-          summary: "Likelihood value created",
-          metadataJson: {
-            numericValue: value.numericValue.toString(),
-            displayOrder: value.displayOrder,
-            isActive: value.isActive
-          }
-        },
-        tx
-      );
-
-      return value;
-    });
-  } catch (error) {
-    mapLikelihoodPrismaError(error);
-  }
+  return likelihoodValueCrud.create(actor, registerId, input);
 }
 
 export async function updateLikelihoodValue(
@@ -124,44 +138,7 @@ export async function updateLikelihoodValue(
   likelihoodId: string,
   input: UpdateLikelihoodValueBody
 ) {
-  const existing = await findLikelihoodValue(registerId, likelihoodId);
-
-  if (input.isActive === false && existing.isActive) {
-    await assertLikelihoodWillKeepActiveValue(registerId, likelihoodId);
-  }
-
-  try {
-    return await prisma.$transaction(async (tx) => {
-      const updated = await tx.likelihoodValue.update({
-        where: { id: likelihoodId },
-        data: {
-          name: input.name,
-          numericValue: input.numericValue,
-          displayOrder: input.displayOrder,
-          isActive: input.isActive
-        }
-      });
-
-      await recordAuditEvent(
-        {
-          action: auditActions.likelihoodValueUpdated,
-          actor,
-          objectType: "LIKELIHOOD_VALUE",
-          objectId: updated.id,
-          objectDisplayName: updated.name,
-          scopeType: "REGISTER",
-          registerId,
-          summary: "Likelihood value updated",
-          fieldChanges: buildFieldChanges(existing, updated, likelihoodAuditFields)
-        },
-        tx
-      );
-
-      return updated;
-    });
-  } catch (error) {
-    mapLikelihoodPrismaError(error);
-  }
+  return likelihoodValueCrud.update(actor, registerId, likelihoodId, input);
 }
 
 export async function deactivateLikelihoodValue(
@@ -169,41 +146,5 @@ export async function deactivateLikelihoodValue(
   registerId: string,
   likelihoodId: string
 ) {
-  const existing = await findLikelihoodValue(registerId, likelihoodId);
-
-  if (existing.isActive) {
-    await assertLikelihoodWillKeepActiveValue(registerId, likelihoodId);
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const updated = await tx.likelihoodValue.update({
-      where: { id: likelihoodId },
-      data: { isActive: false }
-    });
-
-    await recordAuditEvent(
-      {
-        action: auditActions.likelihoodValueDeactivated,
-        actor,
-        objectType: "LIKELIHOOD_VALUE",
-        objectId: updated.id,
-        objectDisplayName: updated.name,
-        scopeType: "REGISTER",
-        registerId,
-        summary: "Likelihood value deactivated",
-        fieldChanges: [
-          {
-            fieldName: "isActive",
-            fieldLabel: "Active",
-            previousValue: existing.isActive,
-            newValue: false,
-            valueType: "BOOLEAN"
-          }
-        ]
-      },
-      tx
-    );
-
-    return updated;
-  });
+  return likelihoodValueCrud.deactivate(actor, registerId, likelihoodId);
 }

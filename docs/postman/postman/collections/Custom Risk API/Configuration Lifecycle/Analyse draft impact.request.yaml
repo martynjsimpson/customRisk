@@ -1,0 +1,5 @@
+$kind: http-request
+description: Requires the `draftConfig` feature. Analyses the downstream impact of the current draft configuration.
+url: "{{baseUrl}}/api/v1/registers/{{registerId}}/config-versions/draft/impact"
+method: POST
+order: 1500

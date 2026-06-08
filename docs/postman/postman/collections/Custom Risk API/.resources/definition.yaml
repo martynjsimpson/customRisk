@@ -1,6 +1,6 @@
 $kind: collection
 name: Custom Risk API
-description: Postman collection aligned to the current Custom Risk backend implementation, including observability, person search, self-service user routes, and register/risk management APIs. Uses {{baseUrl}} and path-level variables such as {{registerId}}, {{riskId}}, {{userId}}, etc.
+description: Postman collection aligned to the current Custom Risk backend implementation, including observability, person search, self-service user routes, register/risk management APIs, config lifecycle endpoints, and template workflows. Uses {{baseUrl}} and path-level variables such as {{registerId}}, {{riskId}}, {{userId}}, {{templateId}}, and {{templateVersionId}}.
 variables:
   baseUrl: http://localhost:3000
   accessToken: ""
@@ -15,6 +15,8 @@ variables:
   riskLevelId: 00000000-0000-0000-0000-000000000000
   cellId: 00000000-0000-0000-0000-000000000000
   auditEventId: 00000000-0000-0000-0000-000000000000
+  templateId: 00000000-0000-0000-0000-000000000000
+  templateVersionId: 00000000-0000-0000-0000-000000000000
   userName: ""
   password: ""
   correlationId: support-case-001

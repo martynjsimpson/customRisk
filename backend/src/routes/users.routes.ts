@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router } from "express";
 
 import {
   activateUserController,
@@ -17,6 +17,7 @@ import { authenticate } from "../middleware/authenticate.js";
 import { requireFeature } from "../middleware/requireFeature.js";
 import { requireSystemAdmin } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
+import { asyncRoute } from "../utils/asyncRoute.js";
 import {
   changePasswordSchema,
   createUserSchema,
@@ -26,14 +27,6 @@ import {
   updateUserSchema,
   userIdParamsSchema
 } from "../validators/users.schemas.js";
-
-type AsyncHandler = (request: Request<any, any, any, any>, response: Response, next: NextFunction) => unknown;
-
-function asyncRoute(handler: AsyncHandler): RequestHandler {
-  return (request, response, next) => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 export function createUsersRouter() {
   const router = Router();

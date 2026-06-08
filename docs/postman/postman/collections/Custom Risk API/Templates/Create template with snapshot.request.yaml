@@ -1,0 +1,23 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and System Admin access. Creates a global template directly from a supplied snapshot payload.
+url: "{{baseUrl}}/api/v1/templates"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Baseline Risk Template",
+      "description": "Example template created from a supplied snapshot",
+      "snapshotJson": {
+        "register": {},
+        "customFields": [],
+        "likelihoodValues": [],
+        "impactValues": [],
+        "riskLevels": [],
+        "matrixCells": [],
+        "responseStrategies": []
+      }
+    }
+order: 1100

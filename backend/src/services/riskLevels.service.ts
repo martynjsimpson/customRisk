@@ -8,18 +8,8 @@ import type {
   CreateRiskLevelBody,
   UpdateRiskLevelBody
 } from "../validators/scoringConfig.schemas.js";
-import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
-
-async function assertRegisterExists(registerId: string) {
-  const register = await prisma.register.findUnique({
-    where: { id: registerId },
-    select: { id: true }
-  });
-
-  if (!register) {
-    throw new ApiError(404, "NOT_FOUND", "Register not found");
-  }
-}
+import { buildFieldChanges } from "./audit.service.js";
+import { createScoringValueCrud } from "./scoringValueCrud.helper.js";
 
 const riskLevelAuditFields = [
   { name: "name", label: "Name", valueType: "TEXT" },
@@ -37,41 +27,103 @@ function mapRiskLevelPrismaError(error: unknown): never {
   throw error;
 }
 
-async function findRiskLevel(registerId: string, riskLevelId: string) {
-  const value = await prisma.riskLevel.findFirst({
-    where: { id: riskLevelId, registerId }
-  });
-
-  if (!value) {
-    throw new ApiError(404, "NOT_FOUND", "Risk level not found");
-  }
-
-  return value;
-}
-
-async function assertRiskLevelWillKeepActiveValue(registerId: string, excludeId?: string) {
-  const activeCount = await prisma.riskLevel.count({
-    where: {
-      registerId,
-      isActive: true,
-      id: excludeId ? { not: excludeId } : undefined
+const riskLevelCrud = createScoringValueCrud({
+  notFoundMessage: "Risk level not found",
+  duplicateErrorMapper: mapRiskLevelPrismaError,
+  activeEntityLabel: "risk level",
+  activeEntityFieldError: "Cannot deactivate the final active risk level",
+  findMany: (registerId) =>
+    prisma.riskLevel.findMany({
+      where: { registerId },
+      orderBy: { displayOrder: "asc" }
+    }),
+  findOne: (registerId, riskLevelId) =>
+    prisma.riskLevel.findFirst({
+      where: { id: riskLevelId, registerId }
+    }),
+  countActive: (registerId, excludeId) =>
+    prisma.riskLevel.count({
+      where: {
+        registerId,
+        isActive: true,
+        id: excludeId ? { not: excludeId } : undefined
+      }
+    }),
+  createValue: (tx, registerId, input: CreateRiskLevelBody) =>
+    tx.riskLevel.create({
+      data: {
+        registerId,
+        name: input.name,
+        description: input.description ?? null,
+        color: input.color ?? null,
+        displayOrder: input.displayOrder,
+        isActive: input.isActive
+      }
+    }),
+  updateValue: (tx, riskLevelId, input: UpdateRiskLevelBody) =>
+    tx.riskLevel.update({
+      where: { id: riskLevelId },
+      data: {
+        name: input.name,
+        description: input.description,
+        color: input.color,
+        displayOrder: input.displayOrder,
+        isActive: input.isActive
+      }
+    }),
+  deactivateValue: (tx, riskLevelId) =>
+    tx.riskLevel.update({
+      where: { id: riskLevelId },
+      data: { isActive: false }
+    }),
+  buildCreatedAuditEvent: (actor, registerId, value) => ({
+    action: auditActions.riskLevelCreated,
+    actor,
+    objectType: "RISK_LEVEL",
+    objectId: value.id,
+    objectDisplayName: value.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Risk level created",
+    metadataJson: {
+      displayOrder: value.displayOrder,
+      isActive: value.isActive
     }
-  });
-
-  if (activeCount === 0) {
-    throw new ApiError(422, "UNPROCESSABLE", "At least one active risk level must remain", {
-      isActive: "Cannot deactivate the final active risk level"
-    });
-  }
-}
+  }),
+  buildUpdatedAuditEvent: (actor, registerId, existing, updated) => ({
+    action: auditActions.riskLevelUpdated,
+    actor,
+    objectType: "RISK_LEVEL",
+    objectId: updated.id,
+    objectDisplayName: updated.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Risk level updated",
+    fieldChanges: buildFieldChanges(existing, updated, riskLevelAuditFields)
+  }),
+  buildDeactivatedAuditEvent: (actor, registerId, existing, updated) => ({
+    action: auditActions.riskLevelDeactivated,
+    actor,
+    objectType: "RISK_LEVEL",
+    objectId: updated.id,
+    objectDisplayName: updated.name,
+    scopeType: "REGISTER",
+    registerId,
+    summary: "Risk level deactivated",
+    fieldChanges: [
+      {
+        fieldName: "isActive",
+        fieldLabel: "Active",
+        previousValue: existing.isActive,
+        newValue: false,
+        valueType: "BOOLEAN"
+      }
+    ]
+  })
+});
 
 export async function listRiskLevels(registerId: string) {
-  await assertRegisterExists(registerId);
-
-  return prisma.riskLevel.findMany({
-    where: { registerId },
-    orderBy: { displayOrder: "asc" }
-  });
+  return riskLevelCrud.list(registerId);
 }
 
 export async function createRiskLevel(
@@ -79,44 +131,7 @@ export async function createRiskLevel(
   registerId: string,
   input: CreateRiskLevelBody
 ) {
-  await assertRegisterExists(registerId);
-
-  try {
-    return await prisma.$transaction(async (tx) => {
-      const value = await tx.riskLevel.create({
-        data: {
-          registerId,
-          name: input.name,
-          description: input.description ?? null,
-          color: input.color ?? null,
-          displayOrder: input.displayOrder,
-          isActive: input.isActive
-        }
-      });
-
-      await recordAuditEvent(
-        {
-          action: auditActions.riskLevelCreated,
-          actor,
-          objectType: "RISK_LEVEL",
-          objectId: value.id,
-          objectDisplayName: value.name,
-          scopeType: "REGISTER",
-          registerId,
-          summary: "Risk level created",
-          metadataJson: {
-            displayOrder: value.displayOrder,
-            isActive: value.isActive
-          }
-        },
-        tx
-      );
-
-      return value;
-    });
-  } catch (error) {
-    mapRiskLevelPrismaError(error);
-  }
+  return riskLevelCrud.create(actor, registerId, input);
 }
 
 export async function updateRiskLevel(
@@ -125,45 +140,7 @@ export async function updateRiskLevel(
   riskLevelId: string,
   input: UpdateRiskLevelBody
 ) {
-  const existing = await findRiskLevel(registerId, riskLevelId);
-
-  if (input.isActive === false && existing.isActive) {
-    await assertRiskLevelWillKeepActiveValue(registerId, riskLevelId);
-  }
-
-  try {
-    return await prisma.$transaction(async (tx) => {
-      const updated = await tx.riskLevel.update({
-        where: { id: riskLevelId },
-        data: {
-          name: input.name,
-          description: input.description,
-          color: input.color,
-          displayOrder: input.displayOrder,
-          isActive: input.isActive
-        }
-      });
-
-      await recordAuditEvent(
-        {
-          action: auditActions.riskLevelUpdated,
-          actor,
-          objectType: "RISK_LEVEL",
-          objectId: updated.id,
-          objectDisplayName: updated.name,
-          scopeType: "REGISTER",
-          registerId,
-          summary: "Risk level updated",
-          fieldChanges: buildFieldChanges(existing, updated, riskLevelAuditFields)
-        },
-        tx
-      );
-
-      return updated;
-    });
-  } catch (error) {
-    mapRiskLevelPrismaError(error);
-  }
+  return riskLevelCrud.update(actor, registerId, riskLevelId, input);
 }
 
 export async function deactivateRiskLevel(
@@ -171,41 +148,5 @@ export async function deactivateRiskLevel(
   registerId: string,
   riskLevelId: string
 ) {
-  const existing = await findRiskLevel(registerId, riskLevelId);
-
-  if (existing.isActive) {
-    await assertRiskLevelWillKeepActiveValue(registerId, riskLevelId);
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const updated = await tx.riskLevel.update({
-      where: { id: riskLevelId },
-      data: { isActive: false }
-    });
-
-    await recordAuditEvent(
-      {
-        action: auditActions.riskLevelDeactivated,
-        actor,
-        objectType: "RISK_LEVEL",
-        objectId: updated.id,
-        objectDisplayName: updated.name,
-        scopeType: "REGISTER",
-        registerId,
-        summary: "Risk level deactivated",
-        fieldChanges: [
-          {
-            fieldName: "isActive",
-            fieldLabel: "Active",
-            previousValue: existing.isActive,
-            newValue: false,
-            valueType: "BOOLEAN"
-          }
-        ]
-      },
-      tx
-    );
-
-    return updated;
-  });
+  return riskLevelCrud.deactivate(actor, registerId, riskLevelId);
 }

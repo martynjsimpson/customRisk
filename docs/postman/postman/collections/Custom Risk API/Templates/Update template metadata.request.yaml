@@ -1,0 +1,14 @@
+$kind: http-request
+description: Requires the `draftConfig` feature and System Admin access. Updates a template's name or description.
+url: "{{baseUrl}}/api/v1/templates/{{templateId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Baseline Risk Template v2",
+      "description": "Updated metadata from Postman"
+    }
+order: 1300
