@@ -11,8 +11,8 @@ test("frontend keeps access tokens in memory and bootstraps through refresh", as
   assert.match(session, /setAccessToken\(refreshed\.accessToken\)/);
   assert.match(session, /setAccessToken\(result\.accessToken\)/);
   assert.match(session, /setAccessToken\(null\)/);
-  assert.match(session, /else if \(!cancelled\) \{\s*setPreferences\(null\);/);
-  assert.match(session, /\} else \{\s*setPreferences\(null\);/);
+  assert.match(session, /queryClient\.removeQueries\(\{ queryKey: PREFERENCES_QUERY_KEY \}\)/);
+  assert.match(session, /queryClient\.setQueryData\(PREFERENCES_QUERY_KEY,/);
   assert.doesNotMatch(session, /localStorage/);
   assert.doesNotMatch(session, /sessionStorage/);
   assert.doesNotMatch(session, /document\.cookie/);

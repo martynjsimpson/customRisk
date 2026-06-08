@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { type MantineColorScheme, useMantineColorScheme } from "@mantine/core";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
 
 import { changeMyPassword, updateMyProfile } from "../api/profile.api";
@@ -20,9 +20,11 @@ import { updateMyPreferences } from "../api/preferences.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { useAuth } from "../auth/session";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
+import { PREFERENCES_QUERY_KEY } from "../hooks/usePreferences";
 
 export function ProfilePage() {
-  const { user, setPreferences } = useAuth();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const flags = useFeatureFlags();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
@@ -58,7 +60,7 @@ export function ProfilePage() {
   const preferencesMutation = useMutation({
     mutationFn: (scheme: MantineColorScheme) => updateMyPreferences({ colorScheme: scheme }),
     onSuccess: (data) => {
-      setPreferences(data);
+      queryClient.setQueryData(PREFERENCES_QUERY_KEY, data);
     }
   });
 
