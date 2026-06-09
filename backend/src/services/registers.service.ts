@@ -19,6 +19,7 @@ const registerSelect = {
   id: true,
   name: true,
   description: true,
+  isActive: true,
   riskIdPrefix: true,
   riskIdZeroPaddingEnabled: true,
   riskIdZeroPaddingWidth: true,
@@ -124,6 +125,7 @@ async function decorateRegister(
 export async function listRegisters(actor: AuthenticatedActor, query: ListRegistersQuery) {
   const accessibleRegisterIds = await listAccessibleRegisterIds(actor);
   const where: Prisma.RegisterWhereInput = {
+    isActive: true,
     id: actor.isSystemAdmin ? undefined : { in: accessibleRegisterIds },
     OR: query.search
       ? [
@@ -308,11 +310,38 @@ export async function getRegister(actor: AuthenticatedActor, registerId: string)
     select: registerSelect
   });
 
-  if (!register) {
+  if (!register || !register.isActive) {
     throw new ApiError(404, "NOT_FOUND", "Register not found");
   }
 
   return decorateRegister(register, actor);
+}
+
+export async function deleteRegister(actor: AuthenticatedActor, registerId: string) {
+  const register = await prisma.register.findUnique({
+    where: { id: registerId },
+    select: { id: true, name: true, isActive: true }
+  });
+
+  if (!register || !register.isActive) {
+    throw new ApiError(404, "NOT_FOUND", "Register not found");
+  }
+
+  await prisma.register.update({
+    where: { id: registerId },
+    data: { isActive: false, updatedByUserId: actor.id }
+  });
+
+  await recordAuditEvent({
+    action: auditActions.registerDeleted,
+    actor: { id: actor.id, name: actor.name, email: actor.email },
+    objectType: "REGISTER",
+    objectId: registerId,
+    objectDisplayName: register.name,
+    scopeType: "SYSTEM",
+    registerId,
+    summary: `Register "${register.name}" deleted`
+  });
 }
 
 export async function updateRegister(

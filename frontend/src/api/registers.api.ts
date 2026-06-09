@@ -124,6 +124,10 @@ export async function removeRegisterPermission(registerId: string, permissionId:
   return response.data.data;
 }
 
+export async function deleteRegister(registerId: string): Promise<void> {
+  await apiClient.delete(`/registers/${registerId}`);
+}
+
 export async function unlinkRegisterFromTemplate(registerId: string): Promise<void> {
   await apiClient.delete(`/registers/${registerId}/template-link`);
 }

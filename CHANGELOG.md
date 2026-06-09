@@ -15,6 +15,11 @@ Version levels:
 
 ## [Unreleased]
 
+### Added
+
+- **Register: soft delete**
+  - System administrators can now delete a register from the Settings tab (Danger zone section). Deleting a register hides it from all users but retains all data (risks, configuration, audit history) in the database for recovery. Deletion requires typing the register name to confirm, and is recorded as a `REGISTER_DELETED` audit event.
+
 ## [1.7.0] - 2026-06-10
 
 ### Changed

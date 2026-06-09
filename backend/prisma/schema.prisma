@@ -240,6 +240,8 @@ model Register {
   draftConfigVersionId    String?  @unique @map("draft_config_version_id") @db.Uuid
   linkedTemplateVersionId String? @map("linked_template_version_id") @db.Uuid
 
+  isActive Boolean @default(true) @map("is_active")
+
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdByUserId String   @map("created_by_user_id") @db.Uuid
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

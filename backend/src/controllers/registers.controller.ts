@@ -3,6 +3,7 @@ import type { ParamsDictionary } from "express-serve-static-core";
 
 import {
   createRegister,
+  deleteRegister,
   getRegister,
   getRegisterSummary,
   addRegisterPermission,
@@ -91,6 +92,14 @@ export async function removeRegisterPermissionController(
       request.params.permissionId
     )
   );
+}
+
+export async function deleteRegisterController(
+  request: Request<RegisterIdParams>,
+  response: Response
+) {
+  await deleteRegister(actorOrThrow(request), request.params.registerId);
+  response.status(204).end();
 }
 
 export async function unlinkRegisterFromTemplateController(
