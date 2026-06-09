@@ -199,24 +199,25 @@ function CustomFieldInput({
 }) {
   const label = field.fieldName;
   const warnProps = hasWarning ? { styles: { input: { borderColor: "var(--mantine-color-yellow-5)" } } } : {};
+  const isMarkedRequired = field.isRequired || field.validationMode === "BLOCK";
 
   if (field.fieldType === "MULTILINE_TEXT") {
-    return <Textarea label={label} required={field.validationMode === "BLOCK"} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
+    return <Textarea label={label} required={isMarkedRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
   }
   if (field.fieldType === "NUMBER") {
-    return <NumberInput label={label} required={field.validationMode === "BLOCK"} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
+    return <NumberInput label={label} required={isMarkedRequired} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
   }
   if (field.fieldType === "BOOLEAN") {
     return <Checkbox label={label} checked={Boolean(value)} onChange={(event) => onChange(event.currentTarget.checked)} />;
   }
   if (field.fieldType === "DATE") {
-    return <TextInput label={label} required={field.validationMode === "BLOCK"} type="date" value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
+    return <TextInput label={label} required={isMarkedRequired} type="date" value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
   }
   if (field.fieldType === "PERSON_PICKER") {
     return (
       <PersonPicker
         label={label}
-        required={field.validationMode === "BLOCK"}
+        required={isMarkedRequired}
         value={String(value ?? "")}
         onChange={onChange}
       />
@@ -226,7 +227,7 @@ function CustomFieldInput({
     return (
       <Select
         label={label}
-        required={field.validationMode === "BLOCK"}
+        required={isMarkedRequired}
         data={(field.options ?? []).map((option) => ({ value: option.id, label: option.label }))}
         value={String(value ?? "") || null}
         onChange={onChange}
@@ -240,7 +241,7 @@ function CustomFieldInput({
     return (
       <MultiSelect
         label={label}
-        required={field.validationMode === "BLOCK"}
+        required={isMarkedRequired}
         data={(field.options ?? []).map((option) => ({ value: option.id, label: option.label }))}
         value={selectedIds}
         onChange={(newValue) => onChange(newValue)}
@@ -261,7 +262,7 @@ function CustomFieldInput({
     );
   }
 
-  return <TextInput label={label} required={field.validationMode === "BLOCK"} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
+  return <TextInput label={label} required={isMarkedRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
 }
 
 export function RiskFormModal({

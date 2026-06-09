@@ -29,6 +29,9 @@ Version levels:
 - **Custom field options modal: consistent close actions in the main dialog**
   - The main options modal now includes both `Cancel` and `Save` actions that close the dialog, matching the close affordances used in the nested add/edit option flow and making the interaction model more predictable.
 
+- **Risk edit form: required custom fields now show the expected required marker**
+  - Custom fields marked as required now display the same red asterisk indicator as built-in required fields on the risk create/edit form, matching user expectations and making required inputs easier to spot.
+
 ### Added
 
 - **Custom field options modal: inactive options can now be reactivated**
