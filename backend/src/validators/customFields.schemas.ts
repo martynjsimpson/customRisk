@@ -59,6 +59,13 @@ export const updateCustomFieldSchema = z.object({
   visibleToRiskResponseOwners: z.boolean().optional()
 });
 
+export const deleteCustomFieldQuerySchema = z.object({
+  force: z
+    .string()
+    .optional()
+    .transform((v) => v === "true")
+});
+
 export const migrateFieldTypeSchema = z.object({
   targetType: z.enum(customFieldTypes)
 });
@@ -79,6 +86,7 @@ export type CustomFieldParams = z.infer<typeof customFieldParamsSchema>;
 export type CustomFieldOptionParams = z.infer<typeof customFieldOptionParamsSchema>;
 export type CreateCustomFieldBody = z.infer<typeof createCustomFieldSchema>;
 export type UpdateCustomFieldBody = z.infer<typeof updateCustomFieldSchema>;
+export type DeleteCustomFieldQuery = z.infer<typeof deleteCustomFieldQuerySchema>;
 export type MigrateFieldTypeBody = z.infer<typeof migrateFieldTypeSchema>;
 export type MigrateFieldTypeQuery = z.infer<typeof migrateFieldTypeQuerySchema>;
 export type CreateCustomFieldOptionBody = z.infer<typeof createCustomFieldOptionSchema>;

@@ -35,6 +35,9 @@ Version levels:
 - **Custom fields: field-level visibility by role**
   - Each custom field definition now carries a `visibleToRoles` list. When the list is non-empty, only users whose effective register role appears in that list will see the field in the risk form, risk detail, and risk table. An empty list means the field is visible to everyone. System Admins and Register Admins always see all fields regardless of the setting. Field admins configure visibility through a new multi-select control in the custom field modal.
 
+- **Custom fields: advanced field lifecycle controls**
+  - Custom fields can now be permanently deleted by System Admins. A GET usage endpoint returns the count of scalar and multi-select values that exist for a field before any destructive action is taken. Deleting a field with existing risk data requires an explicit `force=true` query parameter; without it the request is rejected with a 409 and a count of affected values. Forced deletion removes all associated scalar values, multi-select junction rows, and options atomically, and records an audit event. Deactivation behavior is unchanged.
+
 - **Custom fields: field type migration framework**
   - Administrators can now migrate a custom field to a compatible type without data loss. A GET preview endpoint returns the number of risks and values that will be affected before any change is made. The POST migrate endpoint converts values atomically: dropdown selections become multi-select junction rows; number, boolean, and date values are coerced to their text representation. Unsafe conversions (e.g. MULTI_SELECT → DROPDOWN, CALCULATED ↔ anything, PERSON_PICKER) are rejected. Each migration writes an audit event recording the from/to type change.
 

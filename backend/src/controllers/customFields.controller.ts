@@ -6,7 +6,9 @@ import {
   createCustomFieldOption,
   deactivateCustomField,
   deactivateCustomFieldOption,
+  deleteCustomField,
   getCustomField,
+  getCustomFieldUsage,
   listCustomFields,
   listCustomFieldOptions,
   migrateCustomFieldType,
@@ -22,6 +24,7 @@ import type {
   CreateCustomFieldOptionBody,
   CustomFieldOptionParams,
   CustomFieldParams,
+  DeleteCustomFieldQuery,
   MigrateFieldTypeBody,
   MigrateFieldTypeQuery,
   UpdateCustomFieldBody,
@@ -84,6 +87,23 @@ export async function deactivateCustomFieldController(request: Request<CustomFie
     response,
     await deactivateCustomField(actorOrThrow(request), request.params.registerId, request.params.fieldId)
   );
+}
+
+export async function getCustomFieldUsageController(request: Request<CustomFieldParams>, response: Response) {
+  sendData(response, await getCustomFieldUsage(request.params.registerId, request.params.fieldId));
+}
+
+export async function deleteCustomFieldController(
+  request: Request<CustomFieldParams, unknown, unknown, DeleteCustomFieldQuery>,
+  response: Response
+) {
+  await deleteCustomField(
+    actorOrThrow(request),
+    request.params.registerId,
+    request.params.fieldId,
+    { force: request.query.force }
+  );
+  response.status(204).end();
 }
 
 export async function previewFieldTypeMigrationController(

@@ -395,6 +395,69 @@ export async function deactivateCustomField(actor: AuthenticatedActor, registerI
   return setCustomFieldActiveState(actor, registerId, fieldId, false);
 }
 
+export async function getCustomFieldUsage(registerId: string, fieldId: string) {
+  await findCustomField(registerId, fieldId);
+
+  const [scalarCount, multiSelectCount] = await Promise.all([
+    prisma.riskCustomFieldValue.count({
+      where: { customFieldDefinitionId: fieldId, registerId }
+    }),
+    prisma.riskCustomFieldMultiSelectValue.count({
+      where: { customFieldDefinitionId: fieldId, registerId }
+    })
+  ]);
+
+  return {
+    fieldId,
+    risksWithScalarValues: scalarCount,
+    risksWithMultiSelectValues: multiSelectCount,
+    totalValueCount: scalarCount + multiSelectCount
+  };
+}
+
+export async function deleteCustomField(
+  actor: AuthenticatedActor,
+  registerId: string,
+  fieldId: string,
+  opts: { force?: boolean } = {}
+) {
+  const field = await findCustomField(registerId, fieldId);
+  const usage = await getCustomFieldUsage(registerId, fieldId);
+
+  if (usage.totalValueCount > 0 && !opts.force) {
+    throw new ApiError(
+      409,
+      "CONFLICT",
+      `Cannot delete custom field: ${usage.totalValueCount} risk value(s) exist. Use force=true to delete with all associated data.`
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    if (opts.force && usage.totalValueCount > 0) {
+      await tx.riskCustomFieldValue.deleteMany({ where: { customFieldDefinitionId: fieldId } });
+      await tx.riskCustomFieldMultiSelectValue.deleteMany({ where: { customFieldDefinitionId: fieldId } });
+    }
+
+    await tx.customFieldOption.deleteMany({ where: { customFieldDefinitionId: fieldId } });
+    await tx.customFieldDefinition.delete({ where: { id: fieldId } });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.customFieldDeactivated,
+        actor,
+        objectType: "CUSTOM_FIELD",
+        objectId: fieldId,
+        objectDisplayName: field.fieldName,
+        scopeType: "REGISTER",
+        registerId,
+        summary: `Custom field '${field.fieldName}' deleted${opts.force ? " (forced, with data)" : ""}`,
+        fieldChanges: []
+      },
+      tx
+    );
+  });
+}
+
 export async function setCustomFieldActiveState(
   actor: AuthenticatedActor,
   registerId: string,
