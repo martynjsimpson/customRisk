@@ -118,6 +118,9 @@ Version levels:
 - **User preferences: nested preference groups are merged, not replaced**
   - Saving a preference within a nested group (such as column visibility for one register) previously overwrote the entire group, losing settings for other registers or contexts. Each update now merges into the existing group rather than replacing it.
 
+- **Deployment: database migrations now run correctly on container start**
+  - The `prisma migrate deploy` step in the container entrypoint was failing with "datasource.url property is required" because the Prisma config file (`prisma.config.ts`) was not included in the runtime image. Prisma 7 reads the datasource URL from this config file rather than from the schema, so the file is now copied into the image and referenced explicitly at deploy time.
+
 ## [1.6.0] - 2026-06-08
 
 ### Fixed

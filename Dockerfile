@@ -57,9 +57,10 @@ COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/dist-seed ./backend/dist-seed
 COPY --from=build /app/frontend/dist ./public
 
-# Prisma migrations and schema are needed by `prisma migrate deploy` in the entrypoint.
+# Prisma migrations, schema, and config are needed by `prisma migrate deploy` in the entrypoint.
 COPY --from=build /app/backend/prisma/schema.prisma ./backend/prisma/schema.prisma
 COPY --from=build /app/backend/prisma/migrations ./backend/prisma/migrations
+COPY --from=build /app/backend/prisma.config.ts ./backend/prisma.config.ts
 
 COPY docker/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
