@@ -7,8 +7,12 @@ export const customFieldTypes = [
   "NUMBER",
   "DATE",
   "DROPDOWN",
-  "PERSON_PICKER"
+  "PERSON_PICKER",
+  "MULTI_SELECT",
+  "CALCULATED"
 ] as const;
+
+export const validationModes = ["ALLOW", "WARN", "BLOCK"] as const;
 
 export const customFieldParamsSchema = z.object({
   registerId: z.string().uuid(),
@@ -27,22 +31,47 @@ const customFieldOptionInputSchema = z.object({
   isActive: z.boolean().default(true)
 });
 
+export const registerRoles = ["REGISTER_ADMIN", "REGISTER_VIEWER", "RISK_OWNER"] as const;
+
 export const createCustomFieldSchema = z.object({
   fieldName: z.string().trim().min(1),
   fieldType: z.enum(customFieldTypes),
   helpText: z.string().trim().nullable().optional(),
   isRequired: z.boolean().default(false),
+  validationMode: z.enum(validationModes).optional(),
   displayOrder: z.number().int().min(1),
   isActive: z.boolean().default(true),
-  options: z.array(customFieldOptionInputSchema).optional()
+  options: z.array(customFieldOptionInputSchema).optional(),
+  formula: z.string().trim().min(1).optional(),
+  visibleToRoles: z.array(z.enum(registerRoles)).optional(),
+  visibleToRiskResponseOwners: z.boolean().optional()
 });
 
 export const updateCustomFieldSchema = z.object({
   fieldName: z.string().trim().min(1).optional(),
   helpText: z.string().trim().nullable().optional(),
   isRequired: z.boolean().optional(),
+  validationMode: z.enum(validationModes).optional(),
   displayOrder: z.number().int().min(1).optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  formula: z.string().trim().min(1).optional(),
+  visibleToRoles: z.array(z.enum(registerRoles)).optional(),
+  visibleToRiskResponseOwners: z.boolean().optional()
+});
+
+export const deleteCustomFieldQuerySchema = z.object({
+  force: z
+    .string()
+    .optional()
+    .transform((v) => v === "true")
+});
+
+export const migrateFieldTypeSchema = z.object({
+  targetType: z.enum(customFieldTypes)
+});
+
+export const migrateFieldTypeQuerySchema = z.object({
+  targetType: z.enum(customFieldTypes)
 });
 
 export const createCustomFieldOptionSchema = customFieldOptionInputSchema;
@@ -57,5 +86,8 @@ export type CustomFieldParams = z.infer<typeof customFieldParamsSchema>;
 export type CustomFieldOptionParams = z.infer<typeof customFieldOptionParamsSchema>;
 export type CreateCustomFieldBody = z.infer<typeof createCustomFieldSchema>;
 export type UpdateCustomFieldBody = z.infer<typeof updateCustomFieldSchema>;
+export type DeleteCustomFieldQuery = z.infer<typeof deleteCustomFieldQuerySchema>;
+export type MigrateFieldTypeBody = z.infer<typeof migrateFieldTypeSchema>;
+export type MigrateFieldTypeQuery = z.infer<typeof migrateFieldTypeQuerySchema>;
 export type CreateCustomFieldOptionBody = z.infer<typeof createCustomFieldOptionSchema>;
 export type UpdateCustomFieldOptionBody = z.infer<typeof updateCustomFieldOptionSchema>;

@@ -1,5 +1,7 @@
-import { Paper, Stack, Tabs } from "@mantine/core";
+import { Alert, Box, Fieldset, Paper, Stack, Tabs } from "@mantine/core";
+import { useQuery } from "@tanstack/react-query";
 
+import { getConfigVersionStatus } from "../../api/configVersion.api";
 import { useFeatureFlags } from "../../hooks/useFeatureFlags";
 import { ConfigVersionBanner } from "./ConfigVersionBanner";
 import { FieldConfigTab } from "./FieldConfigTab";
@@ -16,6 +18,14 @@ export function RegisterConfigurationPanel({ registerId, canManage }: RegisterCo
   const flags = useFeatureFlags();
   const draftConfigMode = flags.draftConfig && canManage;
 
+  const statusQuery = useQuery({
+    queryKey: ["config-version-status", registerId],
+    queryFn: () => getConfigVersionStatus(registerId),
+    enabled: draftConfigMode
+  });
+  const hasDraft = statusQuery.data?.hasDraft ?? false;
+  const configLocked = draftConfigMode && !hasDraft;
+
   return (
     <Stack>
       {draftConfigMode ? (
@@ -25,6 +35,11 @@ export function RegisterConfigurationPanel({ registerId, canManage }: RegisterCo
             <TemplateLinkPanel registerId={registerId} canManage={canManage} />
           </Stack>
         </Paper>
+      ) : null}
+      {configLocked ? (
+        <Alert color="blue" title="Configuration is version-controlled">
+          Create a draft using the banner above to edit register configuration.
+        </Alert>
       ) : null}
       <Tabs defaultValue="settings">
         <Tabs.List>
@@ -36,10 +51,14 @@ export function RegisterConfigurationPanel({ registerId, canManage }: RegisterCo
           <RegisterSettingsTab registerId={registerId} />
         </Tabs.Panel>
         <Tabs.Panel value="fields" pt="md">
-          <FieldConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+          <Fieldset legend="Field Configuration">
+            <Box style={configLocked ? { opacity: 0.5, pointerEvents: "none" } : undefined}>
+              <FieldConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+            </Box>
+          </Fieldset>
         </Tabs.Panel>
         <Tabs.Panel value="scoring" pt="md">
-          <ScoringConfigurationPanel registerId={registerId} draftConfigMode={draftConfigMode} />
+          <ScoringConfigurationPanel registerId={registerId} draftConfigMode={draftConfigMode} configLocked={configLocked} />
         </Tabs.Panel>
       </Tabs>
     </Stack>

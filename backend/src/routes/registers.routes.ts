@@ -4,6 +4,7 @@ import { exportRegisterAuditController, listRegisterAuditController } from "../c
 import {
   addRegisterPermissionController,
   createRegisterController,
+  deleteRegisterController,
   getRegisterController,
   getRegisterSummaryController,
   listRegisterPermissionCandidatesController,
@@ -59,6 +60,7 @@ export function createRegistersRouter() {
   router.get("/:registerId/audit", validateRequest({ params: registerIdParamsSchema, query: auditQuerySchema }), requireRegisterManagement(), asyncRoute(listRegisterAuditController));
   router.get("/:registerId", validateRequest({ params: registerIdParamsSchema }), requireRegisterAccess(), asyncRoute(getRegisterController));
   router.patch("/:registerId", validateRequest({ params: registerIdParamsSchema, body: updateRegisterSchema }), requireRegisterManagement(), asyncRoute(updateRegisterController));
+  router.delete("/:registerId", requireSystemAdmin, validateRequest({ params: registerIdParamsSchema }), asyncRoute(deleteRegisterController));
 
   router.delete(
     "/:registerId/template-link",

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { customFieldTypes } from "./customFields.schemas.js";
+import { customFieldTypes, validationModes } from "./customFields.schemas.js";
 
 // Re-export registerIdParamsSchema for use in this context
 export { registerIdParamsSchema } from "./registers.schemas.js";
@@ -20,6 +20,7 @@ const snapshotCustomFieldSchema = z.object({
   fieldType: z.enum(customFieldTypes),
   helpText: z.string().nullable().optional(),
   isRequired: z.boolean(),
+  validationMode: z.enum(validationModes),
   displayOrder: z.number().int().min(1),
   isActive: z.boolean(),
   options: z.array(snapshotCustomFieldOptionSchema)
@@ -73,7 +74,8 @@ const snapshotRegisterSettingsSchema = z.object({
   reviewsEnabled: z.boolean().optional(),
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120).optional(),
   reviewAttestationText: z.string().optional(),
-  allowViewerExport: z.boolean().optional()
+  allowViewerExport: z.boolean().optional(),
+  customFieldValidationEnabled: z.boolean().optional()
 });
 
 // --- Update draft body schema ---

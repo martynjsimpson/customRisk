@@ -2,7 +2,7 @@ import type { CustomFieldType} from "@prisma/client";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../db/prisma.js";
-import { ApiError } from "../errors/apiError.js";
+import { ApiError, type FieldWarning } from "../errors/apiError.js";
 import type { RiskCustomFieldValueBody } from "../validators/risks.schemas.js";
 import { resolvePersonInput, upsertPersonReference } from "./personReference.service.js";
 
@@ -22,6 +22,18 @@ type ExistingCustomFieldValue = Prisma.RiskCustomFieldValueGetPayload<{
   };
 }>;
 
+export interface MultiSelectEntry {
+  registerId: string;
+  customFieldDefinitionId: string;
+  optionId: string;
+}
+
+export interface ValidatedCustomFieldResult {
+  values: Prisma.RiskCustomFieldValueCreateManyRiskInput[];
+  multiSelectEntries: MultiSelectEntry[];
+  warnings: FieldWarning[];
+}
+
 function toDateOnlyString(date: Date | null) {
   return date ? date.toISOString().slice(0, 10) : null;
 }
@@ -33,7 +45,8 @@ function countProvidedValues(value: RiskCustomFieldValueBody) {
     value.booleanValue,
     value.dateValue,
     value.personUserId ?? value.personEmail,
-    value.dropdownOptionId
+    value.dropdownOptionId,
+    Array.isArray(value.multiSelectOptionIds) && value.multiSelectOptionIds.length > 0 ? "multi_select" : undefined
   ].filter((entry) => entry !== undefined && entry !== null && entry !== "").length;
 }
 
@@ -59,6 +72,11 @@ function hasValueForType(
       return Boolean(value.personUserId) || ("personEmail" in value && Boolean((value as RiskCustomFieldValueBody).personEmail));
     case "DROPDOWN":
       return Boolean(value.dropdownOptionId);
+    case "MULTI_SELECT":
+      return Array.isArray((value as RiskCustomFieldValueBody).multiSelectOptionIds) &&
+        ((value as RiskCustomFieldValueBody).multiSelectOptionIds?.length ?? 0) > 0;
+    case "CALCULATED":
+      return Boolean(value.textValue); // computed value stored as textValue
   }
 }
 
@@ -121,6 +139,8 @@ function customFieldValueMatchesExisting(
       return Boolean(value.personUserId && value.personUserId === existing.personUserId);
     case "DROPDOWN":
       return Boolean(value.dropdownOptionId && value.dropdownOptionId === existing.dropdownOptionId);
+    case "MULTI_SELECT":
+      return false; // multi-select values are not stored in the scalar table
   }
 }
 
@@ -142,8 +162,8 @@ export async function validateCustomFieldValues(
   registerId: string,
   values: RiskCustomFieldValueBody[],
   client: CustomFieldClient = prisma,
-  options: { riskId?: string } = {}
-) {
+  options: { riskId?: string; acknowledgedWarnings?: boolean; validationEnabled?: boolean } = {}
+): Promise<ValidatedCustomFieldResult> {
   const existingValues = options.riskId
     ? await client.riskCustomFieldValue.findMany({
         where: { registerId, riskId: options.riskId },
@@ -160,6 +180,17 @@ export async function validateCustomFieldValues(
         }
       })
     : [];
+
+  // Fetch existing multi-select field IDs (fields with at least one selection) for merge logic
+  const existingMultiSelectFieldIds = options.riskId
+    ? new Set(
+        (await client.riskCustomFieldMultiSelectValue.findMany({
+          where: { riskId: options.riskId, registerId },
+          select: { customFieldDefinitionId: true },
+          distinct: ["customFieldDefinitionId"]
+        })).map((v) => v.customFieldDefinitionId)
+      )
+    : new Set<string>();
   const existingValuesByDefinitionId = new Map(
     existingValues.map((value) => [value.customFieldDefinitionId, value])
   );
@@ -168,7 +199,7 @@ export async function validateCustomFieldValues(
       registerId,
       OR: [{ isActive: true }, { id: { in: [...existingValuesByDefinitionId.keys()] } }]
     },
-    select: { id: true, fieldName: true, fieldType: true, isRequired: true, isActive: true }
+    select: { id: true, fieldName: true, fieldType: true, isRequired: true, validationMode: true, isActive: true }
   });
   const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
   const valuesByDefinitionId = new Map<string, RiskCustomFieldValueBody>();
@@ -188,6 +219,12 @@ export async function validateCustomFieldValues(
       return;
     }
 
+    if (definition.fieldType === "CALCULATED") {
+      fields[`customFieldValues.${index}.customFieldDefinitionId`] =
+        `${definition.fieldName} is calculated automatically and cannot be edited directly`;
+      return;
+    }
+
     if (
       !definition.isActive &&
       !customFieldValueMatchesExisting(
@@ -197,17 +234,17 @@ export async function validateCustomFieldValues(
       )
     ) {
       fields[`customFieldValues.${index}.customFieldDefinitionId`] =
-        "Inactive custom field values can only be retained on the existing risk";
+        `${definition.fieldName} is inactive and can only retain its existing value`;
       return;
     }
 
     if (countProvidedValues(value) > 1) {
-      fields[`customFieldValues.${index}`] = "Provide only the value matching the custom field type";
+      fields[`customFieldValues.${index}`] = `Provide only the value matching ${definition.fieldName}`;
       return;
     }
 
     if (countProvidedValues(value) > 0 && !hasValueForType(definition.fieldType, value)) {
-      fields[`customFieldValues.${index}`] = `Value must match ${definition.fieldType}`;
+      fields[`customFieldValues.${index}`] = `${definition.fieldName} value must match ${definition.fieldType}`;
     }
   });
 
@@ -216,14 +253,39 @@ export async function validateCustomFieldValues(
     valuesByDefinitionId
   );
 
-  definitions
-    .filter((definition) => definition.isActive && definition.isRequired)
-    .forEach((definition) => {
-      const value = mergedValuesByDefinitionId.get(definition.id);
-      if (!hasValueForType(definition.fieldType, value)) {
-        fields[`customFields.${definition.id}`] = `${definition.fieldName} is required`;
-      }
-    });
+  // Collect blocking errors and warnings separately based on validationMode
+  const warnings: FieldWarning[] = [];
+
+  if (options.validationEnabled !== false) {
+    definitions
+      .filter((definition) => definition.isActive && definition.validationMode !== "ALLOW" && definition.fieldType !== "CALCULATED")
+      .forEach((definition) => {
+        let hasValue: boolean;
+        if (definition.fieldType === "MULTI_SELECT") {
+          const inputEntry = valuesByDefinitionId.get(definition.id);
+          if (inputEntry?.multiSelectOptionIds !== undefined) {
+            hasValue = inputEntry.multiSelectOptionIds.length > 0;
+          } else {
+            hasValue = existingMultiSelectFieldIds.has(definition.id);
+          }
+        } else {
+          const value = mergedValuesByDefinitionId.get(definition.id);
+          hasValue = hasValueForType(definition.fieldType, value);
+        }
+
+        if (hasValue) return;
+
+        if (definition.validationMode === "BLOCK") {
+          fields[`field.${definition.fieldName}`] = `Field ${definition.fieldName} is required.`;
+        } else if (definition.validationMode === "WARN" && !options.acknowledgedWarnings) {
+          warnings.push({
+            fieldId: definition.id,
+            fieldName: definition.fieldName,
+            message: `${definition.fieldName} is recommended`
+          });
+        }
+      });
+  }
 
   // Validate personUserId values (must be active local users)
   const personUserIds = values.flatMap((value) => {
@@ -292,17 +354,45 @@ export async function validateCustomFieldValues(
       const option = activeOptionsById.get(value.dropdownOptionId);
       if (!option || option.customFieldDefinitionId !== value.customFieldDefinitionId) {
         fields[`customFieldValues.${index}.dropdownOptionId`] =
-          "Dropdown value must reference an active option for this custom field";
+          `${definition?.fieldName ?? "This field"} must reference an active dropdown option`;
       }
     });
 
     if (activeOptions.length !== uniqueDropdownOptionIds.length) {
-      fields.dropdownOptionId = "Dropdown values must reference active options for this register";
+      fields.dropdownOptionId = "One or more dropdown values must reference active options for this register";
+    }
+  }
+
+  // Validate multi-select option IDs
+  const multiSelectEntries: MultiSelectEntry[] = [];
+  for (const value of values) {
+    if (!value.multiSelectOptionIds || value.multiSelectOptionIds.length === 0) continue;
+    const definition = definitionsById.get(value.customFieldDefinitionId);
+    if (!definition || definition.fieldType !== "MULTI_SELECT") continue;
+
+    const activeOptions = await client.customFieldOption.findMany({
+      where: {
+        id: { in: value.multiSelectOptionIds },
+        isActive: true,
+        customFieldDefinitionId: value.customFieldDefinitionId
+      },
+      select: { id: true }
+    });
+    const activeOptionIds = new Set(activeOptions.map((o) => o.id));
+    const invalidIds = value.multiSelectOptionIds.filter((id) => !activeOptionIds.has(id));
+    if (invalidIds.length > 0) {
+      const idx = values.indexOf(value);
+      fields[`customFieldValues.${idx}.multiSelectOptionIds`] =
+        `${definition.fieldName} must reference active multi-select options`;
+    } else {
+      for (const optionId of value.multiSelectOptionIds) {
+        multiSelectEntries.push({ registerId, customFieldDefinitionId: value.customFieldDefinitionId, optionId });
+      }
     }
   }
 
   if (Object.keys(fields).length > 0) {
-    throw new ApiError(400, "VALIDATION_ERROR", "Custom field values are invalid", fields);
+    throw new ApiError(400, "VALIDATION_ERROR", "Risk values are invalid.", fields);
   }
 
   // Resolve PersonReferences for all PERSON_PICKER values
@@ -321,10 +411,13 @@ export async function validateCustomFieldValues(
     }
   }
 
-  return values
+  const resolvedValues = values
     .map((value) => {
       const definition = definitionsById.get(value.customFieldDefinitionId);
-      if (!definition || !hasValueForType(definition.fieldType, value)) {
+      if (!definition || definition.fieldType === "MULTI_SELECT") {
+        return null; // multi-select stored in separate table
+      }
+      if (!hasValueForType(definition.fieldType, value)) {
         return null;
       }
 
@@ -338,4 +431,6 @@ export async function validateCustomFieldValues(
     .filter(
       (value): value is Prisma.RiskCustomFieldValueCreateManyRiskInput => value !== null
     );
+
+  return { values: resolvedValues, multiSelectEntries, warnings };
 }

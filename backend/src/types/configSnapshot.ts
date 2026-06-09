@@ -15,6 +15,7 @@ export interface ConfigSnapshotCustomField {
   fieldType: string;
   helpText: string | null;
   isRequired: boolean;
+  validationMode: "ALLOW" | "WARN" | "BLOCK";
   displayOrder: number;
   isActive: boolean;
   options: ConfigSnapshotCustomFieldOption[];
@@ -70,6 +71,7 @@ export interface ConfigSnapshotRegisterSettings {
   defaultReviewFrequencyMonths: number;
   reviewAttestationText: string;
   allowViewerExport: boolean;
+  customFieldValidationEnabled: boolean;
 }
 
 export interface RegisterConfigSnapshot {

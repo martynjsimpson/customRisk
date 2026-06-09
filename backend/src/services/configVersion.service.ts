@@ -9,10 +9,31 @@ import type {
 } from "../types/configSnapshot.js";
 import type { UpdateDraftBody } from "../validators/configVersion.schemas.js";
 import { recordAuditEvent } from "./audit.service.js";
+import { recalculateRiskLevels } from "./matrix.service.js";
 
 // ---------------------------------------------------------------------------
 // Helper: build a current snapshot from relational tables
 // ---------------------------------------------------------------------------
+
+function normalizeCustomFieldValidationMode<T extends { isRequired: boolean; validationMode?: "ALLOW" | "WARN" | "BLOCK" }>(
+  field: T
+): T & { validationMode: "ALLOW" | "WARN" | "BLOCK" } {
+  return {
+    ...field,
+    validationMode: field.validationMode ?? (field.isRequired ? "BLOCK" : "ALLOW")
+  };
+}
+
+function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterConfigSnapshot {
+  return {
+    ...snapshot,
+    register: {
+      ...snapshot.register,
+      customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true
+    },
+    customFields: snapshot.customFields.map((field) => normalizeCustomFieldValidationMode(field))
+  };
+}
 
 async function buildSnapshotFromRelationalTables(registerId: string): Promise<RegisterConfigSnapshot> {
   const [register, customFields, likelihoodValues, impactValues, riskLevels, matrixCells, responseStrategies] =
@@ -29,7 +50,8 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
           reviewsEnabled: true,
           defaultReviewFrequencyMonths: true,
           reviewAttestationText: true,
-          allowViewerExport: true
+          allowViewerExport: true,
+          customFieldValidationEnabled: true
         }
       }),
       prisma.customFieldDefinition.findMany({
@@ -73,7 +95,8 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
       reviewsEnabled: register.reviewsEnabled,
       defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
       reviewAttestationText: register.reviewAttestationText,
-      allowViewerExport: register.allowViewerExport
+      allowViewerExport: register.allowViewerExport,
+      customFieldValidationEnabled: register.customFieldValidationEnabled,
     },
     customFields: customFields.map((f) => ({
       id: f.id,
@@ -81,6 +104,7 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
       fieldType: f.fieldType,
       helpText: f.helpText,
       isRequired: f.isRequired,
+      validationMode: f.validationMode,
       displayOrder: f.displayOrder,
       isActive: f.isActive,
       options: f.options.map((o) => ({
@@ -279,14 +303,14 @@ export async function updateDraft(
     throw new ApiError(404, "NOT_FOUND", "Draft configuration version not found");
   }
 
-  const existing = draft.snapshotJson as unknown as RegisterConfigSnapshot;
+  const existing = normalizeSnapshot(draft.snapshotJson as unknown as RegisterConfigSnapshot);
 
   const merged: RegisterConfigSnapshot = {
     register: patch.register
       ? { ...existing.register, ...patch.register }
       : existing.register,
     customFields: patch.customFields !== undefined
-      ? patch.customFields.map((f) => ({ ...f, helpText: f.helpText ?? null }))
+      ? patch.customFields.map((f) => normalizeCustomFieldValidationMode({ ...f, helpText: f.helpText ?? null }))
       : existing.customFields,
     likelihoodValues:
       patch.likelihoodValues !== undefined ? patch.likelihoodValues : existing.likelihoodValues,
@@ -816,6 +840,7 @@ export async function publishDraft(
             fieldName: cf.fieldName,
             helpText: cf.helpText ?? null,
             isRequired: cf.isRequired,
+            validationMode: cf.validationMode,
             displayOrder: cf.displayOrder,
             isActive: cf.isActive,
             updatedByUserId: actorId
@@ -830,6 +855,7 @@ export async function publishDraft(
             fieldType: cf.fieldType as any,
             helpText: cf.helpText ?? null,
             isRequired: cf.isRequired,
+            validationMode: cf.validationMode,
             displayOrder: cf.displayOrder,
             isActive: cf.isActive,
             createdByUserId: actorId,
@@ -896,6 +922,18 @@ export async function publishDraft(
       });
     }
 
+    // --- Recalculate risk levels for all open risks against the new matrix ---
+    await recalculateRiskLevels(
+      { id: actorId, name: actorName, email: actorEmail, isSystemAdmin: true, isActive: true },
+      registerId,
+      snapshot.matrixCells.map((mc) => ({
+        likelihoodValueId: mc.likelihoodValueId,
+        impactValueId: mc.impactValueId,
+        riskLevelId: mc.riskLevelId
+      })),
+      tx
+    );
+
     // --- Update register settings ---
     // Apply register settings from snapshot only when draft originated from a template.
     // Register settings are only applied from the snapshot when the draft originated from a
@@ -917,6 +955,7 @@ export async function publishDraft(
               defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
               reviewAttestationText: regSettings.reviewAttestationText,
               allowViewerExport: regSettings.allowViewerExport,
+              customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
               linkedTemplateVersionId: draft.sourceTemplateVersionId
             }
           : {}),

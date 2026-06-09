@@ -7,6 +7,7 @@ import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent, type AuditFieldChangeInput } from "./audit.service.js";
 import { linkPersonReferenceToUser } from "./personReference.service.js";
+import { hashRefreshToken } from "../auth/refreshTokens.js";
 import { revokeActiveRefreshTokens } from "./sessionTokens.service.js";
 import type {
   ChangePasswordBody,
@@ -358,7 +359,7 @@ export async function updateMyProfile(actor: AuthenticatedActor, input: UpdateMy
   });
 }
 
-export async function changeMyPassword(actor: AuthenticatedActor, input: ChangePasswordBody) {
+export async function changeMyPassword(actor: AuthenticatedActor, input: ChangePasswordBody, currentRefreshToken?: string) {
   const user = await prisma.user.findUnique({
     where: { id: actor.id },
     select: { ...userSelect, passwordHash: true }
@@ -391,7 +392,8 @@ export async function changeMyPassword(actor: AuthenticatedActor, input: ChangeP
       }
     });
 
-    await revokeActiveRefreshTokens(actor.id, tx);
+    const excludeHash = currentRefreshToken ? hashRefreshToken(currentRefreshToken) : undefined;
+    await revokeActiveRefreshTokens(actor.id, tx, excludeHash);
 
     await recordAuditEvent(
       {
@@ -449,12 +451,27 @@ export async function updateMyPreferences(actor: AuthenticatedActor, input: Upda
     ? user.preferences as Record<string, unknown>
     : {};
 
-  const merged = { ...existing, ...input };
+  const merged: Record<string, unknown> = { ...existing };
+  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+    const existingValue = existing[key];
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      existingValue !== null &&
+      typeof existingValue === "object" &&
+      !Array.isArray(existingValue)
+    ) {
+      merged[key] = { ...(existingValue as Record<string, unknown>), ...(value as Record<string, unknown>) };
+    } else {
+      merged[key] = value;
+    }
+  }
 
   return prisma.$transaction(async (tx) => {
     await tx.user.update({
       where: { id: actor.id },
-      data: { preferences: merged }
+      data: { preferences: merged as Prisma.InputJsonValue }
     });
 
     await recordAuditEvent(
@@ -466,7 +483,7 @@ export async function updateMyPreferences(actor: AuthenticatedActor, input: Upda
         objectDisplayName: actor.email,
         scopeType: "SYSTEM",
         summary: "Preferences updated",
-        metadataJson: { preferences: merged }
+        metadataJson: merged as Prisma.InputJsonValue
       },
       tx
     );

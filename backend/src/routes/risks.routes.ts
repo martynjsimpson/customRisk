@@ -12,6 +12,7 @@ import {
   deleteRiskController,
   exportRisksController,
   getRiskDetailController,
+  getRiskValidationSummaryController,
   listRisksController,
   updateRiskController
 } from "../controllers/risks.controller.js";
@@ -55,6 +56,12 @@ export function createRisksSubRouter() {
     validateRequest({ params: registerIdParamsSchema, query: listRisksQuerySchema }),
     requireExportAccess(),
     asyncRoute(exportRisksController)
+  );
+  router.get(
+    "/:registerId/risks/validation-summary",
+    validateRequest({ params: registerIdParamsSchema }),
+    requireRegisterAccess(),
+    asyncRoute(getRiskValidationSummaryController)
   );
   router.get(
     "/:registerId/risks/:riskId/reviews",

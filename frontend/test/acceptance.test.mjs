@@ -13,7 +13,7 @@ test("frontend exposes the required MVP acceptance workflows", async () => {
   const reviewModal = await readFile(new URL("../src/features/risks/ReviewModal.tsx", import.meta.url), "utf8");
 
   assert.match(registersPage, /Create register/);
-  assert.match(registersPage, /initialRegisterAdminUserIds/);
+  assert.match(registersPage, /CreateRegisterWizard/);
 
   assert.match(registerDetailPage, /value="configuration"/);
   assert.match(registerDetailPage, /value="permissions"/);
@@ -28,7 +28,7 @@ test("frontend exposes the required MVP acceptance workflows", async () => {
   assert.match(fieldTable, /CORE_RISK_FIELDS/);
   assert.match(matrixConfig, /Save matrix/);
   assert.match(matrixConfig, /updateMatrix/);
-  assert.match(matrixConfig, /Recalculate existing risks/);
+  assert.match(matrixConfig, /recalculate risk levels/);
 
   assert.match(riskPanel, /Add risk/);
   assert.match(riskPanel, /RiskFormModal/);

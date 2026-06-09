@@ -24,7 +24,7 @@ export JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET:-$GENERATED_JWT_ACCESS_SECRET}"
 export JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET:-$GENERATED_JWT_REFRESH_SECRET}"
 
 echo "[customrisk] Applying database migrations..."
-node_modules/.bin/prisma migrate deploy --schema backend/prisma/schema.prisma
+node_modules/.bin/prisma migrate deploy --config backend/prisma.config.ts --schema backend/prisma/schema.prisma
 
 if [ -n "$SEED_ADMIN_PASSWORD" ]; then
   echo "[customrisk] SEED_ADMIN_PASSWORD is set — seeding admin account..."

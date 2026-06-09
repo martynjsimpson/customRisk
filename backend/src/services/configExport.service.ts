@@ -17,7 +17,8 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       reviewsEnabled: true,
       defaultReviewFrequencyMonths: true,
       reviewAttestationText: true,
-      allowViewerExport: true
+      allowViewerExport: true,
+      customFieldValidationEnabled: true
     }
   });
 
@@ -72,7 +73,8 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       reviewsEnabled: register.reviewsEnabled,
       defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
       reviewAttestationText: register.reviewAttestationText,
-      allowViewerExport: register.allowViewerExport
+      allowViewerExport: register.allowViewerExport,
+      customFieldValidationEnabled: register.customFieldValidationEnabled
     },
     customFields: customFields.map((field) => ({
       id: field.id,
@@ -80,6 +82,7 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       fieldType: field.fieldType,
       helpText: field.helpText,
       isRequired: field.isRequired,
+      validationMode: field.validationMode,
       displayOrder: field.displayOrder,
       isActive: field.isActive,
       options: field.options.map((opt) => ({

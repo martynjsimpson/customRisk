@@ -219,6 +219,7 @@ test("auth routes apply rate limits and browser refresh tokens stay cookie-only"
   const routes = await readFile(new URL("../src/routes/auth.routes.ts", import.meta.url), "utf8");
   const rateLimit = await readFile(new URL("../src/middleware/rateLimit.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/auth.controller.ts", import.meta.url), "utf8");
+  const cookies = await readFile(new URL("../src/utils/cookies.ts", import.meta.url), "utf8");
 
   assert.match(routes, /"\/login", loginRateLimit/);
   assert.match(routes, /"\/refresh", refreshRateLimit/);
@@ -226,7 +227,8 @@ test("auth routes apply rate limits and browser refresh tokens stay cookie-only"
   assert.match(rateLimit, /getRateLimitMaxLogin\(\)/);
   assert.match(rateLimit, /RATE_LIMITED/);
 
-  assert.match(controller, /request\.headers\.cookie/);
+  // Cookie reading is centralised in utils/cookies.ts; controller delegates to it
+  assert.match(cookies, /request\.headers\.cookie/);
   assert.doesNotMatch(controller, /request\.body\.refreshToken/);
   assert.match(controller, /httpOnly: true/);
   assert.match(controller, /secure: process\.env\.NODE_ENV === "production"/);

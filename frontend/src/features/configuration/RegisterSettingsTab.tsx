@@ -1,10 +1,12 @@
-import { Alert, Button, Checkbox, Stack, Textarea, TextInput, NumberInput } from "@mantine/core";
+import { Alert, Button, Checkbox, Fieldset, Group, Modal, NumberInput, Stack, Text, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useDisclosure } from "@mantine/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { type FocusEvent, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { getConfigVersionStatus } from "../../api/configVersion.api";
-import { getRegister, updateRegister } from "../../api/registers.api";
+import { deleteRegister, getRegister, updateRegister } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { useFeatureFlags } from "../../hooks/useFeatureFlags";
 import { usePermissions } from "../../hooks/usePermissions";
@@ -15,8 +17,11 @@ interface RegisterSettingsTabProps {
 
 export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { isSystemAdmin } = usePermissions();
   const flags = useFeatureFlags();
+  const [deleteConfirmOpen, { open: openDeleteConfirm, close: closeDeleteConfirm }] = useDisclosure(false);
+  const [deleteNameInput, setDeleteNameInput] = useState("");
 
   const registerQuery = useQuery({
     queryKey: ["register", registerId],
@@ -34,7 +39,8 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
       riskIdZeroPaddingWidth: 4,
       reviewsEnabled: true,
       defaultReviewFrequencyMonths: 12,
-      allowViewerExport: false
+      allowViewerExport: false,
+      customFieldValidationEnabled: true
     }
   });
   const { setValues: setSettingsValues } = settingsForm;
@@ -50,7 +56,8 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
         riskIdZeroPaddingWidth: register.riskIdZeroPaddingWidth,
         reviewsEnabled: register.reviewsEnabled,
         defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
-        allowViewerExport: register.allowViewerExport
+        allowViewerExport: register.allowViewerExport,
+        customFieldValidationEnabled: register.customFieldValidationEnabled
       });
     }
   }, [registerQuery.data, setSettingsValues]);
@@ -64,19 +71,14 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   });
   const hasDraft = statusQuery.data?.hasDraft ?? false;
 
-  // When draftConfigMode is on but no draft exists, only name is directly editable.
-  // When a draft is in progress, all fields are editable (changes go directly to the
-  // register; the draft handles the complex config, and publish won't overwrite these).
   const settingsLocked = draftConfigMode && !hasDraft;
 
   const updateSettingsMutation = useMutation({
     mutationFn: () =>
-      settingsLocked
-        ? updateRegister(registerId, { name: settingsForm.values.name })
-        : updateRegister(registerId, {
-            ...settingsForm.values,
-            riskIdPrefix: settingsForm.values.riskIdPrefix || null
-          }),
+      updateRegister(registerId, {
+        ...settingsForm.values,
+        riskIdPrefix: settingsForm.values.riskIdPrefix || null
+      }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
@@ -87,58 +89,135 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteRegister(registerId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["registers"] });
+      navigate("/registers");
+    }
+  });
+
+  function handleFormBlur(event: FocusEvent<HTMLFormElement>) {
+    if (draftConfigMode && !event.currentTarget.contains(event.relatedTarget as Node)) {
+      updateSettingsMutation.mutate();
+    }
+  }
+
   return (
-    <form onSubmit={settingsForm.onSubmit(() => updateSettingsMutation.mutate())}>
+    <form
+      onSubmit={settingsForm.onSubmit(() => updateSettingsMutation.mutate())}
+      onBlur={handleFormBlur}
+    >
       <Stack>
         <ApiErrorAlert error={updateSettingsMutation.error} fallback="Unable to save register settings" />
-        {settingsLocked ? (
-          <Alert color="blue" title="Configuration is version-controlled">
-            Create a draft using the banner above to edit configuration settings. Only the register name can be changed directly while no draft is in progress.
-          </Alert>
-        ) : null}
-        {draftConfigMode && hasDraft ? (
-          <Alert color="blue" title="Draft in progress">
-            Settings saved here apply immediately. Fields and scoring changes are part of the draft and will take effect when published.
-          </Alert>
-        ) : null}
-        <TextInput label="Name" disabled={!canManage} {...settingsForm.getInputProps("name")} />
-        <Textarea label="Description" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("description")} />
-        <TextInput label="Risk ID prefix" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("riskIdPrefix")} />
-        <Checkbox
-          label="Zero-pad risk IDs"
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}
-        />
-        <NumberInput
-          label="Padding width"
-          min={2}
-          max={12}
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("riskIdZeroPaddingWidth")}
-        />
-        <Checkbox
-          label="Reviews enabled"
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("reviewsEnabled", { type: "checkbox" })}
-        />
-        <NumberInput
-          label="Default review frequency months"
-          min={1}
-          max={120}
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
-        />
-        <Checkbox
-          label="Allow Register Viewers to export"
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("allowViewerExport", { type: "checkbox" })}
-        />
-        {canManage ? (
+        <Fieldset legend="General">
+          <Stack>
+            <TextInput maw={400} label="Name" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("name")} />
+            <Textarea label="Description" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("description")} />
+          </Stack>
+        </Fieldset>
+        <Fieldset legend="Risk IDs">
+          <Stack>
+            <TextInput w={180} label="Prefix" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("riskIdPrefix")} />
+            <Checkbox
+              label="Zero-pad risk IDs"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}
+            />
+            <NumberInput
+              w={140}
+              label="Padding width"
+              min={2}
+              max={12}
+              disabled={!canManage || settingsLocked || !settingsForm.values.riskIdZeroPaddingEnabled}
+              {...settingsForm.getInputProps("riskIdZeroPaddingWidth")}
+            />
+          </Stack>
+        </Fieldset>
+        <Fieldset legend="Features">
+          <Stack>
+            <Checkbox
+              label="Allow Register Viewers to export"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("allowViewerExport", { type: "checkbox" })}
+            />
+            <Checkbox
+              label="Enable custom field validation"
+              description="Controls whether allow / warn / block validation is enforced and shown for this register."
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("customFieldValidationEnabled", { type: "checkbox" })}
+            />
+            <Checkbox
+              label="Reviews enabled"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("reviewsEnabled", { type: "checkbox" })}
+            />
+            <Fieldset legend="Reviews">
+              <NumberInput
+                w={220}
+                label="Default review frequency (months)"
+                min={1}
+                max={120}
+                disabled={!canManage || settingsLocked || !settingsForm.values.reviewsEnabled}
+                {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
+              />
+            </Fieldset>
+          </Stack>
+        </Fieldset>
+        {canManage && !settingsLocked && !draftConfigMode ? (
           <Button type="submit" loading={updateSettingsMutation.isPending}>
-            {settingsLocked ? "Save name" : "Save settings"}
+            Save settings
           </Button>
         ) : null}
+        {isSystemAdmin ? (
+          <Fieldset legend="Danger zone" style={{ borderColor: "var(--mantine-color-red-6)" }}>
+            <Stack>
+              <Text size="sm">
+                Deleting this register will hide it from all users. The register and all its risks, configuration, and audit history are retained in the database and can be restored by a system administrator if needed.
+              </Text>
+              <div>
+                <Button color="red" variant="outline" onClick={openDeleteConfirm}>
+                  Delete register
+                </Button>
+              </div>
+            </Stack>
+          </Fieldset>
+        ) : null}
       </Stack>
+
+      <Modal
+        opened={deleteConfirmOpen}
+        onClose={() => { closeDeleteConfirm(); setDeleteNameInput(""); }}
+        title="Delete register"
+        size="sm"
+        centered
+      >
+        <Stack>
+          <Alert color="red" variant="light">
+            This will hide the register from all users. All data is preserved and can be restored by a system administrator.
+          </Alert>
+          <ApiErrorAlert error={deleteMutation.error} fallback="Unable to delete register" />
+          <TextInput
+            label={<Text size="sm">Type <strong>{registerQuery.data?.name}</strong> to confirm</Text>}
+            value={deleteNameInput}
+            onChange={(e) => setDeleteNameInput(e.currentTarget.value)}
+            placeholder={registerQuery.data?.name}
+          />
+          <Group justify="flex-end">
+            <Button variant="subtle" onClick={() => { closeDeleteConfirm(); setDeleteNameInput(""); }}>
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              disabled={deleteNameInput !== registerQuery.data?.name}
+              loading={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
+            >
+              Delete register
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </form>
   );
 }

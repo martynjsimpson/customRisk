@@ -159,6 +159,58 @@ test("RegisterSettingsTab unlocks fields when a draft is in progress", async () 
 
   // When locked, mutation only sends name; when unlocked, sends all fields
   assert.match(tab, /settingsLocked/);
+  assert.match(tab, /customFieldValidationEnabled/);
+  assert.match(tab, /Enable custom field validation/);
+});
+
+test("RegisterSettingsTab auto-saves on blur in draft mode and hides the Save button", async () => {
+  const tab = await readFile(
+    new URL("../src/features/configuration/RegisterSettingsTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Auto-save: form container onBlur saves only when focus truly leaves the form
+  assert.match(tab, /handleFormBlur/);
+  assert.match(tab, /onBlur=\{handleFormBlur\}/);
+  assert.match(tab, /event\.currentTarget\.contains\(event\.relatedTarget/);
+  assert.match(tab, /draftConfigMode && !event\.currentTarget\.contains/);
+
+  // Save button is hidden in draft mode (auto-save replaces it)
+  assert.match(tab, /!draftConfigMode/);
+  assert.doesNotMatch(tab, /canManage && !settingsLocked && !draftConfigMode\s*\?\s*<Button type="submit">/s);
+  assert.match(tab, /canManage && !settingsLocked && !draftConfigMode/);
+});
+
+test("MatrixConfigTab has wizardMode prop that auto-saves and hides the Save button", async () => {
+  const tab = await readFile(
+    new URL("../src/features/configuration/MatrixConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // wizardMode prop exists
+  assert.match(tab, /wizardMode\?: boolean/);
+
+  // Auto-save in wizard mode: passes latest snapshot to mutation to avoid stale state
+  assert.match(tab, /if \(wizardMode\)/);
+  assert.match(tab, /saveMatrixMutation\.mutate\(next\)/);
+
+  // Save button hidden when wizardMode is true
+  assert.match(tab, /!isReadOnly && !wizardMode/);
+
+  // Blue alert note in draft mode about recalculation on publish
+  assert.match(tab, /Publishing this draft will recalculate risk levels/);
+
+  // ConfigVersionBanner invalidates the risks query after publish
+});
+
+test("ConfigVersionBanner invalidates the risks query after any draft lifecycle mutation", async () => {
+  const banner = await readFile(
+    new URL("../src/features/configuration/ConfigVersionBanner.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // invalidateAfterMutation includes the risks query key so the risk list refreshes
+  assert.match(banner, /"risks", registerId/);
 });
 
 test("scoring configuration tabs unlock only when a draft exists and write through updateDraftConfig", async () => {
@@ -207,4 +259,54 @@ test("field configuration unlocks only when a draft exists and dropdown options 
   assert.match(fieldTab, /updateDraftConfig/);
   assert.match(optionsModal, /readOnly\?: boolean/);
   assert.match(registerConfigService, /customFieldDefinitionId: field\.id/);
+});
+
+test("draft config snapshots preserve custom field validation modes through publish", async () => {
+  const configVersionService = await readFile(
+    new URL("../../backend/src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+  const configSnapshotTypes = await readFile(
+    new URL("../../backend/src/types/configSnapshot.ts", import.meta.url),
+    "utf8"
+  );
+  const configVersionSchemas = await readFile(
+    new URL("../../backend/src/validators/configVersion.schemas.ts", import.meta.url),
+    "utf8"
+  );
+  const configExportService = await readFile(
+    new URL("../../backend/src/services/configExport.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(configSnapshotTypes, /validationMode: "ALLOW" \| "WARN" \| "BLOCK"/);
+  assert.match(configVersionSchemas, /validationMode: z\.enum\(validationModes\)/);
+  assert.match(configVersionService, /validationMode: f\.validationMode/);
+  assert.match(configVersionService, /validationMode: cf\.validationMode/);
+  assert.match(configExportService, /validationMode: field\.validationMode/);
+});
+
+test("draft and export snapshots preserve the register-level custom field validation toggle", async () => {
+  const configVersionService = await readFile(
+    new URL("../../backend/src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+  const configSnapshotTypes = await readFile(
+    new URL("../../backend/src/types/configSnapshot.ts", import.meta.url),
+    "utf8"
+  );
+  const configVersionSchemas = await readFile(
+    new URL("../../backend/src/validators/configVersion.schemas.ts", import.meta.url),
+    "utf8"
+  );
+  const configExportImportSchemas = await readFile(
+    new URL("../../backend/src/validators/configExportImport.schemas.ts", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(configSnapshotTypes, /customFieldValidationEnabled: boolean/);
+  assert.match(configVersionSchemas, /customFieldValidationEnabled: z\.boolean\(\)\.optional\(\)/);
+  assert.match(configExportImportSchemas, /customFieldValidationEnabled: z\.boolean\(\)/);
+  assert.match(configVersionService, /customFieldValidationEnabled: register\.customFieldValidationEnabled/);
+  assert.match(configVersionService, /customFieldValidationEnabled: regSettings\.customFieldValidationEnabled/);
 });

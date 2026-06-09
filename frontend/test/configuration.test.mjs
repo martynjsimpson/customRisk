@@ -37,6 +37,45 @@ test("configuration panel marks core fields as read-only and custom fields as ed
   assert.match(tab, /CustomFieldOptionsModal/);
 });
 
+test("custom field configuration exposes validation modes and persists them through field updates", async () => {
+  const modal = await readFile(new URL("../src/features/configuration/CustomFieldModal.tsx", import.meta.url), "utf8");
+  const tab = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
+  const customFieldsApi = await readFile(new URL("../src/api/customFields.api.ts", import.meta.url), "utf8");
+  const configVersionApi = await readFile(new URL("../src/api/configVersion.api.ts", import.meta.url), "utf8");
+
+  assert.match(customFieldsApi, /export type ValidationMode = "ALLOW" \| "WARN" \| "BLOCK"/);
+  assert.match(customFieldsApi, /validationMode: ValidationMode/);
+  assert.match(configVersionApi, /"validationMode"/);
+  assert.match(modal, /label="Validation mode"/);
+  assert.match(modal, /validationModeOptions/);
+  assert.match(modal, /form\.getInputProps\("validationMode"\)/);
+  assert.match(tab, /validationMode: field\.validationMode/);
+  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
+  assert.match(tab, /validationMode:\s*values\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
+});
+
+test("custom field options modal shows activate or deactivate based on option state and wires activation through option updates", async () => {
+  const modal = await readFile(new URL("../src/features/configuration/CustomFieldOptionsModal.tsx", import.meta.url), "utf8");
+  const tab = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
+
+  assert.match(modal, /editorOpened:\s*boolean/);
+  assert.match(modal, /Add option/);
+  assert.match(modal, /title=\{editingOption \? "Edit option" : "Add option"\}/);
+  assert.match(modal, /<Button onClick=\{onClose\}>[\s\S]*Save[\s\S]*<\/Button>/);
+  assert.match(modal, /option\.isActive \?\s*\(/);
+  assert.match(modal, /Deactivate/);
+  assert.match(modal, /:\s*\(\s*<Button[\s\S]*?Activate/);
+  assert.match(modal, /onOpenCreate:\s*\(\)\s*=>\s*void/);
+  assert.match(modal, /onOpenEdit:\s*\(option:\s*CustomFieldOption\)\s*=>\s*void/);
+  assert.match(modal, /onActivate:\s*\(optionId:\s*string\)\s*=>\s*void/);
+  assert.match(tab, /editorOpened=\{optionEditorOpen\}/);
+  assert.match(tab, /onOpenCreate=\{\(\) =>/);
+  assert.match(tab, /onOpenEdit=\{\(option\) =>/);
+  assert.match(tab, /onActivate=\{\(optionId\) =>/);
+  assert.match(tab, /updateOptionMutation\.mutate\(\{\s*fieldId:\s*selectedField\.id,\s*optionId,\s*values:\s*\{\s*isActive:\s*true\s*\}\s*\}\)/s);
+  assert.match(tab, /onDeactivate=\{\(optionId\) =>/);
+});
+
 test("risk form renders custom fields interleaved with core fields by displayOrder", async () => {
   const panel = await readFile(new URL("../src/features/risks/RiskFormModal.tsx", import.meta.url), "utf8");
 

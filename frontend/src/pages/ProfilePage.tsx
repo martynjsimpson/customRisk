@@ -12,20 +12,20 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { type MantineColorScheme, useMantineColorScheme } from "@mantine/core";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notifications } from "@mantine/notifications";
-import { useNavigate } from "react-router-dom";
 
 import { changeMyPassword, updateMyProfile } from "../api/profile.api";
 import { updateMyPreferences } from "../api/preferences.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { useAuth } from "../auth/session";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
+import { PREFERENCES_QUERY_KEY } from "../hooks/usePreferences";
 
 export function ProfilePage() {
-  const { user, setPreferences, logout } = useAuth();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const flags = useFeatureFlags();
-  const navigate = useNavigate();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   const nameForm = useForm({
@@ -51,17 +51,16 @@ export function ProfilePage() {
   const changePasswordMutation = useMutation({
     mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
       changeMyPassword(currentPassword, newPassword),
-    onSuccess: async () => {
-      notifications.show({ message: "Password changed. Please log in again.", color: "green" });
-      await logout();
-      navigate("/login");
+    onSuccess: () => {
+      passwordForm.reset();
+      notifications.show({ message: "Password changed. Other active sessions have been signed out.", color: "green" });
     }
   });
 
   const preferencesMutation = useMutation({
     mutationFn: (scheme: MantineColorScheme) => updateMyPreferences({ colorScheme: scheme }),
     onSuccess: (data) => {
-      setPreferences(data);
+      queryClient.setQueryData(PREFERENCES_QUERY_KEY, data);
     }
   });
 
@@ -138,7 +137,7 @@ export function ProfilePage() {
                 {...passwordForm.getInputProps("confirmPassword")}
               />
               <Text size="xs" c="dimmed">
-                Changing your password will end all other active sessions.
+                Changing your password will sign out all other active sessions.
               </Text>
               <Group>
                 <Button type="submit" loading={changePasswordMutation.isPending}>

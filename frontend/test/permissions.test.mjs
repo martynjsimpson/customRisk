@@ -28,7 +28,7 @@ test("common workflow actions stay unavailable when the user lacks permission", 
   const registerDetailPage = await readFile(new URL("../src/pages/RegisterDetailPage.tsx", import.meta.url), "utf8");
   const riskPanel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
 
-  assert.match(registersPage, /isSystemAdmin \? <Button onClick=\{openCreateModal\}>Create register<\/Button> : null/);
+  assert.match(registersPage, /isSystemAdmin \? <Button onClick=\{openWizard\}>Create register<\/Button> : null/);
   assert.match(registerDetailPage, /canManage \? <Tabs\.Tab value="configuration">Configuration<\/Tabs\.Tab> : null/);
   assert.match(registerDetailPage, /canManage \? <Tabs\.Tab value="permissions">Permissions<\/Tabs\.Tab> : null/);
   assert.match(registerDetailPage, /canManage \? <Tabs\.Tab value="audit">Audit<\/Tabs\.Tab> : null/);

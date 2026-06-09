@@ -1,16 +1,21 @@
-import { Button, Group, Stack, Title } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   type CustomFieldDefinition,
   type CustomFieldOption,
+  type CustomFieldUsage,
+  type RegisterRole,
+  deleteCustomField,
+  getCustomFieldUsage,
   getRegisterConfiguration,
   listCustomFieldOptions,
   type SaveCustomFieldOptionInput
 } from "../../api/customFields.api";
 import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { usePermissions } from "../../hooks/usePermissions";
 import { CORE_RISK_FIELDS } from "../risks/coreRiskFields";
 import { CustomFieldModal, parseInitialOptions } from "./CustomFieldModal";
 import { CustomFieldOptionsModal } from "./CustomFieldOptionsModal";
@@ -33,11 +38,16 @@ interface FieldConfigTabProps {
 
 export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabProps) {
   const queryClient = useQueryClient();
+  const { isSystemAdmin } = usePermissions();
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const [optionsModalOpen, setOptionsModalOpen] = useState(false);
+  const [optionEditorOpen, setOptionEditorOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomFieldDefinition | null>(null);
   const [selectedField, setSelectedField] = useState<CustomFieldDefinition | null>(null);
   const [editingOption, setEditingOption] = useState<CustomFieldOption | null>(null);
+  const [deleteConfirmField, setDeleteConfirmField] = useState<CustomFieldDefinition | null>(null);
+  const [deleteFieldUsage, setDeleteFieldUsage] = useState<CustomFieldUsage | null>(null);
+  const [loadingUsage, setLoadingUsage] = useState(false);
 
   const configQuery = useQuery({
     queryKey: ["register-config", registerId],
@@ -68,6 +78,22 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
   );
   const selectedFieldOptions = hasDraft ? (selectedField?.options ?? []) : (optionsQuery.data ?? []);
 
+  useEffect(() => {
+    if (!selectedField) {
+      return;
+    }
+
+    const refreshedSelectedField = fields.find((field) => field.id === selectedField.id);
+    if (!refreshedSelectedField) {
+      setSelectedField(null);
+      return;
+    }
+
+    if (refreshedSelectedField !== selectedField) {
+      setSelectedField(refreshedSelectedField);
+    }
+  }, [fields, selectedField]);
+
   const buildDraftFields = (
     updater: (current: CustomFieldDefinition[]) => CustomFieldDefinition[]
   ) =>
@@ -77,8 +103,11 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       fieldType: field.fieldType,
       helpText: field.helpText,
       isRequired: field.isRequired,
+      validationMode: field.validationMode,
       displayOrder: field.displayOrder,
       isActive: field.isActive,
+      visibleToRoles: field.visibleToRoles,
+      visibleToRiskResponseOwners: field.visibleToRiskResponseOwners,
       options: field.options.map((option) => ({
         id: option.id,
         label: option.label,
@@ -106,9 +135,13 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     fieldType: CustomFieldDefinition["fieldType"];
     helpText: string | null;
     isRequired: boolean;
+    validationMode?: CustomFieldDefinition["validationMode"];
     displayOrder: number;
     isActive: boolean;
     options?: Array<{ label: string; displayOrder: number; isActive?: boolean }>;
+    formula?: string;
+    visibleToRoles?: RegisterRole[];
+    visibleToRiskResponseOwners?: boolean;
   }>({
     mutationFn: (values) => {
       const newFieldId = crypto.randomUUID();
@@ -125,8 +158,13 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                   fieldType: values.fieldType,
                   helpText: values.helpText,
                   isRequired: values.isRequired,
+                  validationMode: values.validationMode ?? (values.isRequired ? "BLOCK" : "ALLOW"),
                   displayOrder: values.displayOrder,
                   isActive: values.isActive,
+                  formula: values.formula ?? null,
+                  formulaDependencies: [],
+                  visibleToRoles: values.visibleToRoles ?? [],
+                  visibleToRiskResponseOwners: values.visibleToRiskResponseOwners ?? true,
                   options: (values.options ?? []).map((option) => ({
                     id: crypto.randomUUID(),
                     customFieldDefinitionId: newFieldId,
@@ -147,12 +185,16 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
   });
   const updateFieldMutation = useMutation<unknown, Error, {
     fieldId: string;
-    values: {
-      fieldName?: string;
-      helpText?: string | null;
-      isRequired?: boolean;
-      isActive?: boolean;
-      displayOrder?: number;
+      values: {
+        fieldName?: string;
+        helpText?: string | null;
+        isRequired?: boolean;
+        validationMode?: CustomFieldDefinition["validationMode"];
+        isActive?: boolean;
+        displayOrder?: number;
+      formula?: string;
+      visibleToRoles?: RegisterRole[];
+      visibleToRiskResponseOwners?: boolean;
     };
   }>({
     mutationFn: ({
@@ -228,6 +270,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
           })
         : createCustomFieldOption(registerId, fieldId, values),
     onSuccess: async () => {
+      setOptionEditorOpen(false);
       setEditingOption(null);
       await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
@@ -259,6 +302,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
           })
         : updateCustomFieldOption(registerId, fieldId, optionId, values),
     onSuccess: async () => {
+      setOptionEditorOpen(false);
       setEditingOption(null);
       await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
@@ -297,18 +341,37 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
   const openOptions = (field: CustomFieldDefinition) => {
     setSelectedField(field);
     setEditingOption(null);
+    setOptionEditorOpen(false);
     setOptionsModalOpen(true);
   };
 
+  const openDeleteConfirm = async (field: CustomFieldDefinition) => {
+    setDeleteConfirmField(field);
+    setDeleteFieldUsage(null);
+    setLoadingUsage(true);
+    try {
+      const usage = await getCustomFieldUsage(registerId, field.id);
+      setDeleteFieldUsage(usage);
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
+
+  const deleteFieldMutation = useMutation<unknown, Error, { fieldId: string; force: boolean }>({
+    mutationFn: ({ fieldId, force }) => deleteCustomField(registerId, fieldId, force),
+    onSuccess: async () => {
+      setDeleteConfirmField(null);
+      setDeleteFieldUsage(null);
+      await invalidateCustomFieldConfiguration(queryClient, registerId);
+    }
+  });
+
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={2}>Field Configuration</Title>
-        {!isReadOnly ? <Button onClick={openCreateField}>Add field</Button> : null}
-      </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load register configuration" />
       <ApiErrorAlert error={activateFieldMutation.error} fallback="Unable to activate field" />
       <ApiErrorAlert error={deactivateFieldMutation.error} fallback="Unable to deactivate field" />
+      <ApiErrorAlert error={deleteFieldMutation.error} fallback="Unable to delete field" />
       <CustomFieldTable
         fields={fields}
         onReorder={(fieldId, newDisplayOrder) => reorderFieldMutation.mutate({ fieldId, displayOrder: newDisplayOrder })}
@@ -316,8 +379,15 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         onOpenOptions={openOptions}
         onActivateField={(fieldId) => activateFieldMutation.mutate(fieldId)}
         onDeactivateField={(fieldId) => deactivateFieldMutation.mutate(fieldId)}
+        onDeleteField={isSystemAdmin ? openDeleteConfirm : undefined}
+        isSystemAdmin={isSystemAdmin}
         readOnly={isReadOnly}
       />
+      {!isReadOnly ? (
+        <Group justify="flex-end">
+          <Button onClick={openCreateField}>Add field</Button>
+        </Group>
+      ) : null}
 
       <CustomFieldModal
         opened={fieldModalOpen}
@@ -325,6 +395,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         createError={createFieldMutation.error}
         updateError={updateFieldMutation.error}
         isSaving={createFieldMutation.isPending || updateFieldMutation.isPending}
+        validationEnabled={configQuery.data?.register.customFieldValidationEnabled ?? false}
         onClose={() => {
           setFieldModalOpen(false);
           setEditingField(null);
@@ -336,27 +407,37 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
               values: {
                 fieldName: values.fieldName,
                 helpText: values.helpText || null,
-                isRequired: values.isRequired,
-                isActive: values.isActive
+                isRequired: editingField.fieldType === "CALCULATED" ? false : values.isRequired,
+                validationMode: editingField.fieldType === "CALCULATED" ? undefined : values.validationMode,
+                isActive: values.isActive,
+                formula: editingField.fieldType === "CALCULATED" && values.formula ? values.formula : undefined,
+                visibleToRoles: values.visibleToRoles,
+                visibleToRiskResponseOwners: values.visibleToRiskResponseOwners
               }
             });
             return;
           }
 
+          const isOptionsType = values.fieldType === "DROPDOWN" || values.fieldType === "MULTI_SELECT";
           createFieldMutation.mutate({
             fieldName: values.fieldName,
             fieldType: values.fieldType,
             helpText: values.helpText || null,
-            isRequired: values.isRequired,
+            isRequired: values.fieldType === "CALCULATED" ? false : values.isRequired,
+            validationMode: values.fieldType === "CALCULATED" ? undefined : values.validationMode,
             displayOrder: nextFieldDisplayOrder,
             isActive: values.isActive,
-            options: values.fieldType === "DROPDOWN" ? parseInitialOptions(values.initialOptionsText) : undefined
+            options: isOptionsType ? parseInitialOptions(values.initialOptionsText) : undefined,
+            formula: values.fieldType === "CALCULATED" && values.formula ? values.formula : undefined,
+            visibleToRoles: values.visibleToRoles,
+            visibleToRiskResponseOwners: values.visibleToRiskResponseOwners
           });
         }}
       />
 
       <CustomFieldOptionsModal
         opened={optionsModalOpen}
+        editorOpened={optionEditorOpen}
         selectedField={selectedField}
         options={selectedFieldOptions}
         editingOption={editingOption}
@@ -368,10 +449,22 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         isSaving={createOptionMutation.isPending || updateOptionMutation.isPending}
         onClose={() => {
           setOptionsModalOpen(false);
+          setOptionEditorOpen(false);
           setSelectedField(null);
           setEditingOption(null);
         }}
-        onEditOption={setEditingOption}
+        onOpenCreate={() => {
+          setEditingOption(null);
+          setOptionEditorOpen(true);
+        }}
+        onOpenEdit={(option) => {
+          setEditingOption(option);
+          setOptionEditorOpen(true);
+        }}
+        onCloseEditor={() => {
+          setOptionEditorOpen(false);
+          setEditingOption(null);
+        }}
         onSubmit={(values) => {
           if (!selectedField) {
             return;
@@ -391,6 +484,17 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
             values
           });
         }}
+        onActivate={(optionId) => {
+          if (!selectedField) {
+            return;
+          }
+
+          updateOptionMutation.mutate({
+            fieldId: selectedField.id,
+            optionId,
+            values: { isActive: true }
+          });
+        }}
         onDeactivate={(optionId) => {
           if (!selectedField) {
             return;
@@ -402,6 +506,56 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
           });
         }}
       />
+
+      <Modal
+        opened={Boolean(deleteConfirmField)}
+        onClose={() => {
+          setDeleteConfirmField(null);
+          setDeleteFieldUsage(null);
+        }}
+        title="Delete custom field"
+      >
+        <Stack>
+          <ApiErrorAlert error={deleteFieldMutation.error} fallback="Unable to delete field" />
+          {loadingUsage ? (
+            <Text>Checking field usage…</Text>
+          ) : deleteFieldUsage && deleteFieldUsage.totalValueCount > 0 ? (
+            <Text>
+              <strong>{deleteConfirmField?.fieldName}</strong> has {deleteFieldUsage.totalValueCount} value(s) across risks.
+              Deleting this field will permanently remove all associated data. This cannot be undone.
+            </Text>
+          ) : (
+            <Text>
+              Permanently delete <strong>{deleteConfirmField?.fieldName}</strong>? This cannot be undone.
+            </Text>
+          )}
+          <Group justify="flex-end">
+            <Button
+              variant="subtle"
+              onClick={() => {
+                setDeleteConfirmField(null);
+                setDeleteFieldUsage(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              loading={deleteFieldMutation.isPending || loadingUsage}
+              disabled={loadingUsage}
+              onClick={() => {
+                if (!deleteConfirmField) return;
+                deleteFieldMutation.mutate({
+                  fieldId: deleteConfirmField.id,
+                  force: (deleteFieldUsage?.totalValueCount ?? 0) > 0
+                });
+              }}
+            >
+              {deleteFieldUsage && deleteFieldUsage.totalValueCount > 0 ? "Force delete" : "Delete"}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }

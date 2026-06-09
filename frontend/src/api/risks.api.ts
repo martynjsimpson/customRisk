@@ -8,6 +8,7 @@ export type RiskState = "DRAFT" | "OPEN" | "CLOSED";
 export const RISK_STATES: RiskState[] = ["DRAFT", "OPEN", "CLOSED"];
 
 export type ReviewStatus = "NOT_REQUIRED" | "NOT_REVIEWED" | "NOT_DUE" | "DUE_SOON" | "OVERDUE";
+export type ValidationStatus = "BLOCK" | "WARN" | "OK";
 
 export interface RiskListQuery {
   page?: number;
@@ -19,9 +20,16 @@ export interface RiskListQuery {
   overdue?: boolean;
   dueForReview?: boolean;
   includeClosed?: boolean;
+  validationIssues?: boolean;
   search?: string;
   sortBy?: "riskId" | "title" | "state" | "owner" | "riskScore" | "riskLevel" | "nextReviewDate" | "systemUpdatedAt";
   sortDir?: "asc" | "desc";
+}
+
+export interface ValidationSummary {
+  blockCount: number;
+  warnCount: number;
+  total: number;
 }
 
 export interface RiskPerson {
@@ -52,6 +60,7 @@ export interface RiskListCustomFieldValue {
   personUser: { id: string; name: string; email: string } | null;
   person: { displayName: string } | null;
   dropdownOption: { id: string; label: string } | null;
+  selectedOptions?: Array<{ id: string; label: string }>;
 }
 
 export interface RiskListItem {
@@ -68,8 +77,17 @@ export interface RiskListItem {
   nextReviewDate: string | null;
   reviewStatus: ReviewStatus;
   isOverdue: boolean;
+  validationStatus: ValidationStatus;
   systemUpdatedAt: string;
   customFieldValues: RiskListCustomFieldValue[];
+}
+
+export type ValidationMode = "ALLOW" | "WARN" | "BLOCK";
+
+export interface FieldWarning {
+  fieldId: string;
+  fieldName: string;
+  message: string;
 }
 
 export interface CustomFieldDefinition {
@@ -78,6 +96,7 @@ export interface CustomFieldDefinition {
   fieldType: CustomFieldType;
   helpText: string | null;
   isRequired: boolean;
+  validationMode: ValidationMode;
   displayOrder: number;
   isActive: boolean;
   options?: Array<{ id: string; label: string; displayOrder?: number; isActive?: boolean }>;
@@ -92,6 +111,7 @@ export interface RiskCustomFieldValueInput {
   personUserId?: string;
   personEmail?: string;
   dropdownOptionId?: string;
+  multiSelectOptionIds?: string[];
 }
 
 export interface RiskFormConfig {
@@ -100,6 +120,7 @@ export interface RiskFormConfig {
     id: string;
     defaultNewRiskState: RiskState;
     reviewsEnabled: boolean;
+    customFieldValidationEnabled: boolean;
   };
   users: RiskPerson[];
   customFields: CustomFieldDefinition[];
@@ -127,6 +148,7 @@ export interface RiskDetail extends RiskListItem {
     person: PersonDisplay | null;
     personUser: RiskPerson | null;
     dropdownOption: { id: string; label: string } | null;
+    selectedOptions?: Array<{ id: string; label: string }>;
   }>;
   lastReviewedAt: string | null;
   lastReviewedBy: RiskPerson | null;
@@ -154,6 +176,7 @@ export interface SaveRiskInput {
   impactValueId: string;
   responseStrategyId: string;
   responseAction?: string | null;
+  acknowledgedWarnings?: boolean;
   customFields?: RiskCustomFieldValueInput[];
 }
 
@@ -200,6 +223,13 @@ export async function deleteRisk(registerId: string, riskId: string, input: { de
 export async function getRiskFormConfig(registerId: string) {
   const response = await apiClient.get<{ data: RiskFormConfig }>(
     `/registers/${registerId}/risk-form-config`
+  );
+  return response.data.data;
+}
+
+export async function getValidationSummary(registerId: string) {
+  const response = await apiClient.get<{ data: ValidationSummary }>(
+    `/registers/${registerId}/risks/validation-summary`
   );
   return response.data.data;
 }

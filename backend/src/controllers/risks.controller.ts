@@ -4,6 +4,7 @@ import {
   createRisk,
   deleteRisk,
   getRiskDetail,
+  getRiskValidationSummary,
   listRisks,
   updateRisk
 } from "../services/risks.service.js";
@@ -68,6 +69,16 @@ export async function deleteRiskController(
       request.params.riskId,
       request.body
     )
+  );
+}
+
+export async function getRiskValidationSummaryController(
+  request: Request<RegisterIdParams>,
+  response: Response
+) {
+  sendData(
+    response,
+    await getRiskValidationSummary(actorOrThrow(request), request.params.registerId)
   );
 }
 

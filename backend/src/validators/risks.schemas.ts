@@ -33,6 +33,7 @@ export const listRisksQuerySchema = z.object({
   dueForReview: queryBooleanSchema.optional(),
   overdue: queryBooleanSchema.optional(),
   includeClosed: queryBooleanSchema.default(false),
+  validationIssues: queryBooleanSchema.optional(),
   search: z.string().trim().optional(),
   sortBy: z
     .enum(["riskId", "title", "state", "owner", "riskScore", "riskLevel", "nextReviewDate", "systemUpdatedAt"])
@@ -48,7 +49,8 @@ export const riskCustomFieldValueSchema = z.object({
   dateValue: dateOnlySchema.optional(),
   personUserId: z.string().uuid().optional(),
   personEmail: z.string().email().optional(),
-  dropdownOptionId: z.string().uuid().optional()
+  dropdownOptionId: z.string().uuid().optional(),
+  multiSelectOptionIds: z.array(z.string().uuid()).optional()
 });
 
 export const createRiskSchema = z
@@ -62,6 +64,7 @@ export const createRiskSchema = z
     impactValueId: z.string().uuid(),
     responseStrategyId: z.string().uuid(),
     responseAction: z.string().trim().nullable().optional(),
+    acknowledgedWarnings: z.boolean().optional(),
     customFields: z.array(riskCustomFieldValueSchema).optional(),
     customFieldValues: z.array(riskCustomFieldValueSchema).optional()
   })
@@ -81,6 +84,7 @@ export const updateRiskSchema = z
     impactValueId: z.string().uuid().optional(),
     responseStrategyId: z.string().uuid().optional(),
     responseAction: z.string().trim().nullable().optional(),
+    acknowledgedWarnings: z.boolean().optional(),
     customFields: z.array(riskCustomFieldValueSchema).optional(),
     customFieldValues: z.array(riskCustomFieldValueSchema).optional()
   })

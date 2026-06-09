@@ -48,7 +48,8 @@ export const updateRegisterSchema = z.object({
   riskIdZeroPaddingWidth: z.number().int().min(2).max(12).optional(),
   reviewsEnabled: z.boolean().optional(),
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120).optional(),
-  allowViewerExport: z.boolean().optional()
+  allowViewerExport: z.boolean().optional(),
+  customFieldValidationEnabled: z.boolean().optional()
 });
 
 export type RegisterIdParams = z.infer<typeof registerIdParamsSchema>;

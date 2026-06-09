@@ -1,6 +1,6 @@
 # Phase 2 — Person Identity Expansion
 
-**Status:** Done
+**Status:** Mixed
 
 Phase goal: move beyond MVP local-user-only person assignment and support unresolved email assignment, later linking, and richer person-picker behaviour.
 
@@ -61,7 +61,7 @@ Summary of the decision:
 
 ## PM2-02 — Email-Only Person Picker Backend Support
 
-**Status:** Done
+**Status:** Partial
 
 **Goal:** Allow configured person fields to accept valid email addresses that are not yet local users.
 
@@ -128,7 +128,7 @@ Summary of the decision:
 
 ## PM2-05 — Person Assignment Permission and Audit Review
 
-**Status:** Done
+**Status:** Partial
 
 **Goal:** Ensure person assignment rules do not create unintended access.
 

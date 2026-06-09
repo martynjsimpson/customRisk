@@ -271,7 +271,8 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["config-version-status", registerId] }),
       queryClient.invalidateQueries({ queryKey: ["register-config", registerId] }),
-      queryClient.invalidateQueries({ queryKey: ["register", registerId] })
+      queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
+      queryClient.invalidateQueries({ queryKey: ["risks", registerId] })
     ]);
   };
 
@@ -413,11 +414,11 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
         publishError={publishDraftMutation.error}
       />
 
-      <Modal opened={publishConfirmOpen} onClose={closePublishConfirm} title="Publish Draft">
+      <Modal size="sm" opened={publishConfirmOpen} onClose={closePublishConfirm} title="Publish draft" centered>
         <Stack>
-          <Text>Are you sure you want to publish this draft? This will make the changes live.</Text>
+          <Text>Publishing will make all draft changes live and visible to all users of this register. This cannot be undone.</Text>
           <ApiErrorAlert error={publishDraftMutation.error} fallback="Unable to publish draft" />
-          <Group justify="flex-end">
+          <Group justify="flex-end" mt="xs">
             <Button variant="subtle" onClick={closePublishConfirm}>Cancel</Button>
             <Button
               onClick={() => publishDraftMutation.mutate()}
@@ -429,11 +430,11 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
         </Stack>
       </Modal>
 
-      <Modal opened={discardConfirmOpen} onClose={closeDiscardConfirm} title="Discard Draft">
+      <Modal size="sm" opened={discardConfirmOpen} onClose={closeDiscardConfirm} title="Discard draft" centered>
         <Stack>
-          <Text>Are you sure you want to discard the draft? All unpublished changes will be lost.</Text>
+          <Text>All unpublished changes in this draft will be permanently lost. This cannot be undone.</Text>
           <ApiErrorAlert error={discardDraftMutation.error} fallback="Unable to discard draft" />
-          <Group justify="flex-end">
+          <Group justify="flex-end" mt="xs">
             <Button variant="subtle" onClick={closeDiscardConfirm}>Cancel</Button>
             <Button
               color="red"

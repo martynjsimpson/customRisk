@@ -1,6 +1,6 @@
 # Phase 4 — Configuration Lifecycle and Templates
 
-**Status:** Planned
+**Status:** Mostly Shipped
 
 Phase goal: protect register configuration changes through drafts, impact analysis, publishing, import/export, and reusable templates.
 
@@ -24,7 +24,7 @@ Phases 1, 2, 3, 7, 9, 10, and 12 can run at the same time.
 
 ## PM4-01 — Configuration Version Data Model
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Introduce versioned register configuration storage.
 
@@ -61,7 +61,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-02 — Draft Configuration Editing API
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Allow configuration changes to be staged in draft before publishing.
 
@@ -83,7 +83,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-03 — Configuration Impact Analysis Service
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Analyse the effect of publishing configuration changes.
 
@@ -107,7 +107,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-04 — Configuration Publish API
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Publish a draft configuration version safely.
 
@@ -130,7 +130,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-05 — Configuration Draft and Publish Frontend
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Build UI for draft configuration, impact analysis, and publishing.
 
@@ -153,7 +153,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-06 — Register Configuration JSON Export
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Export register configuration as portable JSON.
 
@@ -176,7 +176,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-07 — Register Configuration JSON Import
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Import register configuration JSON into a draft.
 
@@ -199,7 +199,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-08 — Global Template Data Model
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Model reusable versioned register templates.
 
@@ -220,7 +220,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-09 — Template Management API
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Allow System Admins to create and manage global templates.
 
@@ -242,7 +242,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-10 — Create Register From Template
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Allow registers to be created from a selected template version.
 
@@ -263,7 +263,7 @@ The mandatory backfill: for every existing register, create a version 1 `PUBLISH
 
 ## PM4-11 — Template Update and Migration Planning
 
-**Status:** Planned
+**Status:** Done
 
 **Goal:** Allow administrators to compare a register with a newer template version and plan migration.
 

@@ -24,6 +24,7 @@ import type {
   UserIdParams
 } from "../validators/users.schemas.js";
 import { actorOrThrow } from "../utils/actorOrThrow.js";
+import { getRefreshTokenFromRequest } from "../utils/cookies.js";
 
 export async function listUsersController(
   request: Request<ParamsDictionary, unknown, unknown, ListUsersQuery>,
@@ -74,7 +75,7 @@ export async function changeMyPasswordController(
   request: Request<ParamsDictionary, unknown, ChangePasswordBody>,
   response: Response
 ) {
-  await changeMyPassword(actorOrThrow(request), request.body);
+  await changeMyPassword(actorOrThrow(request), request.body, getRefreshTokenFromRequest(request));
   sendData(response, { success: true });
 }
 

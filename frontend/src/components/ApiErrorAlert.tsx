@@ -1,10 +1,14 @@
 import { Alert, Stack, Text } from "@mantine/core";
 import { isAxiosError } from "axios";
 
+import type { FieldWarning } from "../api/risks.api";
+
 interface ApiErrorBody {
   error?: {
+    code?: string;
     message?: string;
     fields?: Record<string, string>;
+    warnings?: FieldWarning[];
   };
 }
 
@@ -28,9 +32,29 @@ export function getApiErrorFields(error: unknown) {
   return error.response?.data?.error?.fields;
 }
 
+export function getApiErrorCode(error: unknown): string | undefined {
+  if (!isAxiosError<ApiErrorBody>(error)) {
+    return undefined;
+  }
+
+  return error.response?.data?.error?.code;
+}
+
+export function getApiErrorWarnings(error: unknown): FieldWarning[] | undefined {
+  if (!isAxiosError<ApiErrorBody>(error)) {
+    return undefined;
+  }
+
+  return error.response?.data?.error?.warnings;
+}
+
 export function formatApiErrorFieldName(field: string) {
   if (field === "_root" || field === "body") {
     return "Request";
+  }
+
+  if (field.startsWith("field.")) {
+    return "";
   }
 
   return field
@@ -62,7 +86,9 @@ export function ApiErrorAlert({
               .sort(([left], [right]) => left.localeCompare(right))
               .map(([field, message]) => (
                 <Text key={field} size="sm">
-                  {formatApiErrorFieldName(field)}: {message}
+                  {formatApiErrorFieldName(field)
+                    ? `${formatApiErrorFieldName(field)}: ${message}`
+                    : message}
                 </Text>
               ))
           : null}

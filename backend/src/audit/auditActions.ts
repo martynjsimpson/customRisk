@@ -12,6 +12,7 @@ export const auditActions = {
   systemAdminGranted: "SYSTEM_ADMIN_GRANTED",
   systemAdminRemoved: "SYSTEM_ADMIN_REMOVED",
   registerCreated: "REGISTER_CREATED",
+  registerDeleted: "REGISTER_DELETED",
   registerSettingsUpdated: "REGISTER_SETTINGS_UPDATED",
   registerAdminAdded: "REGISTER_ADMIN_ADDED",
   registerAdminRemoved: "REGISTER_ADMIN_REMOVED",

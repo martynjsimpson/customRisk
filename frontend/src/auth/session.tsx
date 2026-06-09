@@ -1,13 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { getCurrentUser, login as loginRequest, logout as logoutRequest, refreshSession } from "../api/auth.api";
 import type {
   CurrentPermissions,
   CurrentUser,
-  EnabledFeatures,
-  UserPreferences
+  EnabledFeatures
 } from "../api/contracts";
 import { getMyPreferences } from "../api/preferences.api";
+import { PREFERENCES_QUERY_KEY } from "../hooks/usePreferences";
 
 interface AuthContextValue {
   accessToken: string | null;
@@ -15,8 +16,6 @@ interface AuthContextValue {
   permissions: CurrentPermissions | null;
   enabledFeatures: EnabledFeatures | null;
   appEnvironment: "development" | "production" | null;
-  preferences: UserPreferences | null;
-  setPreferences: (prefs: UserPreferences | null) => void;
   isBootstrapping: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -32,12 +31,12 @@ export function getAccessToken() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const [accessToken, setAccessTokenState] = useState<string | null>(memoryAccessToken);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [permissions, setPermissions] = useState<CurrentPermissions | null>(null);
   const [enabledFeatures, setEnabledFeatures] = useState<EnabledFeatures | null>(null);
   const [appEnvironment, setAppEnvironment] = useState<"development" | "production" | null>(null);
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const setAccessToken = useCallback((token: string | null) => {
@@ -66,12 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled && session.enabledFeatures.userPreferences) {
           try {
             const prefs = await getMyPreferences();
-            if (!cancelled) setPreferences(prefs);
+            if (!cancelled) queryClient.setQueryData(PREFERENCES_QUERY_KEY, prefs);
           } catch {
             // Preference load failure must not block the app
           }
-        } else if (!cancelled) {
-          setPreferences(null);
         }
       } catch {
         if (!cancelled) {
@@ -80,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPermissions(null);
           setEnabledFeatures(null);
           setAppEnvironment(null);
-          setPreferences(null);
+          queryClient.removeQueries({ queryKey: PREFERENCES_QUERY_KEY });
         }
       } finally {
         if (!cancelled) {
@@ -94,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [setAccessToken]);
+  }, [setAccessToken, queryClient]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -108,15 +105,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session.enabledFeatures.userPreferences) {
         try {
           const prefs = await getMyPreferences();
-          setPreferences(prefs);
+          queryClient.setQueryData(PREFERENCES_QUERY_KEY, prefs);
         } catch {
           // non-fatal
         }
-      } else {
-        setPreferences(null);
       }
     },
-    [setAccessToken]
+    [setAccessToken, queryClient]
   );
 
   const logout = useCallback(async () => {
@@ -128,9 +123,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPermissions(null);
       setEnabledFeatures(null);
       setAppEnvironment(null);
-      setPreferences(null);
+      queryClient.removeQueries({ queryKey: PREFERENCES_QUERY_KEY });
     }
-  }, [setAccessToken]);
+  }, [setAccessToken, queryClient]);
 
   const value = useMemo(
     () => ({
@@ -139,14 +134,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       permissions,
       enabledFeatures,
       appEnvironment,
-      preferences,
-      setPreferences,
       isBootstrapping,
       login,
       logout,
       setAccessToken
     }),
-    [accessToken, appEnvironment, enabledFeatures, isBootstrapping, login, logout, permissions, preferences, setAccessToken, user]
+    [accessToken, appEnvironment, enabledFeatures, isBootstrapping, login, logout, permissions, setAccessToken, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

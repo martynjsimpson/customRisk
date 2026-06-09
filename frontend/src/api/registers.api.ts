@@ -26,6 +26,7 @@ export interface RegisterRecord {
   defaultReviewFrequencyMonths: number;
   reviewAttestationText: string;
   allowViewerExport: boolean;
+  customFieldValidationEnabled: boolean;
   effectiveRole: "SYSTEM_ADMIN" | "REGISTER_ADMIN" | "REGISTER_VIEWER" | "RISK_OWNER" | "NONE";
   openRisksCount: number;
   overdueRisksCount: number;
@@ -67,6 +68,7 @@ export type UpdateRegisterInput = Partial<
     | "reviewsEnabled"
     | "defaultReviewFrequencyMonths"
     | "allowViewerExport"
+    | "customFieldValidationEnabled"
   >
 >;
 
@@ -120,6 +122,10 @@ export async function removeRegisterPermission(registerId: string, permissionId:
     `/registers/${registerId}/permissions/${permissionId}`
   );
   return response.data.data;
+}
+
+export async function deleteRegister(registerId: string): Promise<void> {
+  await apiClient.delete(`/registers/${registerId}`);
 }
 
 export async function unlinkRegisterFromTemplate(registerId: string): Promise<void> {

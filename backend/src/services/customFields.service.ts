@@ -3,6 +3,7 @@ import { Prisma, type AuditValueType } from "@prisma/client";
 import { auditActions } from "../audit/auditActions.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
+import { validateFormula } from "./formulaEvaluator.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import type {
   CreateCustomFieldBody,
@@ -25,6 +26,7 @@ const registerConfigSelect = {
   defaultReviewFrequencyMonths: true,
   reviewAttestationText: true,
   allowViewerExport: true,
+  customFieldValidationEnabled: true,
   createdAt: true,
   updatedAt: true
 };
@@ -39,9 +41,10 @@ const customFieldAuditFields = [
   { name: "fieldName", label: "Field name", valueType: "TEXT" },
   { name: "helpText", label: "Help text", valueType: "TEXT" },
   { name: "isRequired", label: "Required", valueType: "BOOLEAN" },
+  { name: "validationMode", label: "Validation mode", valueType: "TEXT" },
   { name: "displayOrder", label: "Display order", valueType: "NUMBER" },
   { name: "isActive", label: "Active", valueType: "BOOLEAN" }
-] satisfies Array<{ name: "fieldName" | "helpText" | "isRequired" | "displayOrder" | "isActive"; label: string; valueType: AuditValueType }>;
+] satisfies Array<{ name: "fieldName" | "helpText" | "isRequired" | "validationMode" | "displayOrder" | "isActive"; label: string; valueType: AuditValueType }>;
 
 const optionAuditFields = [
   { name: "label", label: "Label", valueType: "TEXT" },
@@ -91,11 +94,24 @@ async function findCustomField(registerId: string, fieldId: string) {
   return field;
 }
 
+function isOptionsField(fieldType: string) {
+  return fieldType === "DROPDOWN" || fieldType === "MULTI_SELECT";
+}
+
+function isCalculatedField(fieldType: string) {
+  return fieldType === "CALCULATED";
+}
+
+export function extractFormulaDependencies(formula: string): string[] {
+  const matches = formula.matchAll(/\{field:([0-9a-f-]{36})\}/gi);
+  return [...new Set([...matches].map((m) => m[1]).filter((id): id is string => Boolean(id)))];
+}
+
 async function findDropdownField(registerId: string, fieldId: string) {
   const field = await findCustomField(registerId, fieldId);
-  if (field.fieldType !== "DROPDOWN") {
-    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown fields", {
-      fieldId: "Custom field must be a dropdown field"
+  if (!isOptionsField(field.fieldType)) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown and multi-select fields", {
+      fieldId: "Custom field must be a dropdown or multi-select field"
     });
   }
 
@@ -156,16 +172,47 @@ async function assertDropdownWillKeepActiveOption(fieldId: string, optionId: str
 }
 
 function validateCreateCustomField(input: CreateCustomFieldBody) {
+  if (isCalculatedField(input.fieldType)) {
+    if (!input.formula) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields require a formula", {
+        formula: "Provide a formula expression for this calculated field"
+      });
+    }
+    const formulaCheck = validateFormula(input.formula);
+    if (!formulaCheck.valid) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Invalid formula expression", {
+        formula: formulaCheck.error ?? "Formula cannot be evaluated"
+      });
+    }
+    if (input.options && input.options.length > 0) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields cannot have options", {
+        options: "Options are not supported for calculated fields"
+      });
+    }
+    if (input.isRequired) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields cannot be marked as required", {
+        isRequired: "Calculated fields are computed automatically and cannot be required"
+      });
+    }
+    return;
+  }
+
   const hasActiveOptions = (input.options ?? []).some((option) => option.isActive);
-  if (input.fieldType === "DROPDOWN" && input.isActive && !hasActiveOptions) {
-    throw new ApiError(400, "VALIDATION_ERROR", "Active dropdown fields require at least one active option", {
+  if (isOptionsField(input.fieldType) && input.isActive && !hasActiveOptions) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Active option-based fields require at least one active option", {
       options: "Add at least one active option"
     });
   }
 
-  if (input.fieldType !== "DROPDOWN" && input.options && input.options.length > 0) {
-    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown fields", {
-      options: "Only dropdown fields can have options"
+  if (!isOptionsField(input.fieldType) && input.options && input.options.length > 0) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown and multi-select fields", {
+      options: "Only dropdown and multi-select fields can have options"
+    });
+  }
+
+  if (input.formula) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Formulas are only supported for calculated fields", {
+      formula: "Only calculated fields can have a formula"
     });
   }
 }
@@ -194,19 +241,26 @@ export async function createCustomField(
 
   try {
     return await prisma.$transaction(async (tx) => {
+      const derivedValidationMode = isCalculatedField(input.fieldType) ? "ALLOW" : (input.validationMode ?? (input.isRequired ? "BLOCK" : "ALLOW"));
+      const formulaDependencies = input.formula ? extractFormulaDependencies(input.formula) : [];
       const field = await tx.customFieldDefinition.create({
         data: {
           registerId,
           fieldName: input.fieldName,
           fieldType: input.fieldType,
           helpText: input.helpText,
-          isRequired: input.isRequired,
+          isRequired: isCalculatedField(input.fieldType) ? false : input.isRequired,
+          validationMode: derivedValidationMode,
           displayOrder: input.displayOrder,
           isActive: input.isActive,
+          formula: input.formula ?? null,
+          formulaDependencies,
+          visibleToRoles: input.visibleToRoles ?? [],
+          visibleToRiskResponseOwners: input.visibleToRiskResponseOwners ?? true,
           createdByUserId: actor.id,
           updatedByUserId: actor.id,
           options:
-            input.fieldType === "DROPDOWN" && input.options && input.options.length > 0
+            isOptionsField(input.fieldType) && input.options && input.options.length > 0
               ? {
                   createMany: {
                     data: input.options.map((option) => ({
@@ -236,6 +290,7 @@ export async function createCustomField(
             fieldType: field.fieldType,
             helpText: field.helpText ?? null,
             isRequired: field.isRequired,
+            validationMode: field.validationMode,
             isActive: field.isActive,
             displayOrder: field.displayOrder
           }
@@ -258,20 +313,47 @@ export async function updateCustomField(
 ) {
   const existing = await findCustomField(registerId, fieldId);
 
-  if (existing.fieldType === "DROPDOWN" && input.isActive === true) {
+  if (isOptionsField(existing.fieldType) && input.isActive === true) {
     await assertDropdownActivationIsValid(fieldId);
+  }
+
+  if (isCalculatedField(existing.fieldType) && input.isRequired === true) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields cannot be marked as required", {
+      isRequired: "Calculated fields are computed automatically and cannot be required"
+    });
+  }
+
+  if (!isCalculatedField(existing.fieldType) && input.formula) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Formulas are only supported for calculated fields", {
+      formula: "Only calculated fields can have a formula"
+    });
+  }
+
+  if (isCalculatedField(existing.fieldType) && input.formula) {
+    const formulaCheck = validateFormula(input.formula);
+    if (!formulaCheck.valid) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Invalid formula expression", {
+        formula: formulaCheck.error ?? "Formula cannot be evaluated"
+      });
+    }
   }
 
   try {
     return await prisma.$transaction(async (tx) => {
+      const formulaDependencies = input.formula ? extractFormulaDependencies(input.formula) : undefined;
       const updated = await tx.customFieldDefinition.update({
         where: { id: fieldId },
         data: {
           fieldName: input.fieldName,
           helpText: input.helpText,
-          isRequired: input.isRequired,
+          isRequired: isCalculatedField(existing.fieldType) ? false : input.isRequired,
+          validationMode: input.validationMode,
           displayOrder: input.displayOrder,
           isActive: input.isActive,
+          formula: input.formula,
+          formulaDependencies: formulaDependencies,
+          visibleToRoles: input.visibleToRoles,
+          visibleToRiskResponseOwners: input.visibleToRiskResponseOwners,
           updatedByUserId: actor.id
         },
         include: customFieldInclude
@@ -302,7 +384,7 @@ export async function updateCustomField(
 export async function activateCustomField(actor: AuthenticatedActor, registerId: string, fieldId: string) {
   const field = await findCustomField(registerId, fieldId);
 
-  if (field.fieldType === "DROPDOWN") {
+  if (isOptionsField(field.fieldType)) {
     await assertDropdownActivationIsValid(fieldId);
   }
 
@@ -312,6 +394,69 @@ export async function activateCustomField(actor: AuthenticatedActor, registerId:
 export async function deactivateCustomField(actor: AuthenticatedActor, registerId: string, fieldId: string) {
   await findCustomField(registerId, fieldId);
   return setCustomFieldActiveState(actor, registerId, fieldId, false);
+}
+
+export async function getCustomFieldUsage(registerId: string, fieldId: string) {
+  await findCustomField(registerId, fieldId);
+
+  const [scalarCount, multiSelectCount] = await Promise.all([
+    prisma.riskCustomFieldValue.count({
+      where: { customFieldDefinitionId: fieldId, registerId }
+    }),
+    prisma.riskCustomFieldMultiSelectValue.count({
+      where: { customFieldDefinitionId: fieldId, registerId }
+    })
+  ]);
+
+  return {
+    fieldId,
+    risksWithScalarValues: scalarCount,
+    risksWithMultiSelectValues: multiSelectCount,
+    totalValueCount: scalarCount + multiSelectCount
+  };
+}
+
+export async function deleteCustomField(
+  actor: AuthenticatedActor,
+  registerId: string,
+  fieldId: string,
+  opts: { force?: boolean } = {}
+) {
+  const field = await findCustomField(registerId, fieldId);
+  const usage = await getCustomFieldUsage(registerId, fieldId);
+
+  if (usage.totalValueCount > 0 && !opts.force) {
+    throw new ApiError(
+      409,
+      "CONFLICT",
+      `Cannot delete custom field: ${usage.totalValueCount} risk value(s) exist. Use force=true to delete with all associated data.`
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    if (opts.force && usage.totalValueCount > 0) {
+      await tx.riskCustomFieldValue.deleteMany({ where: { customFieldDefinitionId: fieldId } });
+      await tx.riskCustomFieldMultiSelectValue.deleteMany({ where: { customFieldDefinitionId: fieldId } });
+    }
+
+    await tx.customFieldOption.deleteMany({ where: { customFieldDefinitionId: fieldId } });
+    await tx.customFieldDefinition.delete({ where: { id: fieldId } });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.customFieldDeactivated,
+        actor,
+        objectType: "CUSTOM_FIELD",
+        objectId: fieldId,
+        objectDisplayName: field.fieldName,
+        scopeType: "REGISTER",
+        registerId,
+        summary: `Custom field '${field.fieldName}' deleted${opts.force ? " (forced, with data)" : ""}`,
+        fieldChanges: []
+      },
+      tx
+    );
+  });
 }
 
 export async function setCustomFieldActiveState(
@@ -349,6 +494,192 @@ export async function setCustomFieldActiveState(
             previousValue: !isActive,
             newValue: isActive,
             valueType: "BOOLEAN"
+          }
+        ]
+      },
+      tx
+    );
+
+    return updated;
+  });
+}
+
+// Defines which type changes are safe. Key = fromType, value = set of allowed toTypes.
+const ALLOWED_TYPE_MIGRATIONS: Record<string, string[]> = {
+  TEXT: ["MULTILINE_TEXT"],
+  MULTILINE_TEXT: ["TEXT"],
+  NUMBER: ["TEXT", "MULTILINE_TEXT"],
+  BOOLEAN: ["TEXT", "MULTILINE_TEXT"],
+  DATE: ["TEXT", "MULTILINE_TEXT"],
+  DROPDOWN: ["MULTI_SELECT"]
+};
+
+export function getAllowedTargetTypes(fromType: string): string[] {
+  return ALLOWED_TYPE_MIGRATIONS[fromType] ?? [];
+}
+
+export async function previewFieldTypeMigration(
+  registerId: string,
+  fieldId: string,
+  targetType: string
+) {
+  const field = await findCustomField(registerId, fieldId);
+  const allowed = getAllowedTargetTypes(field.fieldType);
+
+  if (!allowed.includes(targetType)) {
+    return {
+      allowed: false,
+      reason: `Migration from ${field.fieldType} to ${targetType} is not supported`,
+      affectedRisks: 0,
+      valuesMigrated: 0,
+      valuesDropped: 0
+    };
+  }
+
+  // Count existing values that will change storage column
+  const scalarCount = await prisma.riskCustomFieldValue.count({
+    where: { customFieldDefinitionId: fieldId, registerId }
+  });
+
+  // For TEXT/MULTILINE_TEXT ↔ no data movement needed
+  if (
+    (field.fieldType === "TEXT" && targetType === "MULTILINE_TEXT") ||
+    (field.fieldType === "MULTILINE_TEXT" && targetType === "TEXT")
+  ) {
+    return { allowed: true, affectedRisks: 0, valuesMigrated: 0, valuesDropped: 0 };
+  }
+
+  // For DROPDOWN → MULTI_SELECT
+  if (field.fieldType === "DROPDOWN" && targetType === "MULTI_SELECT") {
+    const withValue = await prisma.riskCustomFieldValue.count({
+      where: { customFieldDefinitionId: fieldId, registerId, dropdownOptionId: { not: null } }
+    });
+    return { allowed: true, affectedRisks: withValue, valuesMigrated: withValue, valuesDropped: 0 };
+  }
+
+  // For NUMBER/BOOLEAN/DATE → TEXT/MULTILINE_TEXT: values are converted
+  return { allowed: true, affectedRisks: scalarCount, valuesMigrated: scalarCount, valuesDropped: 0 };
+}
+
+export async function migrateCustomFieldType(
+  actor: AuthenticatedActor,
+  registerId: string,
+  fieldId: string,
+  targetType: string
+) {
+  const field = await findCustomField(registerId, fieldId);
+  const allowed = getAllowedTargetTypes(field.fieldType);
+
+  if (!allowed.includes(targetType)) {
+    throw new ApiError(
+      422,
+      "UNPROCESSABLE",
+      `Migration from ${field.fieldType} to ${targetType} is not supported`
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    // Perform any required value transformations before changing the field type
+    if (field.fieldType === "DROPDOWN" && targetType === "MULTI_SELECT") {
+      // Convert scalar dropdown selections to multi-select junction rows
+      const scalarValues = await tx.riskCustomFieldValue.findMany({
+        where: { customFieldDefinitionId: fieldId, registerId, dropdownOptionId: { not: null } }
+      });
+
+      for (const sv of scalarValues) {
+        if (!sv.dropdownOptionId) continue;
+        await tx.riskCustomFieldMultiSelectValue.upsert({
+          where: {
+            riskId_customFieldDefinitionId_optionId: {
+              riskId: sv.riskId,
+              customFieldDefinitionId: fieldId,
+              optionId: sv.dropdownOptionId
+            }
+          },
+          create: {
+            riskId: sv.riskId,
+            registerId,
+            customFieldDefinitionId: fieldId,
+            optionId: sv.dropdownOptionId
+          },
+          update: {}
+        });
+      }
+
+      // Clear the now-migrated scalar values
+      await tx.riskCustomFieldValue.deleteMany({
+        where: { customFieldDefinitionId: fieldId, registerId }
+      });
+    } else if (field.fieldType === "NUMBER" && (targetType === "TEXT" || targetType === "MULTILINE_TEXT")) {
+      await tx.riskCustomFieldValue.updateMany({
+        where: { customFieldDefinitionId: fieldId, registerId, numberValue: { not: null } },
+        data: { textValue: undefined, numberValue: null }
+      });
+      // Prisma doesn't support cross-column coercion in updateMany; handle per-row
+      const numberValues = await tx.riskCustomFieldValue.findMany({
+        where: { customFieldDefinitionId: fieldId, registerId }
+      });
+      for (const v of numberValues) {
+        if (v.numberValue !== null) {
+          await tx.riskCustomFieldValue.update({
+            where: { id: v.id },
+            data: { textValue: v.numberValue.toString(), numberValue: null }
+          });
+        }
+      }
+    } else if (field.fieldType === "BOOLEAN" && (targetType === "TEXT" || targetType === "MULTILINE_TEXT")) {
+      const boolValues = await tx.riskCustomFieldValue.findMany({
+        where: { customFieldDefinitionId: fieldId, registerId }
+      });
+      for (const v of boolValues) {
+        if (v.booleanValue !== null) {
+          await tx.riskCustomFieldValue.update({
+            where: { id: v.id },
+            data: { textValue: v.booleanValue ? "true" : "false", booleanValue: null }
+          });
+        }
+      }
+    } else if (field.fieldType === "DATE" && (targetType === "TEXT" || targetType === "MULTILINE_TEXT")) {
+      const dateValues = await tx.riskCustomFieldValue.findMany({
+        where: { customFieldDefinitionId: fieldId, registerId }
+      });
+      for (const v of dateValues) {
+        if (v.dateValue !== null) {
+          await tx.riskCustomFieldValue.update({
+            where: { id: v.id },
+            data: { textValue: v.dateValue.toISOString().slice(0, 10), dateValue: null }
+          });
+        }
+      }
+    }
+    // TEXT ↔ MULTILINE_TEXT: no data movement, same column
+
+    const updated = await tx.customFieldDefinition.update({
+      where: { id: fieldId },
+      data: {
+        fieldType: targetType as Parameters<typeof tx.customFieldDefinition.update>[0]["data"]["fieldType"],
+        updatedByUserId: actor.id
+      },
+      include: customFieldInclude
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.customFieldUpdated,
+        actor,
+        objectType: "CUSTOM_FIELD",
+        objectId: updated.id,
+        objectDisplayName: updated.fieldName,
+        scopeType: "REGISTER",
+        registerId,
+        summary: `Custom field '${updated.fieldName}' type migrated from ${field.fieldType} to ${targetType}`,
+        fieldChanges: [
+          {
+            fieldName: "fieldType",
+            fieldLabel: "Field type",
+            previousValue: field.fieldType,
+            newValue: targetType,
+            valueType: "TEXT"
           }
         ]
       },

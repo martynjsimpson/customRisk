@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { customFieldTypes } from "./customFields.schemas.js";
+import { customFieldTypes, validationModes } from "./customFields.schemas.js";
 
 const importCustomFieldOptionSchema = z.object({
   id: z.string().uuid(),
@@ -15,6 +15,7 @@ const importCustomFieldSchema = z.object({
   fieldType: z.enum(customFieldTypes),
   helpText: z.string().nullable().optional(),
   isRequired: z.boolean(),
+  validationMode: z.enum(validationModes),
   displayOrder: z.number().int().min(1),
   isActive: z.boolean(),
   options: z.array(importCustomFieldOptionSchema)
@@ -69,7 +70,8 @@ const importRegisterSettingsSchema = z.object({
   reviewsEnabled: z.boolean(),
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120),
   reviewAttestationText: z.string(),
-  allowViewerExport: z.boolean()
+  allowViewerExport: z.boolean(),
+  customFieldValidationEnabled: z.boolean()
 });
 
 const importConfigSchema = z.object({

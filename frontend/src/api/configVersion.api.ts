@@ -44,7 +44,7 @@ export interface UpdateDraftConfigInput {
   customFields?: Array<
     Pick<
       CustomFieldDefinition,
-      "id" | "fieldName" | "fieldType" | "helpText" | "isRequired" | "displayOrder" | "isActive"
+      "id" | "fieldName" | "fieldType" | "helpText" | "isRequired" | "validationMode" | "displayOrder" | "isActive"
     > & {
       options: Array<{
         id: string;

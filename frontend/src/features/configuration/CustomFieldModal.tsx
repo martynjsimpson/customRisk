@@ -1,8 +1,8 @@
-import { Button, Checkbox, Modal, Select, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Checkbox, Modal, MultiSelect, Select, Stack, Switch, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect } from "react";
 
-import type { CustomFieldDefinition, CustomFieldType } from "../../api/customFields.api";
+import type { CustomFieldDefinition, CustomFieldType, RegisterRole, ValidationMode } from "../../api/customFields.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 
 interface CustomFieldFormValues {
@@ -10,8 +10,12 @@ interface CustomFieldFormValues {
   fieldType: CustomFieldType;
   helpText: string;
   isRequired: boolean;
+  validationMode: ValidationMode;
   isActive: boolean;
   initialOptionsText: string;
+  formula: string;
+  visibleToRoles: RegisterRole[];
+  visibleToRiskResponseOwners: boolean;
 }
 
 interface CustomFieldModalProps {
@@ -20,6 +24,7 @@ interface CustomFieldModalProps {
   createError: unknown;
   updateError: unknown;
   isSaving: boolean;
+  validationEnabled?: boolean;
   onClose: () => void;
   onSubmit: (values: CustomFieldFormValues) => void;
 }
@@ -31,7 +36,21 @@ const fieldTypeOptions: Array<{ value: CustomFieldType; label: string }> = [
   { value: "NUMBER", label: "Number" },
   { value: "DATE", label: "Date" },
   { value: "DROPDOWN", label: "Dropdown" },
-  { value: "PERSON_PICKER", label: "Person Picker" }
+  { value: "PERSON_PICKER", label: "Person Picker" },
+  { value: "MULTI_SELECT", label: "Multi-select" },
+  { value: "CALCULATED", label: "Calculated" }
+];
+
+const visibilityOptions: Array<{ value: RegisterRole; label: string }> = [
+  { value: "REGISTER_ADMIN", label: "Register Admin" },
+  { value: "REGISTER_VIEWER", label: "Register Viewer" },
+  { value: "RISK_OWNER", label: "Risk Owner" }
+];
+
+const validationModeOptions: Array<{ value: ValidationMode; label: string }> = [
+  { value: "ALLOW", label: "Allow" },
+  { value: "WARN", label: "Warn" },
+  { value: "BLOCK", label: "Block" }
 ];
 
 function createInitialValues(): CustomFieldFormValues {
@@ -40,8 +59,12 @@ function createInitialValues(): CustomFieldFormValues {
     fieldType: "TEXT",
     helpText: "",
     isRequired: false,
+    validationMode: "ALLOW",
     isActive: true,
-    initialOptionsText: ""
+    initialOptionsText: "",
+    formula: "",
+    visibleToRoles: [],
+    visibleToRiskResponseOwners: true
   };
 }
 
@@ -59,6 +82,7 @@ export function CustomFieldModal({
   createError,
   updateError,
   isSaving,
+  validationEnabled = false,
   onClose,
   onSubmit
 }: CustomFieldModalProps) {
@@ -77,8 +101,12 @@ export function CustomFieldModal({
         fieldType: editingField.fieldType,
         helpText: editingField.helpText ?? "",
         isRequired: editingField.isRequired,
+        validationMode: editingField.validationMode,
         isActive: editingField.isActive,
-        initialOptionsText: ""
+        initialOptionsText: "",
+        formula: editingField.formula ?? "",
+        visibleToRoles: editingField.visibleToRoles ?? [],
+        visibleToRiskResponseOwners: editingField.visibleToRiskResponseOwners ?? true
       });
       return;
     }
@@ -95,7 +123,10 @@ export function CustomFieldModal({
       onClose={onClose}
       title={editingField ? "Edit custom field" : "Add custom field"}
     >
-      <form onSubmit={form.onSubmit(onSubmit)}>
+      <form onSubmit={form.onSubmit((values) => onSubmit({
+        ...values,
+        isRequired: validationEnabled ? values.validationMode === "BLOCK" : values.isRequired
+      }))}>
         <Stack>
           <ApiErrorAlert error={createError} fallback="Unable to create custom field" />
           <ApiErrorAlert error={updateError} fallback="Unable to update custom field" />
@@ -107,16 +138,47 @@ export function CustomFieldModal({
             {...form.getInputProps("fieldType")}
           />
           <Textarea label="Help text" {...form.getInputProps("helpText")} />
-          <Checkbox label="Required" {...form.getInputProps("isRequired", { type: "checkbox" })} />
+          {form.values.fieldType !== "CALCULATED" && !validationEnabled ? (
+            <Checkbox label="Required" {...form.getInputProps("isRequired", { type: "checkbox" })} />
+          ) : null}
+          {form.values.fieldType !== "CALCULATED" && validationEnabled ? (
+            <Select
+              label="Validation mode"
+              description="Allow saves freely, warn on save, or block save until the field is filled."
+              data={validationModeOptions}
+              {...form.getInputProps("validationMode")}
+            />
+          ) : null}
           <Checkbox label="Active" {...form.getInputProps("isActive", { type: "checkbox" })} />
-          {!editingField && form.values.fieldType === "DROPDOWN" ? (
+          {form.values.fieldType === "CALCULATED" ? (
             <Textarea
-              label="Initial dropdown options"
+              label="Formula"
+              description="Reference other fields with {field:uuid}. Supports +, -, *, / and round(), min(), max()."
+              required
+              autosize
+              minRows={2}
+              {...form.getInputProps("formula")}
+            />
+          ) : null}
+          {!editingField && (form.values.fieldType === "DROPDOWN" || form.values.fieldType === "MULTI_SELECT") ? (
+            <Textarea
+              label="Initial options (one per line)"
               autosize
               minRows={3}
               {...form.getInputProps("initialOptionsText")}
             />
           ) : null}
+          <MultiSelect
+            label="Visible to roles"
+            description="Leave empty to show to all roles. Admins always see all fields."
+            data={visibilityOptions}
+            {...form.getInputProps("visibleToRoles")}
+          />
+          <Switch
+            label="Visible to Risk Response Owners"
+            description="Controls whether Risk Response Owners can see this field on a linked parent risk."
+            {...form.getInputProps("visibleToRiskResponseOwners", { type: "checkbox" })}
+          />
           <Button type="submit" loading={isSaving}>
             Save
           </Button>

@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { updateMyPreferences } from "../../api/preferences.api";
-import { useAuth } from "../../auth/session";
+import { PREFERENCES_QUERY_KEY, usePreferences } from "../../hooks/usePreferences";
 import {
   DEFAULT_MY_RISKS_COLUMNS,
   DEFAULT_REGISTER_TABLE_COLUMNS,
@@ -11,7 +11,8 @@ import {
 
 // Hook for register-specific risk table columns
 export function useRegisterTableColumns(registerId: string) {
-  const { preferences, setPreferences } = useAuth();
+  const preferences = usePreferences();
+  const queryClient = useQueryClient();
 
   const savedColumns = useMemo<string[]>(() => {
     return preferences?.riskTableColumns?.registers?.[registerId] ?? DEFAULT_REGISTER_TABLE_COLUMNS;
@@ -31,7 +32,7 @@ export function useRegisterTableColumns(registerId: string) {
       });
     },
     onSuccess: (updated) => {
-      setPreferences({ ...preferences, ...updated });
+      queryClient.setQueryData(PREFERENCES_QUERY_KEY, updated);
     },
   });
 
@@ -47,7 +48,8 @@ export function useRegisterTableColumns(registerId: string) {
 
 // Hook for My Risks cross-register table columns
 export function useMyRisksTableColumns() {
-  const { preferences, setPreferences } = useAuth();
+  const preferences = usePreferences();
+  const queryClient = useQueryClient();
 
   const savedColumns = useMemo<string[]>(() => {
     return preferences?.riskTableColumns?.myRisks ?? DEFAULT_MY_RISKS_COLUMNS;
@@ -64,7 +66,7 @@ export function useMyRisksTableColumns() {
       });
     },
     onSuccess: (updated) => {
-      setPreferences({ ...preferences, ...updated });
+      queryClient.setQueryData(PREFERENCES_QUERY_KEY, updated);
     },
   });
 

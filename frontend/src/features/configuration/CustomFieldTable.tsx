@@ -29,7 +29,9 @@ interface CustomFieldTableProps {
   onOpenOptions: (field: CustomFieldDefinition) => void;
   onActivateField: (fieldId: string) => void;
   onDeactivateField: (fieldId: string) => void;
+  onDeleteField?: (field: CustomFieldDefinition) => void;
   readOnly?: boolean;
+  isSystemAdmin?: boolean;
 }
 
 const fieldTypeLabels: Record<CustomFieldType, string> = {
@@ -39,7 +41,9 @@ const fieldTypeLabels: Record<CustomFieldType, string> = {
   NUMBER: "Number",
   DATE: "Date",
   DROPDOWN: "Dropdown",
-  PERSON_PICKER: "Person Picker"
+  PERSON_PICKER: "Person Picker",
+  MULTI_SELECT: "Multi-select",
+  CALCULATED: "Calculated"
 };
 
 type CombinedField =
@@ -70,10 +74,12 @@ interface SortableRowProps {
   onOpenOptions: (field: CustomFieldDefinition) => void;
   onActivateField: (fieldId: string) => void;
   onDeactivateField: (fieldId: string) => void;
+  onDeleteField?: (field: CustomFieldDefinition) => void;
   readOnly?: boolean;
+  isSystemAdmin?: boolean;
 }
 
-function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDeactivateField, readOnly }: SortableRowProps) {
+function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDeactivateField, onDeleteField, readOnly, isSystemAdmin }: SortableRowProps) {
   const isCore = field.kind === "core";
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.id,
@@ -106,7 +112,7 @@ function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDea
       {!readOnly ? (
         <Table.Td>
           <Group justify="flex-end" gap="xs">
-            {field.kind === "custom" && field.fieldType === "DROPDOWN" ? (
+            {field.kind === "custom" && (field.fieldType === "DROPDOWN" || field.fieldType === "MULTI_SELECT") ? (
               <Button variant="subtle" onClick={() => onOpenOptions(field)}>
                 Options
               </Button>
@@ -127,6 +133,11 @@ function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDea
                 </Button>
               )
             ) : null}
+            {field.kind === "custom" && isSystemAdmin && onDeleteField ? (
+              <Button color="red" variant="subtle" onClick={() => onDeleteField(field)}>
+                Delete
+              </Button>
+            ) : null}
           </Group>
         </Table.Td>
       ) : <Table.Td />}
@@ -141,7 +152,9 @@ export function CustomFieldTable({
   onOpenOptions,
   onActivateField,
   onDeactivateField,
-  readOnly
+  onDeleteField,
+  readOnly,
+  isSystemAdmin
 }: CustomFieldTableProps) {
   const [orderedFields, setOrderedFields] = useState<CombinedField[]>(() => buildOrderedFields(fields));
 
@@ -176,7 +189,7 @@ export function CustomFieldTable({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
         <Table.ScrollContainer minWidth={760}>
-          <Table>
+          <Table withTableBorder>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th style={{ width: 36 }} />
@@ -192,12 +205,14 @@ export function CustomFieldTable({
                 <SortableRow
                   key={field.id}
                   field={field}
-                onEditField={onEditField}
-                onOpenOptions={onOpenOptions}
-                onActivateField={onActivateField}
-                onDeactivateField={onDeactivateField}
-                readOnly={readOnly}
-              />
+                  onEditField={onEditField}
+                  onOpenOptions={onOpenOptions}
+                  onActivateField={onActivateField}
+                  onDeactivateField={onDeactivateField}
+                  onDeleteField={onDeleteField}
+                  readOnly={readOnly}
+                  isSystemAdmin={isSystemAdmin}
+                />
             ))}
             </Table.Tbody>
           </Table>

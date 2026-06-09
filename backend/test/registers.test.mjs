@@ -13,3 +13,22 @@ test("register management exposes a scoped permission candidate route", async ()
   assert.match(service, /registerPermissions:\s*\{\n\s*none:\s*\{\s*registerId\s*\}/);
   assert.match(service, /isActive:\s*true/);
 });
+
+test("new register defaults to a 3-level Low/Medium/High scoring scale", async () => {
+  const service = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
+
+  // Likelihood and impact default values are Low, Medium, High (3-level)
+  assert.match(service, /likelihoodDefaults = \["Low", "Medium", "High"\]/);
+  assert.match(service, /impactDefaults = \["Low", "Medium", "High"\]/);
+
+  // Risk levels default to Low/Medium/High with standard traffic-light colours
+  assert.match(service, /riskLevelDefaults = \["Low", "Medium", "High"\]/);
+  assert.match(service, /Low.*#2f9e44/);
+  assert.match(service, /Medium.*#f59f00/);
+  assert.match(service, /High.*#e03131/);
+
+  // 3×3 matrix: Low+Low→Low, High+High→High, asymmetric pairs both map to Medium
+  assert.match(service, /matrixLevelNames/);
+  // Low likelihood + High impact → Medium (not High), ensures symmetry
+  assert.match(service, /\["Low",\s*"Medium",\s*"Medium"\]/);
+});

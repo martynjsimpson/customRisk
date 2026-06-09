@@ -38,6 +38,14 @@ enum CustomFieldType {
   DATE
   DROPDOWN
   PERSON_PICKER
+  MULTI_SELECT
+  CALCULATED
+}
+
+enum ValidationMode {
+  ALLOW
+  WARN
+  BLOCK
 }
 
 enum AuditScopeType {
@@ -226,10 +234,13 @@ model Register {
   defaultReviewFrequencyMonths Int       @default(12) @map("default_review_frequency_months")
   reviewAttestationText        String    @default("I confirm that I have reviewed this risk and the recorded details remain accurate or have been updated.") @map("review_attestation_text") @db.Text
   allowViewerExport            Boolean   @default(false) @map("allow_viewer_export")
+  customFieldValidationEnabled Boolean   @default(true) @map("custom_field_validation_enabled")
 
   currentConfigVersionId  String?  @unique @map("current_config_version_id") @db.Uuid
   draftConfigVersionId    String?  @unique @map("draft_config_version_id") @db.Uuid
   linkedTemplateVersionId String? @map("linked_template_version_id") @db.Uuid
+
+  isActive Boolean @default(true) @map("is_active")
 
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdByUserId String   @map("created_by_user_id") @db.Uuid
@@ -254,6 +265,7 @@ model Register {
   responseStrategies     ResponseStrategy[]
   customFieldDefinitions CustomFieldDefinition[]
   customFieldValues      RiskCustomFieldValue[]
+  multiSelectValues      RiskCustomFieldMultiSelectValue[]
   auditEvents            AuditEvent[]
   auditRiskSnapshots     AuditRiskSnapshot[]
   exportJobs             ExportJob[]
@@ -321,9 +333,10 @@ model Risk {
   systemUpdatedBy User  @relation("RiskSystemUpdatedBy", fields: [systemUpdatedByUserId], references: [id], onDelete: Restrict)
   lastReviewedBy  User? @relation("RiskLastReviewedBy", fields: [lastReviewedByUserId], references: [id], onDelete: SetNull)
 
-  reviews           RiskReview[]
-  customFieldValues RiskCustomFieldValue[]
-  auditEvents       AuditEvent[]
+  reviews             RiskReview[]
+  customFieldValues   RiskCustomFieldValue[]
+  multiSelectValues   RiskCustomFieldMultiSelectValue[]
+  auditEvents         AuditEvent[]
 
   @@unique([registerId, displayRiskId])
   @@unique([registerId, riskSequence])
@@ -461,10 +474,15 @@ model CustomFieldDefinition {
   registerId   String          @map("register_id") @db.Uuid
   fieldName    String          @map("field_name")
   fieldType    CustomFieldType @map("field_type")
-  helpText     String?         @map("help_text") @db.Text
-  isRequired   Boolean         @default(false) @map("is_required")
-  displayOrder Int             @map("display_order")
-  isActive     Boolean         @default(true) @map("is_active")
+  helpText             String?         @map("help_text") @db.Text
+  isRequired           Boolean         @default(false) @map("is_required")
+  validationMode       ValidationMode  @default(ALLOW) @map("validation_mode")
+  displayOrder         Int             @map("display_order")
+  isActive             Boolean         @default(true) @map("is_active")
+  formula                    String?         @map("formula") @db.Text
+  formulaDependencies        String[]        @map("formula_dependencies") @db.Uuid
+  visibleToRoles             String[]        @map("visible_to_roles")
+  visibleToRiskResponseOwners Boolean        @default(true) @map("visible_to_risk_response_owners")
 
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdByUserId String   @map("created_by_user_id") @db.Uuid
@@ -475,8 +493,9 @@ model CustomFieldDefinition {
   createdBy User     @relation("CustomFieldDefinitionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
   updatedBy User     @relation("CustomFieldDefinitionUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Restrict)
 
-  options CustomFieldOption[]
-  values  RiskCustomFieldValue[]
+  options             CustomFieldOption[]
+  values              RiskCustomFieldValue[]
+  multiSelectValues   RiskCustomFieldMultiSelectValue[]
 
   @@unique([registerId, fieldName])
   @@unique([registerId, displayOrder])
@@ -495,6 +514,7 @@ model CustomFieldOption {
 
   customFieldDefinition CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
   values                RiskCustomFieldValue[]
+  multiSelectValues     RiskCustomFieldMultiSelectValue[]
 
   @@unique([customFieldDefinitionId, label])
   @@unique([customFieldDefinitionId, displayOrder])
@@ -533,6 +553,26 @@ model RiskCustomFieldValue {
   @@index([personUserId])
   @@index([personId])
   @@map("risk_custom_field_value")
+}
+
+model RiskCustomFieldMultiSelectValue {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  riskId                  String   @map("risk_id") @db.Uuid
+  registerId              String   @map("register_id") @db.Uuid
+  customFieldDefinitionId String   @map("custom_field_definition_id") @db.Uuid
+  optionId                String   @map("option_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  risk                  Risk                  @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  register              Register              @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  customFieldDefinition CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
+  option                CustomFieldOption     @relation(fields: [optionId], references: [id], onDelete: Restrict)
+
+  @@unique([riskId, customFieldDefinitionId, optionId])
+  @@index([riskId, customFieldDefinitionId])
+  @@index([registerId])
+  @@map("risk_custom_field_multi_select_value")
 }
 
 model AuditEvent {

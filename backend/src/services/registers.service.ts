@@ -19,6 +19,7 @@ const registerSelect = {
   id: true,
   name: true,
   description: true,
+  isActive: true,
   riskIdPrefix: true,
   riskIdZeroPaddingEnabled: true,
   riskIdZeroPaddingWidth: true,
@@ -28,6 +29,7 @@ const registerSelect = {
   defaultReviewFrequencyMonths: true,
   reviewAttestationText: true,
   allowViewerExport: true,
+  customFieldValidationEnabled: true,
   createdAt: true,
   updatedAt: true,
   linkedTemplateVersion: {
@@ -59,22 +61,19 @@ const permissionCandidateUserSelect = {
   isSystemAdmin: true
 } satisfies Prisma.UserSelect;
 
-const likelihoodDefaults = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
-const impactDefaults = ["Insignificant", "Minor", "Moderate", "Major", "Severe"];
-const riskLevelDefaults = ["Low", "Medium", "High", "Critical"] as const;
+const likelihoodDefaults = ["Low", "Medium", "High"];
+const impactDefaults = ["Low", "Medium", "High"];
+const riskLevelDefaults = ["Low", "Medium", "High"] as const;
 const riskLevelDefaultColors = {
   Low: "#2f9e44",
   Medium: "#f59f00",
-  High: "#f76707",
-  Critical: "#e03131"
+  High: "#e03131"
 } satisfies Record<(typeof riskLevelDefaults)[number], string>;
 const responseStrategyDefaults = ["Accept", "Mitigate", "Transfer", "Avoid"];
 const matrixLevelNames = [
-  ["Low", "Low", "Low", "Medium", "Medium"],
-  ["Low", "Low", "Medium", "Medium", "High"],
-  ["Low", "Medium", "Medium", "High", "High"],
-  ["Medium", "Medium", "High", "High", "Critical"],
-  ["Medium", "High", "High", "Critical", "Critical"]
+  ["Low",    "Medium", "Medium"],
+  ["Medium", "Medium", "High"],
+  ["Medium", "High",   "High"]
 ];
 
 function mapPrismaError(error: unknown): never {
@@ -126,6 +125,7 @@ async function decorateRegister(
 export async function listRegisters(actor: AuthenticatedActor, query: ListRegistersQuery) {
   const accessibleRegisterIds = await listAccessibleRegisterIds(actor);
   const where: Prisma.RegisterWhereInput = {
+    isActive: true,
     id: actor.isSystemAdmin ? undefined : { in: accessibleRegisterIds },
     OR: query.search
       ? [
@@ -310,11 +310,38 @@ export async function getRegister(actor: AuthenticatedActor, registerId: string)
     select: registerSelect
   });
 
-  if (!register) {
+  if (!register || !register.isActive) {
     throw new ApiError(404, "NOT_FOUND", "Register not found");
   }
 
   return decorateRegister(register, actor);
+}
+
+export async function deleteRegister(actor: AuthenticatedActor, registerId: string) {
+  const register = await prisma.register.findUnique({
+    where: { id: registerId },
+    select: { id: true, name: true, isActive: true }
+  });
+
+  if (!register || !register.isActive) {
+    throw new ApiError(404, "NOT_FOUND", "Register not found");
+  }
+
+  await prisma.register.update({
+    where: { id: registerId },
+    data: { isActive: false, updatedByUserId: actor.id }
+  });
+
+  await recordAuditEvent({
+    action: auditActions.registerDeleted,
+    actor: { id: actor.id, name: actor.name, email: actor.email },
+    objectType: "REGISTER",
+    objectId: registerId,
+    objectDisplayName: register.name,
+    scopeType: "SYSTEM",
+    registerId,
+    summary: `Register "${register.name}" deleted`
+  });
 }
 
 export async function updateRegister(
@@ -344,6 +371,7 @@ export async function updateRegister(
           reviewsEnabled: input.reviewsEnabled,
           defaultReviewFrequencyMonths: input.defaultReviewFrequencyMonths,
           allowViewerExport: input.allowViewerExport,
+          customFieldValidationEnabled: input.customFieldValidationEnabled,
           updatedByUserId: actor.id
         },
         select: registerSelect
@@ -367,7 +395,8 @@ export async function updateRegister(
             { name: "riskIdZeroPaddingWidth", label: "Risk ID zero padding width", valueType: "NUMBER" },
             { name: "reviewsEnabled", label: "Reviews enabled", valueType: "BOOLEAN" },
             { name: "defaultReviewFrequencyMonths", label: "Default review frequency", valueType: "NUMBER" },
-            { name: "allowViewerExport", label: "Allow viewer export", valueType: "BOOLEAN" }
+            { name: "allowViewerExport", label: "Allow viewer export", valueType: "BOOLEAN" },
+            { name: "customFieldValidationEnabled", label: "Custom field validation enabled", valueType: "BOOLEAN" }
           ])
         },
         tx
@@ -631,6 +660,7 @@ export async function createRegisterFromTemplate(
           defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
           reviewAttestationText: regSettings.reviewAttestationText,
           allowViewerExport: regSettings.allowViewerExport,
+          customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
           nextRiskSequence: 1,
           createdByUserId: actorId,
           updatedByUserId: actorId
@@ -759,6 +789,7 @@ export async function createRegisterFromTemplate(
             fieldType: field.fieldType as "TEXT" | "MULTILINE_TEXT" | "BOOLEAN" | "NUMBER" | "DATE" | "DROPDOWN" | "PERSON_PICKER",
             helpText: field.helpText,
             isRequired: field.isRequired,
+            validationMode: field.validationMode ?? (field.isRequired ? "BLOCK" : "ALLOW"),
             displayOrder: field.displayOrder,
             isActive: field.isActive,
             createdByUserId: actorId,

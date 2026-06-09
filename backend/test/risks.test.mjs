@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import { getRiskReviewStatus, isRiskOverdue } from "../src/services/risks.service.ts";
+import { isFieldVisibleToRole } from "../src/services/registerConfig.service.ts";
 import { listRisksQuerySchema } from "../src/validators/risks.schemas.ts";
 
 test("risk list route is mounted under register risk collection", async () => {
@@ -138,6 +139,124 @@ test("risk review status follows MVP display rules", () => {
     }),
     "NOT_DUE"
   );
+});
+
+test("MULTI_SELECT custom field type is supported end-to-end", async () => {
+  const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
+  const riskSchema = await readFile(new URL("../src/validators/risks.schemas.ts", import.meta.url), "utf8");
+  const cfValuesService = await readFile(new URL("../src/services/customFieldValues.service.ts", import.meta.url), "utf8");
+  const risksService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+
+  // DB: enum value and junction table
+  assert.match(schema, /MULTI_SELECT/);
+  assert.match(schema, /RiskCustomFieldMultiSelectValue/);
+  assert.match(schema, /risk_custom_field_multi_select_value/);
+
+  // Validators accept MULTI_SELECT
+  assert.match(cfSchema, /"MULTI_SELECT"/);
+  assert.match(riskSchema, /multiSelectOptionIds/);
+
+  // Service: multi-select entries returned and created/deleted transactionally
+  assert.match(cfValuesService, /multiSelectEntries/);
+  assert.match(cfValuesService, /riskCustomFieldMultiSelectValue/);
+  assert.match(risksService, /multiSelectValues/);
+  assert.match(risksService, /multiSelectEntries/);
+});
+
+test("CALCULATED custom field type enforces data model constraints", async () => {
+  const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
+  const cfService = await readFile(new URL("../src/services/customFields.service.ts", import.meta.url), "utf8");
+  const cfValuesService = await readFile(new URL("../src/services/customFieldValues.service.ts", import.meta.url), "utf8");
+
+  // DB: enum value and formula columns
+  assert.match(schema, /CALCULATED/);
+  assert.match(schema, /formula\s+String\?/);
+  assert.match(schema, /formulaDependencies\s+String\[\]/);
+
+  // Validators accept CALCULATED type
+  assert.match(cfSchema, /"CALCULATED"/);
+  assert.match(cfSchema, /formula.*z\.string/);
+
+  // Service: formula required, no isRequired, no options
+  assert.match(cfService, /extractFormulaDependencies/);
+  assert.match(cfService, /isCalculatedField/);
+  assert.match(cfService, /Calculated fields require a formula/);
+  assert.match(cfService, /Calculated fields cannot have options/);
+  assert.match(cfService, /Calculated fields cannot be marked as required/);
+
+  // Values service: immutability enforced
+  assert.match(cfValuesService, /cannot be edited directly/);
+  assert.match(cfValuesService, /fieldType !== "CALCULATED"/);
+});
+
+test("field-level visibility: isFieldVisibleToRole enforces role-based access", () => {
+  // Empty array = visible to all
+  assert.equal(isFieldVisibleToRole([], "REGISTER_VIEWER"), true);
+  assert.equal(isFieldVisibleToRole([], "RISK_OWNER"), true);
+  assert.equal(isFieldVisibleToRole([], "NONE"), true);
+
+  // SYSTEM_ADMIN and REGISTER_ADMIN always see all fields
+  assert.equal(isFieldVisibleToRole(["RISK_OWNER"], "SYSTEM_ADMIN"), true);
+  assert.equal(isFieldVisibleToRole(["RISK_OWNER"], "REGISTER_ADMIN"), true);
+
+  // Restricted field: only role in the list can see it
+  assert.equal(isFieldVisibleToRole(["RISK_OWNER"], "RISK_OWNER"), true);
+  assert.equal(isFieldVisibleToRole(["RISK_OWNER"], "REGISTER_VIEWER"), false);
+  assert.equal(isFieldVisibleToRole(["RISK_OWNER"], "NONE"), false);
+
+  // Multiple roles
+  assert.equal(isFieldVisibleToRole(["REGISTER_VIEWER", "RISK_OWNER"], "REGISTER_VIEWER"), true);
+  assert.equal(isFieldVisibleToRole(["REGISTER_VIEWER", "RISK_OWNER"], "RISK_OWNER"), true);
+  assert.equal(isFieldVisibleToRole(["REGISTER_VIEWER"], "RISK_OWNER"), false);
+});
+
+test("field-level visibility: schema, validators, and service wiring", async () => {
+  const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
+  const registerConfigService = await readFile(new URL("../src/services/registerConfig.service.ts", import.meta.url), "utf8");
+  const risksService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  const controller = await readFile(new URL("../src/controllers/customFields.controller.ts", import.meta.url), "utf8");
+
+  // DB: visible_to_roles column on custom_field_definition
+  assert.match(schema, /visibleToRoles\s+String\[\]/);
+  assert.match(schema, /visible_to_roles/);
+
+  // Validators: visibleToRoles accepted in create/update
+  assert.match(cfSchema, /visibleToRoles/);
+  assert.match(cfSchema, /registerRoles/);
+
+  // Service: isFieldVisibleToRole exported and applied
+  assert.match(registerConfigService, /export function isFieldVisibleToRole/);
+  assert.match(registerConfigService, /SYSTEM_ADMIN.*REGISTER_ADMIN/);
+
+  // getRiskFormConfig accepts actor and filters
+  assert.match(registerConfigService, /getRiskFormConfig.*actor/);
+  assert.match(registerConfigService, /isFieldVisibleToRole/);
+
+  // listRisks and getRiskDetail apply filtering
+  assert.match(risksService, /isFieldVisibleToRole.*visibleToRoles.*role/);
+
+  // Controller passes actor to getRiskFormConfig
+  assert.match(controller, /getRiskFormConfig.*actorOrThrow/);
+});
+
+test("field-level visibility: visibleToRiskResponseOwners data model", async () => {
+  const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
+  const cfService = await readFile(new URL("../src/services/customFields.service.ts", import.meta.url), "utf8");
+
+  // DB: column exists with a true default (visible by default)
+  assert.match(schema, /visibleToRiskResponseOwners\s+Boolean/);
+  assert.match(schema, /@default\(true\)/);
+  assert.match(schema, /visible_to_risk_response_owners/);
+
+  // Validators accept the flag on both create and update
+  assert.match(cfSchema, /visibleToRiskResponseOwners.*z\.boolean/);
+
+  // Service stores the flag on create and update
+  assert.match(cfService, /visibleToRiskResponseOwners.*input\.visibleToRiskResponseOwners/);
 });
 
 test("risk overdue helper follows operational overdue rules", () => {

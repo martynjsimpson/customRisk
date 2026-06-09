@@ -9,7 +9,11 @@ export type CustomFieldType =
   | "NUMBER"
   | "DATE"
   | "DROPDOWN"
-  | "PERSON_PICKER";
+  | "PERSON_PICKER"
+  | "MULTI_SELECT"
+  | "CALCULATED";
+
+export type ValidationMode = "ALLOW" | "WARN" | "BLOCK";
 
 export interface CustomFieldOption {
   id: string;
@@ -19,6 +23,8 @@ export interface CustomFieldOption {
   isActive: boolean;
 }
 
+export type RegisterRole = "REGISTER_ADMIN" | "REGISTER_VIEWER" | "RISK_OWNER";
+
 export interface CustomFieldDefinition {
   id: string;
   registerId: string;
@@ -26,9 +32,14 @@ export interface CustomFieldDefinition {
   fieldType: CustomFieldType;
   helpText: string | null;
   isRequired: boolean;
+  validationMode: ValidationMode;
   displayOrder: number;
   isActive: boolean;
   options: CustomFieldOption[];
+  formula: string | null;
+  formulaDependencies: string[];
+  visibleToRoles: RegisterRole[];
+  visibleToRiskResponseOwners: boolean;
 }
 
 export interface SaveCustomFieldInput {
@@ -36,6 +47,7 @@ export interface SaveCustomFieldInput {
   fieldType: CustomFieldType;
   helpText?: string | null;
   isRequired: boolean;
+  validationMode?: ValidationMode;
   displayOrder: number;
   isActive: boolean;
   options?: Array<{
@@ -43,6 +55,9 @@ export interface SaveCustomFieldInput {
     displayOrder: number;
     isActive?: boolean;
   }>;
+  formula?: string;
+  visibleToRoles?: RegisterRole[];
+  visibleToRiskResponseOwners?: boolean;
 }
 
 export type UpdateCustomFieldInput = Partial<Omit<SaveCustomFieldInput, "fieldType" | "options">>;
@@ -111,6 +126,26 @@ export async function deactivateCustomField(registerId: string, fieldId: string)
     `/registers/${registerId}/custom-fields/${fieldId}/deactivate`
   );
   return response.data.data;
+}
+
+export interface CustomFieldUsage {
+  fieldId: string;
+  risksWithScalarValues: number;
+  risksWithMultiSelectValues: number;
+  totalValueCount: number;
+}
+
+export async function getCustomFieldUsage(registerId: string, fieldId: string) {
+  const response = await apiClient.get<{ data: CustomFieldUsage }>(
+    `/registers/${registerId}/custom-fields/${fieldId}/usage`
+  );
+  return response.data.data;
+}
+
+export async function deleteCustomField(registerId: string, fieldId: string, force = false) {
+  await apiClient.delete(
+    `/registers/${registerId}/custom-fields/${fieldId}${force ? "?force=true" : ""}`
+  );
 }
 
 export async function listCustomFieldOptions(registerId: string, fieldId: string) {

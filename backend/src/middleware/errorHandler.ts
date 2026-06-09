@@ -37,7 +37,7 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
     }
 
     if (error instanceof ApiError) {
-      sendError(response, error.statusCode, error.code, error.message, error.fields, request.requestId);
+      sendError(response, error.statusCode, error.code, error.message, error.fields, request.requestId, error.warnings);
       return;
     }
 

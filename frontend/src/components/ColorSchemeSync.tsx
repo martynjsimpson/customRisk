@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { type MantineColorScheme, useMantineColorScheme } from "@mantine/core";
 
-import { useAuth } from "../auth/session";
+import { usePreferences } from "../hooks/usePreferences";
 
 export function ColorSchemeSync() {
-  const { preferences } = useAuth();
+  const preferences = usePreferences();
   const { setColorScheme } = useMantineColorScheme();
 
   useEffect(() => {

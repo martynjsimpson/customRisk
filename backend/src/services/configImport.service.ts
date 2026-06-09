@@ -63,7 +63,8 @@ export async function importRegisterConfig(
       reviewsEnabled: parsed.register.reviewsEnabled,
       defaultReviewFrequencyMonths: parsed.register.defaultReviewFrequencyMonths,
       reviewAttestationText: parsed.register.reviewAttestationText,
-      allowViewerExport: parsed.register.allowViewerExport
+      allowViewerExport: parsed.register.allowViewerExport,
+      customFieldValidationEnabled: parsed.register.customFieldValidationEnabled
     },
     customFields: parsed.customFields.map((f) => ({
       id: f.id,
@@ -71,6 +72,7 @@ export async function importRegisterConfig(
       fieldType: f.fieldType,
       helpText: f.helpText ?? null,
       isRequired: f.isRequired,
+      validationMode: f.validationMode,
       displayOrder: f.displayOrder,
       isActive: f.isActive,
       options: f.options.map((o) => ({

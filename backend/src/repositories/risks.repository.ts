@@ -18,7 +18,8 @@ export async function reserveNextRiskId(client: Prisma.TransactionClient, regist
       nextRiskSequence: true,
       defaultNewRiskState: true,
       reviewsEnabled: true,
-      defaultReviewFrequencyMonths: true
+      defaultReviewFrequencyMonths: true,
+      customFieldValidationEnabled: true
     }
   });
 

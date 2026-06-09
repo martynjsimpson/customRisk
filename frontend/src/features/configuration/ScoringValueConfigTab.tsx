@@ -1,4 +1,4 @@
-import { Badge, Button, Checkbox, Group, Loader, Modal, NumberInput, Stack, Table, Text, TextInput, Title } from "@mantine/core";
+import { Badge, Button, Checkbox, Group, Loader, Modal, NumberInput, Stack, Table, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -196,10 +196,6 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={3}>{labels.title}</Title>
-        {!isReadOnly ? <Button onClick={openCreateModal}>{labels.addButton}</Button> : null}
-      </Group>
       <ApiErrorAlert error={configQuery.error} fallback={labels.loadError} />
       <ApiErrorAlert error={deactivateValueMutation.error} fallback={labels.deactivateError} />
       <ApiErrorAlert error={activateValueMutation.error} fallback={labels.activateError} />
@@ -209,7 +205,7 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
         </Group>
       ) : (
         <Table.ScrollContainer minWidth={720}>
-          <Table>
+          <Table withTableBorder>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Order</Table.Th>
@@ -257,6 +253,11 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
           </Table>
         </Table.ScrollContainer>
       )}
+      {!isReadOnly ? (
+        <Group justify="flex-end">
+          <Button onClick={openCreateModal}>{labels.addButton}</Button>
+        </Group>
+      ) : null}
 
       <Modal
         opened={modalOpen}

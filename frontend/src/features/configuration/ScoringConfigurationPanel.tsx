@@ -1,4 +1,4 @@
-import { Tabs } from "@mantine/core";
+import { Box, Fieldset, Tabs } from "@mantine/core";
 
 import { ImpactConfigTab } from "./ImpactConfigTab";
 import { LikelihoodConfigTab } from "./LikelihoodConfigTab";
@@ -8,9 +8,12 @@ import { RiskLevelConfigTab } from "./RiskLevelConfigTab";
 interface ScoringConfigurationPanelProps {
   registerId: string;
   draftConfigMode?: boolean;
+  configLocked?: boolean;
 }
 
-export function ScoringConfigurationPanel({ registerId, draftConfigMode }: ScoringConfigurationPanelProps) {
+export function ScoringConfigurationPanel({ registerId, draftConfigMode, configLocked }: ScoringConfigurationPanelProps) {
+  const lockedStyle = configLocked ? { opacity: 0.5, pointerEvents: "none" as const } : undefined;
+
   return (
     <Tabs defaultValue="likelihood">
       <Tabs.List>
@@ -20,16 +23,32 @@ export function ScoringConfigurationPanel({ registerId, draftConfigMode }: Scori
         <Tabs.Tab value="matrix">Matrix</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="likelihood" pt="md">
-        <LikelihoodConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+        <Fieldset legend="Likelihood">
+          <Box style={lockedStyle}>
+            <LikelihoodConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+          </Box>
+        </Fieldset>
       </Tabs.Panel>
       <Tabs.Panel value="impact" pt="md">
-        <ImpactConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+        <Fieldset legend="Impact">
+          <Box style={lockedStyle}>
+            <ImpactConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+          </Box>
+        </Fieldset>
       </Tabs.Panel>
       <Tabs.Panel value="risk-levels" pt="md">
-        <RiskLevelConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+        <Fieldset legend="Risk Levels">
+          <Box style={lockedStyle}>
+            <RiskLevelConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+          </Box>
+        </Fieldset>
       </Tabs.Panel>
       <Tabs.Panel value="matrix" pt="md">
-        <MatrixConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+        <Fieldset legend="Risk Matrix">
+          <Box style={lockedStyle}>
+            <MatrixConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+          </Box>
+        </Fieldset>
       </Tabs.Panel>
     </Tabs>
   );

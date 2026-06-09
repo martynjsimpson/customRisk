@@ -6,9 +6,13 @@ import {
   createCustomFieldOption,
   deactivateCustomField,
   deactivateCustomFieldOption,
+  deleteCustomField,
   getCustomField,
+  getCustomFieldUsage,
   listCustomFields,
   listCustomFieldOptions,
+  migrateCustomFieldType,
+  previewFieldTypeMigration,
   updateCustomField,
   updateCustomFieldOption
 } from "../services/customFields.service.js";
@@ -20,6 +24,9 @@ import type {
   CreateCustomFieldOptionBody,
   CustomFieldOptionParams,
   CustomFieldParams,
+  DeleteCustomFieldQuery,
+  MigrateFieldTypeBody,
+  MigrateFieldTypeQuery,
   UpdateCustomFieldBody,
   UpdateCustomFieldOptionBody
 } from "../validators/customFields.schemas.js";
@@ -36,7 +43,7 @@ export async function getRiskFormConfigController(
   request: Request<RegisterIdParams>,
   response: Response
 ) {
-  sendData(response, await getRiskFormConfig(request.params.registerId));
+  sendData(response, await getRiskFormConfig(request.params.registerId, actorOrThrow(request)));
 }
 
 export async function listCustomFieldsController(request: Request<RegisterIdParams>, response: Response) {
@@ -79,6 +86,52 @@ export async function deactivateCustomFieldController(request: Request<CustomFie
   sendData(
     response,
     await deactivateCustomField(actorOrThrow(request), request.params.registerId, request.params.fieldId)
+  );
+}
+
+export async function getCustomFieldUsageController(request: Request<CustomFieldParams>, response: Response) {
+  sendData(response, await getCustomFieldUsage(request.params.registerId, request.params.fieldId));
+}
+
+export async function deleteCustomFieldController(
+  request: Request<CustomFieldParams, unknown, unknown, DeleteCustomFieldQuery>,
+  response: Response
+) {
+  await deleteCustomField(
+    actorOrThrow(request),
+    request.params.registerId,
+    request.params.fieldId,
+    { force: request.query.force }
+  );
+  response.status(204).end();
+}
+
+export async function previewFieldTypeMigrationController(
+  request: Request<CustomFieldParams, unknown, unknown, MigrateFieldTypeQuery>,
+  response: Response
+) {
+  sendData(
+    response,
+    await previewFieldTypeMigration(
+      request.params.registerId,
+      request.params.fieldId,
+      request.query.targetType
+    )
+  );
+}
+
+export async function migrateCustomFieldTypeController(
+  request: Request<CustomFieldParams, unknown, MigrateFieldTypeBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await migrateCustomFieldType(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.fieldId,
+      request.body.targetType
+    )
   );
 }
 

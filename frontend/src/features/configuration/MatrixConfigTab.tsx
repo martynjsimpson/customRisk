@@ -1,4 +1,4 @@
-import { Button, Checkbox, Group, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Button, Group, Select, Stack, Table, Text } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -12,12 +12,12 @@ import { invalidateScoringConfiguration } from "./scoringConfigInvalidation";
 interface MatrixConfigTabProps {
   registerId: string;
   draftConfigMode?: boolean;
+  wizardMode?: boolean;
 }
 
-export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTabProps) {
+export function MatrixConfigTab({ registerId, draftConfigMode, wizardMode }: MatrixConfigTabProps) {
   const queryClient = useQueryClient();
   const [matrixValues, setMatrixValues] = useState<Record<string, string>>({});
-  const [recalculateExistingRisks, setRecalculateExistingRisks] = useState(false);
 
   const configQuery = useQuery({
     queryKey: ["register-config", registerId],
@@ -43,11 +43,12 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
 
   const invalidateAll = () => invalidateScoringConfiguration(queryClient, registerId);
 
-  const saveMatrixMutation = useMutation<unknown>({
-    mutationFn: () =>
-      hasDraft
+  const saveMatrixMutation = useMutation<unknown, Error, Record<string, string> | undefined>({
+    mutationFn: (overrideValues) => {
+      const values = overrideValues ?? matrixValues;
+      return hasDraft
         ? updateDraftConfig(registerId, {
-            matrixCells: Object.entries(matrixValues)
+            matrixCells: Object.entries(values)
               .filter(([, riskLevelId]) => Boolean(riskLevelId))
               .map(([cellKey, riskLevelId]) => {
                 const [likelihoodValueId, impactValueId] = cellKey.split(":") as [string, string];
@@ -64,14 +65,15 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
               })
           })
         : updateMatrix(registerId, {
-            cells: Object.entries(matrixValues)
+            cells: Object.entries(values)
               .filter(([, riskLevelId]) => Boolean(riskLevelId))
               .map(([cellKey, riskLevelId]) => {
                 const [likelihoodValueId, impactValueId] = cellKey.split(":") as [string, string];
                 return { likelihoodValueId, impactValueId, riskLevelId };
               }),
-            recalculateExistingRisks
-          }),
+            recalculateExistingRisks: true
+          });
+    },
     onSuccess: async () => {
       await Promise.all([
         invalidateAll(),
@@ -88,21 +90,6 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={3}>Risk Matrix</Title>
-        {!isReadOnly ? (
-          <Group>
-            <Checkbox
-              label="Recalculate existing risks"
-              checked={recalculateExistingRisks}
-              onChange={(event) => setRecalculateExistingRisks(event.currentTarget.checked)}
-            />
-            <Button onClick={() => saveMatrixMutation.mutate()} loading={saveMatrixMutation.isPending}>
-              Save matrix
-            </Button>
-          </Group>
-        ) : null}
-      </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load matrix" />
       <ApiErrorAlert error={saveMatrixMutation.error} fallback="Unable to save matrix" />
       {activeLikelihoods.length === 0 || activeImpacts.length === 0 ? (
@@ -110,7 +97,7 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
           Configure active likelihood and impact values before setting up the matrix.
         </Text>
       ) : (
-        <Table>
+        <Table withTableBorder>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Likelihood \ Impact</Table.Th>
@@ -149,9 +136,13 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
                             color: selectedTextColor
                           }
                         }}
-                        onChange={(value) =>
-                          setMatrixValues((prev) => ({ ...prev, [cellKey]: value ?? "" }))
-                        }
+                        onChange={(value) => {
+                          const next = { ...matrixValues, [cellKey]: value ?? "" };
+                          setMatrixValues(next);
+                          if (wizardMode) {
+                            saveMatrixMutation.mutate(next);
+                          }
+                        }}
                       />
                     </Table.Td>
                   );
@@ -161,6 +152,18 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
           </Table.Tbody>
         </Table>
       )}
+      {draftConfigMode && !isReadOnly ? (
+        <Alert color="blue" variant="light">
+          Publishing this draft will recalculate risk levels for all open risks against the updated matrix.
+        </Alert>
+      ) : null}
+      {!isReadOnly && !wizardMode ? (
+        <Group justify="flex-end">
+          <Button onClick={() => saveMatrixMutation.mutate(undefined)} loading={saveMatrixMutation.isPending}>
+            Save matrix
+          </Button>
+        </Group>
+      ) : null}
     </Stack>
   );
 }

@@ -117,6 +117,9 @@ export function sortColumnsByDisplayOrder(
 
 export function renderCustomFieldValue(value: RiskListCustomFieldValue | undefined): string {
   if (!value) return "—";
+  if (value.selectedOptions && value.selectedOptions.length > 0) {
+    return value.selectedOptions.map((o) => o.label).join(", ");
+  }
   if (value.textValue !== null) return value.textValue;
   if (value.numberValue !== null) return String(value.numberValue);
   if (value.booleanValue !== null) return value.booleanValue ? "Yes" : "No";

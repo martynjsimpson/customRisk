@@ -15,6 +15,112 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-10
+
+### Added
+
+- **Register: soft delete**
+  - System administrators can now delete a register from the Settings tab (Danger zone section). Deleting a register hides it from all users but retains all data (risks, configuration, audit history) in the database for recovery. Deletion requires typing the register name to confirm, and is recorded as a `REGISTER_DELETED` audit event.
+
+### Changed
+
+- **Risk register: state badges are now color-coded**
+  - Draft, Open, and Closed state badges in the risk list now use distinct colors (gray, blue, and dark respectively) for faster visual scanning.
+
+- **Register configuration: risk matrix always recalculates on save and publish**
+  - The "Recalculate existing risks" checkbox has been removed from the risk matrix tab. Saving the matrix (non-draft mode) or publishing a draft that includes matrix changes now always recalculates risk levels for all open risks. Publishing a draft also invalidates the risk list so updated risk levels appear immediately without a page refresh. A blue informational note is shown on the matrix tab when a draft is in progress to make this behaviour explicit.
+
+- **Register configuration: settings auto-save in draft mode**
+  - The "Save settings" button is no longer shown when a draft is in progress. Settings are saved automatically when focus leaves the settings form, keeping the UI consistent with the rest of the draft workflow.
+
+- **Register configuration: settings page restructured into logical groups**
+  - Settings are now grouped into four labelled sections — General, Risk IDs, Features, and Reviews — using fieldset frames consistent with the rest of the configuration UI. The register name is no longer editable outside of a draft; all settings now follow the same draft-gated rules. Dependent inputs (padding width, review frequency) are disabled when their parent toggle is off.
+
+- **Register configuration: consistent fieldset framing across all tabs**
+  - The Fields and Scoring tabs now present their content inside labelled fieldset frames matching the style introduced on the Settings tab. The version-controlled alert is shown above the tab strip (it applies to all tabs) and the greyed-out locked state now correctly applies only to tab content — the Scoring sub-tab strip remains fully interactive.
+
+- **Register configuration: action buttons moved below tables**
+  - Add and save actions (Add field, Add likelihood value, Add risk level, Save matrix, etc.) now sit below their respective tables rather than floating above them, removing the whitespace gap that appeared between the fieldset border and the table.
+
+- **Register configuration: tables now have an outer border**
+  - All configuration tables (fields, likelihood, impact, risk levels, matrix) render with a surrounding border, visually separating them from the fieldset background.
+
+### Fixed
+
+- **Custom field options modal: improved table sizing and action layout**
+  - The options modal opened from field configuration is now wider, no longer shows an unnecessary horizontal scrollbar for the options table, and keeps the row action buttons inline unless an unusually long label leaves no remaining space.
+
+- **Custom field options modal: option state changes update immediately**
+  - Activating or deactivating an option now refreshes the options table state immediately while the modal remains open, so the status badge and available action button stay in sync without closing and reopening the dialog.
+
+- **Custom field options modal: edit form no longer resets while typing**
+  - Editing an existing option now keeps the label and other form values stable while you type, fixing a regression where the edit form immediately reset itself on every keystroke and made the field appear non-editable.
+
+- **Custom field options modal: consistent close actions in the main dialog**
+  - The main options modal now includes both `Cancel` and `Save` actions that close the dialog, matching the close affordances used in the nested add/edit option flow and making the interaction model more predictable.
+
+- **Risk edit form: required custom fields now show the expected required marker**
+  - When custom field validation is enabled, the required marker is driven by validation mode: fields set to `BLOCK` show the red asterisk; all others do not. When validation is disabled the marker falls back to the field's `isRequired` flag.
+
+### Added
+
+- **Registers: guided creation wizard**
+  - Creating a new register now opens a step-by-step wizard rather than a minimal single-screen form. Steps cover naming and admins, risk ID format, feature toggles (with an additional reviews step when reviews are enabled), likelihood scale, impact scale, risk levels, risk matrix, and an optional custom fields step. Each step includes explanatory help text. The wizard creates the register on step one, then saves each configuration section in turn, so the user arrives at the configuration already populated and ready to use. The matrix step auto-saves on cell change and omits the recalculate option (no existing risks at creation time).
+
+- **Registers: simplified default scoring scale**
+  - New registers are seeded with a simpler Low / Medium / High likelihood scale, Low / Medium / High impact scale, and Low / Medium / High risk level set with a symmetric 3×3 default matrix (Low+High combinations in either direction map to Medium). Previously the defaults were five-level scales with more formal terminology. Existing registers are unaffected.
+
+- **Custom field options modal: inactive options can now be reactivated**
+  - Inactive dropdown and multi-select options now show an `Activate` action in the options modal, allowing administrators to restore an option directly from the table.
+
+- **Custom field options modal: add and edit now use a dedicated stacked editor dialog**
+  - The main options modal now focuses on the options table and actions, while `Add option` and `Edit` open a separate stacked modal for editing option details. Saving from that editor returns the user to the main options list with the table state refreshed.
+
+- **Custom fields: configurable validation modes (allow / warn / block)**
+  - Each custom field can now be set to one of three validation modes. `BLOCK` prevents saving until the field is filled; `WARN` lets the user proceed after explicitly acknowledging the warning; `ALLOW` imposes no constraint. This behavior applies only when custom field validation is enabled in that register's settings. Existing required fields are migrated to `BLOCK`; all others default to `ALLOW`. Acknowledged warnings are recorded in the audit trail.
+  - When custom field validation is enabled for a register, the `isRequired` toggle is hidden in the field configuration modal and superseded by the validation mode. `BLOCK` is the equivalent of required; the field's `isRequired` value is derived automatically from the chosen mode on save. When validation is disabled, `isRequired` is shown and used as before.
+
+- **Risk register: per-risk validation status and register-level validation summary**
+  - When custom field validation is enabled in that register's settings, each risk in the list carries a `validationStatus` (`BLOCK`, `WARN`, or `OK`) computed from its custom field values against the register's active field definitions. A coloured dot is shown next to the Risk ID in the table for any risk with missing required or recommended fields. A summary banner above the table shows how many open risks have `BLOCK` or `WARN` issues, with a one-click filter to show only those risks.
+
+- **Custom fields: multi-select field type**
+  - A new `MULTI_SELECT` field type allows risks to hold multiple pre-defined values for a single field. Selections are stored in a dedicated junction table (`risk_custom_field_multi_select_value`) rather than the scalar custom field value row, enabling clean many-to-many semantics. Multi-select fields support options management, validation modes, and appear in both the risk form and risk table columns. The Options button in the field configuration table now appears for multi-select fields as well as dropdowns.
+
+- **Custom fields: calculated field type data model**
+  - A new `CALCULATED` field type establishes the schema and lifecycle rules for computed custom fields. Calculated fields store a formula expression and a dependency list (field UUIDs referenced by the formula). They cannot be edited directly by users, cannot be marked required, and always carry `ALLOW` validation mode. The formula syntax supports `{field:uuid}` references with basic arithmetic operators. Evaluation is handled in the separate evaluation service (PM5-05).
+
+- **Custom fields: calculated field evaluation**
+  - Calculated fields are now evaluated automatically on every risk create and update. The formula engine supports field references (`{field:uuid}`), built-in risk properties (`{score}`, `{likelihood}`, `{impact}`), basic arithmetic with correct operator precedence, and math functions (`round`, `ceil`, `floor`, `abs`, `min`, `max`). Computed values are stored in the standard custom field value table as text. Invalid formulas are rejected at field-creation/update time so broken formulas never reach risks.
+
+- **Custom fields: field-level visibility by role**
+  - Each custom field definition now carries a `visibleToRoles` list. When the list is non-empty, only users whose effective register role appears in that list will see the field in the risk form, risk detail, and risk table. An empty list means the field is visible to everyone. System Admins and Register Admins always see all fields regardless of the setting. Field admins configure visibility through a new multi-select control in the custom field modal.
+
+- **Custom fields: advanced field configuration UI**
+  - The field configuration table now shows a Delete action for System Admins. Before deletion is confirmed, the UI fetches the current usage count for the field; if data exists, the confirmation dialog warns that all values will be permanently removed and requires an explicit "Force delete" acknowledgement. The custom field modal now includes the "Visible to roles" multi-select and the "Visible to Risk Response Owners" toggle introduced in PM5-06 and PM5-07.
+
+- **Custom fields: advanced field lifecycle controls**
+  - Custom fields can now be permanently deleted by System Admins. A GET usage endpoint returns the count of scalar and multi-select values that exist for a field before any destructive action is taken. Deleting a field with existing risk data requires an explicit `force=true` query parameter; without it the request is rejected with a 409 and a count of affected values. Forced deletion removes all associated scalar values, multi-select junction rows, and options atomically, and records an audit event. Deactivation behavior is unchanged.
+
+- **Custom fields: field type migration framework**
+  - Administrators can now migrate a custom field to a compatible type without data loss. A GET preview endpoint returns the number of risks and values that will be affected before any change is made. The POST migrate endpoint converts values atomically: dropdown selections become multi-select junction rows; number, boolean, and date values are coerced to their text representation. Unsafe conversions (e.g. MULTI_SELECT → DROPDOWN, CALCULATED ↔ anything, PERSON_PICKER) are rejected. Each migration writes an audit event recording the from/to type change.
+
+- **Custom fields: Risk Response Owner visibility flag**
+  - Each custom field definition now carries a `visibleToRiskResponseOwners` boolean (default `true`). When set to `false`, the field will be suppressed from the limited parent-risk context that Risk Response Owners see when acting on a linked action. The flag defaults to `true` so existing fields remain fully visible. Enforcement will activate when the Risk Response Owner permission model (Phase 7) is implemented.
+
+### Fixed
+
+- **Risk ownership: person-picker owners can now view and edit their own risks**
+  - Users assigned as Risk Owner through the person-picker field were not recognised for ownership-based access checks. They could not view or edit risks they owned unless they also held a broader register role. Ownership is now checked through both assignment paths consistently.
+
+- **Password change: current session is preserved**
+  - Changing your password previously signed you out of the session in which you made the change, forcing an immediate re-login. The current session is now kept active; all other sessions are still signed out.
+
+- **User preferences: nested preference groups are merged, not replaced**
+  - Saving a preference within a nested group (such as column visibility for one register) previously overwrote the entire group, losing settings for other registers or contexts. Each update now merges into the existing group rather than replacing it.
+
+- **Deployment: database migrations now run correctly on container start**
+  - The `prisma migrate deploy` step in the container entrypoint was failing with "datasource.url property is required" because the Prisma config file (`prisma.config.ts`) was not included in the runtime image. Prisma 7 reads the datasource URL from this config file rather than from the schema, so the file is now copied into the image and referenced explicitly at deploy time.
+
 ## [1.6.0] - 2026-06-08
 
 ### Fixed
@@ -299,7 +405,9 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/martynjsimpson/customRisk/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/martynjsimpson/customRisk/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/martynjsimpson/customRisk/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/martynjsimpson/customRisk/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/martynjsimpson/customRisk/compare/v1.2.0...v1.3.0

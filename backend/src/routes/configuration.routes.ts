@@ -6,11 +6,15 @@ import {
   createCustomFieldOptionController,
   deactivateCustomFieldController,
   deactivateCustomFieldOptionController,
+  deleteCustomFieldController,
   getCustomFieldController,
+  getCustomFieldUsageController,
   getRegisterConfigController,
   getRiskFormConfigController,
   listCustomFieldOptionsController,
   listCustomFieldsController,
+  migrateCustomFieldTypeController,
+  previewFieldTypeMigrationController,
   updateCustomFieldController,
   updateCustomFieldOptionController
 } from "../controllers/customFields.controller.js";
@@ -33,7 +37,8 @@ import {
 } from "../controllers/scoringConfig.controller.js";
 import {
   requireRegisterAccess,
-  requireRegisterManagement
+  requireRegisterManagement,
+  requireSystemAdmin
 } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import { asyncRoute } from "../utils/asyncRoute.js";
@@ -42,6 +47,9 @@ import {
   createCustomFieldSchema,
   customFieldOptionParamsSchema,
   customFieldParamsSchema,
+  deleteCustomFieldQuerySchema,
+  migrateFieldTypeQuerySchema,
+  migrateFieldTypeSchema,
   updateCustomFieldOptionSchema,
   updateCustomFieldSchema
 } from "../validators/customFields.schemas.js";
@@ -70,8 +78,12 @@ export function createConfigurationSubRouter() {
   router.post("/:registerId/custom-fields", validateRequest({ params: registerIdParamsSchema, body: createCustomFieldSchema }), requireRegisterManagement(), asyncRoute(createCustomFieldController));
   router.get("/:registerId/custom-fields/:fieldId", validateRequest({ params: customFieldParamsSchema }), requireRegisterManagement(), asyncRoute(getCustomFieldController));
   router.patch("/:registerId/custom-fields/:fieldId", validateRequest({ params: customFieldParamsSchema, body: updateCustomFieldSchema }), requireRegisterManagement(), asyncRoute(updateCustomFieldController));
+  router.get("/:registerId/custom-fields/:fieldId/usage", validateRequest({ params: customFieldParamsSchema }), requireRegisterManagement(), asyncRoute(getCustomFieldUsageController));
+  router.delete("/:registerId/custom-fields/:fieldId", requireSystemAdmin, validateRequest({ params: customFieldParamsSchema, query: deleteCustomFieldQuerySchema }), asyncRoute(deleteCustomFieldController));
   router.post("/:registerId/custom-fields/:fieldId/activate", validateRequest({ params: customFieldParamsSchema }), requireRegisterManagement(), asyncRoute(activateCustomFieldController));
   router.post("/:registerId/custom-fields/:fieldId/deactivate", validateRequest({ params: customFieldParamsSchema }), requireRegisterManagement(), asyncRoute(deactivateCustomFieldController));
+  router.get("/:registerId/custom-fields/:fieldId/type-migration-preview", validateRequest({ params: customFieldParamsSchema, query: migrateFieldTypeQuerySchema }), requireRegisterManagement(), asyncRoute(previewFieldTypeMigrationController));
+  router.post("/:registerId/custom-fields/:fieldId/migrate-type", validateRequest({ params: customFieldParamsSchema, body: migrateFieldTypeSchema }), requireRegisterManagement(), asyncRoute(migrateCustomFieldTypeController));
   router.get("/:registerId/custom-fields/:fieldId/options", validateRequest({ params: customFieldParamsSchema }), requireRegisterManagement(), asyncRoute(listCustomFieldOptionsController));
   router.post("/:registerId/custom-fields/:fieldId/options", validateRequest({ params: customFieldParamsSchema, body: createCustomFieldOptionSchema }), requireRegisterManagement(), asyncRoute(createCustomFieldOptionController));
   router.patch("/:registerId/custom-fields/:fieldId/options/:optionId", validateRequest({ params: customFieldOptionParamsSchema, body: updateCustomFieldOptionSchema }), requireRegisterManagement(), asyncRoute(updateCustomFieldOptionController));

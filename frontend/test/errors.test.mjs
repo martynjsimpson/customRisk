@@ -15,7 +15,8 @@ test("shared API error alert renders actionable field-level validation messages"
   assert.match(alert, /\.sort\(\(\[left\], \[right\]\) => left\.localeCompare\(right\)\)/);
   assert.match(alert, /formatApiErrorFieldName\(field\)/);
 
-  assert.match(riskForm, /<ApiErrorAlert error=\{saveMutation\.error\} fallback="Unable to save risk" \/>/);
+  assert.match(riskForm, /getApiErrorCode\(saveMutation\.error\) !== "VALIDATION_WARNING"/);
+  assert.match(riskForm, /saveMutation\.error/);
   assert.match(usersPage, /<ApiErrorAlert[\s\S]*error=\{editingUser \? updateMutation\.error : createMutation\.error\}/);
 });
 
@@ -36,5 +37,6 @@ test("API-backed UI surfaces use shared API error display", async () => {
   assert.match(registerDetailPage, /<ApiErrorAlert error=\{registerQuery\.error\}/);
   assert.match(usersPage, /<ApiErrorAlert error=\{usersQuery\.error\}/);
   assert.match(riskPanel, /<ApiErrorAlert error=\{riskQuery\.error\}/);
-  assert.match(riskFormModal, /<ApiErrorAlert error=\{saveMutation\.error\}/);
+  assert.match(riskFormModal, /getApiErrorCode\(saveMutation\.error\)/);
+  assert.match(riskFormModal, /saveMutation\.error/);
 });
