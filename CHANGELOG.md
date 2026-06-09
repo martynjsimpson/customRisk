@@ -44,7 +44,7 @@ Version levels:
   - The main options modal now includes both `Cancel` and `Save` actions that close the dialog, matching the close affordances used in the nested add/edit option flow and making the interaction model more predictable.
 
 - **Risk edit form: required custom fields now show the expected required marker**
-  - Custom fields marked as required now display the same red asterisk indicator as built-in required fields on the risk create/edit form, matching user expectations and making required inputs easier to spot.
+  - When custom field validation is enabled, the required marker is driven by validation mode: fields set to `BLOCK` show the red asterisk; all others do not. When validation is disabled the marker falls back to the field's `isRequired` flag.
 
 ### Added
 
@@ -56,6 +56,7 @@ Version levels:
 
 - **Custom fields: configurable validation modes (allow / warn / block)**
   - Each custom field can now be set to one of three validation modes. `BLOCK` prevents saving until the field is filled; `WARN` lets the user proceed after explicitly acknowledging the warning; `ALLOW` imposes no constraint. This behavior applies only when custom field validation is enabled in that register's settings. Existing required fields are migrated to `BLOCK`; all others default to `ALLOW`. Acknowledged warnings are recorded in the audit trail.
+  - When custom field validation is enabled for a register, the `isRequired` toggle is hidden in the field configuration modal and superseded by the validation mode. `BLOCK` is the equivalent of required; the field's `isRequired` value is derived automatically from the chosen mode on save. When validation is disabled, `isRequired` is shown and used as before.
 
 - **Risk register: per-risk validation status and register-level validation summary**
   - When custom field validation is enabled in that register's settings, each risk in the list carries a `validationStatus` (`BLOCK`, `WARN`, or `OK`) computed from its custom field values against the register's active field definitions. A coloured dot is shown next to the Risk ID in the table for any risk with missing required or recommended fields. A summary banner above the table shows how many open risks have `BLOCK` or `WARN` issues, with a one-click filter to show only those risks.

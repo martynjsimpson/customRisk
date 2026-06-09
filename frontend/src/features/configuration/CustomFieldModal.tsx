@@ -24,6 +24,7 @@ interface CustomFieldModalProps {
   createError: unknown;
   updateError: unknown;
   isSaving: boolean;
+  validationEnabled?: boolean;
   onClose: () => void;
   onSubmit: (values: CustomFieldFormValues) => void;
 }
@@ -81,6 +82,7 @@ export function CustomFieldModal({
   createError,
   updateError,
   isSaving,
+  validationEnabled = false,
   onClose,
   onSubmit
 }: CustomFieldModalProps) {
@@ -121,7 +123,10 @@ export function CustomFieldModal({
       onClose={onClose}
       title={editingField ? "Edit custom field" : "Add custom field"}
     >
-      <form onSubmit={form.onSubmit(onSubmit)}>
+      <form onSubmit={form.onSubmit((values) => onSubmit({
+        ...values,
+        isRequired: validationEnabled ? values.validationMode === "BLOCK" : values.isRequired
+      }))}>
         <Stack>
           <ApiErrorAlert error={createError} fallback="Unable to create custom field" />
           <ApiErrorAlert error={updateError} fallback="Unable to update custom field" />
@@ -133,10 +138,10 @@ export function CustomFieldModal({
             {...form.getInputProps("fieldType")}
           />
           <Textarea label="Help text" {...form.getInputProps("helpText")} />
-          {form.values.fieldType !== "CALCULATED" ? (
+          {form.values.fieldType !== "CALCULATED" && !validationEnabled ? (
             <Checkbox label="Required" {...form.getInputProps("isRequired", { type: "checkbox" })} />
           ) : null}
-          {form.values.fieldType !== "CALCULATED" ? (
+          {form.values.fieldType !== "CALCULATED" && validationEnabled ? (
             <Select
               label="Validation mode"
               description="Allow saves freely, warn on save, or block save until the field is filled."

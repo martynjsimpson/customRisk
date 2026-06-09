@@ -395,6 +395,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         createError={createFieldMutation.error}
         updateError={updateFieldMutation.error}
         isSaving={createFieldMutation.isPending || updateFieldMutation.isPending}
+        validationEnabled={configQuery.data?.register.customFieldValidationEnabled ?? false}
         onClose={() => {
           setFieldModalOpen(false);
           setEditingField(null);

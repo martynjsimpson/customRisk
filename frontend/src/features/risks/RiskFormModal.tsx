@@ -201,7 +201,7 @@ function CustomFieldInput({
 }) {
   const label = field.fieldName;
   const warnProps = hasWarning ? { styles: { input: { borderColor: "var(--mantine-color-yellow-5)" } } } : {};
-  const isMarkedRequired = validationEnabled && (field.isRequired || field.validationMode === "BLOCK");
+  const isMarkedRequired = validationEnabled ? field.validationMode === "BLOCK" : field.isRequired;
 
   if (field.fieldType === "MULTILINE_TEXT") {
     return <Textarea label={label} required={isMarkedRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
