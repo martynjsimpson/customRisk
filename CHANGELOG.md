@@ -26,10 +26,16 @@ Version levels:
 - **Custom field options modal: edit form no longer resets while typing**
   - Editing an existing option now keeps the label and other form values stable while you type, fixing a regression where the edit form immediately reset itself on every keystroke and made the field appear non-editable.
 
+- **Custom field options modal: consistent close actions in the main dialog**
+  - The main options modal now includes both `Cancel` and `Save` actions that close the dialog, matching the close affordances used in the nested add/edit option flow and making the interaction model more predictable.
+
 ### Added
 
 - **Custom field options modal: inactive options can now be reactivated**
   - Inactive dropdown and multi-select options now show an `Activate` action in the options modal, allowing administrators to restore an option directly from the table.
+
+- **Custom field options modal: add and edit now use a dedicated stacked editor dialog**
+  - The main options modal now focuses on the options table and actions, while `Add option` and `Edit` open a separate stacked modal for editing option details. Saving from that editor returns the user to the main options list with the table state refreshed.
 
 - **Custom fields: configurable validation modes (allow / warn / block)**
   - Each custom field can now be set to one of three validation modes. `BLOCK` prevents saving until the field is filled; `WARN` lets the user proceed after explicitly acknowledging the warning; `ALLOW` imposes no constraint. Existing required fields are migrated to `BLOCK`; all others default to `ALLOW`. Acknowledged warnings are recorded in the audit trail.

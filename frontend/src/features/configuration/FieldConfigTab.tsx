@@ -41,6 +41,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
   const { isSystemAdmin } = usePermissions();
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const [optionsModalOpen, setOptionsModalOpen] = useState(false);
+  const [optionEditorOpen, setOptionEditorOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomFieldDefinition | null>(null);
   const [selectedField, setSelectedField] = useState<CustomFieldDefinition | null>(null);
   const [editingOption, setEditingOption] = useState<CustomFieldOption | null>(null);
@@ -265,6 +266,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
           })
         : createCustomFieldOption(registerId, fieldId, values),
     onSuccess: async () => {
+      setOptionEditorOpen(false);
       setEditingOption(null);
       await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
@@ -296,6 +298,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
           })
         : updateCustomFieldOption(registerId, fieldId, optionId, values),
     onSuccess: async () => {
+      setOptionEditorOpen(false);
       setEditingOption(null);
       await invalidateCustomFieldConfiguration(queryClient, registerId);
     }
@@ -334,6 +337,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
   const openOptions = (field: CustomFieldDefinition) => {
     setSelectedField(field);
     setEditingOption(null);
+    setOptionEditorOpen(false);
     setOptionsModalOpen(true);
   };
 
@@ -425,6 +429,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
 
       <CustomFieldOptionsModal
         opened={optionsModalOpen}
+        editorOpened={optionEditorOpen}
         selectedField={selectedField}
         options={selectedFieldOptions}
         editingOption={editingOption}
@@ -436,10 +441,22 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         isSaving={createOptionMutation.isPending || updateOptionMutation.isPending}
         onClose={() => {
           setOptionsModalOpen(false);
+          setOptionEditorOpen(false);
           setSelectedField(null);
           setEditingOption(null);
         }}
-        onEditOption={setEditingOption}
+        onOpenCreate={() => {
+          setEditingOption(null);
+          setOptionEditorOpen(true);
+        }}
+        onOpenEdit={(option) => {
+          setEditingOption(option);
+          setOptionEditorOpen(true);
+        }}
+        onCloseEditor={() => {
+          setOptionEditorOpen(false);
+          setEditingOption(null);
+        }}
         onSubmit={(values) => {
           if (!selectedField) {
             return;

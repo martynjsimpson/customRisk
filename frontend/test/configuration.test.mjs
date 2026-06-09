@@ -41,10 +41,19 @@ test("custom field options modal shows activate or deactivate based on option st
   const modal = await readFile(new URL("../src/features/configuration/CustomFieldOptionsModal.tsx", import.meta.url), "utf8");
   const tab = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
 
+  assert.match(modal, /editorOpened:\s*boolean/);
+  assert.match(modal, /Add option/);
+  assert.match(modal, /title=\{editingOption \? "Edit option" : "Add option"\}/);
+  assert.match(modal, /<Button onClick=\{onClose\}>[\s\S]*Save[\s\S]*<\/Button>/);
   assert.match(modal, /option\.isActive \?\s*\(/);
   assert.match(modal, /Deactivate/);
   assert.match(modal, /:\s*\(\s*<Button[\s\S]*?Activate/);
+  assert.match(modal, /onOpenCreate:\s*\(\)\s*=>\s*void/);
+  assert.match(modal, /onOpenEdit:\s*\(option:\s*CustomFieldOption\)\s*=>\s*void/);
   assert.match(modal, /onActivate:\s*\(optionId:\s*string\)\s*=>\s*void/);
+  assert.match(tab, /editorOpened=\{optionEditorOpen\}/);
+  assert.match(tab, /onOpenCreate=\{\(\) =>/);
+  assert.match(tab, /onOpenEdit=\{\(option\) =>/);
   assert.match(tab, /onActivate=\{\(optionId\) =>/);
   assert.match(tab, /updateOptionMutation\.mutate\(\{\s*fieldId:\s*selectedField\.id,\s*optionId,\s*values:\s*\{\s*isActive:\s*true\s*\}\s*\}\)/s);
   assert.match(tab, /onDeactivate=\{\(optionId\) =>/);
