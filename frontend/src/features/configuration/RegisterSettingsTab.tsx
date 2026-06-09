@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Fieldset, NumberInput, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Checkbox, Fieldset, NumberInput, Stack, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -88,11 +88,6 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
     <form onSubmit={settingsForm.onSubmit(() => updateSettingsMutation.mutate())}>
       <Stack>
         <ApiErrorAlert error={updateSettingsMutation.error} fallback="Unable to save register settings" />
-        {draftConfigMode && hasDraft ? (
-          <Alert color="blue" title="Draft in progress">
-            Settings saved here apply immediately. Fields and scoring changes are part of the draft and will take effect when published.
-          </Alert>
-        ) : null}
         <Fieldset legend="General">
           <Stack>
             <TextInput maw={400} label="Name" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("name")} />
