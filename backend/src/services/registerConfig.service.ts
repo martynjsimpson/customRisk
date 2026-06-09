@@ -1,5 +1,8 @@
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
+import type { EffectiveRegisterRole } from "../permissions/effectiveRole.js";
+import { getEffectiveRegisterRole } from "../permissions/registerAccess.js";
+import type { AuthenticatedActor } from "../types/express.js";
 import type { RegisterConfigSnapshot } from "../types/configSnapshot.js";
 
 const registerConfigSelect = {
@@ -19,6 +22,17 @@ const registerConfigSelect = {
   updatedAt: true
 };
 
+
+export function isFieldVisibleToRole(
+  visibleToRoles: string[],
+  role: EffectiveRegisterRole
+): boolean {
+  // No restrictions: visible to everyone
+  if (visibleToRoles.length === 0) return true;
+  // System Admin and Register Admin always see all fields
+  if (role === "SYSTEM_ADMIN" || role === "REGISTER_ADMIN") return true;
+  return visibleToRoles.includes(role);
+}
 
 async function assertRegisterExists(registerId: string) {
   const register = await prisma.register.findUnique({
@@ -172,9 +186,10 @@ export async function getRegisterConfig(registerId: string) {
   };
 }
 
-export async function getRiskFormConfig(registerId: string) {
+export async function getRiskFormConfig(registerId: string, actor?: AuthenticatedActor) {
   const register = await assertRegisterExists(registerId);
   const referencedIds = await getReferencedConfigurationIds(registerId);
+  const actorRole = actor ? await getEffectiveRegisterRole(actor, registerId) : "REGISTER_ADMIN";
 
   const [users, customFields, likelihoodValues, impactValues, riskLevels, responseStrategies] = await Promise.all([
     prisma.user.findMany({
@@ -229,11 +244,13 @@ export async function getRiskFormConfig(registerId: string) {
     })
   ]);
 
+  const visibleCustomFields = customFields.filter((f) => isFieldVisibleToRole(f.visibleToRoles, actorRole));
+
   return {
     states: ["DRAFT", "OPEN", "CLOSED"],
     register,
     users,
-    customFields,
+    customFields: visibleCustomFields,
     likelihoodValues,
     impactValues,
     riskLevels,

@@ -478,6 +478,7 @@ model CustomFieldDefinition {
   isActive             Boolean         @default(true) @map("is_active")
   formula              String?         @map("formula") @db.Text
   formulaDependencies  String[]        @map("formula_dependencies") @db.Uuid
+  visibleToRoles       String[]        @map("visible_to_roles")
 
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdByUserId String   @map("created_by_user_id") @db.Uuid

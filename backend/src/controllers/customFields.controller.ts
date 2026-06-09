@@ -36,7 +36,7 @@ export async function getRiskFormConfigController(
   request: Request<RegisterIdParams>,
   response: Response
 ) {
-  sendData(response, await getRiskFormConfig(request.params.registerId));
+  sendData(response, await getRiskFormConfig(request.params.registerId, actorOrThrow(request)));
 }
 
 export async function listCustomFieldsController(request: Request<RegisterIdParams>, response: Response) {

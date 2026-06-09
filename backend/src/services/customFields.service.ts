@@ -254,6 +254,7 @@ export async function createCustomField(
           isActive: input.isActive,
           formula: input.formula ?? null,
           formulaDependencies,
+          visibleToRoles: input.visibleToRoles ?? [],
           createdByUserId: actor.id,
           updatedByUserId: actor.id,
           options:
@@ -349,6 +350,7 @@ export async function updateCustomField(
           isActive: input.isActive,
           formula: input.formula,
           formulaDependencies: formulaDependencies,
+          visibleToRoles: input.visibleToRoles,
           updatedByUserId: actor.id
         },
         include: customFieldInclude

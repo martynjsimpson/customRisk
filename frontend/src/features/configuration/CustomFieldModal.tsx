@@ -1,8 +1,8 @@
-import { Button, Checkbox, Modal, Select, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Checkbox, Modal, MultiSelect, Select, Stack, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect } from "react";
 
-import type { CustomFieldDefinition, CustomFieldType } from "../../api/customFields.api";
+import type { CustomFieldDefinition, CustomFieldType, RegisterRole } from "../../api/customFields.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 
 interface CustomFieldFormValues {
@@ -13,6 +13,7 @@ interface CustomFieldFormValues {
   isActive: boolean;
   initialOptionsText: string;
   formula: string;
+  visibleToRoles: RegisterRole[];
 }
 
 interface CustomFieldModalProps {
@@ -37,6 +38,12 @@ const fieldTypeOptions: Array<{ value: CustomFieldType; label: string }> = [
   { value: "CALCULATED", label: "Calculated" }
 ];
 
+const visibilityOptions: Array<{ value: RegisterRole; label: string }> = [
+  { value: "REGISTER_ADMIN", label: "Register Admin" },
+  { value: "REGISTER_VIEWER", label: "Register Viewer" },
+  { value: "RISK_OWNER", label: "Risk Owner" }
+];
+
 function createInitialValues(): CustomFieldFormValues {
   return {
     fieldName: "",
@@ -45,7 +52,8 @@ function createInitialValues(): CustomFieldFormValues {
     isRequired: false,
     isActive: true,
     initialOptionsText: "",
-    formula: ""
+    formula: "",
+    visibleToRoles: []
   };
 }
 
@@ -83,7 +91,8 @@ export function CustomFieldModal({
         isRequired: editingField.isRequired,
         isActive: editingField.isActive,
         initialOptionsText: "",
-        formula: editingField.formula ?? ""
+        formula: editingField.formula ?? "",
+        visibleToRoles: editingField.visibleToRoles ?? []
       });
       return;
     }
@@ -134,6 +143,12 @@ export function CustomFieldModal({
               {...form.getInputProps("initialOptionsText")}
             />
           ) : null}
+          <MultiSelect
+            label="Visible to roles"
+            description="Leave empty to show to all roles. Admins always see all fields."
+            data={visibilityOptions}
+            {...form.getInputProps("visibleToRoles")}
+          />
           <Button type="submit" loading={isSaving}>
             Save
           </Button>

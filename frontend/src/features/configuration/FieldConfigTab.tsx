@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   type CustomFieldDefinition,
   type CustomFieldOption,
+  type RegisterRole,
   getRegisterConfiguration,
   listCustomFieldOptions,
   type SaveCustomFieldOptionInput
@@ -110,6 +111,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     isActive: boolean;
     options?: Array<{ label: string; displayOrder: number; isActive?: boolean }>;
     formula?: string;
+    visibleToRoles?: RegisterRole[];
   }>({
     mutationFn: (values) => {
       const newFieldId = crypto.randomUUID();
@@ -130,6 +132,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                   isActive: values.isActive,
                   formula: values.formula ?? null,
                   formulaDependencies: [],
+                  visibleToRoles: values.visibleToRoles ?? [],
                   options: (values.options ?? []).map((option) => ({
                     id: crypto.randomUUID(),
                     customFieldDefinitionId: newFieldId,
@@ -157,6 +160,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       isActive?: boolean;
       displayOrder?: number;
       formula?: string;
+      visibleToRoles?: RegisterRole[];
     };
   }>({
     mutationFn: ({
@@ -342,7 +346,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                 helpText: values.helpText || null,
                 isRequired: editingField.fieldType === "CALCULATED" ? false : values.isRequired,
                 isActive: values.isActive,
-                formula: editingField.fieldType === "CALCULATED" && values.formula ? values.formula : undefined
+                formula: editingField.fieldType === "CALCULATED" && values.formula ? values.formula : undefined,
+                visibleToRoles: values.visibleToRoles
               }
             });
             return;
@@ -357,7 +362,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
             displayOrder: nextFieldDisplayOrder,
             isActive: values.isActive,
             options: isOptionsType ? parseInitialOptions(values.initialOptionsText) : undefined,
-            formula: values.fieldType === "CALCULATED" && values.formula ? values.formula : undefined
+            formula: values.fieldType === "CALCULATED" && values.formula ? values.formula : undefined,
+            visibleToRoles: values.visibleToRoles
           });
         }}
       />

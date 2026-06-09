@@ -32,6 +32,9 @@ Version levels:
 - **Custom fields: calculated field evaluation**
   - Calculated fields are now evaluated automatically on every risk create and update. The formula engine supports field references (`{field:uuid}`), built-in risk properties (`{score}`, `{likelihood}`, `{impact}`), basic arithmetic with correct operator precedence, and math functions (`round`, `ceil`, `floor`, `abs`, `min`, `max`). Computed values are stored in the standard custom field value table as text. Invalid formulas are rejected at field-creation/update time so broken formulas never reach risks.
 
+- **Custom fields: field-level visibility by role**
+  - Each custom field definition now carries a `visibleToRoles` list. When the list is non-empty, only users whose effective register role appears in that list will see the field in the risk form, risk detail, and risk table. An empty list means the field is visible to everyone. System Admins and Register Admins always see all fields regardless of the setting. Field admins configure visibility through a new multi-select control in the custom field modal.
+
 ## [1.7.0] - 2026-06-08
 
 ### Fixed

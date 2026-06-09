@@ -31,6 +31,8 @@ const customFieldOptionInputSchema = z.object({
   isActive: z.boolean().default(true)
 });
 
+export const registerRoles = ["REGISTER_ADMIN", "REGISTER_VIEWER", "RISK_OWNER"] as const;
+
 export const createCustomFieldSchema = z.object({
   fieldName: z.string().trim().min(1),
   fieldType: z.enum(customFieldTypes),
@@ -40,7 +42,8 @@ export const createCustomFieldSchema = z.object({
   displayOrder: z.number().int().min(1),
   isActive: z.boolean().default(true),
   options: z.array(customFieldOptionInputSchema).optional(),
-  formula: z.string().trim().min(1).optional()
+  formula: z.string().trim().min(1).optional(),
+  visibleToRoles: z.array(z.enum(registerRoles)).optional()
 });
 
 export const updateCustomFieldSchema = z.object({
@@ -50,7 +53,8 @@ export const updateCustomFieldSchema = z.object({
   validationMode: z.enum(validationModes).optional(),
   displayOrder: z.number().int().min(1).optional(),
   isActive: z.boolean().optional(),
-  formula: z.string().trim().min(1).optional()
+  formula: z.string().trim().min(1).optional(),
+  visibleToRoles: z.array(z.enum(registerRoles)).optional()
 });
 
 export const createCustomFieldOptionSchema = customFieldOptionInputSchema;

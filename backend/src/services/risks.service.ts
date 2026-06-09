@@ -27,6 +27,7 @@ import type {
 import { validateCustomFieldValues } from "./customFieldValues.service.js";
 import { formatPersonDisplay, personReferenceSelect, resolvePersonInput } from "./personReference.service.js";
 import { evaluateFormula, FormulaEvaluationError, type FormulaContext } from "./formulaEvaluator.service.js";
+import { isFieldVisibleToRole } from "./registerConfig.service.js";
 
 type RiskClient = typeof prisma | Prisma.TransactionClient;
 
@@ -183,7 +184,7 @@ const riskListInclude = {
   responseStrategy: { select: { id: true, name: true } },
   customFieldValues: {
     include: {
-      customFieldDefinition: { select: { id: true, fieldName: true, fieldType: true, isActive: true, displayOrder: true } },
+      customFieldDefinition: { select: { id: true, fieldName: true, fieldType: true, isActive: true, displayOrder: true, visibleToRoles: true } },
       dropdownOption: { select: { id: true, label: true } },
       personUser: { select: { id: true, name: true, email: true } },
       person: { select: personReferenceSelect }
@@ -192,7 +193,7 @@ const riskListInclude = {
   multiSelectValues: {
     include: {
       option: { select: { id: true, label: true } },
-      customFieldDefinition: { select: { id: true, fieldName: true, displayOrder: true, isActive: true } }
+      customFieldDefinition: { select: { id: true, fieldName: true, displayOrder: true, isActive: true, visibleToRoles: true } }
     },
     orderBy: { option: { displayOrder: "asc" } } as const
   }
@@ -666,49 +667,73 @@ export async function listRisks(
   ]);
 
   return {
-    data: risks.map((risk) => mapRiskListItem(risk, register.reviewsEnabled, validationContext)),
+    data: risks.map((risk) => {
+      const visibleRisk = {
+        ...risk,
+        customFieldValues: risk.customFieldValues.filter(
+          (v) => isFieldVisibleToRole(v.customFieldDefinition.visibleToRoles, role)
+        ),
+        multiSelectValues: risk.multiSelectValues.filter(
+          (v) => isFieldVisibleToRole(v.customFieldDefinition.visibleToRoles, role)
+        )
+      };
+      return mapRiskListItem(visibleRisk, register.reviewsEnabled, validationContext);
+    }),
     meta: { total, page: query.page, pageSize: query.pageSize }
   };
 }
 
-export async function getRiskDetail(_actor: AuthenticatedActor, registerId: string, riskId: string) {
-  const risk = await prisma.risk.findFirst({
-    where: { id: riskId, registerId },
-    include: {
-      register: { select: { reviewsEnabled: true } },
-      owner: { select: { id: true, name: true, email: true, isActive: true } },
-      ownerPerson: { select: personReferenceSelect },
-      likelihoodValue: true,
-      impactValue: true,
-      riskLevel: true,
-      responseStrategy: true,
-      customFieldValues: {
-        include: {
-          customFieldDefinition: true,
-          dropdownOption: true,
-          personUser: { select: { id: true, name: true, email: true, isActive: true } },
-          person: { select: personReferenceSelect }
+export async function getRiskDetail(actor: AuthenticatedActor, registerId: string, riskId: string) {
+  const [risk, actorRole] = await Promise.all([
+    prisma.risk.findFirst({
+      where: { id: riskId, registerId },
+      include: {
+        register: { select: { reviewsEnabled: true } },
+        owner: { select: { id: true, name: true, email: true, isActive: true } },
+        ownerPerson: { select: personReferenceSelect },
+        likelihoodValue: true,
+        impactValue: true,
+        riskLevel: true,
+        responseStrategy: true,
+        customFieldValues: {
+          include: {
+            customFieldDefinition: true,
+            dropdownOption: true,
+            personUser: { select: { id: true, name: true, email: true, isActive: true } },
+            person: { select: personReferenceSelect }
+          },
+          orderBy: { customFieldDefinition: { displayOrder: "asc" } }
         },
-        orderBy: { customFieldDefinition: { displayOrder: "asc" } }
-      },
-      multiSelectValues: {
-        include: {
-          option: { select: { id: true, label: true } },
-          customFieldDefinition: { select: { id: true, fieldName: true, displayOrder: true, isActive: true, fieldType: true, helpText: true, isRequired: true, validationMode: true } }
+        multiSelectValues: {
+          include: {
+            option: { select: { id: true, label: true } },
+            customFieldDefinition: { select: { id: true, fieldName: true, displayOrder: true, isActive: true, fieldType: true, helpText: true, isRequired: true, validationMode: true, visibleToRoles: true } }
+          },
+          orderBy: { option: { displayOrder: "asc" } }
         },
-        orderBy: { option: { displayOrder: "asc" } }
-      },
-      lastReviewedBy: { select: { id: true, name: true, email: true } },
-      systemCreatedBy: { select: { id: true, name: true, email: true } },
-      systemUpdatedBy: { select: { id: true, name: true, email: true } }
-    }
-  });
+        lastReviewedBy: { select: { id: true, name: true, email: true } },
+        systemCreatedBy: { select: { id: true, name: true, email: true } },
+        systemUpdatedBy: { select: { id: true, name: true, email: true } }
+      }
+    }),
+    getEffectiveRegisterRole(actor, registerId)
+  ]);
 
   if (!risk) {
     throw new ApiError(404, "NOT_FOUND", "Risk not found");
   }
 
-  return mapRiskDetail(risk, risk.register.reviewsEnabled);
+  const filteredRisk = {
+    ...risk,
+    customFieldValues: risk.customFieldValues.filter(
+      (v) => isFieldVisibleToRole(v.customFieldDefinition.visibleToRoles, actorRole)
+    ),
+    multiSelectValues: risk.multiSelectValues.filter(
+      (v) => isFieldVisibleToRole(v.customFieldDefinition.visibleToRoles, actorRole)
+    )
+  };
+
+  return mapRiskDetail(filteredRisk, risk.register.reviewsEnabled);
 }
 
 export async function updateRisk(

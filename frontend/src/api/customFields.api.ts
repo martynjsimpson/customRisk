@@ -21,6 +21,8 @@ export interface CustomFieldOption {
   isActive: boolean;
 }
 
+export type RegisterRole = "REGISTER_ADMIN" | "REGISTER_VIEWER" | "RISK_OWNER";
+
 export interface CustomFieldDefinition {
   id: string;
   registerId: string;
@@ -33,6 +35,7 @@ export interface CustomFieldDefinition {
   options: CustomFieldOption[];
   formula: string | null;
   formulaDependencies: string[];
+  visibleToRoles: RegisterRole[];
 }
 
 export interface SaveCustomFieldInput {
@@ -48,6 +51,7 @@ export interface SaveCustomFieldInput {
     isActive?: boolean;
   }>;
   formula?: string;
+  visibleToRoles?: RegisterRole[];
 }
 
 export type UpdateCustomFieldInput = Partial<Omit<SaveCustomFieldInput, "fieldType" | "options">>;
