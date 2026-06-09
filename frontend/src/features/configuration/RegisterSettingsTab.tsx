@@ -93,11 +93,6 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
     <form onSubmit={settingsForm.onSubmit(() => updateSettingsMutation.mutate())}>
       <Stack>
         <ApiErrorAlert error={updateSettingsMutation.error} fallback="Unable to save register settings" />
-        {settingsLocked ? (
-          <Alert color="blue" title="Configuration is version-controlled">
-            Create a draft using the banner above to edit configuration settings. Only the register name can be changed directly while no draft is in progress.
-          </Alert>
-        ) : null}
         {draftConfigMode && hasDraft ? (
           <Alert color="blue" title="Draft in progress">
             Settings saved here apply immediately. Fields and scoring changes are part of the draft and will take effect when published.
