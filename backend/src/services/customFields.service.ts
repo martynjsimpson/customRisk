@@ -440,6 +440,192 @@ export async function setCustomFieldActiveState(
   });
 }
 
+// Defines which type changes are safe. Key = fromType, value = set of allowed toTypes.
+const ALLOWED_TYPE_MIGRATIONS: Record<string, string[]> = {
+  TEXT: ["MULTILINE_TEXT"],
+  MULTILINE_TEXT: ["TEXT"],
+  NUMBER: ["TEXT", "MULTILINE_TEXT"],
+  BOOLEAN: ["TEXT", "MULTILINE_TEXT"],
+  DATE: ["TEXT", "MULTILINE_TEXT"],
+  DROPDOWN: ["MULTI_SELECT"]
+};
+
+export function getAllowedTargetTypes(fromType: string): string[] {
+  return ALLOWED_TYPE_MIGRATIONS[fromType] ?? [];
+}
+
+export async function previewFieldTypeMigration(
+  registerId: string,
+  fieldId: string,
+  targetType: string
+) {
+  const field = await findCustomField(registerId, fieldId);
+  const allowed = getAllowedTargetTypes(field.fieldType);
+
+  if (!allowed.includes(targetType)) {
+    return {
+      allowed: false,
+      reason: `Migration from ${field.fieldType} to ${targetType} is not supported`,
+      affectedRisks: 0,
+      valuesMigrated: 0,
+      valuesDropped: 0
+    };
+  }
+
+  // Count existing values that will change storage column
+  const scalarCount = await prisma.riskCustomFieldValue.count({
+    where: { customFieldDefinitionId: fieldId, registerId }
+  });
+
+  // For TEXT/MULTILINE_TEXT ↔ no data movement needed
+  if (
+    (field.fieldType === "TEXT" && targetType === "MULTILINE_TEXT") ||
+    (field.fieldType === "MULTILINE_TEXT" && targetType === "TEXT")
+  ) {
+    return { allowed: true, affectedRisks: 0, valuesMigrated: 0, valuesDropped: 0 };
+  }
+
+  // For DROPDOWN → MULTI_SELECT
+  if (field.fieldType === "DROPDOWN" && targetType === "MULTI_SELECT") {
+    const withValue = await prisma.riskCustomFieldValue.count({
+      where: { customFieldDefinitionId: fieldId, registerId, dropdownOptionId: { not: null } }
+    });
+    return { allowed: true, affectedRisks: withValue, valuesMigrated: withValue, valuesDropped: 0 };
+  }
+
+  // For NUMBER/BOOLEAN/DATE → TEXT/MULTILINE_TEXT: values are converted
+  return { allowed: true, affectedRisks: scalarCount, valuesMigrated: scalarCount, valuesDropped: 0 };
+}
+
+export async function migrateCustomFieldType(
+  actor: AuthenticatedActor,
+  registerId: string,
+  fieldId: string,
+  targetType: string
+) {
+  const field = await findCustomField(registerId, fieldId);
+  const allowed = getAllowedTargetTypes(field.fieldType);
+
+  if (!allowed.includes(targetType)) {
+    throw new ApiError(
+      422,
+      "UNPROCESSABLE",
+      `Migration from ${field.fieldType} to ${targetType} is not supported`
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    // Perform any required value transformations before changing the field type
+    if (field.fieldType === "DROPDOWN" && targetType === "MULTI_SELECT") {
+      // Convert scalar dropdown selections to multi-select junction rows
+      const scalarValues = await tx.riskCustomFieldValue.findMany({
+        where: { customFieldDefinitionId: fieldId, registerId, dropdownOptionId: { not: null } }
+      });
+
+      for (const sv of scalarValues) {
+        if (!sv.dropdownOptionId) continue;
+        await tx.riskCustomFieldMultiSelectValue.upsert({
+          where: {
+            riskId_customFieldDefinitionId_optionId: {
+              riskId: sv.riskId,
+              customFieldDefinitionId: fieldId,
+              optionId: sv.dropdownOptionId
+            }
+          },
+          create: {
+            riskId: sv.riskId,
+            registerId,
+            customFieldDefinitionId: fieldId,
+            optionId: sv.dropdownOptionId
+          },
+          update: {}
+        });
+      }
+
+      // Clear the now-migrated scalar values
+      await tx.riskCustomFieldValue.deleteMany({
+        where: { customFieldDefinitionId: fieldId, registerId }
+      });
+    } else if (field.fieldType === "NUMBER" && (targetType === "TEXT" || targetType === "MULTILINE_TEXT")) {
+      await tx.riskCustomFieldValue.updateMany({
+        where: { customFieldDefinitionId: fieldId, registerId, numberValue: { not: null } },
+        data: { textValue: undefined, numberValue: null }
+      });
+      // Prisma doesn't support cross-column coercion in updateMany; handle per-row
+      const numberValues = await tx.riskCustomFieldValue.findMany({
+        where: { customFieldDefinitionId: fieldId, registerId }
+      });
+      for (const v of numberValues) {
+        if (v.numberValue !== null) {
+          await tx.riskCustomFieldValue.update({
+            where: { id: v.id },
+            data: { textValue: v.numberValue.toString(), numberValue: null }
+          });
+        }
+      }
+    } else if (field.fieldType === "BOOLEAN" && (targetType === "TEXT" || targetType === "MULTILINE_TEXT")) {
+      const boolValues = await tx.riskCustomFieldValue.findMany({
+        where: { customFieldDefinitionId: fieldId, registerId }
+      });
+      for (const v of boolValues) {
+        if (v.booleanValue !== null) {
+          await tx.riskCustomFieldValue.update({
+            where: { id: v.id },
+            data: { textValue: v.booleanValue ? "true" : "false", booleanValue: null }
+          });
+        }
+      }
+    } else if (field.fieldType === "DATE" && (targetType === "TEXT" || targetType === "MULTILINE_TEXT")) {
+      const dateValues = await tx.riskCustomFieldValue.findMany({
+        where: { customFieldDefinitionId: fieldId, registerId }
+      });
+      for (const v of dateValues) {
+        if (v.dateValue !== null) {
+          await tx.riskCustomFieldValue.update({
+            where: { id: v.id },
+            data: { textValue: v.dateValue.toISOString().slice(0, 10), dateValue: null }
+          });
+        }
+      }
+    }
+    // TEXT ↔ MULTILINE_TEXT: no data movement, same column
+
+    const updated = await tx.customFieldDefinition.update({
+      where: { id: fieldId },
+      data: {
+        fieldType: targetType as Parameters<typeof tx.customFieldDefinition.update>[0]["data"]["fieldType"],
+        updatedByUserId: actor.id
+      },
+      include: customFieldInclude
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.customFieldUpdated,
+        actor,
+        objectType: "CUSTOM_FIELD",
+        objectId: updated.id,
+        objectDisplayName: updated.fieldName,
+        scopeType: "REGISTER",
+        registerId,
+        summary: `Custom field '${updated.fieldName}' type migrated from ${field.fieldType} to ${targetType}`,
+        fieldChanges: [
+          {
+            fieldName: "fieldType",
+            fieldLabel: "Field type",
+            previousValue: field.fieldType,
+            newValue: targetType,
+            valueType: "TEXT"
+          }
+        ]
+      },
+      tx
+    );
+
+    return updated;
+  });
+}
+
 export async function listCustomFieldOptions(registerId: string, fieldId: string) {
   await findDropdownField(registerId, fieldId);
 

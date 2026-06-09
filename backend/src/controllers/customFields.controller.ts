@@ -9,6 +9,8 @@ import {
   getCustomField,
   listCustomFields,
   listCustomFieldOptions,
+  migrateCustomFieldType,
+  previewFieldTypeMigration,
   updateCustomField,
   updateCustomFieldOption
 } from "../services/customFields.service.js";
@@ -20,6 +22,8 @@ import type {
   CreateCustomFieldOptionBody,
   CustomFieldOptionParams,
   CustomFieldParams,
+  MigrateFieldTypeBody,
+  MigrateFieldTypeQuery,
   UpdateCustomFieldBody,
   UpdateCustomFieldOptionBody
 } from "../validators/customFields.schemas.js";
@@ -79,6 +83,35 @@ export async function deactivateCustomFieldController(request: Request<CustomFie
   sendData(
     response,
     await deactivateCustomField(actorOrThrow(request), request.params.registerId, request.params.fieldId)
+  );
+}
+
+export async function previewFieldTypeMigrationController(
+  request: Request<CustomFieldParams, unknown, unknown, MigrateFieldTypeQuery>,
+  response: Response
+) {
+  sendData(
+    response,
+    await previewFieldTypeMigration(
+      request.params.registerId,
+      request.params.fieldId,
+      request.query.targetType
+    )
+  );
+}
+
+export async function migrateCustomFieldTypeController(
+  request: Request<CustomFieldParams, unknown, MigrateFieldTypeBody>,
+  response: Response
+) {
+  sendData(
+    response,
+    await migrateCustomFieldType(
+      actorOrThrow(request),
+      request.params.registerId,
+      request.params.fieldId,
+      request.body.targetType
+    )
   );
 }
 

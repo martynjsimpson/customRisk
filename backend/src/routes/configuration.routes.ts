@@ -11,6 +11,8 @@ import {
   getRiskFormConfigController,
   listCustomFieldOptionsController,
   listCustomFieldsController,
+  migrateCustomFieldTypeController,
+  previewFieldTypeMigrationController,
   updateCustomFieldController,
   updateCustomFieldOptionController
 } from "../controllers/customFields.controller.js";
@@ -42,6 +44,8 @@ import {
   createCustomFieldSchema,
   customFieldOptionParamsSchema,
   customFieldParamsSchema,
+  migrateFieldTypeQuerySchema,
+  migrateFieldTypeSchema,
   updateCustomFieldOptionSchema,
   updateCustomFieldSchema
 } from "../validators/customFields.schemas.js";
@@ -72,6 +76,8 @@ export function createConfigurationSubRouter() {
   router.patch("/:registerId/custom-fields/:fieldId", validateRequest({ params: customFieldParamsSchema, body: updateCustomFieldSchema }), requireRegisterManagement(), asyncRoute(updateCustomFieldController));
   router.post("/:registerId/custom-fields/:fieldId/activate", validateRequest({ params: customFieldParamsSchema }), requireRegisterManagement(), asyncRoute(activateCustomFieldController));
   router.post("/:registerId/custom-fields/:fieldId/deactivate", validateRequest({ params: customFieldParamsSchema }), requireRegisterManagement(), asyncRoute(deactivateCustomFieldController));
+  router.get("/:registerId/custom-fields/:fieldId/type-migration-preview", validateRequest({ params: customFieldParamsSchema, query: migrateFieldTypeQuerySchema }), requireRegisterManagement(), asyncRoute(previewFieldTypeMigrationController));
+  router.post("/:registerId/custom-fields/:fieldId/migrate-type", validateRequest({ params: customFieldParamsSchema, body: migrateFieldTypeSchema }), requireRegisterManagement(), asyncRoute(migrateCustomFieldTypeController));
   router.get("/:registerId/custom-fields/:fieldId/options", validateRequest({ params: customFieldParamsSchema }), requireRegisterManagement(), asyncRoute(listCustomFieldOptionsController));
   router.post("/:registerId/custom-fields/:fieldId/options", validateRequest({ params: customFieldParamsSchema, body: createCustomFieldOptionSchema }), requireRegisterManagement(), asyncRoute(createCustomFieldOptionController));
   router.patch("/:registerId/custom-fields/:fieldId/options/:optionId", validateRequest({ params: customFieldOptionParamsSchema, body: updateCustomFieldOptionSchema }), requireRegisterManagement(), asyncRoute(updateCustomFieldOptionController));
