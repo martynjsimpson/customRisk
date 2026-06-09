@@ -29,6 +29,9 @@ Version levels:
 - **Custom fields: calculated field type data model**
   - A new `CALCULATED` field type establishes the schema and lifecycle rules for computed custom fields. Calculated fields store a formula expression and a dependency list (field UUIDs referenced by the formula). They cannot be edited directly by users, cannot be marked required, and always carry `ALLOW` validation mode. The formula syntax supports `{field:uuid}` references with basic arithmetic operators. Evaluation is handled in the separate evaluation service (PM5-05).
 
+- **Custom fields: calculated field evaluation**
+  - Calculated fields are now evaluated automatically on every risk create and update. The formula engine supports field references (`{field:uuid}`), built-in risk properties (`{score}`, `{likelihood}`, `{impact}`), basic arithmetic with correct operator precedence, and math functions (`round`, `ceil`, `floor`, `abs`, `min`, `max`). Computed values are stored in the standard custom field value table as text. Invalid formulas are rejected at field-creation/update time so broken formulas never reach risks.
+
 ## [1.7.0] - 2026-06-08
 
 ### Fixed

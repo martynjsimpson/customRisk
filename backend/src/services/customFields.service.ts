@@ -3,6 +3,7 @@ import { Prisma, type AuditValueType } from "@prisma/client";
 import { auditActions } from "../audit/auditActions.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
+import { validateFormula } from "./formulaEvaluator.service.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import type {
   CreateCustomFieldBody,
@@ -176,6 +177,12 @@ function validateCreateCustomField(input: CreateCustomFieldBody) {
         formula: "Provide a formula expression for this calculated field"
       });
     }
+    const formulaCheck = validateFormula(input.formula);
+    if (!formulaCheck.valid) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Invalid formula expression", {
+        formula: formulaCheck.error ?? "Formula cannot be evaluated"
+      });
+    }
     if (input.options && input.options.length > 0) {
       throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields cannot have options", {
         options: "Options are not supported for calculated fields"
@@ -317,6 +324,15 @@ export async function updateCustomField(
     throw new ApiError(400, "VALIDATION_ERROR", "Formulas are only supported for calculated fields", {
       formula: "Only calculated fields can have a formula"
     });
+  }
+
+  if (isCalculatedField(existing.fieldType) && input.formula) {
+    const formulaCheck = validateFormula(input.formula);
+    if (!formulaCheck.valid) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Invalid formula expression", {
+        formula: formulaCheck.error ?? "Formula cannot be evaluated"
+      });
+    }
   }
 
   try {
