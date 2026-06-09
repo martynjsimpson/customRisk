@@ -25,6 +25,7 @@ interface CustomFieldOptionsModalProps {
   onClose: () => void;
   onEditOption: (option: CustomFieldOption | null) => void;
   onSubmit: (values: OptionFormValues) => void;
+  onActivate: (optionId: string) => void;
   onDeactivate: (optionId: string) => void;
 }
 
@@ -50,6 +51,7 @@ export function CustomFieldOptionsModal({
   onClose,
   onEditOption,
   onSubmit,
+  onActivate,
   onDeactivate
 }: CustomFieldOptionsModalProps) {
   const nextDisplayOrder = (options.at(-1)?.displayOrder ?? 0) + 1;
@@ -85,7 +87,7 @@ export function CustomFieldOptionsModal({
         <ApiErrorAlert error={loadError} fallback="Unable to load dropdown options" />
         <ApiErrorAlert error={createError} fallback="Unable to create dropdown option" />
         <ApiErrorAlert error={updateError} fallback="Unable to update dropdown option" />
-        <ApiErrorAlert error={deactivateError} fallback="Unable to deactivate dropdown option" />
+        <ApiErrorAlert error={deactivateError} fallback="Unable to change dropdown option status" />
         <form onSubmit={form.onSubmit(onSubmit)}>
           <Stack>
             <TextInput label="Option label" required disabled={readOnly} {...form.getInputProps("label")} />
@@ -137,7 +139,15 @@ export function CustomFieldOptionsModal({
                           >
                             Deactivate
                           </Button>
-                        ) : null}
+                        ) : (
+                          <Button
+                            color="green"
+                            variant="subtle"
+                            onClick={() => onActivate(option.id)}
+                          >
+                            Activate
+                          </Button>
+                        )}
                       </Group>
                     </Table.Td>
                   )}

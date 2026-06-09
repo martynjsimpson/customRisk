@@ -1,6 +1,6 @@
 import { Button, Group, Modal, Stack, Text, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   type CustomFieldDefinition,
@@ -76,6 +76,22 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     [fields, maxCoreDisplayOrder]
   );
   const selectedFieldOptions = hasDraft ? (selectedField?.options ?? []) : (optionsQuery.data ?? []);
+
+  useEffect(() => {
+    if (!selectedField) {
+      return;
+    }
+
+    const refreshedSelectedField = fields.find((field) => field.id === selectedField.id);
+    if (!refreshedSelectedField) {
+      setSelectedField(null);
+      return;
+    }
+
+    if (refreshedSelectedField !== selectedField) {
+      setSelectedField(refreshedSelectedField);
+    }
+  }, [fields, selectedField]);
 
   const buildDraftFields = (
     updater: (current: CustomFieldDefinition[]) => CustomFieldDefinition[]
@@ -441,6 +457,17 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
           createOptionMutation.mutate({
             fieldId: selectedField.id,
             values
+          });
+        }}
+        onActivate={(optionId) => {
+          if (!selectedField) {
+            return;
+          }
+
+          updateOptionMutation.mutate({
+            fieldId: selectedField.id,
+            optionId,
+            values: { isActive: true }
           });
         }}
         onDeactivate={(optionId) => {

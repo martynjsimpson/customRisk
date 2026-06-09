@@ -20,7 +20,13 @@ Version levels:
 - **Custom field options modal: improved table sizing and action layout**
   - The options modal opened from field configuration is now wider, no longer shows an unnecessary horizontal scrollbar for the options table, and keeps the row action buttons inline unless an unusually long label leaves no remaining space.
 
+- **Custom field options modal: option state changes update immediately**
+  - Activating or deactivating an option now refreshes the options table state immediately while the modal remains open, so the status badge and available action button stay in sync without closing and reopening the dialog.
+
 ### Added
+
+- **Custom field options modal: inactive options can now be reactivated**
+  - Inactive dropdown and multi-select options now show an `Activate` action in the options modal, allowing administrators to restore an option directly from the table.
 
 - **Custom fields: configurable validation modes (allow / warn / block)**
   - Each custom field can now be set to one of three validation modes. `BLOCK` prevents saving until the field is filled; `WARN` lets the user proceed after explicitly acknowledging the warning; `ALLOW` imposes no constraint. Existing required fields are migrated to `BLOCK`; all others default to `ALLOW`. Acknowledged warnings are recorded in the audit trail.
