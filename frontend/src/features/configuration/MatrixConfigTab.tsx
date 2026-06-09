@@ -1,4 +1,4 @@
-import { Button, Checkbox, Group, Select, Stack, Table, Text } from "@mantine/core";
+import { Alert, Button, Group, Select, Stack, Table, Text } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -18,7 +18,6 @@ interface MatrixConfigTabProps {
 export function MatrixConfigTab({ registerId, draftConfigMode, wizardMode }: MatrixConfigTabProps) {
   const queryClient = useQueryClient();
   const [matrixValues, setMatrixValues] = useState<Record<string, string>>({});
-  const [recalculateExistingRisks, setRecalculateExistingRisks] = useState(false);
 
   const configQuery = useQuery({
     queryKey: ["register-config", registerId],
@@ -72,7 +71,7 @@ export function MatrixConfigTab({ registerId, draftConfigMode, wizardMode }: Mat
                 const [likelihoodValueId, impactValueId] = cellKey.split(":") as [string, string];
                 return { likelihoodValueId, impactValueId, riskLevelId };
               }),
-            recalculateExistingRisks: wizardMode ? false : recalculateExistingRisks
+            recalculateExistingRisks: true
           });
     },
     onSuccess: async () => {
@@ -153,13 +152,13 @@ export function MatrixConfigTab({ registerId, draftConfigMode, wizardMode }: Mat
           </Table.Tbody>
         </Table>
       )}
+      {draftConfigMode && !isReadOnly ? (
+        <Alert color="blue" variant="light">
+          Publishing this draft will recalculate risk levels for all open risks against the updated matrix.
+        </Alert>
+      ) : null}
       {!isReadOnly && !wizardMode ? (
         <Group justify="flex-end">
-          <Checkbox
-            label="Recalculate existing risks"
-            checked={recalculateExistingRisks}
-            onChange={(event) => setRecalculateExistingRisks(event.currentTarget.checked)}
-          />
           <Button onClick={() => saveMatrixMutation.mutate(undefined)} loading={saveMatrixMutation.isPending}>
             Save matrix
           </Button>

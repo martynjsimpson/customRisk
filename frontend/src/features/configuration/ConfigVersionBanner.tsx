@@ -271,7 +271,8 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["config-version-status", registerId] }),
       queryClient.invalidateQueries({ queryKey: ["register-config", registerId] }),
-      queryClient.invalidateQueries({ queryKey: ["register", registerId] })
+      queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
+      queryClient.invalidateQueries({ queryKey: ["risks", registerId] })
     ]);
   };
 

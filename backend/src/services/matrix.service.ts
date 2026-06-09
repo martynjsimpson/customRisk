@@ -108,7 +108,7 @@ async function assertMatrixCellIdsExist(
   }
 }
 
-async function recalculateRiskLevels(
+export async function recalculateRiskLevels(
   actor: AuthenticatedActor,
   registerId: string,
   cells: Array<{ likelihoodValueId: string; impactValueId: string; riskLevelId: string }>,

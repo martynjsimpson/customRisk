@@ -9,6 +9,7 @@ import type {
 } from "../types/configSnapshot.js";
 import type { UpdateDraftBody } from "../validators/configVersion.schemas.js";
 import { recordAuditEvent } from "./audit.service.js";
+import { recalculateRiskLevels } from "./matrix.service.js";
 
 // ---------------------------------------------------------------------------
 // Helper: build a current snapshot from relational tables
@@ -920,6 +921,18 @@ export async function publishDraft(
         }))
       });
     }
+
+    // --- Recalculate risk levels for all open risks against the new matrix ---
+    await recalculateRiskLevels(
+      { id: actorId, name: actorName, email: actorEmail, isSystemAdmin: true, isActive: true },
+      registerId,
+      snapshot.matrixCells.map((mc) => ({
+        likelihoodValueId: mc.likelihoodValueId,
+        impactValueId: mc.impactValueId,
+        riskLevelId: mc.riskLevelId
+      })),
+      tx
+    );
 
     // --- Update register settings ---
     // Apply register settings from snapshot only when draft originated from a template.

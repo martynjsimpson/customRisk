@@ -17,6 +17,12 @@ Version levels:
 
 ### Changed
 
+- **Register configuration: risk matrix always recalculates on save and publish**
+  - The "Recalculate existing risks" checkbox has been removed from the risk matrix tab. Saving the matrix (non-draft mode) or publishing a draft that includes matrix changes now always recalculates risk levels for all open risks. Publishing a draft also invalidates the risk list so updated risk levels appear immediately without a page refresh. A blue informational note is shown on the matrix tab when a draft is in progress to make this behaviour explicit.
+
+- **Register configuration: settings auto-save in draft mode**
+  - The "Save settings" button is no longer shown when a draft is in progress. Settings are saved automatically when focus leaves the settings form, keeping the UI consistent with the rest of the draft workflow.
+
 - **Register configuration: settings page restructured into logical groups**
   - Settings are now grouped into four labelled sections — General, Risk IDs, Features, and Reviews — using fieldset frames consistent with the rest of the configuration UI. The register name is no longer editable outside of a draft; all settings now follow the same draft-gated rules. Dependent inputs (padding width, review frequency) are disabled when their parent toggle is off.
 
