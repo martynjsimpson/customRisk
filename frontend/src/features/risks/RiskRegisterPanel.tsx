@@ -350,8 +350,8 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         if (!summary || (summary.blockCount === 0 && summary.warnCount === 0)) return null;
         const isFiltered = filters.validationIssues === true;
         const parts: string[] = [];
-        if (summary.blockCount > 0) parts.push(`${summary.blockCount} with missing required fields`);
-        if (summary.warnCount > 0) parts.push(`${summary.warnCount} with empty recommended fields`);
+        if (summary.blockCount > 0) parts.push(`${summary.blockCount} risks with missing required fields`);
+        if (summary.warnCount > 0) parts.push(`${summary.warnCount} risks with empty recommended fields`);
         return (
           <Alert
             color={summary.blockCount > 0 ? "red" : "yellow"}
