@@ -94,6 +94,10 @@ const runtime = vi.hoisted(() => {
   };
 });
 
+vi.mock("../src/hooks/usePermissions", () => ({
+  usePermissions: () => ({ isSystemAdmin: false, registerRoles: [] })
+}));
+
 vi.mock("../src/api/customFields.api", () => ({
   getRegisterConfiguration: runtime.getRegisterConfiguration,
   listCustomFieldOptions: runtime.listCustomFieldOptions,
@@ -131,8 +135,6 @@ describe("FieldConfigTab draft behavior", () => {
         </QueryClientProvider>
       </MantineProvider>
     );
-
-    await screen.findByText("Field Configuration");
 
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Add field" }));
