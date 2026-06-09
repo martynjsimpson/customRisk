@@ -34,7 +34,8 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
       riskIdZeroPaddingWidth: 4,
       reviewsEnabled: true,
       defaultReviewFrequencyMonths: 12,
-      allowViewerExport: false
+      allowViewerExport: false,
+      customFieldValidationEnabled: true
     }
   });
   const { setValues: setSettingsValues } = settingsForm;
@@ -50,7 +51,8 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
         riskIdZeroPaddingWidth: register.riskIdZeroPaddingWidth,
         reviewsEnabled: register.reviewsEnabled,
         defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
-        allowViewerExport: register.allowViewerExport
+        allowViewerExport: register.allowViewerExport,
+        customFieldValidationEnabled: register.customFieldValidationEnabled
       });
     }
   }, [registerQuery.data, setSettingsValues]);
@@ -132,6 +134,12 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
           label="Allow Register Viewers to export"
           disabled={!canManage || settingsLocked}
           {...settingsForm.getInputProps("allowViewerExport", { type: "checkbox" })}
+        />
+        <Checkbox
+          label="Enable custom field validation"
+          description="Controls whether allow / warn / block validation is enforced and shown for this register."
+          disabled={!canManage || settingsLocked}
+          {...settingsForm.getInputProps("customFieldValidationEnabled", { type: "checkbox" })}
         />
         {canManage ? (
           <Button type="submit" loading={updateSettingsMutation.isPending}>

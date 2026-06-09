@@ -162,7 +162,7 @@ export async function validateCustomFieldValues(
   registerId: string,
   values: RiskCustomFieldValueBody[],
   client: CustomFieldClient = prisma,
-  options: { riskId?: string; acknowledgedWarnings?: boolean } = {}
+  options: { riskId?: string; acknowledgedWarnings?: boolean; validationEnabled?: boolean } = {}
 ): Promise<ValidatedCustomFieldResult> {
   const existingValues = options.riskId
     ? await client.riskCustomFieldValue.findMany({
@@ -256,34 +256,36 @@ export async function validateCustomFieldValues(
   // Collect blocking errors and warnings separately based on validationMode
   const warnings: FieldWarning[] = [];
 
-  definitions
-    .filter((definition) => definition.isActive && definition.validationMode !== "ALLOW" && definition.fieldType !== "CALCULATED")
-    .forEach((definition) => {
-      let hasValue: boolean;
-      if (definition.fieldType === "MULTI_SELECT") {
-        const inputEntry = valuesByDefinitionId.get(definition.id);
-        if (inputEntry?.multiSelectOptionIds !== undefined) {
-          hasValue = inputEntry.multiSelectOptionIds.length > 0;
+  if (options.validationEnabled !== false) {
+    definitions
+      .filter((definition) => definition.isActive && definition.validationMode !== "ALLOW" && definition.fieldType !== "CALCULATED")
+      .forEach((definition) => {
+        let hasValue: boolean;
+        if (definition.fieldType === "MULTI_SELECT") {
+          const inputEntry = valuesByDefinitionId.get(definition.id);
+          if (inputEntry?.multiSelectOptionIds !== undefined) {
+            hasValue = inputEntry.multiSelectOptionIds.length > 0;
+          } else {
+            hasValue = existingMultiSelectFieldIds.has(definition.id);
+          }
         } else {
-          hasValue = existingMultiSelectFieldIds.has(definition.id);
+          const value = mergedValuesByDefinitionId.get(definition.id);
+          hasValue = hasValueForType(definition.fieldType, value);
         }
-      } else {
-        const value = mergedValuesByDefinitionId.get(definition.id);
-        hasValue = hasValueForType(definition.fieldType, value);
-      }
 
-      if (hasValue) return;
+        if (hasValue) return;
 
-      if (definition.validationMode === "BLOCK") {
-        fields[`field.${definition.fieldName}`] = `Field ${definition.fieldName} is required.`;
-      } else if (definition.validationMode === "WARN" && !options.acknowledgedWarnings) {
-        warnings.push({
-          fieldId: definition.id,
-          fieldName: definition.fieldName,
-          message: `${definition.fieldName} is recommended`
-        });
-      }
-    });
+        if (definition.validationMode === "BLOCK") {
+          fields[`field.${definition.fieldName}`] = `Field ${definition.fieldName} is required.`;
+        } else if (definition.validationMode === "WARN" && !options.acknowledgedWarnings) {
+          warnings.push({
+            fieldId: definition.id,
+            fieldName: definition.fieldName,
+            message: `${definition.fieldName} is recommended`
+          });
+        }
+      });
+  }
 
   // Validate personUserId values (must be active local users)
   const personUserIds = values.flatMap((value) => {

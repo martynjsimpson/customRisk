@@ -587,7 +587,7 @@ export async function listRisks(
 ) {
   const register = await prisma.register.findUnique({
     where: { id: registerId },
-    select: { id: true, reviewsEnabled: true }
+    select: { id: true, reviewsEnabled: true, customFieldValidationEnabled: true }
   });
 
   if (!register) {
@@ -634,10 +634,12 @@ export async function listRisks(
 
   applyReviewFilters(where, query, register.reviewsEnabled);
 
-  const activeValidationFields = await prisma.customFieldDefinition.findMany({
-    where: { registerId, isActive: true, validationMode: { in: ["WARN", "BLOCK"] } },
-    select: { id: true, validationMode: true, fieldType: true }
-  });
+  const activeValidationFields = register.customFieldValidationEnabled
+    ? await prisma.customFieldDefinition.findMany({
+        where: { registerId, isActive: true, validationMode: { in: ["WARN", "BLOCK"] } },
+        select: { id: true, validationMode: true, fieldType: true }
+      })
+    : [];
   const blockFieldIds = new Set(
     activeValidationFields.filter((f) => f.validationMode === "BLOCK").map((f) => f.id)
   );
@@ -649,7 +651,7 @@ export async function listRisks(
   );
   const validationContext: ValidationContext = { blockFieldIds, warnFieldIds, multiSelectFieldIds };
 
-  if (query.validationIssues) {
+  if (register.customFieldValidationEnabled && query.validationIssues) {
     const scalarIds = activeValidationFields.filter((f) => f.fieldType !== "MULTI_SELECT").map((f) => f.id);
     const msIds = activeValidationFields.filter((f) => f.fieldType === "MULTI_SELECT").map((f) => f.id);
     applyValidationIssuesFilter(where, scalarIds, msIds);
@@ -765,7 +767,7 @@ export async function updateRisk(
 
     const register = await tx.register.findUnique({
       where: { id: registerId },
-      select: { reviewsEnabled: true, defaultReviewFrequencyMonths: true }
+      select: { reviewsEnabled: true, defaultReviewFrequencyMonths: true, customFieldValidationEnabled: true }
     });
     if (!register) {
       throw new ApiError(404, "NOT_FOUND", "Register not found");
@@ -814,7 +816,8 @@ export async function updateRisk(
     if (input.customFieldValues !== undefined) {
       const result = await validateCustomFieldValues(registerId, input.customFieldValues, tx, {
         riskId,
-        acknowledgedWarnings: input.acknowledgedWarnings
+        acknowledgedWarnings: input.acknowledgedWarnings,
+        validationEnabled: register.customFieldValidationEnabled
       });
       if (result.warnings.length > 0) {
         throw new ApiError(422, "VALIDATION_WARNING", "One or more fields have warnings", undefined, result.warnings);
@@ -981,12 +984,21 @@ export async function getRiskValidationSummary(
 ) {
   const register = await prisma.register.findUnique({
     where: { id: registerId },
-    select: { id: true }
+    select: { id: true, customFieldValidationEnabled: true }
   });
   if (!register) throw new ApiError(404, "NOT_FOUND", "Register not found");
 
   const role = await getEffectiveRegisterRole(actor, registerId);
   if (role === "NONE") throw new ApiError(404, "NOT_FOUND", "Register not found");
+
+  if (!register.customFieldValidationEnabled) {
+    const total = await prisma.risk.count({
+      where: role === "RISK_OWNER"
+        ? { registerId, state: { not: "CLOSED" }, AND: [{ OR: [{ ownerUserId: actor.id }, { ownerPerson: { userId: actor.id } }] }] }
+        : { registerId, state: { not: "CLOSED" } }
+    });
+    return { blockCount: 0, warnCount: 0, total };
+  }
 
   const activeValidationFields = await prisma.customFieldDefinition.findMany({
     where: { registerId, isActive: true, validationMode: { in: ["WARN", "BLOCK"] } },
@@ -1106,7 +1118,7 @@ export async function createRisk(
       registerId,
       input.customFieldValues,
       tx,
-      { acknowledgedWarnings: input.acknowledgedWarnings }
+      { acknowledgedWarnings: input.acknowledgedWarnings, validationEnabled: register.customFieldValidationEnabled }
     );
     if (warnings.length > 0) {
       throw new ApiError(422, "VALIDATION_WARNING", "One or more fields have warnings", undefined, warnings);

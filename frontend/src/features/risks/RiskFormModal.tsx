@@ -190,16 +190,18 @@ function CustomFieldInput({
   field,
   value,
   onChange,
-  hasWarning
+  hasWarning,
+  validationEnabled
 }: {
   field: CustomFieldDefinition;
   value: unknown;
   onChange: (value: unknown) => void;
   hasWarning?: boolean;
+  validationEnabled: boolean;
 }) {
   const label = field.fieldName;
   const warnProps = hasWarning ? { styles: { input: { borderColor: "var(--mantine-color-yellow-5)" } } } : {};
-  const isMarkedRequired = field.isRequired || field.validationMode === "BLOCK";
+  const isMarkedRequired = validationEnabled && (field.isRequired || field.validationMode === "BLOCK");
 
   if (field.fieldType === "MULTILINE_TEXT") {
     return <Textarea label={label} required={isMarkedRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
@@ -277,6 +279,7 @@ export function RiskFormModal({
   const [customValues, setCustomValues] = useState<Record<string, unknown>>({});
   const [pendingWarnings, setPendingWarnings] = useState<FieldWarning[]>([]);
   const defaultState = formConfig.register.defaultNewRiskState ?? "DRAFT";
+  const validationEnabled = formConfig.register.customFieldValidationEnabled;
 
   const activeCustomFields = useMemo(
     () => formConfig.customFields.filter((field) => field.isActive),
@@ -438,6 +441,7 @@ export function RiskFormModal({
                       value={customValues[field.id]}
                       onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
                       hasWarning={warningFieldIds.has(field.id)}
+                      validationEnabled={validationEnabled}
                     />
                   )
                 )}

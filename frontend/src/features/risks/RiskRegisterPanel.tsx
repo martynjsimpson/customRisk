@@ -131,7 +131,8 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   });
   const validationSummaryQuery = useQuery({
     queryKey: ["risks-validation-summary", register.id],
-    queryFn: () => getValidationSummary(register.id)
+    queryFn: () => getValidationSummary(register.id),
+    enabled: register.customFieldValidationEnabled
   });
   const selectedRisk = useMemo(
     () => (riskQuery.data?.data ?? []).find((risk) => risk.id === detailRiskId),

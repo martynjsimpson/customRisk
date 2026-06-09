@@ -18,6 +18,7 @@ const registerConfigSelect = {
   defaultReviewFrequencyMonths: true,
   reviewAttestationText: true,
   allowViewerExport: true,
+  customFieldValidationEnabled: true,
   createdAt: true,
   updatedAt: true
 };
@@ -93,6 +94,10 @@ async function getReferencedConfigurationIds(registerId: string) {
 function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterConfigSnapshot {
   return {
     ...snapshot,
+    register: {
+      ...snapshot.register,
+      customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true
+    },
     customFields: snapshot.customFields.map((field) => ({
       ...field,
       validationMode: field.validationMode ?? (field.isRequired ? "BLOCK" : "ALLOW")
@@ -258,7 +263,10 @@ export async function getRiskFormConfig(registerId: string, actor?: Authenticate
 
   return {
     states: ["DRAFT", "OPEN", "CLOSED"],
-    register,
+    register: {
+      ...register,
+      customFieldValidationEnabled: register.customFieldValidationEnabled
+    },
     users,
     customFields: visibleCustomFields,
     likelihoodValues,

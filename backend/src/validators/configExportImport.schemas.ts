@@ -70,7 +70,8 @@ const importRegisterSettingsSchema = z.object({
   reviewsEnabled: z.boolean(),
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120),
   reviewAttestationText: z.string(),
-  allowViewerExport: z.boolean()
+  allowViewerExport: z.boolean(),
+  customFieldValidationEnabled: z.boolean()
 });
 
 const importConfigSchema = z.object({

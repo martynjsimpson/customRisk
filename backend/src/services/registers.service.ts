@@ -28,6 +28,7 @@ const registerSelect = {
   defaultReviewFrequencyMonths: true,
   reviewAttestationText: true,
   allowViewerExport: true,
+  customFieldValidationEnabled: true,
   createdAt: true,
   updatedAt: true,
   linkedTemplateVersion: {
@@ -344,6 +345,7 @@ export async function updateRegister(
           reviewsEnabled: input.reviewsEnabled,
           defaultReviewFrequencyMonths: input.defaultReviewFrequencyMonths,
           allowViewerExport: input.allowViewerExport,
+          customFieldValidationEnabled: input.customFieldValidationEnabled,
           updatedByUserId: actor.id
         },
         select: registerSelect
@@ -367,7 +369,8 @@ export async function updateRegister(
             { name: "riskIdZeroPaddingWidth", label: "Risk ID zero padding width", valueType: "NUMBER" },
             { name: "reviewsEnabled", label: "Reviews enabled", valueType: "BOOLEAN" },
             { name: "defaultReviewFrequencyMonths", label: "Default review frequency", valueType: "NUMBER" },
-            { name: "allowViewerExport", label: "Allow viewer export", valueType: "BOOLEAN" }
+            { name: "allowViewerExport", label: "Allow viewer export", valueType: "BOOLEAN" },
+            { name: "customFieldValidationEnabled", label: "Custom field validation enabled", valueType: "BOOLEAN" }
           ])
         },
         tx
@@ -631,6 +634,7 @@ export async function createRegisterFromTemplate(
           defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
           reviewAttestationText: regSettings.reviewAttestationText,
           allowViewerExport: regSettings.allowViewerExport,
+          customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
           nextRiskSequence: 1,
           createdByUserId: actorId,
           updatedByUserId: actorId

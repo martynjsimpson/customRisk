@@ -26,6 +26,10 @@ function normalizeCustomFieldValidationMode<T extends { isRequired: boolean; val
 function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterConfigSnapshot {
   return {
     ...snapshot,
+    register: {
+      ...snapshot.register,
+      customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true
+    },
     customFields: snapshot.customFields.map((field) => normalizeCustomFieldValidationMode(field))
   };
 }
@@ -45,7 +49,8 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
           reviewsEnabled: true,
           defaultReviewFrequencyMonths: true,
           reviewAttestationText: true,
-          allowViewerExport: true
+          allowViewerExport: true,
+          customFieldValidationEnabled: true
         }
       }),
       prisma.customFieldDefinition.findMany({
@@ -89,7 +94,8 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
       reviewsEnabled: register.reviewsEnabled,
       defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
       reviewAttestationText: register.reviewAttestationText,
-      allowViewerExport: register.allowViewerExport
+      allowViewerExport: register.allowViewerExport,
+      customFieldValidationEnabled: register.customFieldValidationEnabled,
     },
     customFields: customFields.map((f) => ({
       id: f.id,
@@ -936,6 +942,7 @@ export async function publishDraft(
               defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
               reviewAttestationText: regSettings.reviewAttestationText,
               allowViewerExport: regSettings.allowViewerExport,
+              customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
               linkedTemplateVersionId: draft.sourceTemplateVersionId
             }
           : {}),

@@ -71,6 +71,7 @@ export interface ConfigSnapshotRegisterSettings {
   defaultReviewFrequencyMonths: number;
   reviewAttestationText: string;
   allowViewerExport: boolean;
+  customFieldValidationEnabled: boolean;
 }
 
 export interface RegisterConfigSnapshot {

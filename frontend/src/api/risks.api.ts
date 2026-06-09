@@ -120,6 +120,7 @@ export interface RiskFormConfig {
     id: string;
     defaultNewRiskState: RiskState;
     reviewsEnabled: boolean;
+    customFieldValidationEnabled: boolean;
   };
   users: RiskPerson[];
   customFields: CustomFieldDefinition[];

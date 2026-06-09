@@ -159,6 +159,8 @@ test("RegisterSettingsTab unlocks fields when a draft is in progress", async () 
 
   // When locked, mutation only sends name; when unlocked, sends all fields
   assert.match(tab, /settingsLocked/);
+  assert.match(tab, /customFieldValidationEnabled/);
+  assert.match(tab, /Enable custom field validation/);
 });
 
 test("scoring configuration tabs unlock only when a draft exists and write through updateDraftConfig", async () => {
@@ -232,4 +234,29 @@ test("draft config snapshots preserve custom field validation modes through publ
   assert.match(configVersionService, /validationMode: f\.validationMode/);
   assert.match(configVersionService, /validationMode: cf\.validationMode/);
   assert.match(configExportService, /validationMode: field\.validationMode/);
+});
+
+test("draft and export snapshots preserve the register-level custom field validation toggle", async () => {
+  const configVersionService = await readFile(
+    new URL("../../backend/src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+  const configSnapshotTypes = await readFile(
+    new URL("../../backend/src/types/configSnapshot.ts", import.meta.url),
+    "utf8"
+  );
+  const configVersionSchemas = await readFile(
+    new URL("../../backend/src/validators/configVersion.schemas.ts", import.meta.url),
+    "utf8"
+  );
+  const configExportImportSchemas = await readFile(
+    new URL("../../backend/src/validators/configExportImport.schemas.ts", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(configSnapshotTypes, /customFieldValidationEnabled: boolean/);
+  assert.match(configVersionSchemas, /customFieldValidationEnabled: z\.boolean\(\)\.optional\(\)/);
+  assert.match(configExportImportSchemas, /customFieldValidationEnabled: z\.boolean\(\)/);
+  assert.match(configVersionService, /customFieldValidationEnabled: register\.customFieldValidationEnabled/);
+  assert.match(configVersionService, /customFieldValidationEnabled: regSettings\.customFieldValidationEnabled/);
 });

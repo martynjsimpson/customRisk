@@ -26,6 +26,7 @@ const registerConfigSelect = {
   defaultReviewFrequencyMonths: true,
   reviewAttestationText: true,
   allowViewerExport: true,
+  customFieldValidationEnabled: true,
   createdAt: true,
   updatedAt: true
 };
