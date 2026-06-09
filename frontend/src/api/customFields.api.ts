@@ -124,6 +124,26 @@ export async function deactivateCustomField(registerId: string, fieldId: string)
   return response.data.data;
 }
 
+export interface CustomFieldUsage {
+  fieldId: string;
+  risksWithScalarValues: number;
+  risksWithMultiSelectValues: number;
+  totalValueCount: number;
+}
+
+export async function getCustomFieldUsage(registerId: string, fieldId: string) {
+  const response = await apiClient.get<{ data: CustomFieldUsage }>(
+    `/registers/${registerId}/custom-fields/${fieldId}/usage`
+  );
+  return response.data.data;
+}
+
+export async function deleteCustomField(registerId: string, fieldId: string, force = false) {
+  await apiClient.delete(
+    `/registers/${registerId}/custom-fields/${fieldId}${force ? "?force=true" : ""}`
+  );
+}
+
 export async function listCustomFieldOptions(registerId: string, fieldId: string) {
   const response = await apiClient.get<{ data: CustomFieldOption[] }>(
     `/registers/${registerId}/custom-fields/${fieldId}/options`

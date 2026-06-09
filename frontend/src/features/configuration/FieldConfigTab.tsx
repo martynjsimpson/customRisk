@@ -1,17 +1,21 @@
-import { Button, Group, Stack, Title } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text, Title } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 import {
   type CustomFieldDefinition,
   type CustomFieldOption,
+  type CustomFieldUsage,
   type RegisterRole,
+  deleteCustomField,
+  getCustomFieldUsage,
   getRegisterConfiguration,
   listCustomFieldOptions,
   type SaveCustomFieldOptionInput
 } from "../../api/customFields.api";
 import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { usePermissions } from "../../hooks/usePermissions";
 import { CORE_RISK_FIELDS } from "../risks/coreRiskFields";
 import { CustomFieldModal, parseInitialOptions } from "./CustomFieldModal";
 import { CustomFieldOptionsModal } from "./CustomFieldOptionsModal";
@@ -34,11 +38,15 @@ interface FieldConfigTabProps {
 
 export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabProps) {
   const queryClient = useQueryClient();
+  const { isSystemAdmin } = usePermissions();
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const [optionsModalOpen, setOptionsModalOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomFieldDefinition | null>(null);
   const [selectedField, setSelectedField] = useState<CustomFieldDefinition | null>(null);
   const [editingOption, setEditingOption] = useState<CustomFieldOption | null>(null);
+  const [deleteConfirmField, setDeleteConfirmField] = useState<CustomFieldDefinition | null>(null);
+  const [deleteFieldUsage, setDeleteFieldUsage] = useState<CustomFieldUsage | null>(null);
+  const [loadingUsage, setLoadingUsage] = useState(false);
 
   const configQuery = useQuery({
     queryKey: ["register-config", registerId],
@@ -313,6 +321,27 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     setOptionsModalOpen(true);
   };
 
+  const openDeleteConfirm = async (field: CustomFieldDefinition) => {
+    setDeleteConfirmField(field);
+    setDeleteFieldUsage(null);
+    setLoadingUsage(true);
+    try {
+      const usage = await getCustomFieldUsage(registerId, field.id);
+      setDeleteFieldUsage(usage);
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
+
+  const deleteFieldMutation = useMutation<unknown, Error, { fieldId: string; force: boolean }>({
+    mutationFn: ({ fieldId, force }) => deleteCustomField(registerId, fieldId, force),
+    onSuccess: async () => {
+      setDeleteConfirmField(null);
+      setDeleteFieldUsage(null);
+      await invalidateCustomFieldConfiguration(queryClient, registerId);
+    }
+  });
+
   return (
     <Stack>
       <Group justify="space-between">
@@ -322,6 +351,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load register configuration" />
       <ApiErrorAlert error={activateFieldMutation.error} fallback="Unable to activate field" />
       <ApiErrorAlert error={deactivateFieldMutation.error} fallback="Unable to deactivate field" />
+      <ApiErrorAlert error={deleteFieldMutation.error} fallback="Unable to delete field" />
       <CustomFieldTable
         fields={fields}
         onReorder={(fieldId, newDisplayOrder) => reorderFieldMutation.mutate({ fieldId, displayOrder: newDisplayOrder })}
@@ -329,6 +359,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         onOpenOptions={openOptions}
         onActivateField={(fieldId) => activateFieldMutation.mutate(fieldId)}
         onDeactivateField={(fieldId) => deactivateFieldMutation.mutate(fieldId)}
+        onDeleteField={isSystemAdmin ? openDeleteConfirm : undefined}
+        isSystemAdmin={isSystemAdmin}
         readOnly={isReadOnly}
       />
 
@@ -422,6 +454,56 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
           });
         }}
       />
+
+      <Modal
+        opened={Boolean(deleteConfirmField)}
+        onClose={() => {
+          setDeleteConfirmField(null);
+          setDeleteFieldUsage(null);
+        }}
+        title="Delete custom field"
+      >
+        <Stack>
+          <ApiErrorAlert error={deleteFieldMutation.error} fallback="Unable to delete field" />
+          {loadingUsage ? (
+            <Text>Checking field usage…</Text>
+          ) : deleteFieldUsage && deleteFieldUsage.totalValueCount > 0 ? (
+            <Text>
+              <strong>{deleteConfirmField?.fieldName}</strong> has {deleteFieldUsage.totalValueCount} value(s) across risks.
+              Deleting this field will permanently remove all associated data. This cannot be undone.
+            </Text>
+          ) : (
+            <Text>
+              Permanently delete <strong>{deleteConfirmField?.fieldName}</strong>? This cannot be undone.
+            </Text>
+          )}
+          <Group justify="flex-end">
+            <Button
+              variant="subtle"
+              onClick={() => {
+                setDeleteConfirmField(null);
+                setDeleteFieldUsage(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="red"
+              loading={deleteFieldMutation.isPending || loadingUsage}
+              disabled={loadingUsage}
+              onClick={() => {
+                if (!deleteConfirmField) return;
+                deleteFieldMutation.mutate({
+                  fieldId: deleteConfirmField.id,
+                  force: (deleteFieldUsage?.totalValueCount ?? 0) > 0
+                });
+              }}
+            >
+              {deleteFieldUsage && deleteFieldUsage.totalValueCount > 0 ? "Force delete" : "Delete"}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }
