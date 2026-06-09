@@ -15,7 +15,12 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-06-10
+
 ### Changed
+
+- **Risk register: state badges are now color-coded**
+  - Draft, Open, and Closed state badges in the risk list now use distinct colors (gray, blue, and dark respectively) for faster visual scanning.
 
 - **Register configuration: risk matrix always recalculates on save and publish**
   - The "Recalculate existing risks" checkbox has been removed from the risk matrix tab. Saving the matrix (non-draft mode) or publishing a draft that includes matrix changes now always recalculates risk levels for all open risks. Publishing a draft also invalidates the risk list so updated risk levels appear immediately without a page refresh. A blue informational note is shown on the matrix tab when a draft is in progress to make this behaviour explicit.
@@ -96,8 +101,6 @@ Version levels:
 
 - **Custom fields: Risk Response Owner visibility flag**
   - Each custom field definition now carries a `visibleToRiskResponseOwners` boolean (default `true`). When set to `false`, the field will be suppressed from the limited parent-risk context that Risk Response Owners see when acting on a linked action. The flag defaults to `true` so existing fields remain fully visible. Enforcement will activate when the Risk Response Owner permission model (Phase 7) is implemented.
-
-## [1.7.0] - 2026-06-08
 
 ### Fixed
 
