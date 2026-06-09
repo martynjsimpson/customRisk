@@ -43,7 +43,8 @@ export const createCustomFieldSchema = z.object({
   isActive: z.boolean().default(true),
   options: z.array(customFieldOptionInputSchema).optional(),
   formula: z.string().trim().min(1).optional(),
-  visibleToRoles: z.array(z.enum(registerRoles)).optional()
+  visibleToRoles: z.array(z.enum(registerRoles)).optional(),
+  visibleToRiskResponseOwners: z.boolean().optional()
 });
 
 export const updateCustomFieldSchema = z.object({
@@ -54,7 +55,8 @@ export const updateCustomFieldSchema = z.object({
   displayOrder: z.number().int().min(1).optional(),
   isActive: z.boolean().optional(),
   formula: z.string().trim().min(1).optional(),
-  visibleToRoles: z.array(z.enum(registerRoles)).optional()
+  visibleToRoles: z.array(z.enum(registerRoles)).optional(),
+  visibleToRiskResponseOwners: z.boolean().optional()
 });
 
 export const createCustomFieldOptionSchema = customFieldOptionInputSchema;

@@ -255,6 +255,7 @@ export async function createCustomField(
           formula: input.formula ?? null,
           formulaDependencies,
           visibleToRoles: input.visibleToRoles ?? [],
+          visibleToRiskResponseOwners: input.visibleToRiskResponseOwners ?? true,
           createdByUserId: actor.id,
           updatedByUserId: actor.id,
           options:
@@ -351,6 +352,7 @@ export async function updateCustomField(
           formula: input.formula,
           formulaDependencies: formulaDependencies,
           visibleToRoles: input.visibleToRoles,
+          visibleToRiskResponseOwners: input.visibleToRiskResponseOwners,
           updatedByUserId: actor.id
         },
         include: customFieldInclude

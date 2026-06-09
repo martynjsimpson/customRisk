@@ -1,4 +1,4 @@
-import { Button, Checkbox, Modal, MultiSelect, Select, Stack, Textarea, TextInput } from "@mantine/core";
+import { Button, Checkbox, Modal, MultiSelect, Select, Stack, Switch, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useEffect } from "react";
 
@@ -14,6 +14,7 @@ interface CustomFieldFormValues {
   initialOptionsText: string;
   formula: string;
   visibleToRoles: RegisterRole[];
+  visibleToRiskResponseOwners: boolean;
 }
 
 interface CustomFieldModalProps {
@@ -53,7 +54,8 @@ function createInitialValues(): CustomFieldFormValues {
     isActive: true,
     initialOptionsText: "",
     formula: "",
-    visibleToRoles: []
+    visibleToRoles: [],
+    visibleToRiskResponseOwners: true
   };
 }
 
@@ -92,7 +94,8 @@ export function CustomFieldModal({
         isActive: editingField.isActive,
         initialOptionsText: "",
         formula: editingField.formula ?? "",
-        visibleToRoles: editingField.visibleToRoles ?? []
+        visibleToRoles: editingField.visibleToRoles ?? [],
+        visibleToRiskResponseOwners: editingField.visibleToRiskResponseOwners ?? true
       });
       return;
     }
@@ -148,6 +151,11 @@ export function CustomFieldModal({
             description="Leave empty to show to all roles. Admins always see all fields."
             data={visibilityOptions}
             {...form.getInputProps("visibleToRoles")}
+          />
+          <Switch
+            label="Visible to Risk Response Owners"
+            description="Controls whether Risk Response Owners can see this field on a linked parent risk."
+            {...form.getInputProps("visibleToRiskResponseOwners", { type: "checkbox" })}
           />
           <Button type="submit" loading={isSaving}>
             Save

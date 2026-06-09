@@ -36,6 +36,7 @@ export interface CustomFieldDefinition {
   formula: string | null;
   formulaDependencies: string[];
   visibleToRoles: RegisterRole[];
+  visibleToRiskResponseOwners: boolean;
 }
 
 export interface SaveCustomFieldInput {
@@ -52,6 +53,7 @@ export interface SaveCustomFieldInput {
   }>;
   formula?: string;
   visibleToRoles?: RegisterRole[];
+  visibleToRiskResponseOwners?: boolean;
 }
 
 export type UpdateCustomFieldInput = Partial<Omit<SaveCustomFieldInput, "fieldType" | "options">>;

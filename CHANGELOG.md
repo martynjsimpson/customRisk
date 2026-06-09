@@ -35,6 +35,9 @@ Version levels:
 - **Custom fields: field-level visibility by role**
   - Each custom field definition now carries a `visibleToRoles` list. When the list is non-empty, only users whose effective register role appears in that list will see the field in the risk form, risk detail, and risk table. An empty list means the field is visible to everyone. System Admins and Register Admins always see all fields regardless of the setting. Field admins configure visibility through a new multi-select control in the custom field modal.
 
+- **Custom fields: Risk Response Owner visibility flag**
+  - Each custom field definition now carries a `visibleToRiskResponseOwners` boolean (default `true`). When set to `false`, the field will be suppressed from the limited parent-risk context that Risk Response Owners see when acting on a linked action. The flag defaults to `true` so existing fields remain fully visible. Enforcement will activate when the Risk Response Owner permission model (Phase 7) is implemented.
+
 ## [1.7.0] - 2026-06-08
 
 ### Fixed

@@ -80,6 +80,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       isRequired: field.isRequired,
       displayOrder: field.displayOrder,
       isActive: field.isActive,
+      visibleToRoles: field.visibleToRoles,
+      visibleToRiskResponseOwners: field.visibleToRiskResponseOwners,
       options: field.options.map((option) => ({
         id: option.id,
         label: option.label,
@@ -112,6 +114,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     options?: Array<{ label: string; displayOrder: number; isActive?: boolean }>;
     formula?: string;
     visibleToRoles?: RegisterRole[];
+    visibleToRiskResponseOwners?: boolean;
   }>({
     mutationFn: (values) => {
       const newFieldId = crypto.randomUUID();
@@ -133,6 +136,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                   formula: values.formula ?? null,
                   formulaDependencies: [],
                   visibleToRoles: values.visibleToRoles ?? [],
+                  visibleToRiskResponseOwners: values.visibleToRiskResponseOwners ?? true,
                   options: (values.options ?? []).map((option) => ({
                     id: crypto.randomUUID(),
                     customFieldDefinitionId: newFieldId,
@@ -161,6 +165,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       displayOrder?: number;
       formula?: string;
       visibleToRoles?: RegisterRole[];
+      visibleToRiskResponseOwners?: boolean;
     };
   }>({
     mutationFn: ({
@@ -347,7 +352,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                 isRequired: editingField.fieldType === "CALCULATED" ? false : values.isRequired,
                 isActive: values.isActive,
                 formula: editingField.fieldType === "CALCULATED" && values.formula ? values.formula : undefined,
-                visibleToRoles: values.visibleToRoles
+                visibleToRoles: values.visibleToRoles,
+                visibleToRiskResponseOwners: values.visibleToRiskResponseOwners
               }
             });
             return;
@@ -363,7 +369,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
             isActive: values.isActive,
             options: isOptionsType ? parseInitialOptions(values.initialOptionsText) : undefined,
             formula: values.fieldType === "CALCULATED" && values.formula ? values.formula : undefined,
-            visibleToRoles: values.visibleToRoles
+            visibleToRoles: values.visibleToRoles,
+            visibleToRiskResponseOwners: values.visibleToRiskResponseOwners
           });
         }}
       />

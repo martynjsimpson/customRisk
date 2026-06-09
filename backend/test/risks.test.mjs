@@ -242,6 +242,23 @@ test("field-level visibility: schema, validators, and service wiring", async () 
   assert.match(controller, /getRiskFormConfig.*actorOrThrow/);
 });
 
+test("field-level visibility: visibleToRiskResponseOwners data model", async () => {
+  const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
+  const cfService = await readFile(new URL("../src/services/customFields.service.ts", import.meta.url), "utf8");
+
+  // DB: column exists with a true default (visible by default)
+  assert.match(schema, /visibleToRiskResponseOwners\s+Boolean/);
+  assert.match(schema, /@default\(true\)/);
+  assert.match(schema, /visible_to_risk_response_owners/);
+
+  // Validators accept the flag on both create and update
+  assert.match(cfSchema, /visibleToRiskResponseOwners.*z\.boolean/);
+
+  // Service stores the flag on create and update
+  assert.match(cfService, /visibleToRiskResponseOwners.*input\.visibleToRiskResponseOwners/);
+});
+
 test("risk overdue helper follows operational overdue rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 

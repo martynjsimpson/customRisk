@@ -476,9 +476,10 @@ model CustomFieldDefinition {
   validationMode       ValidationMode  @default(ALLOW) @map("validation_mode")
   displayOrder         Int             @map("display_order")
   isActive             Boolean         @default(true) @map("is_active")
-  formula              String?         @map("formula") @db.Text
-  formulaDependencies  String[]        @map("formula_dependencies") @db.Uuid
-  visibleToRoles       String[]        @map("visible_to_roles")
+  formula                    String?         @map("formula") @db.Text
+  formulaDependencies        String[]        @map("formula_dependencies") @db.Uuid
+  visibleToRoles             String[]        @map("visible_to_roles")
+  visibleToRiskResponseOwners Boolean        @default(true) @map("visible_to_risk_response_owners")
 
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdByUserId String   @map("created_by_user_id") @db.Uuid
