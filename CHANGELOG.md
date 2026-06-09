@@ -15,6 +15,11 @@ Version levels:
 
 ## [Unreleased]
 
+### Fixed
+
+- **Custom field options modal: improved table sizing and action layout**
+  - The options modal opened from field configuration is now wider, no longer shows an unnecessary horizontal scrollbar for the options table, and keeps the row action buttons inline unless an unusually long label leaves no remaining space.
+
 ### Added
 
 - **Custom fields: configurable validation modes (allow / warn / block)**

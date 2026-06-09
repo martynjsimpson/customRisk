@@ -79,6 +79,7 @@ export function CustomFieldOptionsModal({
       opened={opened}
       onClose={onClose}
       title={selectedField ? `${selectedField.fieldName} options` : "Dropdown options"}
+      size="880px"
     >
       <Stack>
         <ApiErrorAlert error={loadError} fallback="Unable to load dropdown options" />
@@ -102,29 +103,29 @@ export function CustomFieldOptionsModal({
             </Group>
           </Stack>
         </form>
-        <Table.ScrollContainer minWidth={640}>
+        <Table.ScrollContainer minWidth={0}>
           <Table>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Order</Table.Th>
+                <Table.Th w={80}>Order</Table.Th>
                 <Table.Th>Label</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th />
+                <Table.Th w={110}>Status</Table.Th>
+                <Table.Th w={220} />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {options.map((option) => (
                 <Table.Tr key={option.id}>
                   <Table.Td>{option.displayOrder}</Table.Td>
-                  <Table.Td>{option.label}</Table.Td>
+                  <Table.Td style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{option.label}</Table.Td>
                   <Table.Td>
                     <Badge color={option.isActive ? "green" : "gray"}>
                       {option.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </Table.Td>
                   {readOnly ? <Table.Td /> : (
-                    <Table.Td>
-                      <Group justify="flex-end" gap="xs">
+                    <Table.Td style={{ whiteSpace: "normal" }}>
+                      <Group justify="flex-end" gap="xs" wrap="wrap">
                         <Button variant="subtle" onClick={() => onEditOption(option)}>
                           Edit
                         </Button>
