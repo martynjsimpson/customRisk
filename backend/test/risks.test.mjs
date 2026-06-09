@@ -140,6 +140,29 @@ test("risk review status follows MVP display rules", () => {
   );
 });
 
+test("MULTI_SELECT custom field type is supported end-to-end", async () => {
+  const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
+  const riskSchema = await readFile(new URL("../src/validators/risks.schemas.ts", import.meta.url), "utf8");
+  const cfValuesService = await readFile(new URL("../src/services/customFieldValues.service.ts", import.meta.url), "utf8");
+  const risksService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+
+  // DB: enum value and junction table
+  assert.match(schema, /MULTI_SELECT/);
+  assert.match(schema, /RiskCustomFieldMultiSelectValue/);
+  assert.match(schema, /risk_custom_field_multi_select_value/);
+
+  // Validators accept MULTI_SELECT
+  assert.match(cfSchema, /"MULTI_SELECT"/);
+  assert.match(riskSchema, /multiSelectOptionIds/);
+
+  // Service: multi-select entries returned and created/deleted transactionally
+  assert.match(cfValuesService, /multiSelectEntries/);
+  assert.match(cfValuesService, /riskCustomFieldMultiSelectValue/);
+  assert.match(risksService, /multiSelectValues/);
+  assert.match(risksService, /multiSelectEntries/);
+});
+
 test("risk overdue helper follows operational overdue rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 

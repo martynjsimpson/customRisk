@@ -9,7 +9,8 @@ export type CustomFieldType =
   | "NUMBER"
   | "DATE"
   | "DROPDOWN"
-  | "PERSON_PICKER";
+  | "PERSON_PICKER"
+  | "MULTI_SELECT";
 
 export interface CustomFieldOption {
   id: string;

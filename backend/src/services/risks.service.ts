@@ -123,12 +123,20 @@ const riskListInclude = {
       personUser: { select: { id: true, name: true, email: true } },
       person: { select: personReferenceSelect }
     }
+  },
+  multiSelectValues: {
+    include: {
+      option: { select: { id: true, label: true } },
+      customFieldDefinition: { select: { id: true, fieldName: true, displayOrder: true, isActive: true } }
+    },
+    orderBy: { option: { displayOrder: "asc" } } as const
   }
 } satisfies Prisma.RiskInclude;
 
 type ValidationContext = {
   blockFieldIds: ReadonlySet<string>;
   warnFieldIds: ReadonlySet<string>;
+  multiSelectFieldIds: ReadonlySet<string>; // IDs of fields that are MULTI_SELECT type
 };
 
 const hasValueCondition = [
@@ -165,33 +173,43 @@ function hasPopulatedValue(v: {
 }
 
 function computeValidationStatus(
-  values: Array<{ customFieldDefinitionId: string; textValue: string | null; numberValue: Prisma.Decimal | null; booleanValue: boolean | null; dateValue: Date | null; personUserId: string | null; personEmail: string | null; personId: string | null; dropdownOptionId: string | null }>,
+  scalarValues: Array<{ customFieldDefinitionId: string; textValue: string | null; numberValue: Prisma.Decimal | null; booleanValue: boolean | null; dateValue: Date | null; personUserId: string | null; personEmail: string | null; personId: string | null; dropdownOptionId: string | null }>,
+  multiSelectValues: Array<{ customFieldDefinitionId: string }>,
   ctx: ValidationContext
 ): "BLOCK" | "WARN" | "OK" {
-  const populatedIds = new Set(values.filter(hasPopulatedValue).map((v) => v.customFieldDefinitionId));
+  const scalarPopulated = new Set(scalarValues.filter(hasPopulatedValue).map((v) => v.customFieldDefinitionId));
+  const multiSelectPopulated = new Set(multiSelectValues.map((v) => v.customFieldDefinitionId));
+
+  function isPopulated(id: string) {
+    return ctx.multiSelectFieldIds.has(id) ? multiSelectPopulated.has(id) : scalarPopulated.has(id);
+  }
+
   for (const id of ctx.blockFieldIds) {
-    if (!populatedIds.has(id)) return "BLOCK";
+    if (!isPopulated(id)) return "BLOCK";
   }
   for (const id of ctx.warnFieldIds) {
-    if (!populatedIds.has(id)) return "WARN";
+    if (!isPopulated(id)) return "WARN";
   }
   return "OK";
 }
 
 function applyValidationIssuesFilter(
   where: Prisma.RiskWhereInput,
-  fieldIds: string[]
+  scalarFieldIds: string[],
+  multiSelectFieldIds: string[]
 ) {
-  if (fieldIds.length === 0) return;
-  const filter: Prisma.RiskWhereInput = {
-    OR: fieldIds.map((fieldId) => ({
-      NOT: {
-        customFieldValues: {
-          some: { customFieldDefinitionId: fieldId, OR: hasValueCondition }
-        }
-      }
+  if (scalarFieldIds.length === 0 && multiSelectFieldIds.length === 0) return;
+
+  const orClauses: Prisma.RiskWhereInput[] = [
+    ...scalarFieldIds.map((fieldId) => ({
+      NOT: { customFieldValues: { some: { customFieldDefinitionId: fieldId, OR: hasValueCondition } } }
+    })),
+    ...multiSelectFieldIds.map((fieldId) => ({
+      NOT: { multiSelectValues: { some: { customFieldDefinitionId: fieldId } } }
     }))
-  };
+  ];
+
+  const filter: Prisma.RiskWhereInput = { OR: orClauses };
   if (Array.isArray(where.AND)) {
     (where.AND as Prisma.RiskWhereInput[]).push(filter);
   } else if (where.AND) {
@@ -256,10 +274,46 @@ function mapRiskListItem(
       nextReviewDate: risk.nextReviewDate,
       state: risk.state
     }),
-    validationStatus: computeValidationStatus(risk.customFieldValues, validationContext),
+    validationStatus: computeValidationStatus(risk.customFieldValues, risk.multiSelectValues, validationContext),
     systemUpdatedAt: risk.systemUpdatedAt,
-    customFieldValues: risk.customFieldValues.map(mapRiskListCustomFieldValue)
+    customFieldValues: buildMergedCustomFieldValues(risk)
   };
+}
+
+function buildMergedCustomFieldValues(
+  risk: Prisma.RiskGetPayload<{ include: typeof riskListInclude }>
+) {
+  const scalarValues = risk.customFieldValues.map(mapRiskListCustomFieldValue);
+
+  // Group multi-select options by definition
+  const multiSelectByDefinitionId = new Map<string, { id: string; label: string }[]>();
+  const multiSelectDefById = new Map<string, { id: string; fieldName: string; displayOrder: number; isActive: boolean }>();
+  for (const msv of risk.multiSelectValues) {
+    const existing = multiSelectByDefinitionId.get(msv.customFieldDefinitionId) ?? [];
+    existing.push(msv.option);
+    multiSelectByDefinitionId.set(msv.customFieldDefinitionId, existing);
+    if (!multiSelectDefById.has(msv.customFieldDefinitionId)) {
+      multiSelectDefById.set(msv.customFieldDefinitionId, msv.customFieldDefinition);
+    }
+  }
+
+  const multiSelectValues = [...multiSelectDefById.entries()].map(([defId, def]) => ({
+    customFieldDefinitionId: defId,
+    fieldName: def.fieldName,
+    fieldType: "MULTI_SELECT" as const,
+    displayOrder: def.displayOrder,
+    isActive: def.isActive,
+    textValue: null,
+    numberValue: null,
+    booleanValue: null,
+    dateValue: null,
+    personUser: null,
+    person: null,
+    dropdownOption: null,
+    selectedOptions: multiSelectByDefinitionId.get(defId) ?? []
+  }));
+
+  return [...scalarValues, ...multiSelectValues];
 }
 
 function mapCustomFieldValue(
@@ -302,6 +356,12 @@ function mapRiskDetail(
           person: { select: typeof personReferenceSelect };
         };
       };
+      multiSelectValues: {
+        include: {
+          option: { select: { id: true; label: true } };
+          customFieldDefinition: { select: { id: true; fieldName: true; displayOrder: true; isActive: true; fieldType: true; helpText: true; isRequired: true; validationMode: true } };
+        };
+      };
       lastReviewedBy: { select: { id: true; name: true; email: true } };
       systemCreatedBy: { select: { id: true; name: true; email: true } };
       systemUpdatedBy: { select: { id: true; name: true; email: true } };
@@ -309,6 +369,42 @@ function mapRiskDetail(
   }>,
   reviewsEnabled: boolean
 ) {
+  const scalarCustomFields = risk.customFieldValues.map(mapCustomFieldValue);
+
+  // Synthesize one entry per MULTI_SELECT field with all selected options grouped
+  const multiSelectByDef = new Map<string, { id: string; label: string }[]>();
+  const multiSelectDefs = new Map<string, { id: string; fieldName: string; fieldType: "MULTI_SELECT"; helpText: string | null; isRequired: boolean; validationMode: string; displayOrder: number; isActive: boolean }>();
+  for (const msv of risk.multiSelectValues) {
+    const arr = multiSelectByDef.get(msv.customFieldDefinitionId) ?? [];
+    arr.push(msv.option);
+    multiSelectByDef.set(msv.customFieldDefinitionId, arr);
+    if (!multiSelectDefs.has(msv.customFieldDefinitionId)) {
+      const def = msv.customFieldDefinition;
+      multiSelectDefs.set(msv.customFieldDefinitionId, {
+        id: def.id,
+        fieldName: def.fieldName,
+        fieldType: "MULTI_SELECT" as const,
+        helpText: def.helpText,
+        isRequired: def.isRequired,
+        validationMode: def.validationMode,
+        displayOrder: def.displayOrder,
+        isActive: def.isActive
+      });
+    }
+  }
+  const multiSelectCustomFields = [...multiSelectDefs.entries()].map(([defId, def]) => ({
+    id: defId,
+    customFieldDefinition: def,
+    textValue: null,
+    numberValue: null,
+    booleanValue: null,
+    dateValue: null,
+    person: null,
+    personUser: null,
+    dropdownOption: null,
+    selectedOptions: multiSelectByDef.get(defId) ?? []
+  }));
+
   return {
     id: risk.id,
     registerId: risk.registerId,
@@ -326,7 +422,7 @@ function mapRiskDetail(
     riskLevel: risk.riskLevel,
     responseStrategy: risk.responseStrategy,
     responseAction: risk.responseAction,
-    customFields: risk.customFieldValues.map(mapCustomFieldValue),
+    customFields: ([...scalarCustomFields, ...multiSelectCustomFields] as ReturnType<typeof mapCustomFieldValue>[]),
     lastReviewedAt: risk.lastReviewedAt,
     lastReviewedBy: risk.lastReviewedBy,
     nextReviewDate: toDateOnlyString(risk.nextReviewDate),
@@ -474,7 +570,7 @@ export async function listRisks(
 
   const activeValidationFields = await prisma.customFieldDefinition.findMany({
     where: { registerId, isActive: true, validationMode: { in: ["WARN", "BLOCK"] } },
-    select: { id: true, validationMode: true }
+    select: { id: true, validationMode: true, fieldType: true }
   });
   const blockFieldIds = new Set(
     activeValidationFields.filter((f) => f.validationMode === "BLOCK").map((f) => f.id)
@@ -482,10 +578,15 @@ export async function listRisks(
   const warnFieldIds = new Set(
     activeValidationFields.filter((f) => f.validationMode === "WARN").map((f) => f.id)
   );
-  const validationContext: ValidationContext = { blockFieldIds, warnFieldIds };
+  const multiSelectFieldIds = new Set(
+    activeValidationFields.filter((f) => f.fieldType === "MULTI_SELECT").map((f) => f.id)
+  );
+  const validationContext: ValidationContext = { blockFieldIds, warnFieldIds, multiSelectFieldIds };
 
   if (query.validationIssues) {
-    applyValidationIssuesFilter(where, activeValidationFields.map((f) => f.id));
+    const scalarIds = activeValidationFields.filter((f) => f.fieldType !== "MULTI_SELECT").map((f) => f.id);
+    const msIds = activeValidationFields.filter((f) => f.fieldType === "MULTI_SELECT").map((f) => f.id);
+    applyValidationIssuesFilter(where, scalarIds, msIds);
   }
 
   const [risks, total] = await Promise.all([
@@ -524,6 +625,13 @@ export async function getRiskDetail(_actor: AuthenticatedActor, registerId: stri
           person: { select: personReferenceSelect }
         },
         orderBy: { customFieldDefinition: { displayOrder: "asc" } }
+      },
+      multiSelectValues: {
+        include: {
+          option: { select: { id: true, label: true } },
+          customFieldDefinition: { select: { id: true, fieldName: true, displayOrder: true, isActive: true, fieldType: true, helpText: true, isRequired: true, validationMode: true } }
+        },
+        orderBy: { option: { displayOrder: "asc" } }
       },
       lastReviewedBy: { select: { id: true, name: true, email: true } },
       systemCreatedBy: { select: { id: true, name: true, email: true } },
@@ -612,6 +720,7 @@ export async function updateRisk(
       utcDateOnly(input.createdDate).getTime() !== existing.createdDate.getTime();
 
     let customFieldValues: Awaited<ReturnType<typeof validateCustomFieldValues>>["values"] | undefined;
+    let multiSelectEntries: Awaited<ReturnType<typeof validateCustomFieldValues>>["multiSelectEntries"] | undefined;
     if (input.customFieldValues !== undefined) {
       const result = await validateCustomFieldValues(registerId, input.customFieldValues, tx, {
         riskId,
@@ -621,16 +730,16 @@ export async function updateRisk(
         throw new ApiError(422, "VALIDATION_WARNING", "One or more fields have warnings", undefined, result.warnings);
       }
       customFieldValues = result.values;
+      multiSelectEntries = result.multiSelectEntries;
     }
 
-    if (customFieldValues !== undefined) {
+    if (customFieldValues !== undefined || multiSelectEntries !== undefined) {
+      const fieldIds = input.customFieldValues?.map((v) => v.customFieldDefinitionId) ?? [];
       await tx.riskCustomFieldValue.deleteMany({
-        where: {
-          riskId,
-          customFieldDefinitionId: {
-            in: input.customFieldValues?.map((value) => value.customFieldDefinitionId) ?? []
-          }
-        }
+        where: { riskId, customFieldDefinitionId: { in: fieldIds } }
+      });
+      await tx.riskCustomFieldMultiSelectValue.deleteMany({
+        where: { riskId, customFieldDefinitionId: { in: fieldIds } }
       });
     }
 
@@ -664,6 +773,12 @@ export async function updateRisk(
       },
       select: riskAuditSelect
     });
+
+    if (multiSelectEntries && multiSelectEntries.length > 0) {
+      await tx.riskCustomFieldMultiSelectValue.createMany({
+        data: multiSelectEntries.map((entry) => ({ ...entry, riskId: updated.id }))
+      });
+    }
 
     await recordAuditEvent(
       {
@@ -783,11 +898,15 @@ export async function getRiskValidationSummary(
 
   const activeValidationFields = await prisma.customFieldDefinition.findMany({
     where: { registerId, isActive: true, validationMode: { in: ["WARN", "BLOCK"] } },
-    select: { id: true, validationMode: true }
+    select: { id: true, validationMode: true, fieldType: true }
   });
 
   const blockFieldIds = activeValidationFields.filter((f) => f.validationMode === "BLOCK").map((f) => f.id);
   const warnFieldIds = activeValidationFields.filter((f) => f.validationMode === "WARN").map((f) => f.id);
+  const blockScalarIds = blockFieldIds.filter((id) => activeValidationFields.find((f) => f.id === id)?.fieldType !== "MULTI_SELECT");
+  const blockMsIds = blockFieldIds.filter((id) => activeValidationFields.find((f) => f.id === id)?.fieldType === "MULTI_SELECT");
+  const warnScalarIds = warnFieldIds.filter((id) => activeValidationFields.find((f) => f.id === id)?.fieldType !== "MULTI_SELECT");
+  const warnMsIds = warnFieldIds.filter((id) => activeValidationFields.find((f) => f.id === id)?.fieldType === "MULTI_SELECT");
 
   const baseWhere: Prisma.RiskWhereInput = { registerId, state: { not: "CLOSED" } };
   if (role === "RISK_OWNER") {
@@ -803,33 +922,31 @@ export async function getRiskValidationSummary(
   let blockCount = 0;
   if (blockFieldIds.length > 0) {
     const blockWhere: Prisma.RiskWhereInput = { ...baseWhere };
-    applyValidationIssuesFilter(blockWhere, blockFieldIds);
+    applyValidationIssuesFilter(blockWhere, blockScalarIds, blockMsIds);
     blockCount = await prisma.risk.count({ where: blockWhere });
   }
 
   let warnCount = 0;
   if (warnFieldIds.length > 0) {
     const warnWhere: Prisma.RiskWhereInput = { ...baseWhere };
-    applyValidationIssuesFilter(warnWhere, warnFieldIds);
-    // Only count warn issues on risks that don't already have a block issue
+    applyValidationIssuesFilter(warnWhere, warnScalarIds, warnMsIds);
+    // Exclude risks already counted in blockCount
     if (blockFieldIds.length > 0) {
-      const blockFilter: Prisma.RiskWhereInput = {
-        NOT: {
-          OR: blockFieldIds.map((fieldId) => ({
-            NOT: {
-              customFieldValues: {
-                some: { customFieldDefinitionId: fieldId, OR: hasValueCondition }
-              }
-            }
-          }))
-        }
-      };
+      const notBlockedClauses: Prisma.RiskWhereInput[] = [
+        ...blockScalarIds.map((fieldId) => ({
+          customFieldValues: { some: { customFieldDefinitionId: fieldId, OR: hasValueCondition } }
+        })),
+        ...blockMsIds.map((fieldId) => ({
+          multiSelectValues: { some: { customFieldDefinitionId: fieldId } }
+        }))
+      ];
+      const notBlockFilter: Prisma.RiskWhereInput = { AND: notBlockedClauses };
       if (Array.isArray(warnWhere.AND)) {
-        (warnWhere.AND as Prisma.RiskWhereInput[]).push(blockFilter);
+        (warnWhere.AND as Prisma.RiskWhereInput[]).push(notBlockFilter);
       } else if (warnWhere.AND) {
-        warnWhere.AND = [warnWhere.AND as Prisma.RiskWhereInput, blockFilter];
+        warnWhere.AND = [warnWhere.AND as Prisma.RiskWhereInput, notBlockFilter];
       } else {
-        warnWhere.AND = [blockFilter];
+        warnWhere.AND = [notBlockFilter];
       }
     }
     warnCount = await prisma.risk.count({ where: warnWhere });
@@ -893,7 +1010,7 @@ export async function createRisk(
       },
       tx
     );
-    const { values: customFieldValues, warnings } = await validateCustomFieldValues(
+    const { values: customFieldValues, multiSelectEntries, warnings } = await validateCustomFieldValues(
       registerId,
       input.customFieldValues,
       tx,
@@ -932,6 +1049,12 @@ export async function createRisk(
           ? { createMany: { data: customFieldValues } }
           : undefined
     });
+
+    if (multiSelectEntries.length > 0) {
+      await tx.riskCustomFieldMultiSelectValue.createMany({
+        data: multiSelectEntries.map((entry) => ({ ...entry, riskId: risk.id }))
+      });
+    }
 
     await recordAuditEvent(
       {

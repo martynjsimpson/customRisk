@@ -49,7 +49,8 @@ export const riskCustomFieldValueSchema = z.object({
   dateValue: dateOnlySchema.optional(),
   personUserId: z.string().uuid().optional(),
   personEmail: z.string().email().optional(),
-  dropdownOptionId: z.string().uuid().optional()
+  dropdownOptionId: z.string().uuid().optional(),
+  multiSelectOptionIds: z.array(z.string().uuid()).optional()
 });
 
 export const createRiskSchema = z

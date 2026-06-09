@@ -22,8 +22,15 @@ type ExistingCustomFieldValue = Prisma.RiskCustomFieldValueGetPayload<{
   };
 }>;
 
+export interface MultiSelectEntry {
+  registerId: string;
+  customFieldDefinitionId: string;
+  optionId: string;
+}
+
 export interface ValidatedCustomFieldResult {
   values: Prisma.RiskCustomFieldValueCreateManyRiskInput[];
+  multiSelectEntries: MultiSelectEntry[];
   warnings: FieldWarning[];
 }
 
@@ -38,7 +45,8 @@ function countProvidedValues(value: RiskCustomFieldValueBody) {
     value.booleanValue,
     value.dateValue,
     value.personUserId ?? value.personEmail,
-    value.dropdownOptionId
+    value.dropdownOptionId,
+    value.multiSelectOptionIds !== undefined ? "multi_select" : undefined
   ].filter((entry) => entry !== undefined && entry !== null && entry !== "").length;
 }
 
@@ -64,6 +72,9 @@ function hasValueForType(
       return Boolean(value.personUserId) || ("personEmail" in value && Boolean((value as RiskCustomFieldValueBody).personEmail));
     case "DROPDOWN":
       return Boolean(value.dropdownOptionId);
+    case "MULTI_SELECT":
+      return Array.isArray((value as RiskCustomFieldValueBody).multiSelectOptionIds) &&
+        ((value as RiskCustomFieldValueBody).multiSelectOptionIds?.length ?? 0) > 0;
   }
 }
 
@@ -126,6 +137,8 @@ function customFieldValueMatchesExisting(
       return Boolean(value.personUserId && value.personUserId === existing.personUserId);
     case "DROPDOWN":
       return Boolean(value.dropdownOptionId && value.dropdownOptionId === existing.dropdownOptionId);
+    case "MULTI_SELECT":
+      return false; // multi-select values are not stored in the scalar table
   }
 }
 
@@ -165,6 +178,17 @@ export async function validateCustomFieldValues(
         }
       })
     : [];
+
+  // Fetch existing multi-select field IDs (fields with at least one selection) for merge logic
+  const existingMultiSelectFieldIds = options.riskId
+    ? new Set(
+        (await client.riskCustomFieldMultiSelectValue.findMany({
+          where: { riskId: options.riskId, registerId },
+          select: { customFieldDefinitionId: true },
+          distinct: ["customFieldDefinitionId"]
+        })).map((v) => v.customFieldDefinitionId)
+      )
+    : new Set<string>();
   const existingValuesByDefinitionId = new Map(
     existingValues.map((value) => [value.customFieldDefinitionId, value])
   );
@@ -227,10 +251,20 @@ export async function validateCustomFieldValues(
   definitions
     .filter((definition) => definition.isActive && definition.validationMode !== "ALLOW")
     .forEach((definition) => {
-      const value = mergedValuesByDefinitionId.get(definition.id);
-      if (hasValueForType(definition.fieldType, value)) {
-        return;
+      let hasValue: boolean;
+      if (definition.fieldType === "MULTI_SELECT") {
+        const inputEntry = valuesByDefinitionId.get(definition.id);
+        if (inputEntry?.multiSelectOptionIds !== undefined) {
+          hasValue = inputEntry.multiSelectOptionIds.length > 0;
+        } else {
+          hasValue = existingMultiSelectFieldIds.has(definition.id);
+        }
+      } else {
+        const value = mergedValuesByDefinitionId.get(definition.id);
+        hasValue = hasValueForType(definition.fieldType, value);
       }
+
+      if (hasValue) return;
 
       if (definition.validationMode === "BLOCK") {
         fields[`customFields.${definition.id}`] = `${definition.fieldName} is required`;
@@ -319,6 +353,34 @@ export async function validateCustomFieldValues(
     }
   }
 
+  // Validate multi-select option IDs
+  const multiSelectEntries: MultiSelectEntry[] = [];
+  for (const value of values) {
+    if (!value.multiSelectOptionIds || value.multiSelectOptionIds.length === 0) continue;
+    const definition = definitionsById.get(value.customFieldDefinitionId);
+    if (!definition || definition.fieldType !== "MULTI_SELECT") continue;
+
+    const activeOptions = await client.customFieldOption.findMany({
+      where: {
+        id: { in: value.multiSelectOptionIds },
+        isActive: true,
+        customFieldDefinitionId: value.customFieldDefinitionId
+      },
+      select: { id: true }
+    });
+    const activeOptionIds = new Set(activeOptions.map((o) => o.id));
+    const invalidIds = value.multiSelectOptionIds.filter((id) => !activeOptionIds.has(id));
+    if (invalidIds.length > 0) {
+      const idx = values.indexOf(value);
+      fields[`customFieldValues.${idx}.multiSelectOptionIds`] =
+        "Multi-select values must reference active options for this custom field";
+    } else {
+      for (const optionId of value.multiSelectOptionIds) {
+        multiSelectEntries.push({ registerId, customFieldDefinitionId: value.customFieldDefinitionId, optionId });
+      }
+    }
+  }
+
   if (Object.keys(fields).length > 0) {
     throw new ApiError(400, "VALIDATION_ERROR", "Custom field values are invalid", fields);
   }
@@ -342,7 +404,10 @@ export async function validateCustomFieldValues(
   const resolvedValues = values
     .map((value) => {
       const definition = definitionsById.get(value.customFieldDefinitionId);
-      if (!definition || !hasValueForType(definition.fieldType, value)) {
+      if (!definition || definition.fieldType === "MULTI_SELECT") {
+        return null; // multi-select stored in separate table
+      }
+      if (!hasValueForType(definition.fieldType, value)) {
         return null;
       }
 
@@ -357,5 +422,5 @@ export async function validateCustomFieldValues(
       (value): value is Prisma.RiskCustomFieldValueCreateManyRiskInput => value !== null
     );
 
-  return { values: resolvedValues, warnings };
+  return { values: resolvedValues, multiSelectEntries, warnings };
 }

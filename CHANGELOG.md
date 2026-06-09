@@ -23,6 +23,9 @@ Version levels:
 - **Risk register: per-risk validation status and register-level validation summary**
   - Each risk in the list now carries a `validationStatus` (`BLOCK`, `WARN`, or `OK`) computed from its custom field values against the register's active field definitions. A coloured dot is shown next to the Risk ID in the table for any risk with missing required or recommended fields. A summary banner above the table shows how many open risks have `BLOCK` or `WARN` issues, with a one-click filter to show only those risks.
 
+- **Custom fields: multi-select field type**
+  - A new `MULTI_SELECT` field type allows risks to hold multiple pre-defined values for a single field. Selections are stored in a dedicated junction table (`risk_custom_field_multi_select_value`) rather than the scalar custom field value row, enabling clean many-to-many semantics. Multi-select fields support options management, validation modes, and appear in both the risk form and risk table columns. The Options button in the field configuration table now appears for multi-select fields as well as dropdowns.
+
 ## [1.7.0] - 2026-06-08
 
 ### Fixed

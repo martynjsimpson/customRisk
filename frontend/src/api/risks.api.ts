@@ -60,6 +60,7 @@ export interface RiskListCustomFieldValue {
   personUser: { id: string; name: string; email: string } | null;
   person: { displayName: string } | null;
   dropdownOption: { id: string; label: string } | null;
+  selectedOptions?: Array<{ id: string; label: string }>;
 }
 
 export interface RiskListItem {
@@ -110,6 +111,7 @@ export interface RiskCustomFieldValueInput {
   personUserId?: string;
   personEmail?: string;
   dropdownOptionId?: string;
+  multiSelectOptionIds?: string[];
 }
 
 export interface RiskFormConfig {
@@ -145,6 +147,7 @@ export interface RiskDetail extends RiskListItem {
     person: PersonDisplay | null;
     personUser: RiskPerson | null;
     dropdownOption: { id: string; label: string } | null;
+    selectedOptions?: Array<{ id: string; label: string }>;
   }>;
   lastReviewedAt: string | null;
   lastReviewedBy: RiskPerson | null;

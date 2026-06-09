@@ -31,7 +31,8 @@ const fieldTypeOptions: Array<{ value: CustomFieldType; label: string }> = [
   { value: "NUMBER", label: "Number" },
   { value: "DATE", label: "Date" },
   { value: "DROPDOWN", label: "Dropdown" },
-  { value: "PERSON_PICKER", label: "Person Picker" }
+  { value: "PERSON_PICKER", label: "Person Picker" },
+  { value: "MULTI_SELECT", label: "Multi-select" }
 ];
 
 function createInitialValues(): CustomFieldFormValues {
@@ -109,9 +110,9 @@ export function CustomFieldModal({
           <Textarea label="Help text" {...form.getInputProps("helpText")} />
           <Checkbox label="Required" {...form.getInputProps("isRequired", { type: "checkbox" })} />
           <Checkbox label="Active" {...form.getInputProps("isActive", { type: "checkbox" })} />
-          {!editingField && form.values.fieldType === "DROPDOWN" ? (
+          {!editingField && (form.values.fieldType === "DROPDOWN" || form.values.fieldType === "MULTI_SELECT") ? (
             <Textarea
-              label="Initial dropdown options"
+              label="Initial options (one per line)"
               autosize
               minRows={3}
               {...form.getInputProps("initialOptionsText")}

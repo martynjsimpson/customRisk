@@ -7,7 +7,8 @@ export const customFieldTypes = [
   "NUMBER",
   "DATE",
   "DROPDOWN",
-  "PERSON_PICKER"
+  "PERSON_PICKER",
+  "MULTI_SELECT"
 ] as const;
 
 export const validationModes = ["ALLOW", "WARN", "BLOCK"] as const;

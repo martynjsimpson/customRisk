@@ -5,6 +5,7 @@ import {
   Group,
   Loader,
   Modal,
+  MultiSelect,
   NumberInput,
   Select,
   Stack,
@@ -75,6 +76,11 @@ function emptyValues(defaultState: RiskState): RiskFormValues {
 }
 
 function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
+  if (definition.fieldType === "MULTI_SELECT") {
+    const ids = Array.isArray(value) ? (value as string[]) : [];
+    return { customFieldDefinitionId: definition.id, multiSelectOptionIds: ids };
+  }
+
   if (value === undefined || value === null || value === "") {
     return { customFieldDefinitionId: definition.id };
   }
@@ -223,6 +229,20 @@ function CustomFieldInput({
     );
   }
 
+  if (field.fieldType === "MULTI_SELECT") {
+    const selectedIds = Array.isArray(value) ? (value as string[]) : [];
+    return (
+      <MultiSelect
+        label={label}
+        required={field.validationMode === "BLOCK"}
+        data={(field.options ?? []).map((option) => ({ value: option.id, label: option.label }))}
+        value={selectedIds}
+        onChange={(newValue) => onChange(newValue)}
+        {...warnProps}
+      />
+    );
+  }
+
   return <TextInput label={label} required={field.validationMode === "BLOCK"} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
 }
 
@@ -316,14 +336,16 @@ export function RiskFormModal({
         Object.fromEntries(
           risk.customFields.map((field) => [
             field.customFieldDefinition.id,
-            field.textValue ??
-              field.numberValue ??
-              field.booleanValue ??
-              field.dateValue ??
-              field.person?.email ??
-              field.personUser?.email ??
-              field.dropdownOption?.id ??
-              ""
+            field.selectedOptions
+              ? field.selectedOptions.map((o) => o.id)
+              : field.textValue ??
+                field.numberValue ??
+                field.booleanValue ??
+                field.dateValue ??
+                field.person?.email ??
+                field.personUser?.email ??
+                field.dropdownOption?.id ??
+                ""
           ])
         )
       );

@@ -92,11 +92,15 @@ async function findCustomField(registerId: string, fieldId: string) {
   return field;
 }
 
+function isOptionsField(fieldType: string) {
+  return fieldType === "DROPDOWN" || fieldType === "MULTI_SELECT";
+}
+
 async function findDropdownField(registerId: string, fieldId: string) {
   const field = await findCustomField(registerId, fieldId);
-  if (field.fieldType !== "DROPDOWN") {
-    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown fields", {
-      fieldId: "Custom field must be a dropdown field"
+  if (!isOptionsField(field.fieldType)) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown and multi-select fields", {
+      fieldId: "Custom field must be a dropdown or multi-select field"
     });
   }
 
@@ -158,15 +162,15 @@ async function assertDropdownWillKeepActiveOption(fieldId: string, optionId: str
 
 function validateCreateCustomField(input: CreateCustomFieldBody) {
   const hasActiveOptions = (input.options ?? []).some((option) => option.isActive);
-  if (input.fieldType === "DROPDOWN" && input.isActive && !hasActiveOptions) {
-    throw new ApiError(400, "VALIDATION_ERROR", "Active dropdown fields require at least one active option", {
+  if (isOptionsField(input.fieldType) && input.isActive && !hasActiveOptions) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Active option-based fields require at least one active option", {
       options: "Add at least one active option"
     });
   }
 
-  if (input.fieldType !== "DROPDOWN" && input.options && input.options.length > 0) {
-    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown fields", {
-      options: "Only dropdown fields can have options"
+  if (!isOptionsField(input.fieldType) && input.options && input.options.length > 0) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown and multi-select fields", {
+      options: "Only dropdown and multi-select fields can have options"
     });
   }
 }
@@ -209,7 +213,7 @@ export async function createCustomField(
           createdByUserId: actor.id,
           updatedByUserId: actor.id,
           options:
-            input.fieldType === "DROPDOWN" && input.options && input.options.length > 0
+            isOptionsField(input.fieldType) && input.options && input.options.length > 0
               ? {
                   createMany: {
                     data: input.options.map((option) => ({
@@ -262,7 +266,7 @@ export async function updateCustomField(
 ) {
   const existing = await findCustomField(registerId, fieldId);
 
-  if (existing.fieldType === "DROPDOWN" && input.isActive === true) {
+  if (isOptionsField(existing.fieldType) && input.isActive === true) {
     await assertDropdownActivationIsValid(fieldId);
   }
 
@@ -307,7 +311,7 @@ export async function updateCustomField(
 export async function activateCustomField(actor: AuthenticatedActor, registerId: string, fieldId: string) {
   const field = await findCustomField(registerId, fieldId);
 
-  if (field.fieldType === "DROPDOWN") {
+  if (isOptionsField(field.fieldType)) {
     await assertDropdownActivationIsValid(fieldId);
   }
 

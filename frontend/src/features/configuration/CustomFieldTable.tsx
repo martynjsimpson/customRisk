@@ -39,7 +39,8 @@ const fieldTypeLabels: Record<CustomFieldType, string> = {
   NUMBER: "Number",
   DATE: "Date",
   DROPDOWN: "Dropdown",
-  PERSON_PICKER: "Person Picker"
+  PERSON_PICKER: "Person Picker",
+  MULTI_SELECT: "Multi-select"
 };
 
 type CombinedField =
@@ -106,7 +107,7 @@ function SortableRow({ field, onEditField, onOpenOptions, onActivateField, onDea
       {!readOnly ? (
         <Table.Td>
           <Group justify="flex-end" gap="xs">
-            {field.kind === "custom" && field.fieldType === "DROPDOWN" ? (
+            {field.kind === "custom" && (field.fieldType === "DROPDOWN" || field.fieldType === "MULTI_SELECT") ? (
               <Button variant="subtle" onClick={() => onOpenOptions(field)}>
                 Options
               </Button>
