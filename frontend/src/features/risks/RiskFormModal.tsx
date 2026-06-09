@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Checkbox,
   Group,
@@ -7,6 +8,7 @@ import {
   NumberInput,
   Select,
   Stack,
+  Text,
   Textarea,
   TextInput
 } from "@mantine/core";
@@ -18,6 +20,7 @@ import {
   createRisk,
   getRisk,
   type CustomFieldDefinition,
+  type FieldWarning,
   type RiskFormConfig,
   type RiskState,
   type SaveRiskInput,
@@ -25,7 +28,7 @@ import {
   RISK_STATES
 } from "../../api/risks.api";
 import type { RegisterRecord } from "../../api/registers.api";
-import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { ApiErrorAlert, getApiErrorCode, getApiErrorWarnings } from "../../components/ApiErrorAlert";
 import { PersonPicker } from "../../components/PersonPicker";
 import { CORE_RISK_FIELDS, type CoreRiskFieldId } from "./coreRiskFields";
 
@@ -174,31 +177,34 @@ function renderCoreField({
 function CustomFieldInput({
   field,
   value,
-  onChange
+  onChange,
+  hasWarning
 }: {
   field: CustomFieldDefinition;
   value: unknown;
   onChange: (value: unknown) => void;
+  hasWarning?: boolean;
 }) {
   const label = field.fieldName;
+  const warnProps = hasWarning ? { styles: { input: { borderColor: "var(--mantine-color-yellow-5)" } } } : {};
 
   if (field.fieldType === "MULTILINE_TEXT") {
-    return <Textarea label={label} required={field.isRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
+    return <Textarea label={label} required={field.validationMode === "BLOCK"} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
   }
   if (field.fieldType === "NUMBER") {
-    return <NumberInput label={label} required={field.isRequired} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
+    return <NumberInput label={label} required={field.validationMode === "BLOCK"} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
   }
   if (field.fieldType === "BOOLEAN") {
     return <Checkbox label={label} checked={Boolean(value)} onChange={(event) => onChange(event.currentTarget.checked)} />;
   }
   if (field.fieldType === "DATE") {
-    return <TextInput label={label} required={field.isRequired} type="date" value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
+    return <TextInput label={label} required={field.validationMode === "BLOCK"} type="date" value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
   }
   if (field.fieldType === "PERSON_PICKER") {
     return (
       <PersonPicker
         label={label}
-        required={field.isRequired}
+        required={field.validationMode === "BLOCK"}
         value={String(value ?? "")}
         onChange={onChange}
       />
@@ -208,15 +214,16 @@ function CustomFieldInput({
     return (
       <Select
         label={label}
-        required={field.isRequired}
+        required={field.validationMode === "BLOCK"}
         data={(field.options ?? []).map((option) => ({ value: option.id, label: option.label }))}
         value={String(value ?? "") || null}
         onChange={onChange}
+        {...warnProps}
       />
     );
   }
 
-  return <TextInput label={label} required={field.isRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} />;
+  return <TextInput label={label} required={field.validationMode === "BLOCK"} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
 }
 
 export function RiskFormModal({
@@ -229,6 +236,7 @@ export function RiskFormModal({
   onSuccess
 }: RiskFormModalProps) {
   const [customValues, setCustomValues] = useState<Record<string, unknown>>({});
+  const [pendingWarnings, setPendingWarnings] = useState<FieldWarning[]>([]);
   const defaultState = formConfig.register.defaultNewRiskState ?? "DRAFT";
 
   const activeCustomFields = useMemo(
@@ -255,6 +263,11 @@ export function RiskFormModal({
         label: `${user.name} (${user.email})`
       })),
     [formConfig.users]
+  );
+
+  const warningFieldIds = useMemo(
+    () => new Set(pendingWarnings.map((w) => w.fieldId)),
+    [pendingWarnings]
   );
 
   const form = useForm<RiskFormValues>({ initialValues: emptyValues(defaultState) });
@@ -321,57 +334,103 @@ export function RiskFormModal({
 
   const isEditingRiskLoading = Boolean(editingRiskId && selectedRiskQuery.isLoading && !selectedRiskQuery.data);
 
+  function buildPayload(acknowledgedWarnings?: boolean): SaveRiskInput {
+    const customFields = activeCustomFields.map((definition) =>
+      customFieldPayload(definition, customValues[definition.id])
+    );
+    return {
+      ...form.values,
+      createdDate: canManage ? form.values.createdDate : undefined,
+      responseAction: form.values.responseAction || null,
+      ...(acknowledgedWarnings ? { acknowledgedWarnings: true } : {}),
+      customFields
+    };
+  }
+
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      const customFields = activeCustomFields.map((definition) =>
-        customFieldPayload(definition, customValues[definition.id])
-      );
-      const payload: SaveRiskInput = {
-        ...form.values,
-        createdDate: canManage ? form.values.createdDate : undefined,
-        responseAction: form.values.responseAction || null,
-        customFields
-      };
+    mutationFn: (acknowledgedWarnings?: boolean) => {
+      const payload = buildPayload(acknowledgedWarnings);
       return editingRiskId
         ? updateRisk(register.id, editingRiskId, payload)
         : createRisk(register.id, payload);
     },
     onSuccess: async () => {
+      setPendingWarnings([]);
       onClose();
       setCustomValues({});
       await onSuccess();
+    },
+    onError: (error) => {
+      if (getApiErrorCode(error) === "VALIDATION_WARNING") {
+        setPendingWarnings(getApiErrorWarnings(error) ?? []);
+      }
     }
   });
 
+  function handleDismissWarnings() {
+    setPendingWarnings([]);
+  }
+
   return (
-    <Modal opened={opened} onClose={onClose} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
-      <Stack>
-        <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk" />
-        {isEditingRiskLoading ? <Loader /> : null}
-        {!isEditingRiskLoading && (!editingRiskId || selectedRiskQuery.data) ? (
-          <form onSubmit={form.onSubmit(() => saveMutation.mutate())}>
-            <Stack>
-              <ApiErrorAlert error={saveMutation.error} fallback="Unable to save risk" />
-              {orderedRiskFormFields.map((field) =>
-                field.kind === "core" ? (
-                  renderCoreField({ fieldId: field.id, form, canManage, ownerOptions, formConfig })
-                ) : (
-                  <CustomFieldInput
-                    key={field.id}
-                    field={field.field}
-                    value={customValues[field.id]}
-                    onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
-                  />
-                )
-              )}
-              <Group justify="flex-end">
-                <Button type="button" variant="subtle" onClick={onClose}>Cancel</Button>
-                <Button type="submit" loading={saveMutation.isPending}>Save</Button>
-              </Group>
+    <>
+      <Modal opened={opened} onClose={onClose} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
+        <Stack>
+          <ApiErrorAlert error={getApiErrorCode(saveMutation.error) !== "VALIDATION_WARNING" ? saveMutation.error : null} fallback="Unable to save risk" />
+          <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk" />
+          {isEditingRiskLoading ? <Loader /> : null}
+          {!isEditingRiskLoading && (!editingRiskId || selectedRiskQuery.data) ? (
+            <form onSubmit={form.onSubmit(() => saveMutation.mutate(undefined))}>
+              <Stack>
+                {orderedRiskFormFields.map((field) =>
+                  field.kind === "core" ? (
+                    renderCoreField({ fieldId: field.id, form, canManage, ownerOptions, formConfig })
+                  ) : (
+                    <CustomFieldInput
+                      key={field.id}
+                      field={field.field}
+                      value={customValues[field.id]}
+                      onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
+                      hasWarning={warningFieldIds.has(field.id)}
+                    />
+                  )
+                )}
+                <Group justify="flex-end">
+                  <Button type="button" variant="subtle" onClick={onClose}>Cancel</Button>
+                  <Button type="submit" loading={saveMutation.isPending}>Save</Button>
+                </Group>
+              </Stack>
+            </form>
+          ) : null}
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={pendingWarnings.length > 0}
+        onClose={handleDismissWarnings}
+        title="Save with warnings?"
+        size="md"
+      >
+        <Stack>
+          <Alert color="yellow">
+            <Stack gap={4}>
+              <Text>The following fields are recommended but empty:</Text>
+              {pendingWarnings.map((warning) => (
+                <Text key={warning.fieldId} size="sm">• {warning.message}</Text>
+              ))}
             </Stack>
-          </form>
-        ) : null}
-      </Stack>
-    </Modal>
+          </Alert>
+          <Group justify="flex-end">
+            <Button variant="subtle" onClick={handleDismissWarnings}>Go back</Button>
+            <Button
+              color="yellow"
+              loading={saveMutation.isPending}
+              onClick={() => saveMutation.mutate(true)}
+            >
+              Save anyway
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </>
   );
 }

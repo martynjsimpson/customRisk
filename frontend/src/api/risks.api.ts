@@ -72,12 +72,21 @@ export interface RiskListItem {
   customFieldValues: RiskListCustomFieldValue[];
 }
 
+export type ValidationMode = "ALLOW" | "WARN" | "BLOCK";
+
+export interface FieldWarning {
+  fieldId: string;
+  fieldName: string;
+  message: string;
+}
+
 export interface CustomFieldDefinition {
   id: string;
   fieldName: string;
   fieldType: CustomFieldType;
   helpText: string | null;
   isRequired: boolean;
+  validationMode: ValidationMode;
   displayOrder: number;
   isActive: boolean;
   options?: Array<{ id: string; label: string; displayOrder?: number; isActive?: boolean }>;
@@ -154,6 +163,7 @@ export interface SaveRiskInput {
   impactValueId: string;
   responseStrategyId: string;
   responseAction?: string | null;
+  acknowledgedWarnings?: boolean;
   customFields?: RiskCustomFieldValueInput[];
 }
 

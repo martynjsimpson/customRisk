@@ -39,9 +39,10 @@ const customFieldAuditFields = [
   { name: "fieldName", label: "Field name", valueType: "TEXT" },
   { name: "helpText", label: "Help text", valueType: "TEXT" },
   { name: "isRequired", label: "Required", valueType: "BOOLEAN" },
+  { name: "validationMode", label: "Validation mode", valueType: "TEXT" },
   { name: "displayOrder", label: "Display order", valueType: "NUMBER" },
   { name: "isActive", label: "Active", valueType: "BOOLEAN" }
-] satisfies Array<{ name: "fieldName" | "helpText" | "isRequired" | "displayOrder" | "isActive"; label: string; valueType: AuditValueType }>;
+] satisfies Array<{ name: "fieldName" | "helpText" | "isRequired" | "validationMode" | "displayOrder" | "isActive"; label: string; valueType: AuditValueType }>;
 
 const optionAuditFields = [
   { name: "label", label: "Label", valueType: "TEXT" },
@@ -194,6 +195,7 @@ export async function createCustomField(
 
   try {
     return await prisma.$transaction(async (tx) => {
+      const derivedValidationMode = input.validationMode ?? (input.isRequired ? "BLOCK" : "ALLOW");
       const field = await tx.customFieldDefinition.create({
         data: {
           registerId,
@@ -201,6 +203,7 @@ export async function createCustomField(
           fieldType: input.fieldType,
           helpText: input.helpText,
           isRequired: input.isRequired,
+          validationMode: derivedValidationMode,
           displayOrder: input.displayOrder,
           isActive: input.isActive,
           createdByUserId: actor.id,
@@ -236,6 +239,7 @@ export async function createCustomField(
             fieldType: field.fieldType,
             helpText: field.helpText ?? null,
             isRequired: field.isRequired,
+            validationMode: field.validationMode,
             isActive: field.isActive,
             displayOrder: field.displayOrder
           }
@@ -270,6 +274,7 @@ export async function updateCustomField(
           fieldName: input.fieldName,
           helpText: input.helpText,
           isRequired: input.isRequired,
+          validationMode: input.validationMode,
           displayOrder: input.displayOrder,
           isActive: input.isActive,
           updatedByUserId: actor.id

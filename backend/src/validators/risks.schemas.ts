@@ -62,6 +62,7 @@ export const createRiskSchema = z
     impactValueId: z.string().uuid(),
     responseStrategyId: z.string().uuid(),
     responseAction: z.string().trim().nullable().optional(),
+    acknowledgedWarnings: z.boolean().optional(),
     customFields: z.array(riskCustomFieldValueSchema).optional(),
     customFieldValues: z.array(riskCustomFieldValueSchema).optional()
   })
@@ -81,6 +82,7 @@ export const updateRiskSchema = z
     impactValueId: z.string().uuid().optional(),
     responseStrategyId: z.string().uuid().optional(),
     responseAction: z.string().trim().nullable().optional(),
+    acknowledgedWarnings: z.boolean().optional(),
     customFields: z.array(riskCustomFieldValueSchema).optional(),
     customFieldValues: z.array(riskCustomFieldValueSchema).optional()
   })

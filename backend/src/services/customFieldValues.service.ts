@@ -2,7 +2,7 @@ import type { CustomFieldType} from "@prisma/client";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../db/prisma.js";
-import { ApiError } from "../errors/apiError.js";
+import { ApiError, type FieldWarning } from "../errors/apiError.js";
 import type { RiskCustomFieldValueBody } from "../validators/risks.schemas.js";
 import { resolvePersonInput, upsertPersonReference } from "./personReference.service.js";
 
@@ -21,6 +21,11 @@ type ExistingCustomFieldValue = Prisma.RiskCustomFieldValueGetPayload<{
     person: { select: { email: true } };
   };
 }>;
+
+export interface ValidatedCustomFieldResult {
+  values: Prisma.RiskCustomFieldValueCreateManyRiskInput[];
+  warnings: FieldWarning[];
+}
 
 function toDateOnlyString(date: Date | null) {
   return date ? date.toISOString().slice(0, 10) : null;
@@ -142,8 +147,8 @@ export async function validateCustomFieldValues(
   registerId: string,
   values: RiskCustomFieldValueBody[],
   client: CustomFieldClient = prisma,
-  options: { riskId?: string } = {}
-) {
+  options: { riskId?: string; acknowledgedWarnings?: boolean } = {}
+): Promise<ValidatedCustomFieldResult> {
   const existingValues = options.riskId
     ? await client.riskCustomFieldValue.findMany({
         where: { registerId, riskId: options.riskId },
@@ -168,7 +173,7 @@ export async function validateCustomFieldValues(
       registerId,
       OR: [{ isActive: true }, { id: { in: [...existingValuesByDefinitionId.keys()] } }]
     },
-    select: { id: true, fieldName: true, fieldType: true, isRequired: true, isActive: true }
+    select: { id: true, fieldName: true, fieldType: true, isRequired: true, validationMode: true, isActive: true }
   });
   const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
   const valuesByDefinitionId = new Map<string, RiskCustomFieldValueBody>();
@@ -216,12 +221,25 @@ export async function validateCustomFieldValues(
     valuesByDefinitionId
   );
 
+  // Collect blocking errors and warnings separately based on validationMode
+  const warnings: FieldWarning[] = [];
+
   definitions
-    .filter((definition) => definition.isActive && definition.isRequired)
+    .filter((definition) => definition.isActive && definition.validationMode !== "ALLOW")
     .forEach((definition) => {
       const value = mergedValuesByDefinitionId.get(definition.id);
-      if (!hasValueForType(definition.fieldType, value)) {
+      if (hasValueForType(definition.fieldType, value)) {
+        return;
+      }
+
+      if (definition.validationMode === "BLOCK") {
         fields[`customFields.${definition.id}`] = `${definition.fieldName} is required`;
+      } else if (definition.validationMode === "WARN" && !options.acknowledgedWarnings) {
+        warnings.push({
+          fieldId: definition.id,
+          fieldName: definition.fieldName,
+          message: `${definition.fieldName} is recommended`
+        });
       }
     });
 
@@ -321,7 +339,7 @@ export async function validateCustomFieldValues(
     }
   }
 
-  return values
+  const resolvedValues = values
     .map((value) => {
       const definition = definitionsById.get(value.customFieldDefinitionId);
       if (!definition || !hasValueForType(definition.fieldType, value)) {
@@ -338,4 +356,6 @@ export async function validateCustomFieldValues(
     .filter(
       (value): value is Prisma.RiskCustomFieldValueCreateManyRiskInput => value !== null
     );
+
+  return { values: resolvedValues, warnings };
 }

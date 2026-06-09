@@ -40,6 +40,12 @@ enum CustomFieldType {
   PERSON_PICKER
 }
 
+enum ValidationMode {
+  ALLOW
+  WARN
+  BLOCK
+}
+
 enum AuditScopeType {
   SYSTEM
   REGISTER
@@ -461,9 +467,10 @@ model CustomFieldDefinition {
   registerId   String          @map("register_id") @db.Uuid
   fieldName    String          @map("field_name")
   fieldType    CustomFieldType @map("field_type")
-  helpText     String?         @map("help_text") @db.Text
-  isRequired   Boolean         @default(false) @map("is_required")
-  displayOrder Int             @map("display_order")
+  helpText       String?         @map("help_text") @db.Text
+  isRequired     Boolean         @default(false) @map("is_required")
+  validationMode ValidationMode  @default(ALLOW) @map("validation_mode")
+  displayOrder   Int             @map("display_order")
   isActive     Boolean         @default(true) @map("is_active")
 
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

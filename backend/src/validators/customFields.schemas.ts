@@ -10,6 +10,8 @@ export const customFieldTypes = [
   "PERSON_PICKER"
 ] as const;
 
+export const validationModes = ["ALLOW", "WARN", "BLOCK"] as const;
+
 export const customFieldParamsSchema = z.object({
   registerId: z.string().uuid(),
   fieldId: z.string().uuid()
@@ -32,6 +34,7 @@ export const createCustomFieldSchema = z.object({
   fieldType: z.enum(customFieldTypes),
   helpText: z.string().trim().nullable().optional(),
   isRequired: z.boolean().default(false),
+  validationMode: z.enum(validationModes).optional(),
   displayOrder: z.number().int().min(1),
   isActive: z.boolean().default(true),
   options: z.array(customFieldOptionInputSchema).optional()
@@ -41,6 +44,7 @@ export const updateCustomFieldSchema = z.object({
   fieldName: z.string().trim().min(1).optional(),
   helpText: z.string().trim().nullable().optional(),
   isRequired: z.boolean().optional(),
+  validationMode: z.enum(validationModes).optional(),
   displayOrder: z.number().int().min(1).optional(),
   isActive: z.boolean().optional()
 });

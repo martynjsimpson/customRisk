@@ -1,6 +1,6 @@
 import type { Response } from "express";
 
-import type { ApiErrorCode, ErrorFields } from "../errors/apiError.js";
+import type { ApiErrorCode, ErrorFields, FieldWarning } from "../errors/apiError.js";
 
 export type ApiMeta = Record<string, unknown>;
 
@@ -14,6 +14,7 @@ export interface ApiErrorResponse {
     code: ApiErrorCode;
     message: string;
     fields?: ErrorFields;
+    warnings?: FieldWarning[];
     requestId?: string;
   };
 }
@@ -34,13 +35,15 @@ export function sendError(
   code: ApiErrorCode,
   message: string,
   fields?: ErrorFields,
-  requestId?: string
+  requestId?: string,
+  warnings?: FieldWarning[]
 ) {
   const body: ApiErrorResponse = {
     error: {
       code,
       message,
       ...(fields ? { fields } : {}),
+      ...(warnings ? { warnings } : {}),
       ...(requestId ? { requestId } : {})
     }
   };

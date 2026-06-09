@@ -518,10 +518,17 @@ export async function updateRisk(
       existing.lastReviewedAt === null &&
       utcDateOnly(input.createdDate).getTime() !== existing.createdDate.getTime();
 
-    const customFieldValues =
-      input.customFieldValues !== undefined
-        ? await validateCustomFieldValues(registerId, input.customFieldValues, tx, { riskId })
-        : undefined;
+    let customFieldValues: Awaited<ReturnType<typeof validateCustomFieldValues>>["values"] | undefined;
+    if (input.customFieldValues !== undefined) {
+      const result = await validateCustomFieldValues(registerId, input.customFieldValues, tx, {
+        riskId,
+        acknowledgedWarnings: input.acknowledgedWarnings
+      });
+      if (result.warnings.length > 0) {
+        throw new ApiError(422, "VALIDATION_WARNING", "One or more fields have warnings", undefined, result.warnings);
+      }
+      customFieldValues = result.values;
+    }
 
     if (customFieldValues !== undefined) {
       await tx.riskCustomFieldValue.deleteMany({
@@ -577,7 +584,8 @@ export async function updateRisk(
         riskId: updated.id,
         displayRiskId: updated.displayRiskId,
         summary: "Risk updated",
-        fieldChanges: buildRiskUpdateFieldChanges(existing, updated)
+        fieldChanges: buildRiskUpdateFieldChanges(existing, updated),
+        ...(input.acknowledgedWarnings ? { metadataJson: { acknowledgedWarnings: true } } : {})
       },
       tx
     );
@@ -722,11 +730,15 @@ export async function createRisk(
       },
       tx
     );
-    const customFieldValues = await validateCustomFieldValues(
+    const { values: customFieldValues, warnings } = await validateCustomFieldValues(
       registerId,
       input.customFieldValues,
-      tx
+      tx,
+      { acknowledgedWarnings: input.acknowledgedWarnings }
     );
+    if (warnings.length > 0) {
+      throw new ApiError(422, "VALIDATION_WARNING", "One or more fields have warnings", undefined, warnings);
+    }
     const nextReviewDate = calculateNextReviewDate({
       reviewsEnabled: register.reviewsEnabled,
       baseDate: createdDate,
@@ -781,7 +793,8 @@ export async function createRisk(
           responseStrategy: { id: risk.responseStrategy.id, name: risk.responseStrategy.name },
           responseAction: risk.responseAction ?? null,
           createdDate: toDateOnlyString(risk.createdDate),
-          nextReviewDate: toDateOnlyString(risk.nextReviewDate)
+          nextReviewDate: toDateOnlyString(risk.nextReviewDate),
+          ...(input.acknowledgedWarnings ? { acknowledgedWarnings: true } : {})
         }
       },
       tx
