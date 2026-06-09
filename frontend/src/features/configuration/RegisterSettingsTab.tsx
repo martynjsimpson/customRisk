@@ -1,7 +1,7 @@
 import { Button, Checkbox, Fieldset, NumberInput, Stack, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { type FocusEvent, useEffect } from "react";
 
 import { getConfigVersionStatus } from "../../api/configVersion.api";
 import { getRegister, updateRegister } from "../../api/registers.api";
@@ -84,8 +84,17 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
     }
   });
 
+  function handleFormBlur(event: FocusEvent<HTMLFormElement>) {
+    if (draftConfigMode && !event.currentTarget.contains(event.relatedTarget as Node)) {
+      updateSettingsMutation.mutate();
+    }
+  }
+
   return (
-    <form onSubmit={settingsForm.onSubmit(() => updateSettingsMutation.mutate())}>
+    <form
+      onSubmit={settingsForm.onSubmit(() => updateSettingsMutation.mutate())}
+      onBlur={handleFormBlur}
+    >
       <Stack>
         <ApiErrorAlert error={updateSettingsMutation.error} fallback="Unable to save register settings" />
         <Fieldset legend="General">
@@ -142,7 +151,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
             </Fieldset>
           </Stack>
         </Fieldset>
-        {canManage && !settingsLocked ? (
+        {canManage && !settingsLocked && !draftConfigMode ? (
           <Button type="submit" loading={updateSettingsMutation.isPending}>
             Save settings
           </Button>
