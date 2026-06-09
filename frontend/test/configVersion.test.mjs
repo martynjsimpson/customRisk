@@ -163,6 +163,56 @@ test("RegisterSettingsTab unlocks fields when a draft is in progress", async () 
   assert.match(tab, /Enable custom field validation/);
 });
 
+test("RegisterSettingsTab auto-saves on blur in draft mode and hides the Save button", async () => {
+  const tab = await readFile(
+    new URL("../src/features/configuration/RegisterSettingsTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Auto-save: form container onBlur saves only when focus truly leaves the form
+  assert.match(tab, /handleFormBlur/);
+  assert.match(tab, /onBlur=\{handleFormBlur\}/);
+  assert.match(tab, /event\.currentTarget\.contains\(event\.relatedTarget/);
+  assert.match(tab, /draftConfigMode && !event\.currentTarget\.contains/);
+
+  // Save button is hidden in draft mode (auto-save replaces it)
+  assert.match(tab, /!draftConfigMode/);
+  assert.doesNotMatch(tab, /canManage && !settingsLocked && !draftConfigMode\s*\?\s*<Button type="submit">/s);
+  assert.match(tab, /canManage && !settingsLocked && !draftConfigMode/);
+});
+
+test("MatrixConfigTab has wizardMode prop that auto-saves and hides the Save button", async () => {
+  const tab = await readFile(
+    new URL("../src/features/configuration/MatrixConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // wizardMode prop exists
+  assert.match(tab, /wizardMode\?: boolean/);
+
+  // Auto-save in wizard mode: passes latest snapshot to mutation to avoid stale state
+  assert.match(tab, /if \(wizardMode\)/);
+  assert.match(tab, /saveMatrixMutation\.mutate\(next\)/);
+
+  // Save button hidden when wizardMode is true
+  assert.match(tab, /!isReadOnly && !wizardMode/);
+
+  // Blue alert note in draft mode about recalculation on publish
+  assert.match(tab, /Publishing this draft will recalculate risk levels/);
+
+  // ConfigVersionBanner invalidates the risks query after publish
+});
+
+test("ConfigVersionBanner invalidates the risks query after any draft lifecycle mutation", async () => {
+  const banner = await readFile(
+    new URL("../src/features/configuration/ConfigVersionBanner.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // invalidateAfterMutation includes the risks query key so the risk list refreshes
+  assert.match(banner, /"risks", registerId/);
+});
+
 test("scoring configuration tabs unlock only when a draft exists and write through updateDraftConfig", async () => {
   const scoringValueTab = await readFile(
     new URL("../src/features/configuration/ScoringValueConfigTab.tsx", import.meta.url),

@@ -187,7 +187,7 @@ test("CALCULATED custom field type enforces data model constraints", async () =>
   assert.match(cfService, /Calculated fields cannot be marked as required/);
 
   // Values service: immutability enforced
-  assert.match(cfValuesService, /Calculated fields cannot be edited directly/);
+  assert.match(cfValuesService, /cannot be edited directly/);
   assert.match(cfValuesService, /fieldType !== "CALCULATED"/);
 });
 

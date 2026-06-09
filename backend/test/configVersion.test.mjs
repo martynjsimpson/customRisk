@@ -242,6 +242,27 @@ test("applyTemplateUpdateToDraft stores sourceTemplateVersionId on the draft, no
   );
 });
 
+test("publishDraft recalculates risk levels for all open risks against the new matrix", async () => {
+  const configVersionService = await readFile(
+    new URL("../src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+  const matrixService = await readFile(
+    new URL("../src/services/matrix.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // recalculateRiskLevels is exported from matrix.service so publishDraft can call it
+  assert.match(matrixService, /export async function recalculateRiskLevels/);
+
+  // publishDraft imports and calls recalculateRiskLevels inside the transaction
+  assert.match(configVersionService, /recalculateRiskLevels/);
+  assert.match(configVersionService, /import.*recalculateRiskLevels.*matrix\.service/);
+
+  // The call passes the new matrix cells from the snapshot
+  assert.match(configVersionService, /snapshot\.matrixCells/);
+});
+
 test("publishDraft advances linkedTemplateVersionId and applies register settings only for template-originated drafts", async () => {
   const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
 

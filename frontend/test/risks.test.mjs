@@ -24,7 +24,7 @@ test("risk detail UI includes review action, review history, and risk audit hist
   assert.match(panel, /getRisk\(register\.id, requestedRiskId\)/);
   assert.match(formModal, /getTimezoneOffset\(\)/);
   assert.match(formModal, /const isEditingRiskLoading = Boolean/);
-  assert.match(formModal, /type="button" variant="subtle" onClick=\{onClose\}/);
+  assert.match(formModal, /type="button" variant="subtle" onClick=\{handleClose\}/);
 });
 
 test("my risks rows link to permitted register risk actions", async () => {
@@ -129,4 +129,16 @@ test("column picker is available on both register risks table and my risks page"
   assert.match(picker, /Columns/);
   assert.match(picker, /Popover/);
   assert.match(picker, /Checkbox/);
+});
+
+test("risk state badge is color-coded: OPEN blue, DRAFT gray, CLOSED dark", async () => {
+  const panel = await readFile(new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
+
+  // stateColor is derived from risk.state
+  assert.match(panel, /stateColor/);
+  assert.match(panel, /risk\.state === "OPEN" \? "blue"/);
+  assert.match(panel, /risk\.state === "DRAFT" \? "gray" : "dark"/);
+
+  // Badge receives the computed color
+  assert.match(panel, /color=\{stateColor\}/);
 });
