@@ -1,15 +1,17 @@
-import { Anchor, Badge, Button, Group, Loader, Pagination, Stack, Table, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Badge, Button, Group, Loader, Pagination, Stack, Table, Text, Title, Tooltip } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import {
   exportRisks,
+  getValidationSummary,
   getRisk,
   getRiskFormConfig,
   listRisks,
   type RiskListItem,
-  type RiskListQuery
+  type RiskListQuery,
+  type ValidationStatus
 } from "../../api/risks.api";
 import type { RegisterRecord } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
@@ -73,6 +75,26 @@ function RiskTableCell({ risk, columnKey }: { risk: RiskListItem; columnKey: str
   }
 }
 
+function ValidationStatusDot({ status }: { status: ValidationStatus }) {
+  if (status === "OK") return null;
+  const color = status === "BLOCK" ? "var(--mantine-color-red-6)" : "var(--mantine-color-yellow-5)";
+  const label = status === "BLOCK" ? "Required fields missing" : "Recommended fields empty";
+  return (
+    <Tooltip label={label} position="right">
+      <span
+        style={{
+          display: "inline-block",
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          backgroundColor: color,
+          flexShrink: 0
+        }}
+      />
+    </Tooltip>
+  );
+}
+
 export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -83,7 +105,8 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     pageSize: 25,
     includeClosed: false,
     sortBy: "riskId",
-    sortDir: "asc"
+    sortDir: "asc",
+    validationIssues: undefined
   });
   const [formOpened, setFormOpened] = useState(false);
   const [editingRiskId, setEditingRiskId] = useState<string | null>(null);
@@ -105,6 +128,10 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     queryKey: ["risks", register.id, filters, page],
     queryFn: () => listRisks(register.id, { ...filters, page }),
     placeholderData: (previous) => previous
+  });
+  const validationSummaryQuery = useQuery({
+    queryKey: ["risks-validation-summary", register.id],
+    queryFn: () => getValidationSummary(register.id)
   });
   const selectedRisk = useMemo(
     () => (riskQuery.data?.data ?? []).find((risk) => risk.id === detailRiskId),
@@ -163,6 +190,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   const invalidateRisks = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["risks", register.id] }),
+      queryClient.invalidateQueries({ queryKey: ["risks-validation-summary", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["risk", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["risk-reviews", register.id] }),
       queryClient.invalidateQueries({ queryKey: ["audit", "risk", register.id] }),
@@ -316,6 +344,37 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         }}
       />
 
+      {(() => {
+        const summary = validationSummaryQuery.data;
+        if (!summary || (summary.blockCount === 0 && summary.warnCount === 0)) return null;
+        const isFiltered = filters.validationIssues === true;
+        const parts: string[] = [];
+        if (summary.blockCount > 0) parts.push(`${summary.blockCount} with missing required fields`);
+        if (summary.warnCount > 0) parts.push(`${summary.warnCount} with empty recommended fields`);
+        return (
+          <Alert
+            color={summary.blockCount > 0 ? "red" : "yellow"}
+            title="Validation issues"
+          >
+            <Group justify="space-between" align="center">
+              <Text size="sm">{parts.join(", ")} (out of {summary.total} open risks)</Text>
+              <Button
+                size="xs"
+                variant={isFiltered ? "filled" : "light"}
+                color={summary.blockCount > 0 ? "red" : "yellow"}
+                onClick={() =>
+                  setFilters((current) => ({
+                    ...current,
+                    validationIssues: isFiltered ? undefined : true
+                  }))
+                }
+              >
+                {isFiltered ? "Show all" : "Show issues only"}
+              </Button>
+            </Group>
+          </Alert>
+        );
+      })()}
       <ApiErrorAlert error={riskQuery.error} fallback="Unable to load risks" />
       {riskQuery.isLoading ? <Loader /> : null}
       <Table.ScrollContainer minWidth={600}>
@@ -334,9 +393,12 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
               <Table.Tr key={risk.id}>
                 {showRiskId ? (
                   <Table.Td>
-                    <Anchor component={Link} to={`?riskId=${risk.id}`} fw={600} onClick={() => openDetail(risk.id)}>
-                      {risk.displayRiskId}
-                    </Anchor>
+                    <Group gap={6} align="center" wrap="nowrap">
+                      <ValidationStatusDot status={risk.validationStatus} />
+                      <Anchor component={Link} to={`?riskId=${risk.id}`} fw={600} onClick={() => openDetail(risk.id)}>
+                        {risk.displayRiskId}
+                      </Anchor>
+                    </Group>
                   </Table.Td>
                 ) : null}
                 {dataColumns.map((key) => (

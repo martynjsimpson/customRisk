@@ -33,6 +33,7 @@ export const listRisksQuerySchema = z.object({
   dueForReview: queryBooleanSchema.optional(),
   overdue: queryBooleanSchema.optional(),
   includeClosed: queryBooleanSchema.default(false),
+  validationIssues: queryBooleanSchema.optional(),
   search: z.string().trim().optional(),
   sortBy: z
     .enum(["riskId", "title", "state", "owner", "riskScore", "riskLevel", "nextReviewDate", "systemUpdatedAt"])

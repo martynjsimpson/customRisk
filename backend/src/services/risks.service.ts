@@ -126,6 +126,81 @@ const riskListInclude = {
   }
 } satisfies Prisma.RiskInclude;
 
+type ValidationContext = {
+  blockFieldIds: ReadonlySet<string>;
+  warnFieldIds: ReadonlySet<string>;
+};
+
+const hasValueCondition = [
+  { textValue: { not: null as null } },
+  { numberValue: { not: null as null } },
+  { booleanValue: { not: null as null } },
+  { dateValue: { not: null as null } },
+  { personUserId: { not: null as null } },
+  { personEmail: { not: null as null } },
+  { personId: { not: null as null } },
+  { dropdownOptionId: { not: null as null } }
+] satisfies Prisma.RiskCustomFieldValueWhereInput[];
+
+function hasPopulatedValue(v: {
+  textValue: string | null;
+  numberValue: Prisma.Decimal | null;
+  booleanValue: boolean | null;
+  dateValue: Date | null;
+  personUserId: string | null;
+  personEmail: string | null;
+  personId: string | null;
+  dropdownOptionId: string | null;
+}) {
+  return (
+    v.textValue !== null ||
+    v.numberValue !== null ||
+    v.booleanValue !== null ||
+    v.dateValue !== null ||
+    v.personUserId !== null ||
+    v.personEmail !== null ||
+    v.personId !== null ||
+    v.dropdownOptionId !== null
+  );
+}
+
+function computeValidationStatus(
+  values: Array<{ customFieldDefinitionId: string; textValue: string | null; numberValue: Prisma.Decimal | null; booleanValue: boolean | null; dateValue: Date | null; personUserId: string | null; personEmail: string | null; personId: string | null; dropdownOptionId: string | null }>,
+  ctx: ValidationContext
+): "BLOCK" | "WARN" | "OK" {
+  const populatedIds = new Set(values.filter(hasPopulatedValue).map((v) => v.customFieldDefinitionId));
+  for (const id of ctx.blockFieldIds) {
+    if (!populatedIds.has(id)) return "BLOCK";
+  }
+  for (const id of ctx.warnFieldIds) {
+    if (!populatedIds.has(id)) return "WARN";
+  }
+  return "OK";
+}
+
+function applyValidationIssuesFilter(
+  where: Prisma.RiskWhereInput,
+  fieldIds: string[]
+) {
+  if (fieldIds.length === 0) return;
+  const filter: Prisma.RiskWhereInput = {
+    OR: fieldIds.map((fieldId) => ({
+      NOT: {
+        customFieldValues: {
+          some: { customFieldDefinitionId: fieldId, OR: hasValueCondition }
+        }
+      }
+    }))
+  };
+  if (Array.isArray(where.AND)) {
+    (where.AND as Prisma.RiskWhereInput[]).push(filter);
+  } else if (where.AND) {
+    where.AND = [where.AND as Prisma.RiskWhereInput, filter];
+  } else {
+    where.AND = [filter];
+  }
+}
+
 function mapRiskListCustomFieldValue(
   value: Prisma.RiskCustomFieldValueGetPayload<{
     include: {
@@ -154,7 +229,8 @@ function mapRiskListCustomFieldValue(
 
 function mapRiskListItem(
   risk: Prisma.RiskGetPayload<{ include: typeof riskListInclude }>,
-  reviewsEnabled: boolean
+  reviewsEnabled: boolean,
+  validationContext: ValidationContext
 ) {
   const reviewStatus = getRiskReviewStatus({
     reviewsEnabled,
@@ -180,6 +256,7 @@ function mapRiskListItem(
       nextReviewDate: risk.nextReviewDate,
       state: risk.state
     }),
+    validationStatus: computeValidationStatus(risk.customFieldValues, validationContext),
     systemUpdatedAt: risk.systemUpdatedAt,
     customFieldValues: risk.customFieldValues.map(mapRiskListCustomFieldValue)
   };
@@ -395,6 +472,22 @@ export async function listRisks(
 
   applyReviewFilters(where, query, register.reviewsEnabled);
 
+  const activeValidationFields = await prisma.customFieldDefinition.findMany({
+    where: { registerId, isActive: true, validationMode: { in: ["WARN", "BLOCK"] } },
+    select: { id: true, validationMode: true }
+  });
+  const blockFieldIds = new Set(
+    activeValidationFields.filter((f) => f.validationMode === "BLOCK").map((f) => f.id)
+  );
+  const warnFieldIds = new Set(
+    activeValidationFields.filter((f) => f.validationMode === "WARN").map((f) => f.id)
+  );
+  const validationContext: ValidationContext = { blockFieldIds, warnFieldIds };
+
+  if (query.validationIssues) {
+    applyValidationIssuesFilter(where, activeValidationFields.map((f) => f.id));
+  }
+
   const [risks, total] = await Promise.all([
     prisma.risk.findMany({
       where,
@@ -407,7 +500,7 @@ export async function listRisks(
   ]);
 
   return {
-    data: risks.map((risk) => mapRiskListItem(risk, register.reviewsEnabled)),
+    data: risks.map((risk) => mapRiskListItem(risk, register.reviewsEnabled, validationContext)),
     meta: { total, page: query.page, pageSize: query.pageSize }
   };
 }
@@ -673,6 +766,76 @@ export async function deleteRisk(
 
     return { id: risk.id, displayRiskId: risk.displayRiskId, deleted: true };
   });
+}
+
+export async function getRiskValidationSummary(
+  actor: AuthenticatedActor,
+  registerId: string
+) {
+  const register = await prisma.register.findUnique({
+    where: { id: registerId },
+    select: { id: true }
+  });
+  if (!register) throw new ApiError(404, "NOT_FOUND", "Register not found");
+
+  const role = await getEffectiveRegisterRole(actor, registerId);
+  if (role === "NONE") throw new ApiError(404, "NOT_FOUND", "Register not found");
+
+  const activeValidationFields = await prisma.customFieldDefinition.findMany({
+    where: { registerId, isActive: true, validationMode: { in: ["WARN", "BLOCK"] } },
+    select: { id: true, validationMode: true }
+  });
+
+  const blockFieldIds = activeValidationFields.filter((f) => f.validationMode === "BLOCK").map((f) => f.id);
+  const warnFieldIds = activeValidationFields.filter((f) => f.validationMode === "WARN").map((f) => f.id);
+
+  const baseWhere: Prisma.RiskWhereInput = { registerId, state: { not: "CLOSED" } };
+  if (role === "RISK_OWNER") {
+    baseWhere.AND = [{ OR: [{ ownerUserId: actor.id }, { ownerPerson: { userId: actor.id } }] }];
+  }
+
+  const total = await prisma.risk.count({ where: baseWhere });
+
+  if (blockFieldIds.length === 0 && warnFieldIds.length === 0) {
+    return { blockCount: 0, warnCount: 0, total };
+  }
+
+  let blockCount = 0;
+  if (blockFieldIds.length > 0) {
+    const blockWhere: Prisma.RiskWhereInput = { ...baseWhere };
+    applyValidationIssuesFilter(blockWhere, blockFieldIds);
+    blockCount = await prisma.risk.count({ where: blockWhere });
+  }
+
+  let warnCount = 0;
+  if (warnFieldIds.length > 0) {
+    const warnWhere: Prisma.RiskWhereInput = { ...baseWhere };
+    applyValidationIssuesFilter(warnWhere, warnFieldIds);
+    // Only count warn issues on risks that don't already have a block issue
+    if (blockFieldIds.length > 0) {
+      const blockFilter: Prisma.RiskWhereInput = {
+        NOT: {
+          OR: blockFieldIds.map((fieldId) => ({
+            NOT: {
+              customFieldValues: {
+                some: { customFieldDefinitionId: fieldId, OR: hasValueCondition }
+              }
+            }
+          }))
+        }
+      };
+      if (Array.isArray(warnWhere.AND)) {
+        (warnWhere.AND as Prisma.RiskWhereInput[]).push(blockFilter);
+      } else if (warnWhere.AND) {
+        warnWhere.AND = [warnWhere.AND as Prisma.RiskWhereInput, blockFilter];
+      } else {
+        warnWhere.AND = [blockFilter];
+      }
+    }
+    warnCount = await prisma.risk.count({ where: warnWhere });
+  }
+
+  return { blockCount, warnCount, total };
 }
 
 async function assertCreateRiskAccess(

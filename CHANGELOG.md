@@ -15,6 +15,14 @@ Version levels:
 
 ## [Unreleased]
 
+### Added
+
+- **Custom fields: configurable validation modes (allow / warn / block)**
+  - Each custom field can now be set to one of three validation modes. `BLOCK` prevents saving until the field is filled; `WARN` lets the user proceed after explicitly acknowledging the warning; `ALLOW` imposes no constraint. Existing required fields are migrated to `BLOCK`; all others default to `ALLOW`. Acknowledged warnings are recorded in the audit trail.
+
+- **Risk register: per-risk validation status and register-level validation summary**
+  - Each risk in the list now carries a `validationStatus` (`BLOCK`, `WARN`, or `OK`) computed from its custom field values against the register's active field definitions. A coloured dot is shown next to the Risk ID in the table for any risk with missing required or recommended fields. A summary banner above the table shows how many open risks have `BLOCK` or `WARN` issues, with a one-click filter to show only those risks.
+
 ## [1.7.0] - 2026-06-08
 
 ### Fixed
