@@ -40,7 +40,8 @@ const fieldTypeLabels: Record<CustomFieldType, string> = {
   DATE: "Date",
   DROPDOWN: "Dropdown",
   PERSON_PICKER: "Person Picker",
-  MULTI_SELECT: "Multi-select"
+  MULTI_SELECT: "Multi-select",
+  CALCULATED: "Calculated"
 };
 
 type CombinedField =

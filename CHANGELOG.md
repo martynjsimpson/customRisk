@@ -26,6 +26,9 @@ Version levels:
 - **Custom fields: multi-select field type**
   - A new `MULTI_SELECT` field type allows risks to hold multiple pre-defined values for a single field. Selections are stored in a dedicated junction table (`risk_custom_field_multi_select_value`) rather than the scalar custom field value row, enabling clean many-to-many semantics. Multi-select fields support options management, validation modes, and appear in both the risk form and risk table columns. The Options button in the field configuration table now appears for multi-select fields as well as dropdowns.
 
+- **Custom fields: calculated field type data model**
+  - A new `CALCULATED` field type establishes the schema and lifecycle rules for computed custom fields. Calculated fields store a formula expression and a dependency list (field UUIDs referenced by the formula). They cannot be edited directly by users, cannot be marked required, and always carry `ALLOW` validation mode. The formula syntax supports `{field:uuid}` references with basic arithmetic operators. Evaluation is handled in the separate evaluation service (PM5-05).
+
 ## [1.7.0] - 2026-06-08
 
 ### Fixed

@@ -10,7 +10,8 @@ export type CustomFieldType =
   | "DATE"
   | "DROPDOWN"
   | "PERSON_PICKER"
-  | "MULTI_SELECT";
+  | "MULTI_SELECT"
+  | "CALCULATED";
 
 export interface CustomFieldOption {
   id: string;
@@ -30,6 +31,8 @@ export interface CustomFieldDefinition {
   displayOrder: number;
   isActive: boolean;
   options: CustomFieldOption[];
+  formula: string | null;
+  formulaDependencies: string[];
 }
 
 export interface SaveCustomFieldInput {
@@ -44,6 +47,7 @@ export interface SaveCustomFieldInput {
     displayOrder: number;
     isActive?: boolean;
   }>;
+  formula?: string;
 }
 
 export type UpdateCustomFieldInput = Partial<Omit<SaveCustomFieldInput, "fieldType" | "options">>;

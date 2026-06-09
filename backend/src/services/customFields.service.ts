@@ -96,6 +96,15 @@ function isOptionsField(fieldType: string) {
   return fieldType === "DROPDOWN" || fieldType === "MULTI_SELECT";
 }
 
+function isCalculatedField(fieldType: string) {
+  return fieldType === "CALCULATED";
+}
+
+export function extractFormulaDependencies(formula: string): string[] {
+  const matches = formula.matchAll(/\{field:([0-9a-f-]{36})\}/gi);
+  return [...new Set([...matches].map((m) => m[1]).filter((id): id is string => Boolean(id)))];
+}
+
 async function findDropdownField(registerId: string, fieldId: string) {
   const field = await findCustomField(registerId, fieldId);
   if (!isOptionsField(field.fieldType)) {
@@ -161,6 +170,25 @@ async function assertDropdownWillKeepActiveOption(fieldId: string, optionId: str
 }
 
 function validateCreateCustomField(input: CreateCustomFieldBody) {
+  if (isCalculatedField(input.fieldType)) {
+    if (!input.formula) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields require a formula", {
+        formula: "Provide a formula expression for this calculated field"
+      });
+    }
+    if (input.options && input.options.length > 0) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields cannot have options", {
+        options: "Options are not supported for calculated fields"
+      });
+    }
+    if (input.isRequired) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields cannot be marked as required", {
+        isRequired: "Calculated fields are computed automatically and cannot be required"
+      });
+    }
+    return;
+  }
+
   const hasActiveOptions = (input.options ?? []).some((option) => option.isActive);
   if (isOptionsField(input.fieldType) && input.isActive && !hasActiveOptions) {
     throw new ApiError(400, "VALIDATION_ERROR", "Active option-based fields require at least one active option", {
@@ -171,6 +199,12 @@ function validateCreateCustomField(input: CreateCustomFieldBody) {
   if (!isOptionsField(input.fieldType) && input.options && input.options.length > 0) {
     throw new ApiError(400, "VALIDATION_ERROR", "Options are only supported for dropdown and multi-select fields", {
       options: "Only dropdown and multi-select fields can have options"
+    });
+  }
+
+  if (input.formula) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Formulas are only supported for calculated fields", {
+      formula: "Only calculated fields can have a formula"
     });
   }
 }
@@ -199,17 +233,20 @@ export async function createCustomField(
 
   try {
     return await prisma.$transaction(async (tx) => {
-      const derivedValidationMode = input.validationMode ?? (input.isRequired ? "BLOCK" : "ALLOW");
+      const derivedValidationMode = isCalculatedField(input.fieldType) ? "ALLOW" : (input.validationMode ?? (input.isRequired ? "BLOCK" : "ALLOW"));
+      const formulaDependencies = input.formula ? extractFormulaDependencies(input.formula) : [];
       const field = await tx.customFieldDefinition.create({
         data: {
           registerId,
           fieldName: input.fieldName,
           fieldType: input.fieldType,
           helpText: input.helpText,
-          isRequired: input.isRequired,
+          isRequired: isCalculatedField(input.fieldType) ? false : input.isRequired,
           validationMode: derivedValidationMode,
           displayOrder: input.displayOrder,
           isActive: input.isActive,
+          formula: input.formula ?? null,
+          formulaDependencies,
           createdByUserId: actor.id,
           updatedByUserId: actor.id,
           options:
@@ -270,17 +307,32 @@ export async function updateCustomField(
     await assertDropdownActivationIsValid(fieldId);
   }
 
+  if (isCalculatedField(existing.fieldType) && input.isRequired === true) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Calculated fields cannot be marked as required", {
+      isRequired: "Calculated fields are computed automatically and cannot be required"
+    });
+  }
+
+  if (!isCalculatedField(existing.fieldType) && input.formula) {
+    throw new ApiError(400, "VALIDATION_ERROR", "Formulas are only supported for calculated fields", {
+      formula: "Only calculated fields can have a formula"
+    });
+  }
+
   try {
     return await prisma.$transaction(async (tx) => {
+      const formulaDependencies = input.formula ? extractFormulaDependencies(input.formula) : undefined;
       const updated = await tx.customFieldDefinition.update({
         where: { id: fieldId },
         data: {
           fieldName: input.fieldName,
           helpText: input.helpText,
-          isRequired: input.isRequired,
+          isRequired: isCalculatedField(existing.fieldType) ? false : input.isRequired,
           validationMode: input.validationMode,
           displayOrder: input.displayOrder,
           isActive: input.isActive,
+          formula: input.formula,
+          formulaDependencies: formulaDependencies,
           updatedByUserId: actor.id
         },
         include: customFieldInclude

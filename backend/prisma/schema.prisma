@@ -39,6 +39,7 @@ enum CustomFieldType {
   DROPDOWN
   PERSON_PICKER
   MULTI_SELECT
+  CALCULATED
 }
 
 enum ValidationMode {
@@ -470,11 +471,13 @@ model CustomFieldDefinition {
   registerId   String          @map("register_id") @db.Uuid
   fieldName    String          @map("field_name")
   fieldType    CustomFieldType @map("field_type")
-  helpText       String?         @map("help_text") @db.Text
-  isRequired     Boolean         @default(false) @map("is_required")
-  validationMode ValidationMode  @default(ALLOW) @map("validation_mode")
-  displayOrder   Int             @map("display_order")
-  isActive     Boolean         @default(true) @map("is_active")
+  helpText             String?         @map("help_text") @db.Text
+  isRequired           Boolean         @default(false) @map("is_required")
+  validationMode       ValidationMode  @default(ALLOW) @map("validation_mode")
+  displayOrder         Int             @map("display_order")
+  isActive             Boolean         @default(true) @map("is_active")
+  formula              String?         @map("formula") @db.Text
+  formulaDependencies  String[]        @map("formula_dependencies") @db.Uuid
 
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdByUserId String   @map("created_by_user_id") @db.Uuid

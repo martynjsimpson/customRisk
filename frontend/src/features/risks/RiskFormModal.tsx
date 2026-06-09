@@ -76,6 +76,10 @@ function emptyValues(defaultState: RiskState): RiskFormValues {
 }
 
 function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
+  if (definition.fieldType === "CALCULATED") {
+    return null; // calculated fields are never submitted by the user
+  }
+
   if (definition.fieldType === "MULTI_SELECT") {
     const ids = Array.isArray(value) ? (value as string[]) : [];
     return { customFieldDefinitionId: definition.id, multiSelectOptionIds: ids };
@@ -243,6 +247,18 @@ function CustomFieldInput({
     );
   }
 
+  if (field.fieldType === "CALCULATED") {
+    return (
+      <TextInput
+        label={label}
+        description="Calculated automatically"
+        value={String(value ?? "")}
+        readOnly
+        styles={{ input: { backgroundColor: "var(--mantine-color-gray-1)", cursor: "default" } }}
+      />
+    );
+  }
+
   return <TextInput label={label} required={field.validationMode === "BLOCK"} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
 }
 
@@ -357,9 +373,9 @@ export function RiskFormModal({
   const isEditingRiskLoading = Boolean(editingRiskId && selectedRiskQuery.isLoading && !selectedRiskQuery.data);
 
   function buildPayload(acknowledgedWarnings?: boolean): SaveRiskInput {
-    const customFields = activeCustomFields.map((definition) =>
-      customFieldPayload(definition, customValues[definition.id])
-    );
+    const customFields = activeCustomFields
+      .map((definition) => customFieldPayload(definition, customValues[definition.id]))
+      .filter((payload): payload is NonNullable<typeof payload> => payload !== null);
     return {
       ...form.values,
       createdDate: canManage ? form.values.createdDate : undefined,

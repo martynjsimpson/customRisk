@@ -8,7 +8,8 @@ export const customFieldTypes = [
   "DATE",
   "DROPDOWN",
   "PERSON_PICKER",
-  "MULTI_SELECT"
+  "MULTI_SELECT",
+  "CALCULATED"
 ] as const;
 
 export const validationModes = ["ALLOW", "WARN", "BLOCK"] as const;
@@ -38,7 +39,8 @@ export const createCustomFieldSchema = z.object({
   validationMode: z.enum(validationModes).optional(),
   displayOrder: z.number().int().min(1),
   isActive: z.boolean().default(true),
-  options: z.array(customFieldOptionInputSchema).optional()
+  options: z.array(customFieldOptionInputSchema).optional(),
+  formula: z.string().trim().min(1).optional()
 });
 
 export const updateCustomFieldSchema = z.object({
@@ -47,7 +49,8 @@ export const updateCustomFieldSchema = z.object({
   isRequired: z.boolean().optional(),
   validationMode: z.enum(validationModes).optional(),
   displayOrder: z.number().int().min(1).optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  formula: z.string().trim().min(1).optional()
 });
 
 export const createCustomFieldOptionSchema = customFieldOptionInputSchema;

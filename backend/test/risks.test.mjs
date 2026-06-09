@@ -163,6 +163,33 @@ test("MULTI_SELECT custom field type is supported end-to-end", async () => {
   assert.match(risksService, /multiSelectEntries/);
 });
 
+test("CALCULATED custom field type enforces data model constraints", async () => {
+  const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
+  const cfService = await readFile(new URL("../src/services/customFields.service.ts", import.meta.url), "utf8");
+  const cfValuesService = await readFile(new URL("../src/services/customFieldValues.service.ts", import.meta.url), "utf8");
+
+  // DB: enum value and formula columns
+  assert.match(schema, /CALCULATED/);
+  assert.match(schema, /formula\s+String\?/);
+  assert.match(schema, /formulaDependencies\s+String\[\]/);
+
+  // Validators accept CALCULATED type
+  assert.match(cfSchema, /"CALCULATED"/);
+  assert.match(cfSchema, /formula.*z\.string/);
+
+  // Service: formula required, no isRequired, no options
+  assert.match(cfService, /extractFormulaDependencies/);
+  assert.match(cfService, /isCalculatedField/);
+  assert.match(cfService, /Calculated fields require a formula/);
+  assert.match(cfService, /Calculated fields cannot have options/);
+  assert.match(cfService, /Calculated fields cannot be marked as required/);
+
+  // Values service: immutability enforced
+  assert.match(cfValuesService, /Calculated fields cannot be edited directly/);
+  assert.match(cfValuesService, /fieldType !== "CALCULATED"/);
+});
+
 test("risk overdue helper follows operational overdue rules", () => {
   const today = new Date("2026-05-05T00:00:00.000Z");
 

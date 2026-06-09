@@ -75,6 +75,8 @@ function hasValueForType(
     case "MULTI_SELECT":
       return Array.isArray((value as RiskCustomFieldValueBody).multiSelectOptionIds) &&
         ((value as RiskCustomFieldValueBody).multiSelectOptionIds?.length ?? 0) > 0;
+    case "CALCULATED":
+      return Boolean(value.textValue); // computed value stored as textValue
   }
 }
 
@@ -217,6 +219,12 @@ export async function validateCustomFieldValues(
       return;
     }
 
+    if (definition.fieldType === "CALCULATED") {
+      fields[`customFieldValues.${index}.customFieldDefinitionId`] =
+        "Calculated fields cannot be edited directly";
+      return;
+    }
+
     if (
       !definition.isActive &&
       !customFieldValueMatchesExisting(
@@ -249,7 +257,7 @@ export async function validateCustomFieldValues(
   const warnings: FieldWarning[] = [];
 
   definitions
-    .filter((definition) => definition.isActive && definition.validationMode !== "ALLOW")
+    .filter((definition) => definition.isActive && definition.validationMode !== "ALLOW" && definition.fieldType !== "CALCULATED")
     .forEach((definition) => {
       let hasValue: boolean;
       if (definition.fieldType === "MULTI_SELECT") {

@@ -109,6 +109,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     displayOrder: number;
     isActive: boolean;
     options?: Array<{ label: string; displayOrder: number; isActive?: boolean }>;
+    formula?: string;
   }>({
     mutationFn: (values) => {
       const newFieldId = crypto.randomUUID();
@@ -127,6 +128,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                   isRequired: values.isRequired,
                   displayOrder: values.displayOrder,
                   isActive: values.isActive,
+                  formula: values.formula ?? null,
+                  formulaDependencies: [],
                   options: (values.options ?? []).map((option) => ({
                     id: crypto.randomUUID(),
                     customFieldDefinitionId: newFieldId,
@@ -153,6 +156,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       isRequired?: boolean;
       isActive?: boolean;
       displayOrder?: number;
+      formula?: string;
     };
   }>({
     mutationFn: ({
@@ -336,21 +340,24 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
               values: {
                 fieldName: values.fieldName,
                 helpText: values.helpText || null,
-                isRequired: values.isRequired,
-                isActive: values.isActive
+                isRequired: editingField.fieldType === "CALCULATED" ? false : values.isRequired,
+                isActive: values.isActive,
+                formula: editingField.fieldType === "CALCULATED" && values.formula ? values.formula : undefined
               }
             });
             return;
           }
 
+          const isOptionsType = values.fieldType === "DROPDOWN" || values.fieldType === "MULTI_SELECT";
           createFieldMutation.mutate({
             fieldName: values.fieldName,
             fieldType: values.fieldType,
             helpText: values.helpText || null,
-            isRequired: values.isRequired,
+            isRequired: values.fieldType === "CALCULATED" ? false : values.isRequired,
             displayOrder: nextFieldDisplayOrder,
             isActive: values.isActive,
-            options: values.fieldType === "DROPDOWN" ? parseInitialOptions(values.initialOptionsText) : undefined
+            options: isOptionsType ? parseInitialOptions(values.initialOptionsText) : undefined,
+            formula: values.fieldType === "CALCULATED" && values.formula ? values.formula : undefined
           });
         }}
       />

@@ -12,6 +12,7 @@ interface CustomFieldFormValues {
   isRequired: boolean;
   isActive: boolean;
   initialOptionsText: string;
+  formula: string;
 }
 
 interface CustomFieldModalProps {
@@ -32,7 +33,8 @@ const fieldTypeOptions: Array<{ value: CustomFieldType; label: string }> = [
   { value: "DATE", label: "Date" },
   { value: "DROPDOWN", label: "Dropdown" },
   { value: "PERSON_PICKER", label: "Person Picker" },
-  { value: "MULTI_SELECT", label: "Multi-select" }
+  { value: "MULTI_SELECT", label: "Multi-select" },
+  { value: "CALCULATED", label: "Calculated" }
 ];
 
 function createInitialValues(): CustomFieldFormValues {
@@ -42,7 +44,8 @@ function createInitialValues(): CustomFieldFormValues {
     helpText: "",
     isRequired: false,
     isActive: true,
-    initialOptionsText: ""
+    initialOptionsText: "",
+    formula: ""
   };
 }
 
@@ -79,7 +82,8 @@ export function CustomFieldModal({
         helpText: editingField.helpText ?? "",
         isRequired: editingField.isRequired,
         isActive: editingField.isActive,
-        initialOptionsText: ""
+        initialOptionsText: "",
+        formula: editingField.formula ?? ""
       });
       return;
     }
@@ -108,8 +112,20 @@ export function CustomFieldModal({
             {...form.getInputProps("fieldType")}
           />
           <Textarea label="Help text" {...form.getInputProps("helpText")} />
-          <Checkbox label="Required" {...form.getInputProps("isRequired", { type: "checkbox" })} />
+          {form.values.fieldType !== "CALCULATED" ? (
+            <Checkbox label="Required" {...form.getInputProps("isRequired", { type: "checkbox" })} />
+          ) : null}
           <Checkbox label="Active" {...form.getInputProps("isActive", { type: "checkbox" })} />
+          {form.values.fieldType === "CALCULATED" ? (
+            <Textarea
+              label="Formula"
+              description="Reference other fields with {field:uuid}. Supports +, -, *, / and round(), min(), max()."
+              required
+              autosize
+              minRows={2}
+              {...form.getInputProps("formula")}
+            />
+          ) : null}
           {!editingField && (form.values.fieldType === "DROPDOWN" || form.values.fieldType === "MULTI_SELECT") ? (
             <Textarea
               label="Initial options (one per line)"

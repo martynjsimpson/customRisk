@@ -44,6 +44,7 @@ function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[nu
 }
 
 function customDetailValue(field: RiskDetail["customFields"][number]): string {
+  if (field.selectedOptions && field.selectedOptions.length > 0) return field.selectedOptions.map((o) => o.label).join(", ");
   if (field.textValue !== null) return field.textValue;
   if (field.numberValue !== null) return String(field.numberValue);
   if (field.booleanValue !== null) return field.booleanValue ? "Yes" : "No";
