@@ -103,6 +103,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       fieldType: field.fieldType,
       helpText: field.helpText,
       isRequired: field.isRequired,
+      validationMode: field.validationMode,
       displayOrder: field.displayOrder,
       isActive: field.isActive,
       visibleToRoles: field.visibleToRoles,
@@ -134,6 +135,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
     fieldType: CustomFieldDefinition["fieldType"];
     helpText: string | null;
     isRequired: boolean;
+    validationMode?: CustomFieldDefinition["validationMode"];
     displayOrder: number;
     isActive: boolean;
     options?: Array<{ label: string; displayOrder: number; isActive?: boolean }>;
@@ -156,6 +158,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                   fieldType: values.fieldType,
                   helpText: values.helpText,
                   isRequired: values.isRequired,
+                  validationMode: values.validationMode ?? (values.isRequired ? "BLOCK" : "ALLOW"),
                   displayOrder: values.displayOrder,
                   isActive: values.isActive,
                   formula: values.formula ?? null,
@@ -182,12 +185,13 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
   });
   const updateFieldMutation = useMutation<unknown, Error, {
     fieldId: string;
-    values: {
-      fieldName?: string;
-      helpText?: string | null;
-      isRequired?: boolean;
-      isActive?: boolean;
-      displayOrder?: number;
+      values: {
+        fieldName?: string;
+        helpText?: string | null;
+        isRequired?: boolean;
+        validationMode?: CustomFieldDefinition["validationMode"];
+        isActive?: boolean;
+        displayOrder?: number;
       formula?: string;
       visibleToRoles?: RegisterRole[];
       visibleToRiskResponseOwners?: boolean;
@@ -402,6 +406,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                 fieldName: values.fieldName,
                 helpText: values.helpText || null,
                 isRequired: editingField.fieldType === "CALCULATED" ? false : values.isRequired,
+                validationMode: editingField.fieldType === "CALCULATED" ? undefined : values.validationMode,
                 isActive: values.isActive,
                 formula: editingField.fieldType === "CALCULATED" && values.formula ? values.formula : undefined,
                 visibleToRoles: values.visibleToRoles,
@@ -417,6 +422,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
             fieldType: values.fieldType,
             helpText: values.helpText || null,
             isRequired: values.fieldType === "CALCULATED" ? false : values.isRequired,
+            validationMode: values.fieldType === "CALCULATED" ? undefined : values.validationMode,
             displayOrder: nextFieldDisplayOrder,
             isActive: values.isActive,
             options: isOptionsType ? parseInitialOptions(values.initialOptionsText) : undefined,

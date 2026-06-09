@@ -53,6 +53,10 @@ export function formatApiErrorFieldName(field: string) {
     return "Request";
   }
 
+  if (field.startsWith("field.")) {
+    return "";
+  }
+
   return field
     .replace(/\.(\d+)(?=\.|$)/g, " $1")
     .replace(/\./g, " ")
@@ -82,7 +86,9 @@ export function ApiErrorAlert({
               .sort(([left], [right]) => left.localeCompare(right))
               .map(([field, message]) => (
                 <Text key={field} size="sm">
-                  {formatApiErrorFieldName(field)}: {message}
+                  {formatApiErrorFieldName(field)
+                    ? `${formatApiErrorFieldName(field)}: ${message}`
+                    : message}
                 </Text>
               ))
           : null}

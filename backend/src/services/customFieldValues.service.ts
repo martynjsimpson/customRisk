@@ -46,7 +46,7 @@ function countProvidedValues(value: RiskCustomFieldValueBody) {
     value.dateValue,
     value.personUserId ?? value.personEmail,
     value.dropdownOptionId,
-    value.multiSelectOptionIds !== undefined ? "multi_select" : undefined
+    Array.isArray(value.multiSelectOptionIds) && value.multiSelectOptionIds.length > 0 ? "multi_select" : undefined
   ].filter((entry) => entry !== undefined && entry !== null && entry !== "").length;
 }
 
@@ -221,7 +221,7 @@ export async function validateCustomFieldValues(
 
     if (definition.fieldType === "CALCULATED") {
       fields[`customFieldValues.${index}.customFieldDefinitionId`] =
-        "Calculated fields cannot be edited directly";
+        `${definition.fieldName} is calculated automatically and cannot be edited directly`;
       return;
     }
 
@@ -234,17 +234,17 @@ export async function validateCustomFieldValues(
       )
     ) {
       fields[`customFieldValues.${index}.customFieldDefinitionId`] =
-        "Inactive custom field values can only be retained on the existing risk";
+        `${definition.fieldName} is inactive and can only retain its existing value`;
       return;
     }
 
     if (countProvidedValues(value) > 1) {
-      fields[`customFieldValues.${index}`] = "Provide only the value matching the custom field type";
+      fields[`customFieldValues.${index}`] = `Provide only the value matching ${definition.fieldName}`;
       return;
     }
 
     if (countProvidedValues(value) > 0 && !hasValueForType(definition.fieldType, value)) {
-      fields[`customFieldValues.${index}`] = `Value must match ${definition.fieldType}`;
+      fields[`customFieldValues.${index}`] = `${definition.fieldName} value must match ${definition.fieldType}`;
     }
   });
 
@@ -275,7 +275,7 @@ export async function validateCustomFieldValues(
       if (hasValue) return;
 
       if (definition.validationMode === "BLOCK") {
-        fields[`customFields.${definition.id}`] = `${definition.fieldName} is required`;
+        fields[`field.${definition.fieldName}`] = `Field ${definition.fieldName} is required.`;
       } else if (definition.validationMode === "WARN" && !options.acknowledgedWarnings) {
         warnings.push({
           fieldId: definition.id,
@@ -352,12 +352,12 @@ export async function validateCustomFieldValues(
       const option = activeOptionsById.get(value.dropdownOptionId);
       if (!option || option.customFieldDefinitionId !== value.customFieldDefinitionId) {
         fields[`customFieldValues.${index}.dropdownOptionId`] =
-          "Dropdown value must reference an active option for this custom field";
+          `${definition?.fieldName ?? "This field"} must reference an active dropdown option`;
       }
     });
 
     if (activeOptions.length !== uniqueDropdownOptionIds.length) {
-      fields.dropdownOptionId = "Dropdown values must reference active options for this register";
+      fields.dropdownOptionId = "One or more dropdown values must reference active options for this register";
     }
   }
 
@@ -381,7 +381,7 @@ export async function validateCustomFieldValues(
     if (invalidIds.length > 0) {
       const idx = values.indexOf(value);
       fields[`customFieldValues.${idx}.multiSelectOptionIds`] =
-        "Multi-select values must reference active options for this custom field";
+        `${definition.fieldName} must reference active multi-select options`;
     } else {
       for (const optionId of value.multiSelectOptionIds) {
         multiSelectEntries.push({ registerId, customFieldDefinitionId: value.customFieldDefinitionId, optionId });
@@ -390,7 +390,7 @@ export async function validateCustomFieldValues(
   }
 
   if (Object.keys(fields).length > 0) {
-    throw new ApiError(400, "VALIDATION_ERROR", "Custom field values are invalid", fields);
+    throw new ApiError(400, "VALIDATION_ERROR", "Risk values are invalid.", fields);
   }
 
   // Resolve PersonReferences for all PERSON_PICKER values

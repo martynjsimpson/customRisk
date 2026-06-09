@@ -208,3 +208,28 @@ test("field configuration unlocks only when a draft exists and dropdown options 
   assert.match(optionsModal, /readOnly\?: boolean/);
   assert.match(registerConfigService, /customFieldDefinitionId: field\.id/);
 });
+
+test("draft config snapshots preserve custom field validation modes through publish", async () => {
+  const configVersionService = await readFile(
+    new URL("../../backend/src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+  const configSnapshotTypes = await readFile(
+    new URL("../../backend/src/types/configSnapshot.ts", import.meta.url),
+    "utf8"
+  );
+  const configVersionSchemas = await readFile(
+    new URL("../../backend/src/validators/configVersion.schemas.ts", import.meta.url),
+    "utf8"
+  );
+  const configExportService = await readFile(
+    new URL("../../backend/src/services/configExport.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(configSnapshotTypes, /validationMode: "ALLOW" \| "WARN" \| "BLOCK"/);
+  assert.match(configVersionSchemas, /validationMode: z\.enum\(validationModes\)/);
+  assert.match(configVersionService, /validationMode: f\.validationMode/);
+  assert.match(configVersionService, /validationMode: cf\.validationMode/);
+  assert.match(configExportService, /validationMode: field\.validationMode/);
+});

@@ -80,6 +80,7 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       fieldType: field.fieldType,
       helpText: field.helpText,
       isRequired: field.isRequired,
+      validationMode: field.validationMode,
       displayOrder: field.displayOrder,
       isActive: field.isActive,
       options: field.options.map((opt) => ({

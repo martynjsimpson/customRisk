@@ -81,8 +81,10 @@ function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
   }
 
   if (definition.fieldType === "MULTI_SELECT") {
-    const ids = Array.isArray(value) ? (value as string[]) : [];
-    return { customFieldDefinitionId: definition.id, multiSelectOptionIds: ids };
+    if (Array.isArray(value)) {
+      return { customFieldDefinitionId: definition.id, multiSelectOptionIds: value as string[] };
+    }
+    return { customFieldDefinitionId: definition.id };
   }
 
   if (value === undefined || value === null || value === "") {
@@ -405,13 +407,19 @@ export function RiskFormModal({
     }
   });
 
+  function handleClose() {
+    setPendingWarnings([]);
+    saveMutation.reset();
+    onClose();
+  }
+
   function handleDismissWarnings() {
     setPendingWarnings([]);
   }
 
   return (
     <>
-      <Modal opened={opened} onClose={onClose} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
+      <Modal opened={opened} onClose={handleClose} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
         <Stack>
           <ApiErrorAlert error={getApiErrorCode(saveMutation.error) !== "VALIDATION_WARNING" ? saveMutation.error : null} fallback="Unable to save risk" />
           <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk" />
@@ -433,7 +441,7 @@ export function RiskFormModal({
                   )
                 )}
                 <Group justify="flex-end">
-                  <Button type="button" variant="subtle" onClick={onClose}>Cancel</Button>
+                  <Button type="button" variant="subtle" onClick={handleClose}>Cancel</Button>
                   <Button type="submit" loading={saveMutation.isPending}>Save</Button>
                 </Group>
               </Stack>
@@ -443,7 +451,7 @@ export function RiskFormModal({
       </Modal>
 
       <Modal
-        opened={pendingWarnings.length > 0}
+        opened={opened && pendingWarnings.length > 0}
         onClose={handleDismissWarnings}
         title="Save with warnings?"
         size="md"

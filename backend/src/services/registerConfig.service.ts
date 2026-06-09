@@ -90,6 +90,16 @@ async function getReferencedConfigurationIds(registerId: string) {
   };
 }
 
+function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterConfigSnapshot {
+  return {
+    ...snapshot,
+    customFields: snapshot.customFields.map((field) => ({
+      ...field,
+      validationMode: field.validationMode ?? (field.isRequired ? "BLOCK" : "ALLOW")
+    }))
+  };
+}
+
 
 export async function getRegisterConfig(registerId: string) {
   const register = await assertRegisterExists(registerId);
@@ -105,7 +115,7 @@ export async function getRegisterConfig(registerId: string) {
     });
 
     if (draft) {
-      const snapshot = draft.snapshotJson as unknown as RegisterConfigSnapshot;
+      const snapshot = normalizeSnapshot(draft.snapshotJson as unknown as RegisterConfigSnapshot);
       const likelihoodById = new Map(snapshot.likelihoodValues.map((value) => [value.id, value]));
       const impactById = new Map(snapshot.impactValues.map((value) => [value.id, value]));
       const riskLevelById = new Map(snapshot.riskLevels.map((value) => [value.id, value]));

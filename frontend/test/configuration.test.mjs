@@ -37,6 +37,23 @@ test("configuration panel marks core fields as read-only and custom fields as ed
   assert.match(tab, /CustomFieldOptionsModal/);
 });
 
+test("custom field configuration exposes validation modes and persists them through field updates", async () => {
+  const modal = await readFile(new URL("../src/features/configuration/CustomFieldModal.tsx", import.meta.url), "utf8");
+  const tab = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
+  const customFieldsApi = await readFile(new URL("../src/api/customFields.api.ts", import.meta.url), "utf8");
+  const configVersionApi = await readFile(new URL("../src/api/configVersion.api.ts", import.meta.url), "utf8");
+
+  assert.match(customFieldsApi, /export type ValidationMode = "ALLOW" \| "WARN" \| "BLOCK"/);
+  assert.match(customFieldsApi, /validationMode: ValidationMode/);
+  assert.match(configVersionApi, /"validationMode"/);
+  assert.match(modal, /label="Validation mode"/);
+  assert.match(modal, /validationModeOptions/);
+  assert.match(modal, /form\.getInputProps\("validationMode"\)/);
+  assert.match(tab, /validationMode: field\.validationMode/);
+  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
+  assert.match(tab, /validationMode:\s*values\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
+});
+
 test("custom field options modal shows activate or deactivate based on option state and wires activation through option updates", async () => {
   const modal = await readFile(new URL("../src/features/configuration/CustomFieldOptionsModal.tsx", import.meta.url), "utf8");
   const tab = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");

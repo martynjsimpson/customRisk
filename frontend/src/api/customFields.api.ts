@@ -13,6 +13,8 @@ export type CustomFieldType =
   | "MULTI_SELECT"
   | "CALCULATED";
 
+export type ValidationMode = "ALLOW" | "WARN" | "BLOCK";
+
 export interface CustomFieldOption {
   id: string;
   customFieldDefinitionId: string;
@@ -30,6 +32,7 @@ export interface CustomFieldDefinition {
   fieldType: CustomFieldType;
   helpText: string | null;
   isRequired: boolean;
+  validationMode: ValidationMode;
   displayOrder: number;
   isActive: boolean;
   options: CustomFieldOption[];
@@ -44,6 +47,7 @@ export interface SaveCustomFieldInput {
   fieldType: CustomFieldType;
   helpText?: string | null;
   isRequired: boolean;
+  validationMode?: ValidationMode;
   displayOrder: number;
   isActive: boolean;
   options?: Array<{

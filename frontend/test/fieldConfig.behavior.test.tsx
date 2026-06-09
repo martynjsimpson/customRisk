@@ -20,6 +20,7 @@ const runtime = vi.hoisted(() => {
       fieldType: "TEXT" | "MULTILINE_TEXT" | "BOOLEAN" | "NUMBER" | "DATE" | "DROPDOWN" | "PERSON_PICKER";
       helpText: string | null;
       isRequired: boolean;
+      validationMode: "ALLOW" | "WARN" | "BLOCK";
       displayOrder: number;
       isActive: boolean;
       options: Array<{

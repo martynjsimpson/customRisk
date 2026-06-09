@@ -2,7 +2,7 @@ import { Button, Checkbox, Modal, MultiSelect, Select, Stack, Switch, Textarea, 
 import { useForm } from "@mantine/form";
 import { useEffect } from "react";
 
-import type { CustomFieldDefinition, CustomFieldType, RegisterRole } from "../../api/customFields.api";
+import type { CustomFieldDefinition, CustomFieldType, RegisterRole, ValidationMode } from "../../api/customFields.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 
 interface CustomFieldFormValues {
@@ -10,6 +10,7 @@ interface CustomFieldFormValues {
   fieldType: CustomFieldType;
   helpText: string;
   isRequired: boolean;
+  validationMode: ValidationMode;
   isActive: boolean;
   initialOptionsText: string;
   formula: string;
@@ -45,12 +46,19 @@ const visibilityOptions: Array<{ value: RegisterRole; label: string }> = [
   { value: "RISK_OWNER", label: "Risk Owner" }
 ];
 
+const validationModeOptions: Array<{ value: ValidationMode; label: string }> = [
+  { value: "ALLOW", label: "Allow" },
+  { value: "WARN", label: "Warn" },
+  { value: "BLOCK", label: "Block" }
+];
+
 function createInitialValues(): CustomFieldFormValues {
   return {
     fieldName: "",
     fieldType: "TEXT",
     helpText: "",
     isRequired: false,
+    validationMode: "ALLOW",
     isActive: true,
     initialOptionsText: "",
     formula: "",
@@ -91,6 +99,7 @@ export function CustomFieldModal({
         fieldType: editingField.fieldType,
         helpText: editingField.helpText ?? "",
         isRequired: editingField.isRequired,
+        validationMode: editingField.validationMode,
         isActive: editingField.isActive,
         initialOptionsText: "",
         formula: editingField.formula ?? "",
@@ -126,6 +135,14 @@ export function CustomFieldModal({
           <Textarea label="Help text" {...form.getInputProps("helpText")} />
           {form.values.fieldType !== "CALCULATED" ? (
             <Checkbox label="Required" {...form.getInputProps("isRequired", { type: "checkbox" })} />
+          ) : null}
+          {form.values.fieldType !== "CALCULATED" ? (
+            <Select
+              label="Validation mode"
+              description="Allow saves freely, warn on save, or block save until the field is filled."
+              data={validationModeOptions}
+              {...form.getInputProps("validationMode")}
+            />
           ) : null}
           <Checkbox label="Active" {...form.getInputProps("isActive", { type: "checkbox" })} />
           {form.values.fieldType === "CALCULATED" ? (

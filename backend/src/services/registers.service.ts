@@ -759,6 +759,7 @@ export async function createRegisterFromTemplate(
             fieldType: field.fieldType as "TEXT" | "MULTILINE_TEXT" | "BOOLEAN" | "NUMBER" | "DATE" | "DROPDOWN" | "PERSON_PICKER",
             helpText: field.helpText,
             isRequired: field.isRequired,
+            validationMode: field.validationMode ?? (field.isRequired ? "BLOCK" : "ALLOW"),
             displayOrder: field.displayOrder,
             isActive: field.isActive,
             createdByUserId: actorId,

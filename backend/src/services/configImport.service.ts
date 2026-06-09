@@ -71,6 +71,7 @@ export async function importRegisterConfig(
       fieldType: f.fieldType,
       helpText: f.helpText ?? null,
       isRequired: f.isRequired,
+      validationMode: f.validationMode,
       displayOrder: f.displayOrder,
       isActive: f.isActive,
       options: f.options.map((o) => ({
