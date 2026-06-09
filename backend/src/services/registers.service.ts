@@ -60,22 +60,19 @@ const permissionCandidateUserSelect = {
   isSystemAdmin: true
 } satisfies Prisma.UserSelect;
 
-const likelihoodDefaults = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
-const impactDefaults = ["Insignificant", "Minor", "Moderate", "Major", "Severe"];
-const riskLevelDefaults = ["Low", "Medium", "High", "Critical"] as const;
+const likelihoodDefaults = ["Low", "Medium", "High"];
+const impactDefaults = ["Low", "Medium", "High"];
+const riskLevelDefaults = ["Low", "Medium", "High"] as const;
 const riskLevelDefaultColors = {
   Low: "#2f9e44",
   Medium: "#f59f00",
-  High: "#f76707",
-  Critical: "#e03131"
+  High: "#e03131"
 } satisfies Record<(typeof riskLevelDefaults)[number], string>;
 const responseStrategyDefaults = ["Accept", "Mitigate", "Transfer", "Avoid"];
 const matrixLevelNames = [
-  ["Low", "Low", "Low", "Medium", "Medium"],
-  ["Low", "Low", "Medium", "Medium", "High"],
-  ["Low", "Medium", "Medium", "High", "High"],
-  ["Medium", "Medium", "High", "High", "Critical"],
-  ["Medium", "High", "High", "Critical", "Critical"]
+  ["Low",    "Medium", "Medium"],
+  ["Medium", "Medium", "High"],
+  ["Medium", "High",   "High"]
 ];
 
 function mapPrismaError(error: unknown): never {

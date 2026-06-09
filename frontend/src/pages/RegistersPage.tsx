@@ -2,68 +2,32 @@ import {
   Anchor,
   Badge,
   Button,
-  Checkbox,
   Group,
   Loader,
-  Modal,
-  MultiSelect,
-  NumberInput,
   Stack,
   Table,
   Text,
-  Textarea,
-  TextInput,
   Title
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { createRegister, listRegisters } from "../api/registers.api";
-import { listUsers } from "../api/users.api";
+import { listRegisters } from "../api/registers.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
+import { CreateRegisterWizard } from "../features/configuration/CreateRegisterWizard";
 import { usePermissions } from "../hooks/usePermissions";
 
 export function RegistersPage() {
-  const queryClient = useQueryClient();
   const { isSystemAdmin } = usePermissions();
   const registersQuery = useQuery({ queryKey: ["registers"], queryFn: listRegisters });
-  const usersQuery = useQuery({
-    queryKey: ["users"],
-    queryFn: listUsers,
-    enabled: isSystemAdmin
-  });
-  const [opened, { open, close }] = useDisclosure(false);
-  const form = useForm({
-    initialValues: {
-      name: "",
-      description: "",
-      riskIdPrefix: "",
-      initialRegisterAdminUserIds: [] as string[],
-      riskIdZeroPaddingEnabled: false,
-      riskIdZeroPaddingWidth: 4
-    }
-  });
-  const createMutation = useMutation({
-    mutationFn: createRegister,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["registers"] });
-      close();
-      form.reset();
-    }
-  });
-
-  const openCreateModal = () => {
-    createMutation.reset();
-    open();
-  };
+  const [wizardOpen, { open: openWizard, close: closeWizard }] = useDisclosure(false);
 
   return (
     <Stack>
       <Group justify="space-between">
         <Title order={1}>Registers</Title>
-        {isSystemAdmin ? <Button onClick={openCreateModal}>Create register</Button> : null}
+        {isSystemAdmin ? <Button onClick={openWizard}>Create register</Button> : null}
       </Group>
       <ApiErrorAlert error={registersQuery.error} fallback="Unable to load registers" />
       {registersQuery.isLoading ? <Loader /> : null}
@@ -81,11 +45,7 @@ export function RegistersPage() {
             {(registersQuery.data?.data ?? []).map((register) => (
               <Table.Tr key={register.id}>
                 <Table.Td>
-                  <Anchor
-                    component={Link}
-                    to={`/registers/${register.id}`}
-                    fw={600}
-                  >
+                  <Anchor component={Link} to={`/registers/${register.id}`} fw={600}>
                     {register.name}
                   </Anchor>
                 </Table.Td>
@@ -106,47 +66,8 @@ export function RegistersPage() {
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
-      <Modal opened={opened} onClose={close} title="Create register">
-        <form
-          onSubmit={form.onSubmit(async (values) => {
-            createMutation.mutate({
-              ...values,
-              riskIdPrefix: values.riskIdPrefix || undefined,
-              initialRegisterAdminUserIds: values.initialRegisterAdminUserIds
-            });
-          })}
-        >
-          <Stack>
-            <ApiErrorAlert error={createMutation.error} fallback="Unable to create register" />
-            <ApiErrorAlert error={usersQuery.error} fallback="Unable to load register admin candidates" />
-            <TextInput label="Name" required {...form.getInputProps("name")} />
-            <Textarea label="Description" {...form.getInputProps("description")} />
-            <TextInput label="Risk ID prefix" {...form.getInputProps("riskIdPrefix")} />
-            <MultiSelect
-              label="Register Admins"
-              data={(usersQuery.data?.data ?? []).map((user) => ({
-                value: user.id,
-                label: `${user.name} (${user.email})`
-              }))}
-              searchable
-              {...form.getInputProps("initialRegisterAdminUserIds")}
-            />
-            <Checkbox
-              label="Zero-pad risk IDs"
-              {...form.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}
-            />
-            <NumberInput
-              label="Padding width"
-              min={2}
-              max={12}
-              {...form.getInputProps("riskIdZeroPaddingWidth")}
-            />
-            <Button type="submit" loading={createMutation.isPending}>
-              Create
-            </Button>
-          </Stack>
-        </form>
-      </Modal>
+
+      <CreateRegisterWizard opened={wizardOpen} onClose={closeWizard} />
     </Stack>
   );
 }

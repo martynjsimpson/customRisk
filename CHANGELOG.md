@@ -48,6 +48,12 @@ Version levels:
 
 ### Added
 
+- **Registers: guided creation wizard**
+  - Creating a new register now opens a step-by-step wizard rather than a minimal single-screen form. Steps cover naming and admins, risk ID format, feature toggles (with an additional reviews step when reviews are enabled), likelihood scale, impact scale, risk levels, risk matrix, and an optional custom fields step. Each step includes explanatory help text. The wizard creates the register on step one, then saves each configuration section in turn, so the user arrives at the configuration already populated and ready to use. The matrix step auto-saves on cell change and omits the recalculate option (no existing risks at creation time).
+
+- **Registers: simplified default scoring scale**
+  - New registers are seeded with a simpler Low / Medium / High likelihood scale, Low / Medium / High impact scale, and Low / Medium / High risk level set with a symmetric 3×3 default matrix (Low+High combinations in either direction map to Medium). Previously the defaults were five-level scales with more formal terminology. Existing registers are unaffected.
+
 - **Custom field options modal: inactive options can now be reactivated**
   - Inactive dropdown and multi-select options now show an `Activate` action in the options modal, allowing administrators to restore an option directly from the table.
 
