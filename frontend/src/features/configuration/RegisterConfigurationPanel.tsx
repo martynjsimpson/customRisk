@@ -38,7 +38,7 @@ export function RegisterConfigurationPanel({ registerId, canManage }: RegisterCo
       ) : null}
       {configLocked ? (
         <Alert color="blue" title="Configuration is version-controlled">
-          Create a draft using the banner above to edit fields and scoring configuration. Only the register name can be changed directly while no draft is in progress.
+          Create a draft using the banner above to edit register configuration.
         </Alert>
       ) : null}
       <Tabs defaultValue="settings">

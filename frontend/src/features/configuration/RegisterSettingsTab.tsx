@@ -66,19 +66,14 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   });
   const hasDraft = statusQuery.data?.hasDraft ?? false;
 
-  // When draftConfigMode is on but no draft exists, only name is directly editable.
-  // When a draft is in progress, all fields are editable (changes go directly to the
-  // register; the draft handles the complex config, and publish won't overwrite these).
   const settingsLocked = draftConfigMode && !hasDraft;
 
   const updateSettingsMutation = useMutation({
     mutationFn: () =>
-      settingsLocked
-        ? updateRegister(registerId, { name: settingsForm.values.name })
-        : updateRegister(registerId, {
-            ...settingsForm.values,
-            riskIdPrefix: settingsForm.values.riskIdPrefix || null
-          }),
+      updateRegister(registerId, {
+        ...settingsForm.values,
+        riskIdPrefix: settingsForm.values.riskIdPrefix || null
+      }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
@@ -98,7 +93,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
             Settings saved here apply immediately. Fields and scoring changes are part of the draft and will take effect when published.
           </Alert>
         ) : null}
-        <TextInput label="Name" disabled={!canManage} {...settingsForm.getInputProps("name")} />
+        <TextInput label="Name" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("name")} />
         <Textarea label="Description" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("description")} />
         <TextInput label="Risk ID prefix" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("riskIdPrefix")} />
         <Checkbox
@@ -136,9 +131,9 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
           disabled={!canManage || settingsLocked}
           {...settingsForm.getInputProps("customFieldValidationEnabled", { type: "checkbox" })}
         />
-        {canManage ? (
+        {canManage && !settingsLocked ? (
           <Button type="submit" loading={updateSettingsMutation.isPending}>
-            {settingsLocked ? "Save name" : "Save settings"}
+            Save settings
           </Button>
         ) : null}
       </Stack>
