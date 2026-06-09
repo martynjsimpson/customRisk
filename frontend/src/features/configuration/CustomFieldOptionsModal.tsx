@@ -74,7 +74,10 @@ export function CustomFieldOptionsModal({
     }
 
     form.setValues(createInitialValues(nextDisplayOrder));
-  }, [editingOption, form, nextDisplayOrder, opened]);
+  // form is intentionally omitted — Mantine returns a new object reference each render,
+  // which would retrigger this effect on every keystroke and reset the form values.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingOption, nextDisplayOrder, opened]);
 
   return (
     <Modal

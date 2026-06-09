@@ -23,6 +23,9 @@ Version levels:
 - **Custom field options modal: option state changes update immediately**
   - Activating or deactivating an option now refreshes the options table state immediately while the modal remains open, so the status badge and available action button stay in sync without closing and reopening the dialog.
 
+- **Custom field options modal: edit form no longer resets while typing**
+  - Editing an existing option now keeps the label and other form values stable while you type, fixing a regression where the edit form immediately reset itself on every keystroke and made the field appear non-editable.
+
 ### Added
 
 - **Custom field options modal: inactive options can now be reactivated**
