@@ -45,8 +45,10 @@ function RiskTableCell({ risk, columnKey }: { risk: RiskListItem; columnKey: str
       return null; // handled in the row directly (needs anchor)
     case "title":
       return <Table.Td>{risk.title}</Table.Td>;
-    case "state":
-      return <Table.Td><Badge>{risk.state}</Badge></Table.Td>;
+    case "state": {
+      const stateColor = risk.state === "OPEN" ? "blue" : risk.state === "DRAFT" ? "gray" : "dark";
+      return <Table.Td><Badge color={stateColor}>{risk.state}</Badge></Table.Td>;
+    }
     case "owner":
       return <Table.Td>{risk.owner.name}</Table.Td>;
     case "likelihood":
