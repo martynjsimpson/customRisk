@@ -1,4 +1,4 @@
-import { Alert, Paper, Stack, Tabs } from "@mantine/core";
+import { Alert, Box, Fieldset, Paper, Stack, Tabs } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 
 import { getConfigVersionStatus } from "../../api/configVersion.api";
@@ -51,10 +51,14 @@ export function RegisterConfigurationPanel({ registerId, canManage }: RegisterCo
           <RegisterSettingsTab registerId={registerId} />
         </Tabs.Panel>
         <Tabs.Panel value="fields" pt="md">
-          <FieldConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+          <Fieldset legend="Field Configuration">
+            <Box style={configLocked ? { opacity: 0.5, pointerEvents: "none" } : undefined}>
+              <FieldConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+            </Box>
+          </Fieldset>
         </Tabs.Panel>
         <Tabs.Panel value="scoring" pt="md">
-          <ScoringConfigurationPanel registerId={registerId} draftConfigMode={draftConfigMode} />
+          <ScoringConfigurationPanel registerId={registerId} draftConfigMode={draftConfigMode} configLocked={configLocked} />
         </Tabs.Panel>
       </Tabs>
     </Stack>

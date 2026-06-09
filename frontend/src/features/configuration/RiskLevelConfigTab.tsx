@@ -11,8 +11,7 @@ import {
   Table,
   Text,
   Textarea,
-  TextInput,
-  Title
+  TextInput
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -178,15 +177,11 @@ export function RiskLevelConfigTab({ registerId, draftConfigMode }: RiskLevelCon
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={3}>Risk Levels</Title>
-        {!isReadOnly ? <Button onClick={openCreateRiskLevel}>Add risk level</Button> : null}
-      </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load configuration" />
       <ApiErrorAlert error={deactivateRiskLevelMutation.error} fallback="Unable to deactivate risk level" />
       <ApiErrorAlert error={activateRiskLevelMutation.error} fallback="Unable to activate risk level" />
       <Table.ScrollContainer minWidth={900}>
-        <Table>
+        <Table withTableBorder>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Order</Table.Th>
@@ -248,6 +243,11 @@ export function RiskLevelConfigTab({ registerId, draftConfigMode }: RiskLevelCon
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
+      {!isReadOnly ? (
+        <Group justify="flex-end">
+          <Button onClick={openCreateRiskLevel}>Add risk level</Button>
+        </Group>
+      ) : null}
 
       <Modal
         opened={riskLevelModalOpen}

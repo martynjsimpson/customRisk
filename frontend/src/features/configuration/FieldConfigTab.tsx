@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Stack, Text, Title } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
@@ -368,10 +368,6 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={2}>Field Configuration</Title>
-        {!isReadOnly ? <Button onClick={openCreateField}>Add field</Button> : null}
-      </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load register configuration" />
       <ApiErrorAlert error={activateFieldMutation.error} fallback="Unable to activate field" />
       <ApiErrorAlert error={deactivateFieldMutation.error} fallback="Unable to deactivate field" />
@@ -387,6 +383,11 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         isSystemAdmin={isSystemAdmin}
         readOnly={isReadOnly}
       />
+      {!isReadOnly ? (
+        <Group justify="flex-end">
+          <Button onClick={openCreateField}>Add field</Button>
+        </Group>
+      ) : null}
 
       <CustomFieldModal
         opened={fieldModalOpen}

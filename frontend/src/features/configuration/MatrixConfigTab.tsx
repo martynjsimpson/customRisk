@@ -1,4 +1,4 @@
-import { Button, Checkbox, Group, Select, Stack, Table, Text, Title } from "@mantine/core";
+import { Button, Checkbox, Group, Select, Stack, Table, Text } from "@mantine/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -88,21 +88,6 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={3}>Risk Matrix</Title>
-        {!isReadOnly ? (
-          <Group>
-            <Checkbox
-              label="Recalculate existing risks"
-              checked={recalculateExistingRisks}
-              onChange={(event) => setRecalculateExistingRisks(event.currentTarget.checked)}
-            />
-            <Button onClick={() => saveMatrixMutation.mutate()} loading={saveMatrixMutation.isPending}>
-              Save matrix
-            </Button>
-          </Group>
-        ) : null}
-      </Group>
       <ApiErrorAlert error={configQuery.error} fallback="Unable to load matrix" />
       <ApiErrorAlert error={saveMatrixMutation.error} fallback="Unable to save matrix" />
       {activeLikelihoods.length === 0 || activeImpacts.length === 0 ? (
@@ -110,7 +95,7 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
           Configure active likelihood and impact values before setting up the matrix.
         </Text>
       ) : (
-        <Table>
+        <Table withTableBorder>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Likelihood \ Impact</Table.Th>
@@ -161,6 +146,18 @@ export function MatrixConfigTab({ registerId, draftConfigMode }: MatrixConfigTab
           </Table.Tbody>
         </Table>
       )}
+      {!isReadOnly ? (
+        <Group justify="flex-end">
+          <Checkbox
+            label="Recalculate existing risks"
+            checked={recalculateExistingRisks}
+            onChange={(event) => setRecalculateExistingRisks(event.currentTarget.checked)}
+          />
+          <Button onClick={() => saveMatrixMutation.mutate()} loading={saveMatrixMutation.isPending}>
+            Save matrix
+          </Button>
+        </Group>
+      ) : null}
     </Stack>
   );
 }

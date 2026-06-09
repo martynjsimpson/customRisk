@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Stack, Textarea, TextInput, NumberInput } from "@mantine/core";
+import { Alert, Button, Checkbox, Fieldset, NumberInput, Stack, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -93,44 +93,60 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
             Settings saved here apply immediately. Fields and scoring changes are part of the draft and will take effect when published.
           </Alert>
         ) : null}
-        <TextInput label="Name" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("name")} />
-        <Textarea label="Description" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("description")} />
-        <TextInput label="Risk ID prefix" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("riskIdPrefix")} />
-        <Checkbox
-          label="Zero-pad risk IDs"
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}
-        />
-        <NumberInput
-          label="Padding width"
-          min={2}
-          max={12}
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("riskIdZeroPaddingWidth")}
-        />
-        <Checkbox
-          label="Reviews enabled"
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("reviewsEnabled", { type: "checkbox" })}
-        />
-        <NumberInput
-          label="Default review frequency months"
-          min={1}
-          max={120}
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
-        />
-        <Checkbox
-          label="Allow Register Viewers to export"
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("allowViewerExport", { type: "checkbox" })}
-        />
-        <Checkbox
-          label="Enable custom field validation"
-          description="Controls whether allow / warn / block validation is enforced and shown for this register."
-          disabled={!canManage || settingsLocked}
-          {...settingsForm.getInputProps("customFieldValidationEnabled", { type: "checkbox" })}
-        />
+        <Fieldset legend="General">
+          <Stack>
+            <TextInput maw={400} label="Name" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("name")} />
+            <Textarea label="Description" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("description")} />
+          </Stack>
+        </Fieldset>
+        <Fieldset legend="Risk IDs">
+          <Stack>
+            <TextInput w={180} label="Prefix" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("riskIdPrefix")} />
+            <Checkbox
+              label="Zero-pad risk IDs"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}
+            />
+            <NumberInput
+              w={140}
+              label="Padding width"
+              min={2}
+              max={12}
+              disabled={!canManage || settingsLocked || !settingsForm.values.riskIdZeroPaddingEnabled}
+              {...settingsForm.getInputProps("riskIdZeroPaddingWidth")}
+            />
+          </Stack>
+        </Fieldset>
+        <Fieldset legend="Features">
+          <Stack>
+            <Checkbox
+              label="Allow Register Viewers to export"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("allowViewerExport", { type: "checkbox" })}
+            />
+            <Checkbox
+              label="Enable custom field validation"
+              description="Controls whether allow / warn / block validation is enforced and shown for this register."
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("customFieldValidationEnabled", { type: "checkbox" })}
+            />
+            <Checkbox
+              label="Reviews enabled"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("reviewsEnabled", { type: "checkbox" })}
+            />
+            <Fieldset legend="Reviews">
+              <NumberInput
+                w={220}
+                label="Default review frequency (months)"
+                min={1}
+                max={120}
+                disabled={!canManage || settingsLocked || !settingsForm.values.reviewsEnabled}
+                {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
+              />
+            </Fieldset>
+          </Stack>
+        </Fieldset>
         {canManage && !settingsLocked ? (
           <Button type="submit" loading={updateSettingsMutation.isPending}>
             Save settings

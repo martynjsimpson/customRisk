@@ -15,6 +15,20 @@ Version levels:
 
 ## [Unreleased]
 
+### Changed
+
+- **Register configuration: settings page restructured into logical groups**
+  - Settings are now grouped into four labelled sections — General, Risk IDs, Features, and Reviews — using fieldset frames consistent with the rest of the configuration UI. The register name is no longer editable outside of a draft; all settings now follow the same draft-gated rules. Dependent inputs (padding width, review frequency) are disabled when their parent toggle is off.
+
+- **Register configuration: consistent fieldset framing across all tabs**
+  - The Fields and Scoring tabs now present their content inside labelled fieldset frames matching the style introduced on the Settings tab. The version-controlled alert is shown above the tab strip (it applies to all tabs) and the greyed-out locked state now correctly applies only to tab content — the Scoring sub-tab strip remains fully interactive.
+
+- **Register configuration: action buttons moved below tables**
+  - Add and save actions (Add field, Add likelihood value, Add risk level, Save matrix, etc.) now sit below their respective tables rather than floating above them, removing the whitespace gap that appeared between the fieldset border and the table.
+
+- **Register configuration: tables now have an outer border**
+  - All configuration tables (fields, likelihood, impact, risk levels, matrix) render with a surrounding border, visually separating them from the fieldset background.
+
 ### Fixed
 
 - **Custom field options modal: improved table sizing and action layout**

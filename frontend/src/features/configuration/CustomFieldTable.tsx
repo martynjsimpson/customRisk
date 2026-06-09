@@ -189,7 +189,7 @@ export function CustomFieldTable({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
         <Table.ScrollContainer minWidth={760}>
-          <Table>
+          <Table withTableBorder>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th style={{ width: 36 }} />
