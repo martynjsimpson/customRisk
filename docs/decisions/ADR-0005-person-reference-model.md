@@ -43,7 +43,7 @@ model PersonReference {
 
 **Changes to existing tables:**
 
-`risk`: add `ownerPersonId String?` — nullable FK to `PersonReference`. The existing `ownerUserId` column is **retained unchanged**. New Phase 2+ assignments write `ownerPersonId`; existing MVP risks keep `ownerUserId` as their authoritative field.
+`risk`: add `ownerPersonId String?` — nullable FK to `PersonReference`. The existing `ownerUserId` column is **retained** but, as of v1.8.0 (PM2-02), made **nullable**, with its `onDelete` changed from `Restrict` to `SetNull` (user deletion is soft-deactivation only in this app, so `SetNull` is safe). `ownerPersonId` is now the authoritative owner field; `ownerUserId` is populated only for backward-compatible direct user assignments and is left null when an owner is assigned by email. A service-layer invariant enforces that `ownerPersonId` is always set — a runtime guard rejects any create/update that would leave both `ownerUserId` and `ownerPersonId` null. New Phase 2+ assignments write `ownerPersonId`; existing MVP risks keep `ownerUserId` populated alongside the backfilled `ownerPersonId`.
 
 `risk_custom_field_value`: add `personId String?` — nullable FK to `PersonReference`. The existing `personUserId` and `personEmail` columns are retained and deprecated in place (§3.4 of PM0-02: never drop superseded columns in an extension migration).
 
