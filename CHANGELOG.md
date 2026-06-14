@@ -15,6 +15,13 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-06-14
+
+### Added
+
+- **Help page**
+  - A new Help section is accessible from the left-hand navigation, available to all users. Content is organised into six tabs: Getting Started, Risk Concepts, Registers, Managing Risks, Users & Permissions, Templates, and Audit & Reporting. Covers all major features of the application as well as high-level guidance on risk management concepts including risk lifecycle, scoring, review workflows, and the draft configuration system.
+
 ## [1.7.0] - 2026-06-10
 
 ### Added

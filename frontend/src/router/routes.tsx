@@ -3,6 +3,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { MainLayout } from "../layouts/MainLayout";
 import { AuditPage } from "../pages/AuditPage";
+import { HelpPage } from "../pages/HelpPage";
 import { HomePage } from "../pages/HomePage";
 import { LoginPage } from "../pages/LoginPage";
 import { MyRisksPage } from "../pages/MyRisksPage";
@@ -60,6 +61,10 @@ export const router = createBrowserRouter([
           {
             path: "/templates",
             element: <TemplatesPage />
+          },
+          {
+            path: "/help",
+            element: <HelpPage />
           }
         ]
       }
