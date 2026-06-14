@@ -9,7 +9,6 @@ import {
   Stack,
   Tabs,
   Text,
-  ThemeIcon,
   Title
 } from "@mantine/core";
 import {
@@ -85,7 +84,7 @@ function GettingStartedTab() {
           <Divider />
           <Stack gap="sm">
             <Group gap="sm">
-              <ThemeIcon variant="light"><IconHome size={18} /></ThemeIcon>
+              <IconHome size={18} />
               <Stack gap={0}>
                 <Text fw={600}>Home</Text>
                 <Text size="sm" c="dimmed">
@@ -95,7 +94,7 @@ function GettingStartedTab() {
               </Stack>
             </Group>
             <Group gap="sm">
-              <ThemeIcon variant="light" color="red"><IconShield size={18} /></ThemeIcon>
+              <IconShield size={18} />
               <Stack gap={0}>
                 <Text fw={600}>My Risks</Text>
                 <Text size="sm" c="dimmed">
@@ -105,7 +104,7 @@ function GettingStartedTab() {
               </Stack>
             </Group>
             <Group gap="sm">
-              <ThemeIcon variant="light" color="blue"><IconBook size={18} /></ThemeIcon>
+              <IconBook size={18} />
               <Stack gap={0}>
                 <Text fw={600}>Registers</Text>
                 <Text size="sm" c="dimmed">
@@ -115,7 +114,7 @@ function GettingStartedTab() {
               </Stack>
             </Group>
             <Group gap="sm">
-              <ThemeIcon variant="light" color="orange"><IconHistory size={18} /></ThemeIcon>
+              <IconHistory size={18} />
               <Stack gap={0}>
                 <Text fw={600}>Audit (administrators only)</Text>
                 <Text size="sm" c="dimmed">
@@ -125,7 +124,7 @@ function GettingStartedTab() {
               </Stack>
             </Group>
             <Group gap="sm">
-              <ThemeIcon variant="light" color="violet"><IconUsers size={18} /></ThemeIcon>
+              <IconUsers size={18} />
               <Stack gap={0}>
                 <Text fw={600}>Users (administrators only)</Text>
                 <Text size="sm" c="dimmed">
@@ -135,7 +134,7 @@ function GettingStartedTab() {
               </Stack>
             </Group>
             <Group gap="sm">
-              <ThemeIcon variant="light" color="teal"><IconCopy size={18} /></ThemeIcon>
+              <IconCopy size={18} />
               <Stack gap={0}>
                 <Text fw={600}>Templates (administrators only)</Text>
                 <Text size="sm" c="dimmed">
@@ -145,7 +144,7 @@ function GettingStartedTab() {
               </Stack>
             </Group>
             <Group gap="sm">
-              <ThemeIcon variant="light" color="gray"><IconHelp size={18} /></ThemeIcon>
+              <IconHelp size={18} />
               <Stack gap={0}>
                 <Text fw={600}>Help</Text>
                 <Text size="sm" c="dimmed">
