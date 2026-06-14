@@ -68,7 +68,7 @@ export interface RiskListItem {
   displayRiskId: string;
   title: string;
   state: RiskState;
-  owner: RiskPerson;
+  owner: RiskPerson | null;
   likelihood: RiskOption;
   impact: RiskOption;
   riskScore: number;
@@ -170,7 +170,8 @@ export interface SaveRiskInput {
   title: string;
   description: string;
   state?: RiskState;
-  ownerUserId: string;
+  ownerUserId?: string;
+  ownerEmail?: string;
   createdDate?: string;
   likelihoodValueId: string;
   impactValueId: string;

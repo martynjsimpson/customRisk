@@ -9,7 +9,7 @@ test("risk table actions are role-aware and owner-aware", async () => {
 
   assert.match(panel, /useCurrentUser/);
   assert.match(panel, /register\.effectiveRole === "REGISTER_VIEWER" && register\.allowViewerExport/);
-  assert.match(panel, /risk\.owner\.id === user\?\.id/);
+  assert.match(panel, /risk\.owner\?\.id === user\?\.id/);
   assert.match(panel, /canReview=\{canEditSelectedRisk && register\.reviewsEnabled\}/);
   assert.match(panel, /canEditRows=\{canEditSelectedRisk\}/);
   assert.match(panel, /canDelete=\{isSystemAdmin\}/);
@@ -34,5 +34,5 @@ test("common workflow actions stay unavailable when the user lacks permission", 
   assert.match(registerDetailPage, /canManage \? <Tabs\.Tab value="audit">Audit<\/Tabs\.Tab> : null/);
   assert.match(riskPanel, /canManage \? <Button onClick=\{openCreate\}>Add risk<\/Button> : null/);
   assert.match(riskPanel, /canDelete=\{isSystemAdmin\}/);
-  assert.match(riskPanel, /risk\.owner\.id === user\?\.id/);
+  assert.match(riskPanel, /risk\.owner\?\.id === user\?\.id/);
 });

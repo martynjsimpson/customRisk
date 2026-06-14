@@ -104,7 +104,7 @@ function MyRiskCell({ risk, columnKey }: { risk: DashboardRisk; columnKey: strin
     case "state":
       return <Table.Td><Badge>{risk.state}</Badge></Table.Td>;
     case "owner":
-      return <Table.Td>{risk.owner.name}</Table.Td>;
+      return <Table.Td>{risk.owner?.name ?? "—"}</Table.Td>;
     case "score":
       return <Table.Td>{risk.riskScore}</Table.Td>;
     case "level":
