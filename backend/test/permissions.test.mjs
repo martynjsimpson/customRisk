@@ -54,7 +54,7 @@ test("last Register Admin and Register Viewer export permission paths are covere
   assert.match(registerService, /!actor\.isSystemAdmin/);
 
   assert.match(riskPanel, /register\.effectiveRole === "REGISTER_VIEWER" && register\.allowViewerExport/);
-  assert.match(riskPanel, /risk\.owner\.id === user\?\.id/);
+  assert.match(riskPanel, /risk\.owner\?\.id === user\?\.id/);
   assert.match(riskPanel, /canReview=\{canEditSelectedRisk && register\.reviewsEnabled\}/);
   assert.match(riskPanel, /canDelete=\{isSystemAdmin\}/);
 });
