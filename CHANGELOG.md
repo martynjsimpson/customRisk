@@ -15,6 +15,18 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-06-14
+
+### Added
+
+- **Email-only risk owners (PM2-01, PM2-02)**
+  - Risk owners can now be specified as a plain email address when the person is not a registered user in the system. The owner field accepts either a registered user (selected from a dropdown) or a free-typed email address. If a registered user who owns risks is later removed, their ownership is preserved as an email address rather than lost.
+
+### Fixed
+
+- **User preference updates: nested keys no longer overwrite siblings (PM1-03)**
+  - Saving a preference that lives under a shared parent key (e.g. `notifications.email`) previously erased sibling keys under the same parent. Preferences are now deep-merged so only the targeted key changes.
+
 ## [1.7.1] - 2026-06-14
 
 ### Added
