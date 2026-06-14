@@ -16,7 +16,6 @@ import {
   IconAlertTriangle,
   IconBook,
   IconBulb,
-  IconChartBar,
   IconCheck,
   IconCopy,
   IconHelp,
@@ -166,6 +165,43 @@ function GettingStartedTab() {
             Click your name in the top-right header to view and update your profile. From there you
             can change your display name and password.
           </Text>
+        </Stack>
+      </Paper>
+
+      <Paper withBorder p="md" radius="sm">
+        <Stack>
+          <Title order={3}>Home Dashboard</Title>
+          <Text>
+            The <Text span fw={600}>Home</Text> page is your personal dashboard. It is designed to
+            surface the risks that need your attention without requiring you to manually scan every
+            register.
+          </Text>
+          <Divider />
+          <Stack gap="sm">
+            <Text fw={600}>Risks needing attention</Text>
+            <Text>
+              This panel lists all open risks that are assigned to you where the review is overdue
+              or due within the next 30 days. Each item links directly to that risk — click it to
+              open the risk detail panel in the relevant register without needing to navigate there
+              manually.
+            </Text>
+            <Text fw={600}>Overdue count summary</Text>
+            <Text>
+              A summary count of how many of your assigned risks are currently overdue for review.
+              This gives you a quick at-a-glance indicator of your review obligations across all
+              registers.
+            </Text>
+            <Text fw={600}>Recent system events (System Administrators only)</Text>
+            <Text>
+              System Administrators see an additional panel showing the most recent audit events
+              across the entire system — a live view of activity without needing to visit the full
+              Audit log.
+            </Text>
+          </Stack>
+          <Note>
+            If you have no risks that are overdue or due soon, the dashboard will show a positive
+            confirmation message rather than an empty panel. No news is good news.
+          </Note>
         </Stack>
       </Paper>
     </Stack>
@@ -418,6 +454,110 @@ function RiskConceptsTab() {
                 In customRisk, each register can be tailored with custom fields to capture any
                 additional information specific to your organisation or context.
               </Text>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
+        <Accordion.Item value="inherent-residual-concept">
+          <Accordion.Control>
+            <Text fw={600}>Inherent and Residual Risk</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                <Text span fw={600}>Inherent risk</Text> is the level of risk that exists before
+                any controls or mitigating actions are applied. It represents the raw exposure if
+                the organisation did nothing to manage the risk.
+              </Text>
+              <Text>
+                <Text span fw={600}>Residual risk</Text> is the level of risk that remains after
+                controls have been put in place. It reflects your actual current exposure given
+                what you are already doing to manage the risk.
+              </Text>
+              <Text>
+                Tracking both values is valuable because it quantifies the effectiveness of your
+                controls. A large gap between inherent and residual risk indicates that controls
+                are working well. A small gap — particularly on a high inherent risk — may indicate
+                that current controls are insufficient and further treatment is needed.
+              </Text>
+              <Note>
+                Inherent and residual risk scoring is optional in customRisk. It is enabled or
+                disabled per register by the administrator. When disabled, only a single risk score
+                is captured for each risk.
+              </Note>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
+        <Accordion.Item value="governance-compliance">
+          <Accordion.Control>
+            <Text fw={600}>Governance and Compliance Context</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                Risk management practice is shaped by frameworks such as{" "}
+                <Text span fw={600}>ISO 31000</Text>, which provides principles and guidelines for
+                managing risk across any organisation or sector. While frameworks like ISO 31000 do
+                not prescribe a specific tool or process, they establish common vocabulary and a
+                shared understanding of what good risk management looks like.
+              </Text>
+              <Text>
+                Many organisations maintain a risk register not only as a management tool but as
+                a compliance requirement — driven by regulatory obligations, contractual terms, or
+                internal governance policies. In these contexts, the ability to demonstrate that
+                risks have been actively reviewed and managed is as important as the risk data
+                itself.
+              </Text>
+              <Text>
+                customRisk supports this through its immutable audit trail. Every change to a risk,
+                every completed review, and every configuration update is permanently recorded.
+                This provides a verifiable record of due diligence that can support governance
+                reviews, internal audits, or regulatory enquiries.
+              </Text>
+              <Note>
+                customRisk does not assert compliance with ISO 31000 or any other specific
+                standard. It is a tool designed to support good risk management practice —
+                compliance with any particular framework depends on how it is configured and used
+                within your organisation.
+              </Note>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
+        <Accordion.Item value="risk-culture">
+          <Accordion.Control>
+            <Text fw={600}>Risk Culture</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                <Text span fw={600}>Risk culture</Text> refers to the shared values, beliefs, and
+                behaviours within an organisation that shape how people think about and respond to
+                risk. Organisations with a strong risk culture treat risk management as a
+                meaningful part of how they operate — not just an administrative obligation.
+              </Text>
+              <Text>
+                Poor risk culture often manifests as risks being added to a register and then
+                forgotten, reviews being completed perfunctorily without genuine reassessment, or
+                ownership being assigned in name only. These patterns undermine the value of the
+                risk management process regardless of how good the tooling is.
+              </Text>
+              <Text>
+                customRisk supports healthy risk culture through two mechanisms. First, ownership
+                visibility — every risk has a named owner, and overdue reviews surface prominently
+                on that person&apos;s dashboard, making accountability visible. Second, review
+                tracking — the complete history of who reviewed a risk, when, and what they said
+                creates a record that encourages meaningful engagement rather than checkbox
+                completion.
+              </Text>
+              <Tip>
+                Treat each risk review as a genuine checkpoint: does this risk still apply? Has
+                anything changed that affects its likelihood or impact? Are the mitigation actions
+                still relevant and being followed through? A review that confirms nothing has
+                changed is still a valuable review — the important thing is that it was done
+                deliberately.
+              </Tip>
             </Stack>
           </Accordion.Panel>
         </Accordion.Item>
@@ -717,6 +857,34 @@ function RegistersTab() {
           </Accordion.Panel>
         </Accordion.Item>
 
+        <Accordion.Item value="config-export-import">
+          <Accordion.Control>
+            <Text fw={600}>Configuration Export and Import</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                A register&apos;s published configuration can be exported as a JSON file from the{" "}
+                <Text span fw={600}>Configuration</Text> tab. The exported file contains the
+                complete configuration snapshot — custom fields, scoring model, risk levels, and
+                settings — and is the same format used by the Templates feature.
+              </Text>
+              <Text>
+                This exported JSON can be used as the basis for a new template. Navigate to
+                Templates, create a new template, and upload the file. From there the template can
+                be used to create new registers with the same configuration, or shared with another
+                instance of customRisk.
+              </Text>
+              <Note>
+                Importing a configuration file does not directly apply it to an existing register.
+                The import flow creates or updates a template — from which a new register can be
+                created, or from which an update can be applied to a linked register via the
+                standard draft and publish workflow.
+              </Note>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
         <Accordion.Item value="soft-delete">
           <Accordion.Control>
             <Text fw={600}>Archiving a Register</Text>
@@ -802,6 +970,91 @@ function ManagingRisksTab() {
           </Accordion.Panel>
         </Accordion.Item>
 
+        <Accordion.Item value="editing-risk">
+          <Accordion.Control>
+            <Text fw={600}>Editing a Risk</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                To edit a risk, click its row in the risk table to open the risk detail panel, then
+                click the <Text span fw={600}>Edit</Text> button. This opens the full edit form for
+                that risk.
+              </Text>
+              <Text>
+                All standard fields — title, description, likelihood, impact, owner, next review
+                date, and mitigation — are editable, as are any custom fields configured for the
+                register. Edits are subject to your permissions: Editor and Admin roles can edit
+                all fields, while Viewers cannot make changes.
+              </Text>
+              <Text>
+                Changing the likelihood or impact values will immediately recalculate the risk
+                level using the register&apos;s current scoring model. The updated risk level is
+                reflected as soon as the change is saved.
+              </Text>
+              <Note>
+                All edits are recorded in the audit trail. The previous values are captured in
+                the audit log so the full change history is always available.
+              </Note>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
+        <Accordion.Item value="deleting-risk">
+          <Accordion.Control>
+            <Text fw={600}>Deleting a Risk</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Alert icon={<IconAlertTriangle size={16} />} color="yellow" variant="light" radius="sm">
+                Deleting a risk is permanent and cannot be undone. Only register Admins and System
+                Administrators can delete risks.
+              </Alert>
+              <Text>
+                Before deletion, a full snapshot of the risk — including all its fields, scoring,
+                and review history — is recorded in the audit log. This ensures that evidence of
+                the risk&apos;s existence and management is never lost, even after the risk itself
+                has been removed.
+              </Text>
+              <Tip>
+                In most cases, closing a risk is preferable to deleting it. A closed risk remains
+                visible in the register with its full history intact, and is excluded from review
+                tracking without losing any of its information. Reserve deletion for cases where a
+                risk was created in error.
+              </Tip>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
+        <Accordion.Item value="risk-detail-panel">
+          <Accordion.Control>
+            <Text fw={600}>The Risk Detail Panel</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                Clicking any row in the risk table opens the <Text span fw={600}>risk detail panel</Text> —
+                a slide-out drawer that shows the full information for that risk without leaving the
+                register view.
+              </Text>
+              <Text>The panel displays:</Text>
+              <List spacing="xs">
+                <List.Item>All standard fields: title, description, owner, status, likelihood, impact, mitigation, and next review date</List.Item>
+                <List.Item>Any custom fields configured for the register</List.Item>
+                <List.Item>The calculated risk level, displayed with its colour indicator</List.Item>
+                <List.Item>The current review status and next review date</List.Item>
+                <List.Item>The complete review history — each entry shows who submitted the review, when, any comment left, and the next review date that was set</List.Item>
+              </List>
+              <Text>
+                From the panel you can click <Text span fw={600}>Review</Text> to submit a new
+                review, or <Text span fw={600}>Edit</Text> to open the full edit form. Close the
+                panel by clicking anywhere outside it or pressing{" "}
+                <Text span ff="monospace">Escape</Text>.
+              </Text>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
         <Accordion.Item value="risk-id">
           <Accordion.Control>
             <Text fw={600}>Risk IDs</Text>
@@ -841,6 +1094,32 @@ function ManagingRisksTab() {
                 The colour coding and thresholds for these levels are set by the register
                 administrator and should reflect your organisation&apos;s risk appetite.
               </Text>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
+        <Accordion.Item value="inherent-residual-risks">
+          <Accordion.Control>
+            <Text fw={600}>Inherent and Residual Risk</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                When a register is configured to use inherent and residual risk scoring, the risk
+                creation and edit form shows two separate scoring sections: one for the{" "}
+                <Text span fw={600}>inherent risk</Text> (before controls) and one for the{" "}
+                <Text span fw={600}>residual risk</Text> (after controls). Each section has its
+                own likelihood and impact fields, and each produces its own calculated risk level.
+              </Text>
+              <Text>
+                Both risk levels are displayed in the risk table, allowing you to see at a glance
+                both your raw exposure and your managed exposure for each risk.
+              </Text>
+              <Note>
+                Inherent and residual risk scoring is optional and is configured by the register
+                administrator. If only a single risk score is shown in the form and the risk table,
+                this mode is not enabled for your register.
+              </Note>
             </Stack>
           </Accordion.Panel>
         </Accordion.Item>
@@ -920,6 +1199,30 @@ function ManagingRisksTab() {
                 Filters are applied in combination — for example, you can filter to show only{" "}
                 <Text span fw={600}>High</Text> risks that are{" "}
                 <Text span fw={600}>overdue for review</Text>.
+              </Text>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+        <Accordion.Item value="export-csv">
+          <Accordion.Control>
+            <Text fw={600}>Exporting Risks as CSV</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                The risk table toolbar includes an <Text span fw={600}>Export</Text> button that
+                downloads the current view as a CSV file. The export respects any filters that are
+                currently active — only the risks visible in the table at the time of export are
+                included in the file.
+              </Text>
+              <Text>
+                This means you can use filters to scope your export before downloading. For
+                example, filter to show only High and Critical risks that are overdue for review,
+                then export — the CSV will contain only those risks.
+              </Text>
+              <Text>
+                The exported CSV can be opened in any spreadsheet application such as Microsoft
+                Excel or Google Sheets for offline analysis or reporting.
               </Text>
             </Stack>
           </Accordion.Panel>
@@ -1263,9 +1566,9 @@ function TemplatesTab() {
   );
 }
 
-// ─── Audit & Reporting ───────────────────────────────────────────────────────
+// ─── Audit & Export ───────────────────────────────────────────────────────────
 
-function AuditReportingTab() {
+function AuditExportTab() {
   return (
     <Stack>
       <Paper withBorder p="md" radius="sm">
@@ -1340,6 +1643,32 @@ function AuditReportingTab() {
           </Accordion.Panel>
         </Accordion.Item>
 
+        <Accordion.Item value="audit-export">
+          <Accordion.Control>
+            <Text fw={600}>Exporting Audit Data</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text>
+                The audit log supports CSV export. Use the filters to scope the audit log to the
+                events you need — by event type, user, register, or date range — then click the
+                export button to download the filtered result as a CSV file.
+              </Text>
+              <Text>
+                This is particularly useful for governance reviews and compliance reporting, where
+                you may need to provide evidence of activity over a specific period or for a
+                specific register. The exported data reflects the immutable audit record exactly
+                as it exists in the system — it cannot be edited after export.
+              </Text>
+              <Tip>
+                Apply date range and register filters before exporting to keep the output focused
+                and manageable. Exporting without filters on a large or long-running system can
+                produce a very large file.
+              </Tip>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+
         <Accordion.Item value="immutability">
           <Accordion.Control>
             <Text fw={600}>Immutability and Integrity</Text>
@@ -1374,20 +1703,23 @@ export function HelpPage() {
     <Stack>
       <Group>
         <ThemeIcon size="lg" variant="light" color="blue">
-          <IconChartBar size={20} />
+          <IconHelp size={20} />
         </ThemeIcon>
-        <Title order={1}>Help &amp; Documentation</Title>
+        <Stack gap={0}>
+          <Title order={1}>Help &amp; Documentation</Title>
+          <Text c="dimmed">Guidance on using customRisk and understanding risk management concepts.</Text>
+        </Stack>
       </Group>
 
       <Tabs defaultValue="getting-started" keepMounted={false}>
-        <Tabs.List mb="md">
+        <Tabs.List mb="md" grow>
           <Tabs.Tab value="getting-started">Getting Started</Tabs.Tab>
           <Tabs.Tab value="concepts">Risk Concepts</Tabs.Tab>
           <Tabs.Tab value="registers">Registers</Tabs.Tab>
           <Tabs.Tab value="risks">Managing Risks</Tabs.Tab>
-          <Tabs.Tab value="users">Users &amp; Permissions</Tabs.Tab>
+          <Tabs.Tab value="users">Users</Tabs.Tab>
           <Tabs.Tab value="templates">Templates</Tabs.Tab>
-          <Tabs.Tab value="audit">Audit &amp; Reporting</Tabs.Tab>
+          <Tabs.Tab value="audit">Audit &amp; Export</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="getting-started"><GettingStartedTab /></Tabs.Panel>
@@ -1396,7 +1728,7 @@ export function HelpPage() {
         <Tabs.Panel value="risks"><ManagingRisksTab /></Tabs.Panel>
         <Tabs.Panel value="users"><UsersPermissionsTab /></Tabs.Panel>
         <Tabs.Panel value="templates"><TemplatesTab /></Tabs.Panel>
-        <Tabs.Panel value="audit"><AuditReportingTab /></Tabs.Panel>
+        <Tabs.Panel value="audit"><AuditExportTab /></Tabs.Panel>
       </Tabs>
     </Stack>
   );

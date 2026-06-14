@@ -20,7 +20,15 @@ Version levels:
 ### Added
 
 - **Help page**
-  - A new Help section is accessible from the left-hand navigation, available to all users. Content is organised into six tabs: Getting Started, Risk Concepts, Registers, Managing Risks, Users & Permissions, Templates, and Audit & Reporting. Covers all major features of the application as well as high-level guidance on risk management concepts including risk lifecycle, scoring, review workflows, and the draft configuration system.
+  - A new Help section is accessible from the left-hand navigation, available to all users.
+  - Content is organised into seven tabs: Getting Started, Risk Concepts, Registers, Managing Risks, Users & Permissions, Templates, and Audit & Reporting.
+  - Getting Started covers navigation, the home dashboard, and the user profile.
+  - Risk Concepts introduces likelihood and impact scoring, inherent and residual risk, risk response strategies, the risk review lifecycle, governance and compliance context, and how to build a healthy risk culture.
+  - Registers covers creating and managing registers, register configuration (scoring, fields, settings), the draft/publish workflow, and register templates.
+  - Managing Risks covers creating and editing risks, custom fields (including multi-select and calculated types), field validation modes, risk ownership, and the My Risks view.
+  - Users & Permissions covers user roles (System Admin, Register Admin, Editor, Viewer), register-level permissions, and user account management.
+  - Templates covers creating reusable register templates, applying a template to a new register, and keeping registers in sync with template updates.
+  - Audit & Reporting covers the system and register audit logs, available filters, CSV export, and what each audit event type represents.
 
 ## [1.7.0] - 2026-06-10
 
@@ -412,7 +420,8 @@ All features in this release require `FEATURE_DRAFT_CONFIG=true`.
 ---
 
 <!-- Release links — update when tagging -->
-[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/martynjsimpson/customRisk/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/martynjsimpson/customRisk/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/martynjsimpson/customRisk/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/martynjsimpson/customRisk/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/martynjsimpson/customRisk/compare/v1.4.0...v1.5.0
