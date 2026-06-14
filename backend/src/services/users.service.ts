@@ -437,6 +437,32 @@ export async function getMyPreferences(userId: string): Promise<UpdatePreference
   return prefs as UpdatePreferencesBody;
 }
 
+export function deepMergeObjects(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...target };
+  for (const [key, value] of Object.entries(source)) {
+    const targetValue = target[key];
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      targetValue !== null &&
+      typeof targetValue === "object" &&
+      !Array.isArray(targetValue)
+    ) {
+      result[key] = deepMergeObjects(
+        targetValue as Record<string, unknown>,
+        value as Record<string, unknown>
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 export async function updateMyPreferences(actor: AuthenticatedActor, input: UpdatePreferencesBody) {
   const user = await prisma.user.findUnique({
     where: { id: actor.id },
@@ -451,22 +477,7 @@ export async function updateMyPreferences(actor: AuthenticatedActor, input: Upda
     ? user.preferences as Record<string, unknown>
     : {};
 
-  const merged: Record<string, unknown> = { ...existing };
-  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
-    const existingValue = existing[key];
-    if (
-      value !== null &&
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      existingValue !== null &&
-      typeof existingValue === "object" &&
-      !Array.isArray(existingValue)
-    ) {
-      merged[key] = { ...(existingValue as Record<string, unknown>), ...(value as Record<string, unknown>) };
-    } else {
-      merged[key] = value;
-    }
-  }
+  const merged = deepMergeObjects(existing, input as Record<string, unknown>);
 
   return prisma.$transaction(async (tx) => {
     await tx.user.update({
