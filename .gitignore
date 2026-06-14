@@ -17,3 +17,6 @@ backend/prisma/migrations/dev.db
 docs/implementation/bugs.md
 .claude/settings.json
 docs/implementation/tweaks.md
+
+# Claude
+.claude/

@@ -2,6 +2,7 @@ import { AppShell, Button, Group, NavLink, Stack, Text, Title, Tooltip } from "@
 import {
   IconBook,
   IconCopy,
+  IconHelp,
   IconHistory,
   IconHome,
   IconLayoutSidebarLeftCollapse,
@@ -145,6 +146,13 @@ export function MainLayout() {
               collapsed={collapsed}
             />
           ) : null}
+          <NavItem
+            to="/help"
+            label="Help"
+            icon={<IconHelp size={18} />}
+            active={location.pathname.startsWith("/help")}
+            collapsed={collapsed}
+          />
         </Stack>
         <Stack gap={0} pt="xs" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
           <NavItem
