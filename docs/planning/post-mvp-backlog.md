@@ -32,8 +32,8 @@ Use this file first. Use the grouped docs for execution planning. Use the origin
 | Phase | Theme | Verified status | What the code says now |
 |---:|---|---|---|
 | 0 | Post-MVP Baseline and Design Controls | Reference set | Governance docs remain useful reference material rather than active remaining work |
-| 1 | User Experience, Profile, and Preferences | Mixed | Mostly shipped; remaining gaps in session preservation, preference merge depth, and bootstrap behavior |
-| 2 | Person Identity Expansion | Mixed | Person reference model shipped; ownership and permission flow still split between new and legacy models |
+| 1 | User Experience, Profile, and Preferences | Mixed | Mostly shipped; remaining gaps in session preservation and bootstrap behavior. Preference merge depth gap closed in v1.8.0 (PM1-03). |
+| 2 | Person Identity Expansion | Mixed | Person reference model shipped; email-only risk ownership routes through PersonReference end-to-end (PM2-01, PM2-02 closed in v1.8.0). Permission flow (role/policy side) remains open. |
 | 3 | Enterprise Authentication and Account Recovery | Not started | Only a SAML feature-flag placeholder exists |
 | 4 | Configuration Lifecycle and Templates | Mostly shipped | Drafts, publish, import/export, templates, compare/apply flows exist and are feature-complete enough to treat this as near-done |
 | 5 | Advanced Field Model | Early foundation only | Custom-field lifecycle basics exist; major advanced field capabilities are absent |
