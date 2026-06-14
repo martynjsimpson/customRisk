@@ -178,6 +178,7 @@ function applyReviewFilters(where: Prisma.RiskWhereInput, query: ListRisksQuery,
 
 const riskListInclude = {
   owner: { select: { id: true, name: true, email: true } },
+  ownerPerson: { select: personReferenceSelect },
   likelihoodValue: { select: { id: true, name: true } },
   impactValue: { select: { id: true, name: true } },
   riskLevel: { select: { id: true, name: true, color: true } },
@@ -327,7 +328,8 @@ function mapRiskListItem(
     displayRiskId: risk.displayRiskId,
     title: risk.title,
     state: risk.state,
-    owner: risk.owner,
+    owner: risk.owner ?? (risk.ownerPerson ? { id: risk.ownerPerson.userId ?? risk.ownerPerson.id, name: risk.ownerPerson.displayName, email: risk.ownerPerson.email } : null),
+    ownerPerson: risk.ownerPerson ? formatPersonDisplay(risk.ownerPerson) : null,
     likelihood: risk.likelihoodValue,
     impact: risk.impactValue,
     riskScore: decimalToNumber(risk.riskScore),
@@ -774,6 +776,8 @@ export async function updateRisk(
     }
 
     let newOwnerPersonId: string | undefined;
+    let newOwnerUserId: string | null | undefined; // undefined = no change
+
     if (input.ownerUserId) {
       const owner = await tx.user.findUnique({
         where: { id: input.ownerUserId },
@@ -784,7 +788,20 @@ export async function updateRisk(
           ownerUserId: "Risk owner must be an active local user"
         });
       }
+      newOwnerUserId = input.ownerUserId;
       newOwnerPersonId = await resolvePersonInput({ type: "user", userId: input.ownerUserId }, tx);
+    } else if (input.ownerEmail) {
+      newOwnerUserId = null; // clear the user link; owner is now an unresolved person
+      newOwnerPersonId = await resolvePersonInput({ type: "email", email: input.ownerEmail }, tx);
+    }
+
+    // Guard: must not end up with both ownerUserId and ownerPersonId null
+    const resultingOwnerUserId = newOwnerUserId !== undefined ? newOwnerUserId : existing.ownerUserId;
+    const resultingOwnerPersonId = newOwnerPersonId !== undefined ? newOwnerPersonId : existing.ownerPersonId;
+    if (resultingOwnerUserId === null && resultingOwnerPersonId === null) {
+      throw new ApiError(400, "VALIDATION_ERROR", "A risk must have an owner", {
+        ownerUserId: "A risk must have an owner"
+      });
     }
 
     if (input.responseStrategyId) {
@@ -842,7 +859,7 @@ export async function updateRisk(
         title: input.title,
         description: input.description,
         state: input.state,
-        ownerUserId: input.ownerUserId,
+        ownerUserId: newOwnerUserId,
         ownerPersonId: newOwnerPersonId,
         createdDate: input.createdDate ? createdDate : undefined,
         likelihoodValueId: input.likelihoodValueId,
@@ -1082,17 +1099,25 @@ export async function createRisk(
   return prisma.$transaction(async (tx) => {
     await assertCreateRiskAccess(actor, registerId, tx);
 
-    const owner = await tx.user.findUnique({
-      where: { id: input.ownerUserId },
-      select: { id: true, isActive: true }
-    });
-    if (!owner?.isActive) {
-      throw new ApiError(400, "VALIDATION_ERROR", "Risk owner must be an active local user", {
-        ownerUserId: "Risk owner must be an active local user"
-      });
-    }
+    let resolvedOwnerUserId: string | undefined;
+    let ownerPersonId: string;
 
-    const ownerPersonId = await resolvePersonInput({ type: "user", userId: input.ownerUserId }, tx);
+    if (input.ownerUserId) {
+      const owner = await tx.user.findUnique({
+        where: { id: input.ownerUserId },
+        select: { id: true, isActive: true }
+      });
+      if (!owner?.isActive) {
+        throw new ApiError(400, "VALIDATION_ERROR", "Risk owner must be an active local user", {
+          ownerUserId: "Risk owner must be an active local user"
+        });
+      }
+      resolvedOwnerUserId = input.ownerUserId;
+      ownerPersonId = await resolvePersonInput({ type: "user", userId: input.ownerUserId }, tx);
+    } else {
+      // ownerEmail path — schema guarantees one of the two is present
+      ownerPersonId = await resolvePersonInput({ type: "email", email: input.ownerEmail! }, tx);
+    }
 
     const responseStrategy = await tx.responseStrategy.findFirst({
       where: { id: input.responseStrategyId, registerId, isActive: true },
@@ -1136,7 +1161,7 @@ export async function createRisk(
       title: input.title,
       description: input.description,
       state: input.state ?? register.defaultNewRiskState,
-      owner: { connect: { id: input.ownerUserId } },
+      ...(resolvedOwnerUserId ? { owner: { connect: { id: resolvedOwnerUserId } } } : {}),
       ownerPerson: { connect: { id: ownerPersonId } },
       createdDate,
       likelihoodValue: { connect: { id: input.likelihoodValueId } },
@@ -1177,7 +1202,7 @@ export async function createRisk(
         metadataJson: {
           title: risk.title,
           state: risk.state,
-          owner: { id: risk.owner.id, name: risk.owner.name },
+          owner: { id: risk.owner?.id ?? "", name: risk.owner?.name ?? "" },
           likelihood: { id: risk.likelihoodValue.id, name: risk.likelihoodValue.name },
           impact: { id: risk.impactValue.id, name: risk.impactValue.name },
           riskScore: decimalToNumber(risk.riskScore),

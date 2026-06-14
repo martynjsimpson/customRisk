@@ -74,7 +74,7 @@ async function getReferencedConfigurationIds(registerId: string) {
   return {
     userIds: [
       ...new Set([
-        ...risks.map((risk) => risk.ownerUserId),
+        ...risks.map((risk) => risk.ownerUserId).filter((id): id is string => Boolean(id)),
         ...customFieldValues.map((value) => value.personUserId).filter((id): id is string => Boolean(id))
       ])
     ],

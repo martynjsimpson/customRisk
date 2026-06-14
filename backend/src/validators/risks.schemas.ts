@@ -58,7 +58,8 @@ export const createRiskSchema = z
     title: z.string().trim().min(1).max(255),
     description: z.string().trim().min(1),
     state: z.enum(["DRAFT", "OPEN", "CLOSED"]).optional(),
-    ownerUserId: z.string().uuid(),
+    ownerUserId: z.string().uuid().optional(),
+    ownerEmail: z.string().email().optional(),
     createdDate: dateOnlySchema.optional(),
     likelihoodValueId: z.string().uuid(),
     impactValueId: z.string().uuid(),
@@ -67,6 +68,14 @@ export const createRiskSchema = z
     acknowledgedWarnings: z.boolean().optional(),
     customFields: z.array(riskCustomFieldValueSchema).optional(),
     customFieldValues: z.array(riskCustomFieldValueSchema).optional()
+  })
+  .refine((v) => !(v.ownerUserId && v.ownerEmail), {
+    message: "Provide ownerUserId or ownerEmail, not both",
+    path: ["ownerEmail"]
+  })
+  .refine((v) => v.ownerUserId || v.ownerEmail, {
+    message: "One of ownerUserId or ownerEmail is required",
+    path: ["ownerUserId"]
   })
   .transform((value) => ({
     ...value,
@@ -79,6 +88,7 @@ export const updateRiskSchema = z
     description: z.string().trim().min(1).optional(),
     state: z.enum(["DRAFT", "OPEN", "CLOSED"]).optional(),
     ownerUserId: z.string().uuid().optional(),
+    ownerEmail: z.string().email().optional(),
     createdDate: dateOnlySchema.optional(),
     likelihoodValueId: z.string().uuid().optional(),
     impactValueId: z.string().uuid().optional(),
@@ -87,6 +97,10 @@ export const updateRiskSchema = z
     acknowledgedWarnings: z.boolean().optional(),
     customFields: z.array(riskCustomFieldValueSchema).optional(),
     customFieldValues: z.array(riskCustomFieldValueSchema).optional()
+  })
+  .refine((v) => !(v.ownerUserId && v.ownerEmail), {
+    message: "Provide ownerUserId or ownerEmail, not both",
+    path: ["ownerEmail"]
   })
   .transform((value) => ({
     ...value,
