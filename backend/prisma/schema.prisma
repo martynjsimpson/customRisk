@@ -301,7 +301,7 @@ model Risk {
   description   String    @db.Text
   state         RiskState @default(DRAFT)
 
-  ownerUserId    String  @map("owner_user_id") @db.Uuid
+  ownerUserId    String? @map("owner_user_id") @db.Uuid
   ownerPersonId  String? @map("owner_person_id") @db.Uuid
   createdDate DateTime @map("created_date") @db.Date
 
@@ -322,7 +322,7 @@ model Risk {
   systemUpdatedByUserId String   @map("system_updated_by_user_id") @db.Uuid
 
   register         Register         @relation(fields: [registerId], references: [id], onDelete: Cascade)
-  owner            User             @relation("RiskOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  owner            User?            @relation("RiskOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   ownerPerson      PersonReference? @relation("RiskOwnerPerson", fields: [ownerPersonId], references: [id], onDelete: SetNull)
   likelihoodValue  LikelihoodValue  @relation("RiskLikelihood", fields: [likelihoodValueId], references: [id], onDelete: Restrict)
   impactValue      ImpactValue      @relation("RiskImpact", fields: [impactValueId], references: [id], onDelete: Restrict)
