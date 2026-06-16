@@ -15,6 +15,18 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-06-16
+
+### Added
+
+- **Email-only owner access (PM2-05)**
+  - Users assigned as a risk owner via email address (rather than as a registered account) now receive correct owner-level access to those risks. Previously, email-only owners were not granted the permissions their ownership implied.
+
+### Changed
+
+- **Password change: active session preserved (PM1-01)**
+  - After a user changes their password, their current session remains valid so they stay logged in. All other active sessions for that account are revoked, ensuring security without disrupting the user who made the change.
+
 ## [1.8.0] - 2026-06-14
 
 ### Added
