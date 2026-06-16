@@ -27,8 +27,11 @@ Version levels:
 - **Password change: active session preserved (PM1-01)**
   - After a user changes their password, their current session remains valid so they stay logged in. All other active sessions for that account are revoked, ensuring security without disrupting the user who made the change.
 
-- **Preference state now uses a shared query cache (PM1-05)**
-  - Changes like theme toggles apply immediately across the app without requiring a page reload.
+- **Preference updates propagate across the UI immediately (PM1-05)**
+  - Changes such as theme toggles now apply everywhere in the app without requiring a page reload.
+
+- **CI pipeline now runs on release branches**
+  - The CI workflow previously only triggered on pull requests and pushes to main, leaving release branches without automated checks. It now runs on all `release/*` branches so issues are caught earlier in the release process.
 
 ## [1.8.0] - 2026-06-14
 
