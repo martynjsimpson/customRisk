@@ -77,6 +77,22 @@ test("risks.service edit guard allows email-only owner via ownerPerson.userId", 
   assert.match(riskService, /ownerPerson:\s*\{\s*select:\s*\{\s*userId:\s*true\s*\}\s*\}/);
 });
 
+test("canEditRisk ownerPerson.userId match requires a non-null userId — null does not grant access", async () => {
+  const riskAccess = await readFile(new URL("../src/permissions/riskAccess.ts", import.meta.url), "utf8");
+
+  // The Prisma query uses `{ ownerPerson: { userId: actor.id } }` which is an equality filter.
+  // A PersonReference whose userId IS null will never satisfy `userId: actor.id` (actor.id is always
+  // a non-null UUID), so Prisma correctly excludes it without any explicit null-guard.
+  // We assert there is NO blanket `userId: null` anywhere inside canEditRisk that could allow a
+  // null-userId PersonReference to match.
+  const canEditBody = riskAccess.match(/export async function canEditRisk[\s\S]*?export async function canDeleteRisk/)?.[0] ?? "";
+  assert.doesNotMatch(canEditBody, /userId:\s*null/);
+
+  // Additionally confirm the filter uses actor.id (a live value), not a literal that could accidentally
+  // widen to include rows with a null userId.
+  assert.match(canEditBody, /ownerPerson:\s*\{\s*userId:\s*actor\.id\s*\}/);
+});
+
 test("last Register Admin and Register Viewer export permission paths are covered", async () => {
   const registerService = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
   const riskPanel = await readFile(new URL("../../frontend/src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");

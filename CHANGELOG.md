@@ -27,6 +27,9 @@ Version levels:
 - **Password change: active session preserved (PM1-01)**
   - After a user changes their password, their current session remains valid so they stay logged in. All other active sessions for that account are revoked, ensuring security without disrupting the user who made the change.
 
+- **Preference state now uses a shared query cache (PM1-05)**
+  - Changes like theme toggles apply immediately across the app without requiring a page reload.
+
 ## [1.8.0] - 2026-06-14
 
 ### Added
