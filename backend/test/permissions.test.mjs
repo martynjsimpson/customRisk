@@ -45,6 +45,38 @@ test("protected routes use hidden-resource behaviour for inaccessible register a
   assert.match(routes, /requireSystemAdmin/);
 });
 
+test("riskAccess canViewRisk and canEditRisk check ownerPerson.userId for email-only owners", async () => {
+  const riskAccess = await readFile(new URL("../src/permissions/riskAccess.ts", import.meta.url), "utf8");
+
+  // canViewRisk must include the ownerPerson.userId branch so that a user whose account
+  // email matches an email-only owner's PersonReference is granted view access.
+  const canViewBody = riskAccess.match(/export async function canViewRisk[\s\S]*?export async function canEditRisk/)?.[0] ?? "";
+  assert.match(canViewBody, /ownerPerson:\s*\{\s*userId:\s*actor\.id\s*\}/);
+
+  // canEditRisk must do the same so that email-only owners can edit their own risks.
+  const canEditBody = riskAccess.match(/export async function canEditRisk[\s\S]*?export async function canDeleteRisk/)?.[0] ?? "";
+  assert.match(canEditBody, /ownerPerson:\s*\{\s*userId:\s*actor\.id\s*\}/);
+
+  // Both functions must use OR logic to cover ownerUserId OR ownerPerson.userId.
+  assert.match(canViewBody, /OR:\s*\[/);
+  assert.match(canEditBody, /OR:\s*\[/);
+});
+
+test("risks.service edit guard allows email-only owner via ownerPerson.userId", async () => {
+  const riskService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+
+  // The edit guard must check ownerPerson?.userId against actor.id so that a user
+  // matched through a PersonReference (email-only owner) is not incorrectly denied.
+  assert.match(
+    riskService,
+    /role === "RISK_OWNER" && existing\.ownerUserId !== actor\.id && existing\.ownerPerson\?\.userId !== actor\.id/
+  );
+
+  // The shared select used by the fetch before the edit guard must include ownerPerson.userId
+  // so the guard has the data it needs to evaluate email-only ownership.
+  assert.match(riskService, /ownerPerson:\s*\{\s*select:\s*\{\s*userId:\s*true\s*\}\s*\}/);
+});
+
 test("last Register Admin and Register Viewer export permission paths are covered", async () => {
   const registerService = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
   const riskPanel = await readFile(new URL("../../frontend/src/features/risks/RiskRegisterPanel.tsx", import.meta.url), "utf8");
