@@ -50,7 +50,7 @@ function RiskTableCell({ risk, columnKey }: { risk: RiskListItem; columnKey: str
       return <Table.Td><Badge color={stateColor}>{risk.state}</Badge></Table.Td>;
     }
     case "owner":
-      return <Table.Td>{risk.owner.name}</Table.Td>;
+      return <Table.Td>{risk.owner?.name ?? "—"}</Table.Td>;
     case "likelihood":
       return <Table.Td>{risk.likelihood.name}</Table.Td>;
     case "impact":
@@ -140,7 +140,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
     () => (riskQuery.data?.data ?? []).find((risk) => risk.id === detailRiskId),
     [detailRiskId, riskQuery.data?.data]
   );
-  const canEditSelectedRisk = Boolean(canManage || (user && selectedRisk?.owner.id === user.id));
+  const canEditSelectedRisk = Boolean(canManage || (user && selectedRisk?.owner?.id === user.id));
 
   const activeCustomFields = useMemo(
     () => (formConfigQuery.data?.customFields ?? []).filter((f) => f.isActive),
@@ -254,7 +254,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         return;
       }
 
-      const canEditRequestedRisk = Boolean(canManage || (user && requestedRisk.owner.id === user.id));
+      const canEditRequestedRisk = Boolean(canManage || (user && requestedRisk.owner?.id === user.id));
 
       if (action === "review" && canEditRequestedRisk && register.reviewsEnabled) {
         setReviewRiskId(requestedRiskId);
@@ -409,10 +409,10 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                 ))}
                 <Table.Td>
                   <Group justify="flex-end" gap="xs" wrap="nowrap">
-                    {(canManage || (canEditOwnedRows && risk.owner.id === user?.id)) && register.reviewsEnabled ? (
+                    {(canManage || (canEditOwnedRows && risk.owner?.id === user?.id)) && register.reviewsEnabled ? (
                       <Button variant="subtle" size="xs" onClick={() => openReview(risk.id)}>Review</Button>
                     ) : null}
-                    {canManage || (canEditOwnedRows && risk.owner.id === user?.id) ? (
+                    {canManage || (canEditOwnedRows && risk.owner?.id === user?.id) ? (
                       <Button variant="subtle" size="xs" onClick={() => openEdit(risk.id)}>Edit</Button>
                     ) : null}
                     {isSystemAdmin ? (

@@ -36,7 +36,7 @@ test("RISK_CREATED audit event includes display ID and title in summary and init
 
   assert.match(service, /action: auditActions\.riskCreated/);
   assert.match(service, /summary: `Risk \$\{risk\.displayRiskId\} created: \$\{risk\.title\}`/);
-  assert.match(service, /owner: \{ id: risk\.owner\.id, name: risk\.owner\.name \}/);
+  assert.match(service, /owner: \{ id: risk\.owner\?\.id[^,]*, name: risk\.owner\?\.name[^}]* \}/);
   assert.match(service, /likelihood: \{ id: risk\.likelihoodValue\.id, name: risk\.likelihoodValue\.name \}/);
   assert.match(service, /impact: \{ id: risk\.impactValue\.id, name: risk\.impactValue\.name \}/);
   assert.match(service, /riskLevel: \{ id: risk\.riskLevel\.id, name: risk\.riskLevel\.name \}/);

@@ -35,7 +35,7 @@ test("frontend exposes the required MVP acceptance workflows", async () => {
   assert.match(riskPanel, /includeClosed: false/);
   assert.match(riskPanel, /canManage \? <Button onClick=\{openCreate\}>Add risk<\/Button> : null/);
   assert.match(riskPanel, /register\.effectiveRole === "REGISTER_VIEWER" && register\.allowViewerExport/);
-  assert.match(riskPanel, /risk\.owner\.id === user\?\.id/);
+  assert.match(riskPanel, /risk\.owner\?\.id === user\?\.id/);
 
   assert.match(reviewModal, /Review risk/);
   assert.match(reviewModal, /confirmed: true/);

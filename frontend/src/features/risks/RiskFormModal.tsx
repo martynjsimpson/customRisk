@@ -1,7 +1,9 @@
 import {
   Alert,
+  Badge,
   Button,
   Checkbox,
+  Combobox,
   Group,
   Loader,
   Modal,
@@ -11,7 +13,8 @@ import {
   Stack,
   Text,
   Textarea,
-  TextInput
+  TextInput,
+  useCombobox
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -43,11 +46,14 @@ interface RiskFormModalProps {
   onSuccess: () => void | Promise<void>;
 }
 
+// ownerValue stores either a user ID (when a known user is selected) or an email
+// string prefixed with "email:" (when free-text email-only mode is used).
+// The prefix avoids collision with UUIDs and is stripped before sending to the API.
 type RiskFormValues = {
   title: string;
   description: string;
   state: RiskState;
-  ownerUserId: string;
+  ownerValue: string;
   createdDate: string;
   likelihoodValueId: string;
   impactValueId: string;
@@ -66,13 +72,28 @@ function emptyValues(defaultState: RiskState): RiskFormValues {
     title: "",
     description: "",
     state: defaultState,
-    ownerUserId: "",
+    ownerValue: "",
     createdDate: todayString(),
     likelihoodValueId: "",
     impactValueId: "",
     responseStrategyId: "",
     responseAction: ""
   };
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_PREFIX = "email:";
+
+function encodeOwnerEmail(email: string): string {
+  return `${EMAIL_PREFIX}${email}`;
+}
+
+function isEncodedEmail(value: string): boolean {
+  return value.startsWith(EMAIL_PREFIX);
+}
+
+function decodeOwnerEmail(value: string): string {
+  return value.slice(EMAIL_PREFIX.length);
 }
 
 function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
@@ -108,17 +129,132 @@ function customFieldPayload(definition: CustomFieldDefinition, value: unknown) {
   }
 }
 
+// Combobox for the Risk Owner field.
+// Shows known users as dropdown options (searchable by name/email).
+// When the typed value is a valid email not matching any user, offers it as a
+// free-text "email-only" option. The value stored in the form is either:
+//   - a user UUID (when a known user is selected), or
+//   - "email:<address>" (when email-only mode is used).
+function OwnerCombobox({
+  users,
+  value,
+  onChange,
+  error
+}: {
+  users: Array<{ id: string; name: string; email: string }>;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+}) {
+  // Derive the display string from the stored form value
+  function displayFromValue(v: string): string {
+    if (!v) return "";
+    if (isEncodedEmail(v)) return decodeOwnerEmail(v);
+    const matched = users.find((u) => u.id === v);
+    return matched ? `${matched.name} (${matched.email})` : "";
+  }
+
+  const [inputValue, setInputValue] = useState(() => displayFromValue(value));
+  const combobox = useCombobox({ onDropdownClose: () => combobox.resetSelectedOption() });
+
+  // Sync when parent resets the form (e.g. modal open/close)
+  useEffect(() => {
+    setInputValue(displayFromValue(value));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const lowerInput = inputValue.trim().toLowerCase();
+
+  const matchedUsers = useMemo(() => {
+    if (!lowerInput) return users;
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(lowerInput) ||
+        u.email.toLowerCase().includes(lowerInput)
+    );
+  }, [users, lowerInput]);
+
+  const showFreeEmail =
+    EMAIL_RE.test(inputValue.trim()) &&
+    !users.some((u) => u.email.toLowerCase() === inputValue.trim().toLowerCase());
+
+  const options = matchedUsers.map((user) => (
+    <Combobox.Option key={user.id} value={user.id}>
+      <Text size="sm">
+        {user.name}
+        <Text component="span" size="xs" c="dimmed"> ({user.email})</Text>
+      </Text>
+    </Combobox.Option>
+  ));
+
+  if (showFreeEmail) {
+    options.push(
+      <Combobox.Option key="__email__" value={encodeOwnerEmail(inputValue.trim())}>
+        <Group gap="xs">
+          <Text size="sm">{inputValue.trim()}</Text>
+          <Badge size="xs" color="blue">Email only</Badge>
+        </Group>
+      </Combobox.Option>
+    );
+  }
+
+  return (
+    <Combobox
+      store={combobox}
+      onOptionSubmit={(val) => {
+        onChange(val);
+        setInputValue(displayFromValue(val));
+        combobox.closeDropdown();
+      }}
+    >
+      <Combobox.Target>
+        <TextInput
+          label="Owner *"
+          value={inputValue}
+          placeholder="Search by name or enter email"
+          error={error}
+          onChange={(event) => {
+            const next = event.currentTarget.value;
+            setInputValue(next);
+            // Clear the stored form value whenever the user edits the text,
+            // so we don't hold a stale userId/email while they're typing.
+            onChange("");
+            combobox.openDropdown();
+          }}
+          onFocus={() => {
+            if (options.length > 0) combobox.openDropdown();
+          }}
+          onBlur={() => {
+            combobox.closeDropdown();
+            // Accept a free-text email on blur if nothing was selected from the dropdown
+            const trimmed = inputValue.trim();
+            if (trimmed && EMAIL_RE.test(trimmed) && !value) {
+              const encoded = encodeOwnerEmail(trimmed);
+              onChange(encoded);
+            }
+          }}
+        />
+      </Combobox.Target>
+      {options.length > 0 && (
+        <Combobox.Dropdown>
+          <Combobox.Options>{options}</Combobox.Options>
+        </Combobox.Dropdown>
+      )}
+    </Combobox>
+  );
+}
+
 function renderCoreField({
   fieldId,
   form,
   canManage,
-  ownerOptions,
+  users,
   formConfig
 }: {
   fieldId: CoreRiskFieldId;
   form: any;
   canManage: boolean;
-  ownerOptions: Array<{ value: string; label: string }>;
+  users: Array<{ id: string; name: string; email: string }>;
   formConfig: RiskFormConfig;
 }) {
   switch (fieldId) {
@@ -140,7 +276,15 @@ function renderCoreField({
         />
       );
     case "ownerUserId":
-      return <Select key={fieldId} label="Owner" data={ownerOptions} searchable required {...form.getInputProps("ownerUserId")} />;
+      return (
+        <OwnerCombobox
+          key={fieldId}
+          users={users}
+          value={form.values.ownerValue}
+          onChange={(val) => form.setFieldValue("ownerValue", val)}
+          error={form.errors.ownerValue as string | undefined}
+        />
+      );
     case "likelihoodValueId":
       return (
         <Select
@@ -298,21 +442,24 @@ export function RiskFormModal({
       ].sort((left, right) => left.displayOrder - right.displayOrder),
     [activeCustomFields]
   );
-  const ownerOptions = useMemo(
-    () =>
-      formConfig.users.map((user) => ({
-        value: user.id,
-        label: `${user.name} (${user.email})`
-      })),
-    [formConfig.users]
-  );
-
   const warningFieldIds = useMemo(
     () => new Set(pendingWarnings.map((w) => w.fieldId)),
     [pendingWarnings]
   );
 
-  const form = useForm<RiskFormValues>({ initialValues: emptyValues(defaultState) });
+  const form = useForm<RiskFormValues>({
+    initialValues: emptyValues(defaultState),
+    validate: {
+      ownerValue: (value) => {
+        if (!value) return "Owner is required";
+        if (isEncodedEmail(value)) {
+          const email = decodeOwnerEmail(value);
+          if (!EMAIL_RE.test(email)) return "Enter a valid email address";
+        }
+        return null;
+      }
+    }
+  });
   const { setValues: setFormValues } = form;
 
   const selectedRiskQuery = useQuery({
@@ -343,11 +490,17 @@ export function RiskFormModal({
 
     if (editingRiskId && selectedRiskQuery.data) {
       const risk = selectedRiskQuery.data;
+      // Determine the ownerValue: use user ID if the owner is a resolved user,
+      // otherwise encode their email for email-only mode.
+      const ownerIsResolved = risk.ownerPerson ? risk.ownerPerson.isResolved : Boolean(risk.owner);
+      const ownerValue = ownerIsResolved
+        ? (risk.owner?.id ?? "")
+        : encodeOwnerEmail(risk.ownerPerson?.email ?? risk.owner?.email ?? "");
       setFormValues({
         title: risk.title,
         description: risk.description,
         state: risk.state,
-        ownerUserId: risk.owner.id,
+        ownerValue,
         createdDate: risk.createdDate,
         likelihoodValueId: risk.likelihood.id,
         impactValueId: risk.impact.id,
@@ -382,8 +535,15 @@ export function RiskFormModal({
     const customFields = activeCustomFields
       .map((definition) => customFieldPayload(definition, customValues[definition.id]))
       .filter((payload): payload is NonNullable<typeof payload> => payload !== null);
+
+    const { ownerValue, ...restValues } = form.values;
+    const ownerFields: Pick<SaveRiskInput, "ownerUserId" | "ownerEmail"> = isEncodedEmail(ownerValue)
+      ? { ownerEmail: decodeOwnerEmail(ownerValue) }
+      : { ownerUserId: ownerValue };
+
     return {
-      ...form.values,
+      ...restValues,
+      ...ownerFields,
       createdDate: canManage ? form.values.createdDate : undefined,
       responseAction: form.values.responseAction || null,
       ...(acknowledgedWarnings ? { acknowledgedWarnings: true } : {}),
@@ -433,7 +593,7 @@ export function RiskFormModal({
               <Stack>
                 {orderedRiskFormFields.map((field) =>
                   field.kind === "core" ? (
-                    renderCoreField({ fieldId: field.id, form, canManage, ownerOptions, formConfig })
+                    renderCoreField({ fieldId: field.id, form, canManage, users: formConfig.users, formConfig })
                   ) : (
                     <CustomFieldInput
                       key={field.id}

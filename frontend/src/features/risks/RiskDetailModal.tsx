@@ -21,7 +21,12 @@ function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[nu
     case "createdDate":
       return risk.createdDate;
     case "ownerUserId":
-      return risk.owner.name;
+      // When ownerPerson is present but unresolved, the owner was saved as an
+      // email address with no matching app user. Display the email directly.
+      if (risk.ownerPerson && !risk.ownerPerson.isResolved) {
+        return risk.ownerPerson.email;
+      }
+      return risk.owner?.name ?? "—";
     case "likelihoodValueId":
       return risk.likelihood.name;
     case "impactValueId":

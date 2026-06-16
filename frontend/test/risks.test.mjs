@@ -142,3 +142,38 @@ test("risk state badge is color-coded: OPEN blue, DRAFT gray, CLOSED dark", asyn
   // Badge receives the computed color
   assert.match(panel, /color=\{stateColor\}/);
 });
+
+test("risk owner field supports email-only mode (PM2-02)", async () => {
+  const formModal = await readFile(new URL("../src/features/risks/RiskFormModal.tsx", import.meta.url), "utf8");
+  const detailModal = await readFile(new URL("../src/features/risks/RiskDetailModal.tsx", import.meta.url), "utf8");
+  const risksApi = await readFile(new URL("../src/api/risks.api.ts", import.meta.url), "utf8");
+
+  // API type has ownerEmail as optional and ownerUserId as optional
+  assert.match(risksApi, /ownerUserId\?:\s*string/);
+  assert.match(risksApi, /ownerEmail\?:\s*string/);
+
+  // Form uses ownerValue (not ownerUserId) as the internal field name
+  assert.match(formModal, /ownerValue/);
+
+  // OwnerCombobox component is defined
+  assert.match(formModal, /OwnerCombobox/);
+
+  // Email encoding/decoding helpers exist
+  assert.match(formModal, /encodeOwnerEmail/);
+  assert.match(formModal, /decodeOwnerEmail/);
+  assert.match(formModal, /isEncodedEmail/);
+
+  // buildPayload sends ownerEmail when encoded email value is present
+  assert.match(formModal, /ownerEmail.*decodeOwnerEmail/s);
+
+  // buildPayload sends ownerUserId otherwise
+  assert.match(formModal, /ownerUserId.*ownerValue/s);
+
+  // Form validation requires ownerValue
+  assert.match(formModal, /Owner is required/);
+  assert.match(formModal, /Enter a valid email address/);
+
+  // Detail modal shows email when ownerPerson.isResolved is false
+  assert.match(detailModal, /ownerPerson\.isResolved/);
+  assert.match(detailModal, /ownerPerson\.email/);
+});
