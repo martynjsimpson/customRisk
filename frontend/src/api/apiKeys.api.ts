@@ -25,13 +25,13 @@ export interface CreateApiKeyInput {
 }
 
 export async function listApiKeys(): Promise<ApiKey[]> {
-  const response = await apiClient.get<ApiKey[]>("/admin/api-keys");
-  return response.data;
+  const response = await apiClient.get<{ data: ApiKey[] }>("/admin/api-keys");
+  return response.data.data;
 }
 
 export async function createApiKey(input: CreateApiKeyInput): Promise<ApiKeyCreated> {
-  const response = await apiClient.post<ApiKeyCreated>("/admin/api-keys", input);
-  return response.data;
+  const response = await apiClient.post<{ data: ApiKeyCreated }>("/admin/api-keys", input);
+  return response.data.data;
 }
 
 export async function revokeApiKey(id: string): Promise<void> {
