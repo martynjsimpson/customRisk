@@ -15,9 +15,18 @@ Version levels:
 
 ## [Unreleased]
 
-## [1.9.0] - 2026-06-16
+## [1.9.0] - 2026-06-17
 
 ### Added
+
+- **Audit log CSV export (PM10-10)**
+  - System Admins and Register Admins can now download a register's audit log as a CSV file. The export reflects the same filters and date range applied in the audit log view.
+
+- **API key management (PM13-01/02)**
+  - System Admins can create, list, and revoke API keys from the admin panel. Keys are user-scoped: each key is owned by a specific user and inherits that user's permissions. Keys are shown once at creation and stored as hashed values.
+
+- **Saved views (PM11-01/02)**
+  - Users can save their current filter, sort, and column visibility state as a named personal view on any risk register. Saved views are listed in the risk register toolbar and can be applied in one click to restore the exact configuration. Views are personal and not shared across accounts.
 
 - **Email-only owner access (PM2-05)**
   - Users assigned as a risk owner via email address (rather than as a registered account) now receive correct owner-level access to those risks. Previously, email-only owners were not granted the permissions their ownership implied.
