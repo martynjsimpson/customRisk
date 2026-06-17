@@ -36,4 +36,5 @@ export interface EnabledFeatures {
   attachments: boolean;
   apiKeys: boolean;
   webhooks: boolean;
+  savedViews: boolean;
 }

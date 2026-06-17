@@ -11,6 +11,7 @@ const allOff: EnabledFeatures = {
   attachments:     false,
   apiKeys:         false,
   webhooks:        false,
+  savedViews:      false,
 };
 
 export function useFeatureFlags(): EnabledFeatures {
