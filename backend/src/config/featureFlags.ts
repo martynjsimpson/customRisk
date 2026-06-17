@@ -12,6 +12,7 @@ export const featureFlags = {
   attachments:     flag("FEATURE_ATTACHMENTS"),
   apiKeys:         flag("FEATURE_API_KEYS"),
   webhooks:        flag("FEATURE_WEBHOOKS"),
+  savedViews:      flag("FEATURE_SAVED_VIEWS"),
 } as const;
 
 export type FeatureKey = keyof typeof featureFlags;
