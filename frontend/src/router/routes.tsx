@@ -12,6 +12,7 @@ import { RegisterDetailPage } from "../pages/RegisterDetailPage";
 import { RegistersPage } from "../pages/RegistersPage";
 import { TemplatesPage } from "../pages/TemplatesPage";
 import { UsersPage } from "../pages/UsersPage";
+import { ApiKeysPage } from "../pages/ApiKeysPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 
 export const router = createBrowserRouter([
@@ -53,6 +54,10 @@ export const router = createBrowserRouter([
           {
             path: "/users",
             element: <UsersPage />
+          },
+          {
+            path: "/api-keys",
+            element: <ApiKeysPage />
           },
           {
             path: "/profile",
