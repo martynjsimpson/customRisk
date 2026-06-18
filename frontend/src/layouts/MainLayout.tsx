@@ -5,6 +5,7 @@ import {
   IconHelp,
   IconHistory,
   IconHome,
+  IconKey,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
   IconLogout,
@@ -134,6 +135,15 @@ export function MainLayout() {
               label="Users"
               icon={<IconUsers size={18} />}
               active={location.pathname.startsWith("/users")}
+              collapsed={collapsed}
+            />
+          ) : null}
+          {isSystemAdmin && flags.apiKeys ? (
+            <NavItem
+              to="/api-keys"
+              label="API Keys"
+              icon={<IconKey size={18} />}
+              active={location.pathname.startsWith("/api-keys")}
               collapsed={collapsed}
             />
           ) : null}

@@ -72,6 +72,7 @@ enum AuditObjectType {
   API_KEY
   CONFIG_VERSION
   REGISTER_TEMPLATE
+  SAVED_VIEW
 }
 
 enum AuditValueType {
@@ -161,6 +162,8 @@ model User {
   apiKeysCreated ApiKey[] @relation("ApiKeyCreatedBy")
 
   exportJobs ExportJob[] @relation("ExportJobRequestedBy")
+
+  savedViews SavedView[]
 
   configVersionsCreated    RegisterConfigVersion[] @relation("ConfigVersionCreatedBy")
   templatesCreated         RegisterTemplate[]      @relation("TemplateCreatedBy")
@@ -257,6 +260,7 @@ model Register {
 
   permissions            RegisterPermission[]
   risks                  Risk[]
+  savedViews             SavedView[]
   riskReviews            RiskReview[]
   likelihoodValues       LikelihoodValue[]
   impactValues           ImpactValue[]
@@ -723,4 +727,24 @@ model RegisterTemplateVersion {
   @@unique([templateId, versionNumber])
   @@index([templateId, status])
   @@map("register_template_version")
+}
+
+model SavedView {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  registerId  String?  @map("register_id") @db.Uuid
+  name        String
+  filterJson  Json?    @map("filter_json") @db.JsonB
+  sortJson    Json?    @map("sort_json") @db.JsonB
+  columnsJson Json?    @map("columns_json") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  register Register? @relation(fields: [registerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, registerId, name])
+  @@index([userId])
+  @@index([registerId])
+  @@map("saved_view")
 }

@@ -109,6 +109,22 @@ test("password change revokes all OTHER active refresh tokens for the user", asy
   assert.match(usersService, /await revokeActiveRefreshTokens\(actor\.id, tx, excludeHash\)/);
 });
 
+test("current session token survives password change while other tokens are revoked", async () => {
+  const sessionService = await readFile(new URL("../src/services/sessionTokens.service.ts", import.meta.url), "utf8");
+
+  // When excludeTokenHash is provided the WHERE clause must include tokenHash: { not: excludeTokenHash }
+  // so the matching row (current session) is skipped and only other tokens are revoked.
+  assert.match(sessionService, /excludeTokenHash \? \{ tokenHash: \{ not: excludeTokenHash \} \} : \{\}/);
+
+  // When excludeTokenHash is absent the spread resolves to {} so ALL tokens for the user are revoked.
+  // This confirms the guard is conditional — the caller MUST supply the hash to preserve the session.
+  const spreadExpr = sessionService.match(/\.\.\.\(excludeTokenHash \? \{ tokenHash: \{ not: excludeTokenHash \} \} : \{\}\)/)?.[0];
+  assert.ok(spreadExpr, "spread expression for conditional exclusion must be present");
+
+  // The function signature must declare excludeTokenHash as optional so omitting it is valid.
+  assert.match(sessionService, /excludeTokenHash\?: string/);
+});
+
 // PM2-02 / PM2-05: Risk Owner email-only and access control via ownerPersonId
 
 test("risk access control checks ownerPerson.userId as well as ownerUserId", async () => {

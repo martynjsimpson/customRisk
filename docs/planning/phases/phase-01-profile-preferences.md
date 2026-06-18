@@ -1,6 +1,6 @@
 # Phase 1 — User Experience, Profile, and Preferences
 
-**Status:** Mixed
+**Status:** Done (closed v1.9.0)
 
 Phase goal: deliver low-risk user-facing improvements that are broadly useful before deeper enterprise and workflow features.
 
@@ -26,7 +26,7 @@ Phases 2, 4, 7, 9, 10, and 12 can all start independently once Phase 0 is done.
 
 ## PM1-01 — My Profile API
 
-**Status:** Partial
+**Status:** Done (confirmed implemented and tested in v1.9.0)
 
 **Goal:** Allow authenticated users to update their own display name and change their own password.
 
@@ -74,7 +74,7 @@ Phases 2, 4, 7, 9, 10, and 12 can all start independently once Phase 0 is done.
 
 ## PM1-03 — User Preferences API
 
-**Status:** Partial
+**Status:** Done (deep merge confirmed implemented in v1.8.0)
 
 **Goal:** Add server-side user preference storage.
 
@@ -118,7 +118,7 @@ Phases 2, 4, 7, 9, 10, and 12 can all start independently once Phase 0 is done.
 
 ## PM1-05 — User Preference Bootstrap Integration
 
-**Status:** Partial
+**Status:** Done (React Query cache confirmed implemented; behavioral tests added in v1.9.0)
 
 **Goal:** Load profile and preference data during session bootstrap without delaying protected-route rendering unnecessarily.
 

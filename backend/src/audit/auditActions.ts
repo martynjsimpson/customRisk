@@ -57,7 +57,13 @@ export const auditActions = {
   templateUpdated: "TEMPLATE_UPDATED",
   templateDeleted: "TEMPLATE_DELETED",
   registerCreatedFromTemplate: "REGISTER_CREATED_FROM_TEMPLATE",
-  registerUnlinkedFromTemplate: "REGISTER_UNLINKED_FROM_TEMPLATE"
+  registerUnlinkedFromTemplate: "REGISTER_UNLINKED_FROM_TEMPLATE",
+  apiKeyCreated: "API_KEY_CREATED",
+  apiKeyRevoked: "API_KEY_REVOKED",
+  auditExportGenerated: "AUDIT_EXPORT_GENERATED",
+  savedViewCreated: "SAVED_VIEW_CREATED",
+  savedViewUpdated: "SAVED_VIEW_UPDATED",
+  savedViewDeleted: "SAVED_VIEW_DELETED"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];

@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { useFeatureFlags } from "../../hooks/useFeatureFlags";
+import { SavedViewsPanel } from "./SavedViewsPanel";
+
 import {
   exportRisks,
   getValidationSummary,
@@ -101,6 +104,7 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isSystemAdmin } = usePermissions();
+  const flags = useFeatureFlags();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<RiskListQuery>({
     page: 1,
@@ -327,6 +331,22 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
             visibleColumns={visibleColumns}
             onChange={setColumns}
           />
+          {flags.savedViews ? (
+            <SavedViewsPanel
+              registerId={register.id}
+              currentFilters={filters}
+              currentColumns={visibleColumns}
+              onApply={(view) => {
+                if (view.filters && typeof view.filters === "object") {
+                  setFilters((current) => ({ ...current, ...(view.filters as Partial<typeof filters>) }));
+                  setPage(1);
+                }
+                if (view.columns && typeof view.columns === "object" && "columns" in view.columns) {
+                  setColumns((view.columns as { columns: string[] }).columns);
+                }
+              }}
+            />
+          ) : null}
           {canExport ? (
             <Button variant="light" onClick={() => exportMutation.mutate()} loading={exportMutation.isPending}>
               Export CSV

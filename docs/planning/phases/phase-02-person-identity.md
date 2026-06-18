@@ -1,6 +1,6 @@
 # Phase 2 — Person Identity Expansion
 
-**Status:** Mixed
+**Status:** Mostly done (PM2-01 through PM2-05 confirmed implemented and tested in v1.9.0; PM2-05 admin/audit-view deliverables remain open)
 
 Phase goal: move beyond MVP local-user-only person assignment and support unresolved email assignment, later linking, and richer person-picker behaviour.
 
@@ -61,7 +61,7 @@ Summary of the decision:
 
 ## PM2-02 — Email-Only Person Picker Backend Support
 
-**Status:** Partial
+**Status:** Done (confirmed implemented in v1.8.0 — risks.service.ts resolves ownerEmail via resolvePersonInput; Risk Owner design decision: email-only is supported)
 
 **Goal:** Allow configured person fields to accept valid email addresses that are not yet local users.
 
@@ -128,7 +128,7 @@ Summary of the decision:
 
 ## PM2-05 — Person Assignment Permission and Audit Review
 
-**Status:** Partial
+**Status:** Partially done (edit guard confirmed implemented and tested in v1.9.0 — canEditRisk checks ownerPerson.userId; admin data-quality views and full audit event coverage remain open)
 
 **Goal:** Ensure person assignment rules do not create unintended access.
 

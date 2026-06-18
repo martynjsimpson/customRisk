@@ -15,6 +15,33 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-06-17
+
+### Added
+
+- **Audit log CSV export (PM10-10)**
+  - System Admins and Register Admins can now download a register's audit log as a CSV file. The export reflects the same filters and date range applied in the audit log view.
+
+- **API key management (PM13-01/02)**
+  - System Admins can create, list, and revoke API keys from the admin panel. Keys are user-scoped: each key is owned by a specific user and inherits that user's permissions. Keys are shown once at creation and stored as hashed values.
+
+- **Saved views (PM11-01/02)**
+  - Users can save their current filter, sort, and column visibility state as a named personal view on any risk register. Saved views are listed in the risk register toolbar and can be applied in one click to restore the exact configuration. Views are personal and not shared across accounts.
+
+- **Email-only owner access (PM2-05)**
+  - Users assigned as a risk owner via email address (rather than as a registered account) now receive correct owner-level access to those risks. Previously, email-only owners were not granted the permissions their ownership implied.
+
+### Changed
+
+- **Password change: active session preserved (PM1-01)**
+  - After a user changes their password, their current session remains valid so they stay logged in. All other active sessions for that account are revoked, ensuring security without disrupting the user who made the change.
+
+- **Preference updates propagate across the UI immediately (PM1-05)**
+  - Changes such as theme toggles now apply everywhere in the app without requiring a page reload.
+
+- **CI pipeline now runs on release branches**
+  - The CI workflow previously only triggered on pull requests and pushes to main, leaving release branches without automated checks. It now runs on all `release/*` branches so issues are caught earlier in the release process.
+
 ## [1.8.0] - 2026-06-14
 
 ### Added

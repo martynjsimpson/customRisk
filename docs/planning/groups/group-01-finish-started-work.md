@@ -12,31 +12,25 @@ This group is the shortest path to reducing doc/code drift. It focuses on work t
 
 ### Phase 1 — Profile and Preferences
 
-- `PM1-01` Partial: password change calls `revokeActiveRefreshTokens` with no exclusion for the current token, so the user gets logged out immediately after changing their password. Fix: pass the current token hash down from the route and exclude it from revocation.
-- `PM1-03` Partial (latent): the backend merge is a single-level spread, so sending a partial nested object overwrites the rest. Not currently broken because the frontend always reconstructs the full `riskTableColumns` object before calling the API. Fix at the backend before adding more nested preference keys.
-- `PM1-05` Partial: bootstrap failure handling and immediate mutation updates are done. The missing deliverable is query-cache integration — preferences live in `useState` in the session context rather than a React Query cache.
+- `PM1-01` Done (v1.9.0): password change correctly excludes the current refresh token from revocation. Current session is preserved; other sessions are revoked. Test coverage confirmed.
+- `PM1-03` Done (v1.8.0): deepMergeObjects is implemented and used in updateMyPreferences. Nested preference keys are not overwritten on partial update.
+- `PM1-05` Done (v1.9.0): preferences are in the React Query cache (not useState). Bootstrap primes the cache; failures are non-fatal; mutations update in-memory state immediately. Behavioral tests added.
 
 ### Phase 2 — Person Identity
 
-- `PM2-02` Partial: the risk schema and service only accept `ownerUserId` for Risk Owner — there is no email-only input path. Custom person fields support unresolved email values; Risk Owner does not. The design decision ("whether Risk Owner can be email-only") was never made, so it was never built.
-- `PM2-05` Partial: `riskAccess.ts` and the edit guard in `risks.service.ts` both check `ownerUserId` only, never `ownerPersonId`. Safe today because PM2-02's gap means every Risk Owner has an `ownerUserId`. Will break the moment an email-only owner is supported, so this should be fixed alongside PM2-02.
+- `PM2-02` Done (v1.8.0): risks.service.ts resolves ownerEmail via resolvePersonInput on create and update. Risk Owner supports email-only input. Frontend Risk form supports email-only mode.
+- `PM2-05` Partially done (v1.9.0): canEditRisk checks ownerPerson.userId in its OR clause; null-userId PersonReference correctly denied edit access. Test coverage confirmed. Remaining open: admin data-quality views for unresolved assignments, full audit event coverage for assignment changes.
 
 ### Phase 4 — Configuration Lifecycle and Templates
 
 - Verification shows Phase 4 is effectively implemented end-to-end.
-- Use this phase mainly for polish, regression checking, and clarifying any acceptance criteria satisfied by a slightly different implementation shape than originally planned.
-
-## Recommended order inside this group
-
-1. Finish `PM2-02` and `PM2-05` together — they are coupled and must land at the same time.
-2. Finish `PM1-01` (session preservation after password change).
-3. Fix `PM1-03` backend merge depth before any new nested preference keys are added.
-4. Address `PM1-05` query-cache integration when preference complexity warrants it.
-5. Run one explicit "Phase 4 acceptance closeout" pass.
+- No further active work in this group.
 
 ## Exit condition
 
-This group is done when the shipped features no longer need caveats like "mostly works except..." in the planning index.
+Phase 1 is fully closed. Phase 2 permission/access work is closed; remaining open items from PM2-05 (admin views, audit events) are carry-forward to a later group. Phase 4 is closed.
+
+This group is effectively done as of v1.9.0.
 
 ## Note on Phase 14
 

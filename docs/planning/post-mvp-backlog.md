@@ -1,7 +1,7 @@
 # Custom Risk — Verified Post-MVP Work Index
 
-**Version:** 2.0  
-**Date:** 2026-06-08  
+**Version:** 2.1  
+**Date:** 2026-06-16  
 **Status:** Active  
 **Applies to:** Verified remaining post-MVP work after code audit  
 **Related documents:** PRD v3.2, planning phase docs, PM0 governance docs
@@ -32,8 +32,8 @@ Use this file first. Use the grouped docs for execution planning. Use the origin
 | Phase | Theme | Verified status | What the code says now |
 |---:|---|---|---|
 | 0 | Post-MVP Baseline and Design Controls | Reference set | Governance docs remain useful reference material rather than active remaining work |
-| 1 | User Experience, Profile, and Preferences | Mixed | Mostly shipped; remaining gaps in session preservation and bootstrap behavior. Preference merge depth gap closed in v1.8.0 (PM1-03). |
-| 2 | Person Identity Expansion | Mixed | Person reference model shipped; email-only risk ownership routes through PersonReference end-to-end (PM2-01, PM2-02 closed in v1.8.0). Permission flow (role/policy side) remains open. |
+| 1 | User Experience, Profile, and Preferences | Done | All tickets closed: PM1-01 (password-change session preservation), PM1-03 (deep merge), PM1-04 (dark mode), PM1-05 (React Query cache for preferences) confirmed implemented and tested in v1.9.0. PM1-02 was done at MVP. |
+| 2 | Person Identity Expansion | Mostly done | PM2-01 (PersonReference model), PM2-02 (email-only risk owner backend), PM2-03 (auto-linking), PM2-04 (person picker frontend), PM2-05 (edit guard ownerPersonId) all confirmed implemented and tested in v1.9.0. Permission flow (role/policy side, PM2-05 audit/admin views) remains open. |
 | 3 | Enterprise Authentication and Account Recovery | Not started | Only a SAML feature-flag placeholder exists |
 | 4 | Configuration Lifecycle and Templates | Mostly shipped | Drafts, publish, import/export, templates, compare/apply flows exist and are feature-complete enough to treat this as near-done |
 | 5 | Advanced Field Model | Early foundation only | Custom-field lifecycle basics exist; major advanced field capabilities are absent |

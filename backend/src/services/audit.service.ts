@@ -403,6 +403,18 @@ export async function exportSystemAuditEvents(actor: AuthenticatedActor, query: 
     orderBy: { occurredAt: "desc" }
   });
 
+  // Audit the export action itself
+  await recordAuditEvent({
+    action: "AUDIT_EXPORT_GENERATED",
+    objectType: "EXPORT",
+    objectId: actor.id,
+    objectDisplayName: "System audit export",
+    scopeType: "SYSTEM",
+    actor: { id: actor.id, name: actor.name, email: actor.email },
+    summary: `System audit log exported by ${actor.email} (${events.length} events)`,
+    metadataJson: { rowCount: events.length, filters: query }
+  });
+
   return buildCsv(EXPORT_CSV_HEADERS, events.map(eventToCsvRow));
 }
 
@@ -430,6 +442,19 @@ export async function exportRegisterAuditEvents(
     where,
     include: { fieldChanges: true },
     orderBy: { occurredAt: "desc" }
+  });
+
+  // Audit the export action itself
+  await recordAuditEvent({
+    action: "AUDIT_EXPORT_GENERATED",
+    objectType: "EXPORT",
+    objectId: actor.id,
+    objectDisplayName: `Register audit export`,
+    scopeType: "REGISTER",
+    registerId,
+    actor: { id: actor.id, name: actor.name, email: actor.email },
+    summary: `Register audit log exported by ${actor.email} (${events.length} events)`,
+    metadataJson: { rowCount: events.length, filters: query }
   });
 
   return buildCsv(EXPORT_CSV_HEADERS, events.map(eventToCsvRow));
