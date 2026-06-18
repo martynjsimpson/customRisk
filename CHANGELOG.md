@@ -15,6 +15,24 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-06-18
+
+### Fixed
+
+- **SavedViewsPanel crash on /registers (BUG-002)**
+  - The saved views panel was calling `.map()` on the API response before confirming it was an array. When the API returned an envelope object (as all list endpoints do), this threw an unhandled React error and made /registers completely unusable. The API client now reads the correct `data` property from the envelope, with an `Array.isArray` guard as a safety net.
+
+- **Profile page card styling inconsistency (UI-001)**
+  - The /profile page was the only page using a Mantine Card component, which rendered a grey background out of step with the rest of the app. Replaced with a plain Stack layout matching every other page.
+
+- **API keys table horizontal scrollbar on /profile (UI-001)**
+  - The API keys table was overflowing its container and showing a horizontal scrollbar at standard desktop width. Widened the page layout constraint so the table fits comfortably.
+
+### Added
+
+- **Password strength meter on /profile (QOL-001)**
+  - The new password field on the change-password form now shows a live strength indicator as you type — scoring weak, fair, or strong based on length, uppercase, digits, and special characters. The meter is advisory only; the form submits at any strength.
+
 ## [1.9.1] - 2026-06-18
 
 ### Fixed
