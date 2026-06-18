@@ -64,10 +64,11 @@ Source: migrated from old planning
 Request ID: REQ-001  
 Title: Finish saved views and reporting foundations so users can keep and reuse their working views  
 Type: feature  
-Status: in-active-release  
+Status: partially-done  
+Done in: v1.9.0  
 Priority: high  
 Summary: Users need reusable personal views, safer report/export behaviour, and a clearer reporting foundation instead of relying only on ad hoc table state.  
-Notes: Personal saved-view routes, UI, schema, and behavioural tests are part of the active v1.9.0 release scope. The broader reporting outcome remains partially done because report builder, charts, shared views, scheduled reports, CSV import, and export polish are not part of this release.  
+Notes: Personal saved views (filters, sort, column state) shipped in v1.9.0. Report builder, charts, shared views, scheduled reports, CSV import, and export polish remain open.  
 Derived work items: PM11-01, PM10-CORE  
 Source: migrated from old planning
 Evidence: `backend/src/services/savedViews.service.ts`, `frontend/src/features/risks/SavedViewsPanel.tsx`, `backend/test/savedViews.test.mjs`, `frontend/test/savedViews.behavior.test.tsx`
@@ -76,10 +77,11 @@ Evidence: `backend/src/services/savedViews.service.ts`, `frontend/src/features/r
 Request ID: REQ-002  
 Title: Let users and administrators manage API keys safely for integrations and offboarding  
 Type: security  
-Status: in-active-release  
+Status: partially-done  
+Done in: v1.9.0  
 Priority: high  
 Summary: The product needs safe API key creation, listing, revocation, and audit coverage without exposing secrets.  
-Notes: Admin oversight plus user self-service API key flows are part of the active v1.9.0 release scope, and this branch still has in-flight `PM13-01` changes. API key request authentication and immediate deactivated-user key-auth enforcement remain deferred as `PM13-03`.  
+Notes: User self-service and admin API key management shipped in v1.9.0 (PM13-01). Keys are inherit-user-permissions scoped. API key request authentication and deactivated-user enforcement remain deferred as PM13-03.  
 Derived work items: PM13-01, PM13-03  
 Source: migrated from old planning
 Evidence: `backend/src/services/apiKeys.service.ts`, `backend/src/routes/apiKeys.routes.ts`, `backend/src/routes/users.routes.ts`, `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `backend/test/apiKeys.test.mjs`, current worktree changes under `backend/*apiKeys*` and `frontend/*apiKeys*`
@@ -115,6 +117,7 @@ Request ID: REQ-007
 Title: Add safer import, export, and data portability workflows  
 Type: improvement  
 Status: partially-done  
+Done in: v1.9.0  
 Priority: medium  
 Summary: Operators need more complete data movement support, especially CSV import and more polished exports, without breaking permissions or auditability.  
 Notes: Risk CSV export, audit CSV export, and config bundle import/export exist, but CSV import and the broader portability workflow still remain.  
@@ -127,6 +130,7 @@ Request ID: REQ-010
 Title: Improve person-assignment administration so unresolved owners and audit gaps are visible  
 Type: improvement  
 Status: partially-done  
+Done in: v1.9.0  
 Priority: medium  
 Summary: Admins need a clean way to find unresolved person references and understand assignment changes without reopening already shipped person-reference work.  
 Notes: Core person-reference support and a system-admin unresolved-person route exist, but there is still no clear evidence of a completed admin UI or fully closed assignment-audit coverage.  
