@@ -74,6 +74,80 @@ const SAVED_VIEW = {
 // Tests
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// BUG-002 — listSavedViews crash-protection
+// ---------------------------------------------------------------------------
+
+describe("BUG-002 — listSavedViews handles non-array API responses", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not crash when API returns null — renders panel without list items", async () => {
+    const { listSavedViews } = await import("../src/api/savedViews.api");
+    const { SavedViewsPanel } = await import("../src/features/risks/SavedViewsPanel");
+
+    // Simulate a malformed API response that previously caused .map() to throw
+    (listSavedViews as ReturnType<typeof vi.fn>).mockResolvedValue(null as unknown as never);
+
+    const onApply = vi.fn();
+
+    expect(() => {
+      render(
+        <SavedViewsPanel
+          registerId="reg-1"
+          currentFilters={{ page: 1, pageSize: 25, includeClosed: false, sortBy: "riskId", sortDir: "asc", validationIssues: undefined }}
+          currentColumns={["riskId", "title"]}
+          onApply={onApply}
+        />,
+        { wrapper: Wrapper }
+      );
+    }).not.toThrow();
+  });
+
+  it("does not crash when API returns undefined", async () => {
+    const { listSavedViews } = await import("../src/api/savedViews.api");
+    const { SavedViewsPanel } = await import("../src/features/risks/SavedViewsPanel");
+
+    (listSavedViews as ReturnType<typeof vi.fn>).mockResolvedValue(undefined as unknown as never);
+
+    const onApply = vi.fn();
+
+    expect(() => {
+      render(
+        <SavedViewsPanel
+          registerId="reg-1"
+          currentFilters={{ page: 1, pageSize: 25, includeClosed: false, sortBy: "riskId", sortDir: "asc", validationIssues: undefined }}
+          currentColumns={["riskId", "title"]}
+          onApply={onApply}
+        />,
+        { wrapper: Wrapper }
+      );
+    }).not.toThrow();
+  });
+
+  it("does not crash when API returns a non-array object", async () => {
+    const { listSavedViews } = await import("../src/api/savedViews.api");
+    const { SavedViewsPanel } = await import("../src/features/risks/SavedViewsPanel");
+
+    (listSavedViews as ReturnType<typeof vi.fn>).mockResolvedValue({ error: "unexpected" } as unknown as never);
+
+    const onApply = vi.fn();
+
+    expect(() => {
+      render(
+        <SavedViewsPanel
+          registerId="reg-1"
+          currentFilters={{ page: 1, pageSize: 25, includeClosed: false, sortBy: "riskId", sortDir: "asc", validationIssues: undefined }}
+          currentColumns={["riskId", "title"]}
+          onApply={onApply}
+        />,
+        { wrapper: Wrapper }
+      );
+    }).not.toThrow();
+  });
+});
+
 describe("PM11-02 — SavedViewsPanel onApply callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
