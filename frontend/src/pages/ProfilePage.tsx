@@ -268,15 +268,13 @@ export function ProfilePage() {
         <>
           <Divider />
           <Stack gap="md">
-            <Group justify="space-between" align="center">
-              <Title order={4}>API Keys</Title>
-              <Button size="xs" onClick={startGenerate}>
-                Generate API Key
-              </Button>
-            </Group>
+            <Title order={4}>API Keys</Title>
             <Text size="sm" c="dimmed">
               API keys let you authenticate programmatic access to the API on your behalf.
             </Text>
+            <Button onClick={startGenerate} style={{ alignSelf: "flex-start" }}>
+              Generate API Key
+            </Button>
             <ApiErrorAlert error={myKeysQuery.error} fallback="Unable to load API keys" />
             <ApiErrorAlert error={revokeMutation.error} fallback="Unable to revoke API key" />
             {myKeysQuery.isLoading ? <Loader size="sm" /> : null}
@@ -395,7 +393,7 @@ export function ProfilePage() {
           <Divider />
           <Stack gap="md">
             <Title order={4}>Appearance</Title>
-            <Group justify="space-between">
+            <Group align="center">
               <Text size="sm">Colour scheme</Text>
               <SegmentedControl
                 value={colorScheme}
