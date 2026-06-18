@@ -16,9 +16,42 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
-None.
+_(no items currently in inbox)_
 
 ## Refined requests
+
+### REQ-013
+Request ID: REQ-013
+Title: Fix SavedViewsPanel crash on /registers — views.map is not a function
+Type: bug
+Status: refined
+Priority: critical
+Summary: Navigating to /registers throws an unhandled application error in SavedViewsPanel.tsx at line 85. The component calls `.map()` on `views`, but `views` is not an array at that point (likely null, undefined, or a non-array API response shape). The register page is completely unusable when this crash occurs.
+Notes: Stack trace points to SavedViewsPanel@SavedViewsPanel.tsx:85. Root cause is almost certainly a missing array guard or an API response that does not return the expected array for saved views.
+Derived work items: BUG-002
+Source: human report (direct)
+
+### REQ-014
+Request ID: REQ-014
+Title: Polish the /profile page — fix card styling and API keys table overflow
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The /profile page uses Card components with a grey background that does not match the rest of the app. The API keys table also overflows its card and produces a horizontal scrollbar at normal desktop widths. Both fixed together as a single TLC pass.
+Notes: ProfilePage.tsx is the only file in the frontend that uses Mantine Card. Table overflow root cause is the combination of outer Stack maw=520, Card padding="lg", and Table.ScrollContainer minWidth=480 against six columns.
+Derived work items: UI-001
+Source: human report (direct)
+
+### REQ-015
+Request ID: REQ-015
+Title: Add a password strength meter to the change password form on /profile
+Type: improvement
+Status: refined
+Priority: low
+Summary: The change password form on /profile gives no feedback on password strength. A live strength meter below the new password field would help users choose stronger passwords without requiring server-side enforcement.
+Notes: Mantine docs include a password strength example using Progress and Popover — no new dependency needed. Advisory only by default.
+Derived work items: QOL-001
+Source: human request (direct)
 
 ### REQ-011
 Request ID: REQ-011
