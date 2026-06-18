@@ -16,25 +16,20 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
-### REQ-011
-Request ID: REQ-011
-Title: Upgrade or align the project Node.js runtime  
-Type: maintenance  
-Status: inbox  
-Priority: medium  
-Summary: Review the project Node.js runtime policy and decide whether to tighten package engine requirements to the Node 22 toolchain already used by local, CI, and Docker runtime configuration.  
-Notes:
-- Original thought was "update Node from 20.19.41 to 25 latest."
-- Current repo evidence does not support "20.19.41" as the live runtime; it appears to be a typo or stale note.
-- `.nvmrc`, GitHub Actions, and Docker use Node 22.
-- Root `package.json` currently allows `node >=20.19`, so there is a policy mismatch between minimum supported engine and active toolchain.
-- Do not blindly target Node 25 if it is not supported or not the intended LTS target.
-- PM/DevOps should decide whether Node 22 is the required runtime or only the preferred runtime.
-- Check local dev, Docker, CI, package engines, dependencies, test tooling, and deployment assumptions before refining implementation.
-Derived work items: none yet  
-Source: human request
+None.
 
 ## Refined requests
+
+### REQ-011
+Request ID: REQ-011
+Title: Upgrade or align the project Node.js runtime
+Type: maintenance
+Status: refined
+Priority: low
+Summary: Tighten the package.json engines.node constraint from >=20.19 to >=22 to match the active toolchain already used in .nvmrc, GitHub Actions CI, and Docker. The original request referenced Node 25 and a version number that does not match the live repo state; Node 22 LTS is the correct and intended target.
+Notes: The active toolchain is already Node 22. This is a one-line engines field update, not a runtime migration. Node 25 is not an LTS release and is not targeted. Derived work item MAINT-001 captures the scoped change.
+Derived work items: MAINT-001
+Source: human request
 
 ### REQ-005
 Request ID: REQ-005  
@@ -58,7 +53,7 @@ Notes: Storage architecture is decided in ADR-0006, but the product implementati
 Derived work items: PM12-CORE  
 Source: migrated from old planning
 
-## In active release
+## Partially done
 
 ### REQ-001
 Request ID: REQ-001  
@@ -84,9 +79,7 @@ Summary: The product needs safe API key creation, listing, revocation, and audit
 Notes: User self-service and admin API key management shipped in v1.9.0 (PM13-01). Keys are inherit-user-permissions scoped. API key request authentication and deactivated-user enforcement remain deferred as PM13-03.  
 Derived work items: PM13-01, PM13-03  
 Source: migrated from old planning
-Evidence: `backend/src/services/apiKeys.service.ts`, `backend/src/routes/apiKeys.routes.ts`, `backend/src/routes/users.routes.ts`, `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `backend/test/apiKeys.test.mjs`, current worktree changes under `backend/*apiKeys*` and `frontend/*apiKeys*`
-
-## Partially done
+Evidence: `backend/src/services/apiKeys.service.ts`, `backend/src/routes/apiKeys.routes.ts`, `backend/src/routes/users.routes.ts`, `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `backend/test/apiKeys.test.mjs`
 
 ### REQ-003
 Request ID: REQ-003  

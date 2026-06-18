@@ -1,46 +1,52 @@
 # Active Release
 
-Status: released
-Version: v1.9.0
-Release type: product release
-Released: 2026-06-17
+Status: proposed
+Version: TBD
+Release type: patch
 
-## What shipped
+## Selected work items
 
-- **PM11-01** — Personal saved views (SavedView schema, backend routes under `/api/v1/registers/:id/saved-views`, `SavedViewsPanel.tsx`, frontend API client, backend + frontend tests). Feature-flagged: `FEATURE_SAVED_VIEWS`.
-- **PM13-01** — API key management baseline (ApiKey schema, admin routes at `/api/v1/admin/api-keys`, user self-service at `/api/v1/users/me/api-keys`, `ApiKeysPage.tsx`, backend + frontend tests). Feature-flagged: `FEATURE_API_KEYS`.
-- **PM10-10** — Audit log CSV export (audit controller with `Content-Disposition` CSV response, `AUDIT_EXPORT_GENERATED` event). Part of PM10-CORE scope; broader portability work remains.
-- **PM2-05** — Email-only owner access permission fix (risks.service.ts permission logic). Part of PM2-05A scope; admin UI and audit gap work remains.
-- **PM1-01 / PM1-05** — Password change preserves active session; preference updates propagate immediately. Covered by PM1-CLOSEOUT (already done).
-- **Infra** — CI pipeline now runs on `release/*` branches. Node 22 aligned across `.nvmrc`, Dockerfile, and CI.
-- **Docs** — ADR-0009 (API key scope and saved-view data model decisions).
-
-## Decisions resolved
-
-- Feature flags (`FEATURE_SAVED_VIEWS`, `FEATURE_API_KEYS`) default to `false` in `.env.local.example` — operators opt in per deployment.
-- `engines.node` constraint remains `>=20.19`; Node 22 is the active toolchain but the package constraint is not tightened.
-- PM13-03 (API key authentication hardening) remains deferred post-v1.9.0.
-
-## Sign-off
-
-- Scope approval: done
-- Implementation complete: done
-- Regression test pass: done
-- Documentation pass: done
-- Release sign-off: done — PR #96 merged, tag v1.9.0 created
-
-## Recommended follow-on candidates
-
-### Candidate A — Close adjacent security and audit gaps
-- PM13-03 — Harden API key authentication and deactivated-user enforcement
-- PM2-05A — Close remaining person-assignment admin UI and audit gaps
-
-### Candidate B — Finish the advanced field foundation
-- PM5-CORE — Finish the advanced custom-field model
-
-### Candidate C — Start the workflow expansion chain
-- PM7-CORE — Introduce child-record response actions
-- PM8-CORE — Extend MVP reviews into rule-driven review workflows
+### BUG-001 — Keep main audit screen search facets on one line at normal desktop width
+- **Type:** bug
+- **Capability:** audit-log-ui
+- **Priority:** medium
+- **Confidence:** medium
+- **Summary:** Object type filter wraps to a second row on the main audit screen at normal desktop width instead of sitting
+  inline with the other facets. User-reported defect; source issue #100.
+- **Acceptance criteria:**
+  - Search, Actor, IP Address, From date, To date, Action, and Object type all sit on one row at the agreed desktop breakpoint.
+  - Layout remains usable and readable; no overlapping labels, clipped inputs, or inaccessible controls.
+  - Any responsive fallback for narrower widths is intentional rather than leaving a single facet stranded on its own row.
+- **Key files:** `frontend/src/features/audit/AuditFilters.tsx`, `frontend/src/features/audit/AuditLogPanel.tsx`,
+  `frontend/src/pages/AuditPage.tsx`
+- **Tests:** `frontend/test/audit.test.mjs`
+- **Required agents:** Frontend Developer, Test Engineer
+- **Decisions needed:**
+  - Confirm the target desktop breakpoint or container width to treat as the normal audit-screen layout baseline before
+    implementation. The source issue does not specify a viewport width.
 
 ---
-*PM: when you open this file at the start of a planning session, update backlog.yml and requests.md with the completion metadata above, then reset this file to status: none.*
+
+## Scope rationale
+
+PM5-CORE was audited this session and confirmed to have already shipped in v1.7.0. Its implementation commits (PM5-01
+through PM5-09) are ancestors of the v1.7.0 tag. It has been marked done in backlog.yml and is not included here.
+
+This release is a single bug fix patch. MAINT-001 (Node engine constraint tightening) was originally included but has
+been deferred to a later release to keep this patch purely corrective.
+
+PM6-CORE is now fully unblocked (its only dependency, PM5-CORE, is done) but represents substantial new feature work
+and should be proposed as its own release once this patch is shipped.
+
+## Required agents (combined)
+
+- Frontend Developer (BUG-001)
+- Test Engineer (BUG-001)
+
+## Decisions needed
+
+1. **BUG-001:** Confirm the target desktop breakpoint for the audit filter bar before the Frontend Developer starts.
+2. **Version number:** To be assigned by Release Manager after human approval of this scope.
+
+---
+*PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
