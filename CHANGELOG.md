@@ -15,6 +15,13 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-06-18
+
+### Fixed
+
+- **Audit filter bar layout (BUG-001)**
+  - All seven search facets (Search, Actor, IP Address, From date, To date, Action, Object type) now sit on a single row at normal desktop width (1728 px). The Object type filter was previously wrapping onto a second row on its own.
+
 ## [1.9.0] - 2026-06-17
 
 ### Added

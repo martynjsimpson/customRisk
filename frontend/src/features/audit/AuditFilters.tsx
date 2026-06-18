@@ -104,7 +104,7 @@ interface AuditFiltersProps {
 
 export function AuditFilters({ filters, onChange }: AuditFiltersProps) {
   return (
-    <Group align="end">
+    <Group align="end" wrap="nowrap" grow>
       <TextInput
         label="Search"
         placeholder="Summary, object, or risk ID"

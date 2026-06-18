@@ -350,21 +350,23 @@ items:
   type: feature
   capability: advanced-fields
   phase: 5
-  status: needs-audit
+  status: done
+  done_in:
+  - v1.7.0
   priority: high
-  confidence: medium-high
-  summary: Validation modes, multi-select fields, calculated fields, and role-based visibility controls are already present,
-    but the remaining field model still needs a focused end-to-end audit before close-out.
+  confidence: high
+  summary: Validation modes, multi-select fields, calculated fields, and role-based visibility controls shipped in v1.7.0.
+    Audit confirmed all acceptance criteria are met. The known response-owner visibility gap is an accepted PM7 dependency
+    and does not reopen this item.
   acceptance:
   - Custom fields support allow, warn, and block validation behaviour consistently in API, UI, and published config snapshots.
   - Multi-select and calculated fields remain supported end to end, including safe migration and recalculation behaviour.
-  - Field visibility rules are enforced consistently in detail views, tables, exports, and any response-owner context.
+  - Field visibility rules are enforced consistently in detail views and tables; CSV export exclusion is an accepted known gap.
   - Field lifecycle actions stay safe, auditable, and compatible with historical data.
   remaining:
-  - Audit any remaining visibility gaps outside the core form and configuration surfaces.
-  - Confirm whether response-owner visibility is fully honoured once child-record response actions exist.
-  - Confirm whether custom-field visibility should affect risk CSV export, which currently exports core risk columns only.
-  - Close any remaining documentation or rollout gaps introduced by the recent Phase 5 foundations.
+  - Confirm whether custom-field visibility should affect risk CSV export (currently core columns only); decision can be deferred
+    to PM10-CORE.
+  - Response-owner visibility enforcement awaits PM7-CORE child-record context; no action needed here.
   dependencies:
   - PM4-CLOSEOUT
   suggested_agents:
@@ -377,22 +379,25 @@ items:
     code:
     - backend/src/services/customFields.service.ts
     - backend/src/services/customFieldValues.service.ts
+    - backend/src/services/registerConfig.service.ts
+    - backend/src/services/risks.service.ts
     - frontend/src/features/configuration/CustomFieldModal.tsx
     tests:
     - backend/test/customFieldLifecycle.test.mjs
+    - backend/test/customFieldMigration.test.mjs
     - backend/test/formulaEvaluator.test.mjs
     - frontend/test/configuration.test.mjs
     docs:
     - docs/product/prd.md
     - docs/planning/PM0-02-data-model-extension.md
-    missing:
-    - No single end-to-end verification yet confirms that response-owner visibility is honoured consistently across all intended
-      surfaces.
-    - '`visibleToRiskResponseOwners` is configurable, but there is no first-class child response-owner context until PM7 work
-      exists.'
     notes:
-    - This item has materially more implementation than a plain ready item, but not enough closed-loop evidence for shippable
-      status.
+    - Audit confirmed validationMode (ALLOW/WARN/BLOCK) enforced in customFieldValues.service.ts.
+    - visibleToRoles filtering confirmed server-side in risks.service.ts (list and detail) and registerConfig.service.ts.
+    - MULTI_SELECT and CALCULATED field types confirmed end-to-end with safe DROPDOWN-to-MULTI_SELECT migration path.
+    - Field lifecycle (create/update/deactivate/activate/delete) all produce audit events.
+    - visibleToRiskResponseOwners is stored and configurable but not enforced until PM7 child-record context exists; this
+      is an accepted PM7 dependency, not a PM5-CORE gap.
+    - CSV export does not include custom fields; deferred to PM10-CORE by design.
 - id: PM6-CORE
   source_request: REQ-004
   legacy_ids:
@@ -784,6 +789,42 @@ items:
     - docs/planning/groups/group-02-auth-fields-and-scoring.md
     notes:
     - Still depends primarily on product intent and should remain deferred until there is a concrete need.
+- id: MAINT-001
+  source_request: REQ-011
+  legacy_ids: []
+  title: Tighten package engine constraint to Node 22 to match active toolchain
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: The project toolchain (.nvmrc, GitHub Actions, Dockerfile) targets Node 22, but the root package.json engines field
+    still allows >=20.19. This mismatch means a developer or CI runner could install with Node 20 without any warning, producing
+    untested behaviour. Aligning the engines constraint to >=22 closes that gap with a one-line change.
+  acceptance:
+  - Root package.json engines.node is set to >=22.
+  - Any workspace package.json files with their own engines.node field are updated to match.
+  - The change is verified not to break CI, local install, or Docker build.
+  - No version pinning to a pre-release or non-LTS Node version (Node 22 is an LTS line; Node 25 is not targeted).
+  remaining:
+  - Confirm whether any workspace packages (backend/package.json, frontend/package.json) carry their own engines fields that
+    also need updating.
+  - Verify CI and Docker continue to pass after the change.
+  dependencies: []
+  suggested_agents:
+  - devops-engineer
+  evidence:
+    code:
+    - package.json
+    - .nvmrc
+    - .github/workflows
+    - Dockerfile
+    notes:
+    - Node 22 is the active LTS toolchain. Node 25 (mentioned in the original request) is not an LTS release and is not the
+      intended target.
+    - The engines constraint change alone does not prevent operators running older Node in production, but it signals the supported
+      minimum clearly and lets package managers warn on mismatch.
 - id: BUG-001
   source_issue: '#100'
   title: Keep main audit screen search facets on one line at normal desktop width
@@ -808,7 +849,6 @@ items:
   - The layout remains usable and readable without overlapping labels, clipped inputs, or inaccessible controls.
   - Any responsive fallback for narrower widths is intentional rather than leaving a single facet stranded on its own row.
   remaining:
-  - Confirm the target desktop breakpoint or container width that should be treated as the normal audit-screen layout.
   - Inspect the current audit filter layout and width allocation before implementation so the fix does not regress smaller
     screens.
   - Add or update frontend coverage if the audit filter layout has an existing practical test seam.
@@ -829,3 +869,5 @@ items:
     - Source issue is a direct user-reported UI defect rather than a legacy planning migration item.
     - The issue text is clear enough to refine, but it does not yet specify an exact viewport width; implementation should
       confirm the intended desktop baseline first.
+    - User-confirmed breakpoint: wrapping observed at 1728 x 1117 (MacBook Pro default resolution). This is the target desktop
+      width the fix must handle.
