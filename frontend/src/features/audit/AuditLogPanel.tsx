@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Pagination, Stack } from "@mantine/core";
+import { Alert, Box, Button, Group, Pagination, Stack } from "@mantine/core";
 import { IconDownload } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -66,8 +66,10 @@ export function AuditLogPanel({
 
   return (
     <Stack>
-      <Group justify="space-between" align="flex-end">
-        <AuditFilters filters={filters} onChange={handleFilterChange} />
+      <Group justify="space-between" align="flex-end" wrap="nowrap">
+        <Box style={{ flex: 1, minWidth: 0 }}>
+          <AuditFilters filters={filters} onChange={handleFilterChange} />
+        </Box>
         <Button
           variant="default"
           leftSection={<IconDownload size={16} />}
