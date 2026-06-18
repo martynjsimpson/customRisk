@@ -2,55 +2,92 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-test("apiKeys.api.ts exports listApiKeys, createApiKey, revokeApiKey and uses /admin/api-keys path", async () => {
+test("apiKeys.api.ts exports user-scoped and admin-scoped functions", async () => {
   const api = await readFile(
     new URL("../src/api/apiKeys.api.ts", import.meta.url),
     "utf8"
   );
 
-  assert.match(api, /listApiKeys/);
-  assert.match(api, /createApiKey/);
-  assert.match(api, /revokeApiKey/);
+  // User-scoped (own keys)
+  assert.match(api, /listMyApiKeys/);
+  assert.match(api, /createMyApiKey/);
+  // Admin-scoped (all users, read + revoke)
+  assert.match(api, /adminListApiKeys/);
+  assert.match(api, /adminRevokeApiKey/);
+  // Admin endpoints still use /admin/api-keys
   assert.match(api, /\/admin\/api-keys/);
-  // DELETE uses /:id path
   assert.match(api, /\/admin\/api-keys\/\$\{id\}/);
+  // User-scoped endpoint
+  assert.match(api, /\/users\/me\/api-keys/);
 });
 
-test("apiKeys.api.ts defines ApiKey and ApiKeyCreated interfaces with rawKey on created type only", async () => {
+test("apiKeys.api.ts defines ApiKey, AdminApiKey and ApiKeyCreated interfaces", async () => {
   const api = await readFile(
     new URL("../src/api/apiKeys.api.ts", import.meta.url),
     "utf8"
   );
 
+  assert.match(api, /interface ApiKey/);
+  assert.match(api, /interface AdminApiKey/);
   assert.match(api, /ApiKeyCreated/);
   assert.match(api, /rawKey/);
+  // AdminApiKey has nested user object with owner fields
+  assert.match(api, /user:/);
   // rawKey is ONLY on ApiKeyCreated, not on ApiKey (list item)
   const apiKeyBlockEnd = api.indexOf("export interface ApiKeyCreated");
   const apiKeyBlock = api.slice(0, apiKeyBlockEnd);
   assert.doesNotMatch(apiKeyBlock, /rawKey/);
 });
 
-test("ApiKeysPage renders table with expected columns and raw key reveal modal", async () => {
+test("ApiKeysPage is the admin audit view with Owner column and no create button", async () => {
   const page = await readFile(
     new URL("../src/pages/ApiKeysPage.tsx", import.meta.url),
     "utf8"
   );
 
-  // Table columns
+  // Table columns — includes Owner
   assert.match(page, /Name/);
   assert.match(page, /Prefix/);
+  assert.match(page, /Owner/);
   assert.match(page, /Last used/);
   assert.match(page, /Expires/);
   assert.match(page, /Status/);
 
-  // Raw key warning shown once on creation
+  // No create button or create mutation
+  assert.doesNotMatch(page, /Create API key/i);
+  assert.doesNotMatch(page, /createApiKey/);
+  assert.doesNotMatch(page, /createMyApiKey/);
+
+  // Admin oversight alert
+  assert.match(page, /admin oversight view/i);
+
+  // Revoke action still present
+  assert.match(page, /Revoke/);
+  assert.match(page, /adminRevokeApiKey/);
+});
+
+test("ProfilePage contains the API Keys section with generate and key reveal", async () => {
+  const page = await readFile(
+    new URL("../src/pages/ProfilePage.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Generate button
+  assert.match(page, /Generate API Key/);
+  // Calls user-scoped endpoints
+  assert.match(page, /createMyApiKey/);
+  assert.match(page, /listMyApiKeys/);
+  assert.match(page, /revokeMyApiKey/);
+  // Key reveal modal
   assert.match(page, /rawKey/);
   assert.match(page, /Copy this key now/);
   assert.match(page, /not be shown again/);
-
-  // Revoke action button
+  // Copy to clipboard button
+  assert.match(page, /Copy to clipboard/);
+  // Revoke per-key
   assert.match(page, /Revoke/);
-  assert.match(page, /revokeApiKey/);
+  // Gated behind apiKeys feature flag
+  assert.match(page, /flags\.apiKeys/);
 });
 
 test("ApiKeysPage is gated behind apiKeys feature flag in MainLayout nav", async () => {
@@ -74,7 +111,7 @@ test("/api-keys route is registered in the router", async () => {
   assert.match(routes, /ApiKeysPage/);
 });
 
-test("ApiKeysPage uses Table.ScrollContainer, loading state, and empty state", async () => {
+test("ApiKeysPage uses Table.ScrollContainer and loading state", async () => {
   const page = await readFile(
     new URL("../src/pages/ApiKeysPage.tsx", import.meta.url),
     "utf8"

@@ -1,39 +1,71 @@
 import { apiClient } from "./client";
 
+export type ApiKeyStatus = "active" | "expired" | "revoked";
+
 export interface ApiKey {
   id: string;
   name: string;
   keyPrefix: string;
+  status: ApiKeyStatus;
+  createdAt: string;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+}
+
+export interface AdminApiKey {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  status: ApiKeyStatus;
   createdAt: string;
   expiresAt: string | null;
   lastUsedAt: string | null;
   revokedAt: string | null;
+  user: { id: string; name: string; email: string };
+  createdBy: { id: string; name: string; email: string } | null;
 }
 
 export interface ApiKeyCreated {
   id: string;
   name: string;
   keyPrefix: string;
+  status: ApiKeyStatus;
   rawKey: string;
   createdAt: string;
   expiresAt: string | null;
+  lastUsedAt: string | null;
 }
 
-export interface CreateApiKeyInput {
+export interface CreateMyApiKeyInput {
   name: string;
   expiresAt?: string;
 }
 
-export async function listApiKeys(): Promise<ApiKey[]> {
-  const response = await apiClient.get<{ data: ApiKey[] }>("/admin/api-keys");
+// --- User-scoped endpoints (authenticated user's own keys) ---
+
+export async function listMyApiKeys(): Promise<ApiKey[]> {
+  const response = await apiClient.get<{ data: ApiKey[] }>("/users/me/api-keys");
   return response.data.data;
 }
 
-export async function createApiKey(input: CreateApiKeyInput): Promise<ApiKeyCreated> {
-  const response = await apiClient.post<{ data: ApiKeyCreated }>("/admin/api-keys", input);
+export async function createMyApiKey(input: CreateMyApiKeyInput): Promise<ApiKeyCreated> {
+  const response = await apiClient.post<{ data: ApiKeyCreated }>("/users/me/api-keys", input);
   return response.data.data;
 }
 
-export async function revokeApiKey(id: string): Promise<void> {
-  await apiClient.delete(`/admin/api-keys/${id}`);
+export async function revokeMyApiKey(id: string): Promise<ApiKey> {
+  const response = await apiClient.delete<{ data: ApiKey }>(`/users/me/api-keys/${id}`);
+  return response.data.data;
+}
+
+// --- Admin-scoped endpoints (all users, read + revoke only) ---
+
+export async function adminListApiKeys(): Promise<AdminApiKey[]> {
+  const response = await apiClient.get<{ data: AdminApiKey[] }>("/admin/api-keys");
+  return response.data.data;
+}
+
+export async function adminRevokeApiKey(id: string): Promise<AdminApiKey> {
+  const response = await apiClient.delete<{ data: AdminApiKey }>(`/admin/api-keys/${id}`);
+  return response.data.data;
 }
