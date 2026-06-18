@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.10.0
 Release type: patch
 
@@ -10,7 +10,7 @@ Ship a focused bug-fix and UI polish pass: eliminate the critical SavedViewsPane
 
 ## Selected work items
 
-### BUG-002 — Fix SavedViewsPanel crash on /registers (critical)
+### BUG-002 — Fix SavedViewsPanel crash on /registers (critical) ✓ done in v1.10.0
 Source: REQ-013  
 Capability: reporting-saved-views
 
@@ -28,7 +28,7 @@ Capability: reporting-saved-views
 
 ---
 
-### UI-001 — Polish /profile page — align card styling and fix API keys table overflow (medium)
+### UI-001 — Polish /profile page — align card styling and fix API keys table overflow (medium) ✓ done in v1.10.0
 Source: REQ-014  
 Capability: profile-preferences
 
@@ -50,7 +50,7 @@ Capability: profile-preferences
 
 ---
 
-### QOL-001 — Add password strength meter to change password form on /profile (low)
+### QOL-001 — Add password strength meter to change password form on /profile (low) ✓ done in v1.10.0
 Source: REQ-015  
 Capability: profile-preferences
 
@@ -83,13 +83,13 @@ Capability: profile-preferences
 
 ## Blockers
 
-None.
+None. Release complete.
 
 ## Test / sign-off
 
-- [ ] BUG-002: SavedViewsPanel crash scenario covered in frontend tests
-- [ ] UI-001: No visual regression; table fits at 1728×1117; no horizontal scrollbar
-- [ ] QOL-001: Strength meter renders and updates live as user types
+- [x] BUG-002: SavedViewsPanel crash scenario covered in frontend tests
+- [x] UI-001: No visual regression; table fits at 1728×1117; no horizontal scrollbar
+- [x] QOL-001: Strength meter renders and updates live as user types
 
 ---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
