@@ -122,6 +122,26 @@ test("ApiKeysPage uses Table.ScrollContainer and loading state", async () => {
   assert.match(page, /No API keys yet/);
 });
 
+test("ProfilePage contains password strength meter (QOL-001)", async () => {
+  const page = await readFile(
+    new URL("../src/pages/ProfilePage.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Strength calculation function must be present
+  assert.match(page, /getPasswordStrength/);
+  // Popover used to show strength feedback inline
+  assert.match(page, /Popover/);
+  // Progress bar renders the score
+  assert.match(page, /Progress/);
+  // Strength labels
+  assert.match(page, /Weak/);
+  assert.match(page, /Fair/);
+  assert.match(page, /Strong/);
+  // Popover only opens when new-password field has content
+  assert.match(page, /newPassword\.length > 0/);
+});
+
 test("apiKeys flag exists in EnabledFeatures contract and useFeatureFlags allOff", async () => {
   const contracts = await readFile(
     new URL("../src/api/contracts.ts", import.meta.url),

@@ -66,6 +66,18 @@ test("SavedViewsPanel exposes save current view, list views, apply, and delete",
   assert.match(panel, /IconTrash/);
 });
 
+test("listSavedViews guards against non-array API response with Array.isArray", async () => {
+  const api = await readFile(
+    new URL("../src/api/savedViews.api.ts", import.meta.url),
+    "utf8"
+  );
+
+  // The fix for BUG-002: listSavedViews must not call .map() on an unknown
+  // response shape — it must return [] when the payload is not an array.
+  assert.match(api, /Array\.isArray/);
+  assert.match(api, /\? response\.data\.data : \[\]/);
+});
+
 test("RiskRegisterPanel wires savedViews onApply to update both filters and columns", async () => {
   const panel = await readFile(
     new URL("../src/features/risks/RiskRegisterPanel.tsx", import.meta.url),

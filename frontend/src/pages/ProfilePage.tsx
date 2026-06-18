@@ -2,13 +2,14 @@ import {
   Alert,
   Badge,
   Button,
-  Card,
   Code,
   Divider,
   Group,
   Loader,
   Modal,
   PasswordInput,
+  Popover,
+  Progress,
   SegmentedControl,
   Stack,
   Table,
@@ -35,6 +36,19 @@ import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { useAuth } from "../auth/session";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import { PREFERENCES_QUERY_KEY } from "../hooks/usePreferences";
+
+function getPasswordStrength(password: string): { score: number; label: string; color: string } {
+  if (password.length === 0) return { score: 0, label: "", color: "gray" };
+  let score = 0;
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+  if (score <= 2) return { score: (score / 5) * 100, label: "Weak", color: "red" };
+  if (score <= 3) return { score: (score / 5) * 100, label: "Fair", color: "yellow" };
+  return { score: (score / 5) * 100, label: "Strong", color: "green" };
+}
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -114,6 +128,10 @@ export function ProfilePage() {
     }
   });
 
+  const [newPasswordFocused, setNewPasswordFocused] = useState(false);
+  const newPassword = passwordForm.values.newPassword;
+  const passwordStrength = getPasswordStrength(newPassword);
+
   const updateNameMutation = useMutation({
     mutationFn: (name: string) => updateMyProfile(name),
     onSuccess: () => {
@@ -144,96 +162,119 @@ export function ProfilePage() {
   }
 
   return (
-    <Stack gap="lg" maw={520}>
+    <Stack gap="lg">
       <Title order={2}>My Profile</Title>
 
-      <Card withBorder padding="lg">
-        <Stack gap="md">
-          <Title order={4}>Display Name</Title>
-          <form
-            onSubmit={nameForm.onSubmit((values) => {
-              updateNameMutation.mutate(values.name);
-            })}
-          >
-            <Stack gap="sm">
-              {updateNameMutation.error ? (
-                <ApiErrorAlert error={updateNameMutation.error} />
-              ) : null}
-              <TextInput label="Name" {...nameForm.getInputProps("name")} />
-              <Group>
-                <Button type="submit" loading={updateNameMutation.isPending}>
-                  Save name
-                </Button>
-              </Group>
-            </Stack>
-          </form>
-        </Stack>
-      </Card>
-
-      <Card withBorder padding="lg">
-        <Stack gap="md">
-          <Title order={4}>Change Password</Title>
-          <form
-            onSubmit={passwordForm.onSubmit((values) => {
-              changePasswordMutation.mutate({
-                currentPassword: values.currentPassword,
-                newPassword: values.newPassword
-              });
-            })}
-          >
-            <Stack gap="sm">
-              {changePasswordMutation.error ? (
-                <ApiErrorAlert error={changePasswordMutation.error} />
-              ) : null}
-              <PasswordInput
-                label="Current password"
-                autoComplete="current-password"
-                data-bwignore={null}
-                data-lpignore={null}
-                data-1p-ignore={null}
-                {...passwordForm.getInputProps("currentPassword")}
-              />
-              <PasswordInput
-                label="New password"
-                autoComplete="new-password"
-                data-bwignore={null}
-                data-lpignore={null}
-                data-1p-ignore={null}
-                {...passwordForm.getInputProps("newPassword")}
-              />
-              <PasswordInput
-                label="Confirm new password"
-                autoComplete="new-password"
-                data-bwignore={null}
-                data-lpignore={null}
-                data-1p-ignore={null}
-                {...passwordForm.getInputProps("confirmPassword")}
-              />
-              <Text size="xs" c="dimmed">
-                Changing your password will sign out all other active sessions.
-              </Text>
-              <Group>
-                <Button type="submit" loading={changePasswordMutation.isPending}>
-                  Change password
-                </Button>
-              </Group>
-            </Stack>
-          </form>
-        </Stack>
-      </Card>
-
-      {flags.apiKeys && (
-        <Card withBorder padding="lg">
-          <Stack gap="md">
-            <Group justify="space-between" align="center">
-              <Title order={4}>API Keys</Title>
-              <Button size="xs" onClick={startGenerate}>
-                Generate API Key
+      <Stack gap="md">
+        <Title order={4}>Display Name</Title>
+        <form
+          onSubmit={nameForm.onSubmit((values) => {
+            updateNameMutation.mutate(values.name);
+          })}
+        >
+          <Stack gap="sm" maw={400}>
+            {updateNameMutation.error ? (
+              <ApiErrorAlert error={updateNameMutation.error} />
+            ) : null}
+            <TextInput label="Name" {...nameForm.getInputProps("name")} />
+            <Group>
+              <Button type="submit" loading={updateNameMutation.isPending}>
+                Save name
               </Button>
             </Group>
+          </Stack>
+        </form>
+      </Stack>
+
+      <Divider />
+
+      <Stack gap="md">
+        <Title order={4}>Change Password</Title>
+        <form
+          onSubmit={passwordForm.onSubmit((values) => {
+            changePasswordMutation.mutate({
+              currentPassword: values.currentPassword,
+              newPassword: values.newPassword
+            });
+          })}
+        >
+          <Stack gap="sm" maw={400}>
+            {changePasswordMutation.error ? (
+              <ApiErrorAlert error={changePasswordMutation.error} />
+            ) : null}
+            <PasswordInput
+              label="Current password"
+              autoComplete="current-password"
+              data-bwignore={null}
+              data-lpignore={null}
+              data-1p-ignore={null}
+              {...passwordForm.getInputProps("currentPassword")}
+            />
+            <div
+              onFocusCapture={() => setNewPasswordFocused(true)}
+              onBlurCapture={() => setNewPasswordFocused(false)}
+            >
+              <Popover
+                opened={newPasswordFocused && newPassword.length > 0}
+                position="bottom"
+                width="target"
+                withinPortal={false}
+              >
+                <Popover.Target>
+                  <PasswordInput
+                    label="New password"
+                    autoComplete="new-password"
+                    data-bwignore={null}
+                    data-lpignore={null}
+                    data-1p-ignore={null}
+                    {...passwordForm.getInputProps("newPassword")}
+                  />
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Stack gap={4}>
+                    <Progress
+                      value={passwordStrength.score}
+                      color={passwordStrength.color}
+                      size="sm"
+                    />
+                    <Text size="xs" c="dimmed">
+                      Strength: {passwordStrength.label}
+                    </Text>
+                  </Stack>
+                </Popover.Dropdown>
+              </Popover>
+            </div>
+            <PasswordInput
+              label="Confirm new password"
+              autoComplete="new-password"
+              data-bwignore={null}
+              data-lpignore={null}
+              data-1p-ignore={null}
+              {...passwordForm.getInputProps("confirmPassword")}
+            />
+            <Text size="xs" c="dimmed">
+              Changing your password will sign out all other active sessions.
+            </Text>
+            <Group>
+              <Button type="submit" loading={changePasswordMutation.isPending}>
+                Change password
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Stack>
+
+      {flags.apiKeys && (
+        <>
+          <Divider />
+          <Stack gap="md">
+            <Title order={4}>API Keys</Title>
             <Text size="sm" c="dimmed">
               API keys let you authenticate programmatic access to the API on your behalf.
             </Text>
+            <Button onClick={startGenerate} style={{ alignSelf: "flex-start" }}>
+              Generate API Key
+            </Button>
             <ApiErrorAlert error={myKeysQuery.error} fallback="Unable to load API keys" />
             <ApiErrorAlert error={revokeMutation.error} fallback="Unable to revoke API key" />
             {myKeysQuery.isLoading ? <Loader size="sm" /> : null}
@@ -294,7 +335,7 @@ export function ProfilePage() {
               </Text>
             ) : null}
           </Stack>
-        </Card>
+        </>
       )}
 
       {/* Generate API key modal */}
@@ -348,11 +389,11 @@ export function ProfilePage() {
       </Modal>
 
       {flags.userPreferences && (
-        <Card withBorder padding="lg">
+        <>
+          <Divider />
           <Stack gap="md">
             <Title order={4}>Appearance</Title>
-            <Divider />
-            <Group justify="space-between">
+            <Group align="center">
               <Text size="sm">Colour scheme</Text>
               <SegmentedControl
                 value={colorScheme}
@@ -365,7 +406,7 @@ export function ProfilePage() {
               />
             </Group>
           </Stack>
-        </Card>
+        </>
       )}
     </Stack>
   );

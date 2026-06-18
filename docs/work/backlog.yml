@@ -831,7 +831,9 @@ items:
   type: bug
   capability: audit-log-ui
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.9.1
   priority: medium
   confidence: medium
   summary: The system audit page currently wraps the search facets onto two lines, leaving the Object type filter isolated
@@ -871,3 +873,140 @@ items:
       confirm the intended desktop baseline first.
     - User-confirmed breakpoint: wrapping observed at 1728 x 1117 (MacBook Pro default resolution). This is the target desktop
       width the fix must handle.
+- id: QOL-001
+  source_request: REQ-015
+  title: Add password strength meter to change password form on /profile
+  type: improvement
+  capability: profile-preferences
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: The new password field on the /profile change password form gives no feedback on password strength. Adding a
+    live strength meter below the new password field would help users choose stronger passwords without requiring server-side
+    policy enforcement.
+  acceptance:
+  - A password strength meter appears below the new-password field and updates live as the user types.
+  - The meter covers at least weak / fair / strong signal — exact bands to be confirmed during implementation.
+  - The meter is purely informational by default; the form submits regardless of score unless a minimum policy is explicitly
+    added.
+  - No regression to the existing change password flow or tests.
+  remaining:
+  - Check whether Mantine provides a built-in strength meter component or whether a lightweight third-party library
+    (e.g. zxcvbn) should be used. Prefer staying within the existing Mantine component set if coverage is sufficient.
+  - Decide whether to enforce a minimum strength score at submit time or keep it advisory only.
+  - Confirm the visual placement — between the new password and confirm password fields is the natural location.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/ProfilePage.tsx
+    tests:
+    - frontend/test/preferences.behavior.test.tsx
+    docs: []
+    notes:
+    - The change password form currently uses three PasswordInput fields (current, new, confirm) with no strength feedback.
+    - Mantine docs include a password strength example using Progress and Popover — this pattern can be adapted without
+      adding a new dependency if the team prefers to avoid zxcvbn.
+    - This can be bundled with UI-001 (profile page TLC) or shipped independently as it is a self-contained addition.
+- id: UI-001
+  source_request: REQ-014
+  title: Polish /profile page — align card styling and fix API keys table overflow
+  type: improvement
+  capability: profile-preferences
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The /profile page is the only page in the frontend that uses Mantine Card components. The cards render with
+    a grey background that does not match the plain Stack-based layout used everywhere else in the app. Both issues should
+    be fixed together in a single TLC pass — correct the card appearance to match the app's design language, and fix the
+    API keys table which overflows its card and produces a horizontal scrollbar at normal desktop widths.
+  observed_behaviour:
+  - Cards on /profile render with a grey background, visually inconsistent with the rest of the app.
+  - The API keys table is wider than the card content area and shows a horizontal scrollbar at normal desktop widths.
+  expected_behaviour:
+  - Cards on /profile match the app's design system — either styled correctly with the right Mantine props, or replaced
+    with the plain layout pattern used elsewhere.
+  - The API keys table fits within its container without a horizontal scrollbar at standard desktop widths.
+  acceptance:
+  - The /profile page visually matches the overall app design — no grey background card inconsistency.
+  - The API keys table renders without a horizontal scrollbar at the standard desktop breakpoint (1728x1117).
+  - All profile page functionality is unaffected — name update, password change, API key generate/revoke, colour scheme preference.
+  - No regression to existing frontend tests for profile or API keys.
+  remaining:
+  - Decide whether to keep cards (with corrected styling props) or switch to the plain Stack pattern used on other pages.
+  - Investigate the correct Mantine Card props or theme tokens to match the app's existing design system before implementing.
+  - For the table overflow — evaluate column sizing, reduce minWidth on Table.ScrollContainer, or widen the page constraint (maw=520
+    on the outer Stack may itself be too narrow given the six-column table).
+  - Consider whether the six table columns (Name, Prefix, Created, Last used, Status, Revoke) can be rationalised to fit
+    the card width more naturally, or whether the page width constraint should simply be relaxed for this section.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/ProfilePage.tsx
+    tests:
+    - frontend/test/apiKeys.behavior.test.tsx
+    - frontend/test/apiKeys.test.mjs
+    - frontend/test/preferences.behavior.test.tsx
+    docs: []
+    notes:
+    - ProfilePage.tsx is the only file in the entire frontend that uses Mantine Card — confirmed by grep across all .tsx files.
+      All other pages use plain Stack layouts.
+    - The table overflow root cause is the combination of outer Stack maw=520, Card padding="lg" (~16px per side), and
+      Table.ScrollContainer minWidth=480. Six columns including a Code-styled prefix cell push the table wider than the
+      ~488px available content width.
+    - Card withBorder and padding="lg" are the current props — the grey background is likely the default Mantine Card
+      background colour not matching the page/app surface colour. Check theme overrides or use a transparent/subtle variant.
+- id: BUG-002
+  source_request: REQ-013
+  title: Fix SavedViewsPanel crash on /registers — views.map is not a function
+  type: bug
+  capability: reporting-saved-views
+  phase: null
+  status: ready
+  priority: critical
+  confidence: high
+  summary: SavedViewsPanel.tsx calls .map() on `views` at line 85, but `views` is not an array when the crash occurs. The
+    /registers page throws an unhandled application error and becomes completely unusable. Root cause is either a missing
+    array guard around the .map() call, an API response that returns a non-array value (object, null, or error shape), or
+    a race condition where `views` is not yet initialised before the render. Fix must add a defensive guard at minimum, and
+    confirm the API response contract matches the expected array type.
+  observed_behaviour:
+  - Navigating to /registers throws "views.map is not a function" at SavedViewsPanel.tsx:85.
+  - The entire page becomes unusable due to the unhandled React error boundary.
+  expected_behaviour:
+  - SavedViewsPanel renders without error when saved views are available, empty, or still loading.
+  - If the API returns an unexpected shape, the panel degrades gracefully rather than crashing.
+  acceptance:
+  - SavedViewsPanel does not call .map() on a non-array value under any conditions (loading, empty, error, or populated).
+  - The fix is verified against both the empty-views state and the normal populated-views state.
+  - No regression to the SavedViewsPanel feature behaviour (create, apply, delete saved views) is introduced.
+  - Frontend tests cover the crash scenario (null/undefined/non-array views response).
+  remaining:
+  - Inspect SavedViewsPanel.tsx line 85 and the surrounding views fetch/initialisation code to confirm root cause.
+  - Check the savedViews API client and route handler to confirm what shape is returned on error or empty state.
+  - Add a defensive Array.isArray guard or initialise views as [] to prevent the crash.
+  - Add or update frontend tests to cover the non-array views case.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/SavedViewsPanel.tsx
+    - frontend/src/api/savedViews.api.ts
+    tests:
+    - frontend/test/savedViews.behavior.test.tsx
+    - frontend/test/savedViews.test.mjs
+    docs: []
+    notes:
+    - Stack trace: SavedViewsPanel@SavedViewsPanel.tsx:85 — confirmed crash point is the .map() call on views.
+    - This is a regression introduced with the v1.9.0 saved-views feature (PM11-01). The feature shipped but the non-array
+      edge case was not caught in testing.
+    - Fix is likely small (one guard or initialiser) but must be verified against the full saved-views UX to avoid silent regressions.

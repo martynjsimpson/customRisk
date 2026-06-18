@@ -27,8 +27,8 @@ export interface UpdateSavedViewInput {
 }
 
 export async function listSavedViews(registerId: string): Promise<SavedView[]> {
-  const response = await apiClient.get<SavedView[]>(`/registers/${registerId}/saved-views`);
-  return response.data;
+  const response = await apiClient.get<{ data: SavedView[] }>(`/registers/${registerId}/saved-views`);
+  return Array.isArray(response.data.data) ? response.data.data : [];
 }
 
 export async function createSavedView(
