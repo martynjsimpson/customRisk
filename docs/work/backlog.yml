@@ -1,0 +1,626 @@
+model_version: 1
+source: planningV3 migration
+items:
+  - id: PM1-CLOSEOUT
+    source_request: legacy-migration
+    legacy_ids: ["PM1-01", "PM1-03", "PM1-05"]
+    title: Confirm shipped profile and preferences baseline stays closed
+    type: audit
+    capability: profile-preferences
+    phase: 1
+    status: done
+    priority: low
+    confidence: high
+    summary: Phase 1 post-MVP work is already implemented and tested; keep one concise done marker so agents do not reopen it.
+    acceptance:
+      - Password change preserves the current session while revoking other refresh tokens.
+      - Preference updates deep-merge nested settings rather than overwriting them wholesale.
+      - Preference state is cached and updated consistently in the frontend.
+    remaining:
+      - No active delivery work; reopen only if regressions appear.
+    dependencies: []
+    suggested_agents: ["Product Manager", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/services/auth.service.ts
+        - frontend/src/hooks/usePreferences.ts
+      tests:
+        - backend/test/auth.test.mjs
+        - frontend/test/preferences.behavior.test.tsx
+      docs:
+        - docs/planning/post-mvp-backlog.md
+      notes:
+        - Verified as done in the current planning audit and retained only to prevent duplicate reopenings.
+
+  - id: PM4-CLOSEOUT
+    source_request: legacy-migration
+    legacy_ids: ["PM4-01", "PM4-02", "PM4-03", "PM4-04", "PM4-05", "PM4-06", "PM4-07", "PM4-08", "PM4-09", "PM4-10"]
+    title: Preserve the shipped configuration lifecycle and template baseline
+    type: audit
+    capability: config-lifecycle-templates
+    phase: 4
+    status: done
+    priority: low
+    confidence: medium-high
+    summary: Draft configuration versions, publish flows, import and export, and template operations appear feature-complete enough to treat Phase 4 as closed for normal planning.
+    acceptance:
+      - Draft configuration changes can be created, reviewed, and published without mutating the live register prematurely.
+      - Template creation, versioning, compare, and apply flows exist in product code and route structure.
+      - Config bundle import and export remain part of the supported product baseline.
+    remaining:
+      - Reopen only if later field or scoring work exposes a concrete gap.
+    dependencies: []
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Frontend Developer"]
+    evidence:
+      code:
+        - backend/src/services/configVersion.service.ts
+        - backend/src/services/template.service.ts
+      tests:
+        - backend/test/configVersion.test.mjs
+        - frontend/test/configVersion.test.mjs
+      docs:
+        - docs/planning/post-mvp-backlog.md
+        - docs/product/prd.md
+      notes:
+        - Retained as a done baseline because later work depends on it heavily.
+
+  - id: PM4-TEMPLATE-EXTENSIONS
+    source_request: REQ-012
+    legacy_ids: []
+    title: Extend the template library beyond the shipped baseline
+    type: feature
+    capability: config-lifecycle-templates
+    phase: 4
+    status: deferred
+    priority: medium
+    confidence: medium
+    summary: The current product appears to ship the core global-template baseline, but richer template-library ideas from the product extension doc are not otherwise captured in Planning V3.
+    acceptance:
+      - Template lifecycle expectations are explicit for any future deprecated or retired states, not just active versus inactive.
+      - Register creation from templates can expose richer preview metadata such as intended use, assumptions, and included configuration scope if product still wants that experience.
+      - The product has an explicit decision on whether starter/example risks belong in template-driven register creation.
+      - Any future template-local or shareable-template model is separated clearly from the current shipped global-template baseline.
+    remaining:
+      - Decide which, if any, of lifecycle states, preview content, starter risks, and register-local templates should become real roadmap scope.
+      - Confirm whether change notes and richer version metadata are needed beyond the current published-version baseline.
+      - Keep these extension ideas out of PM4-CLOSEOUT so the shipped baseline stays clearly closed.
+    dependencies:
+      - PM4-CLOSEOUT
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Frontend Developer"]
+    evidence:
+      code:
+        - backend/src/services/template.service.ts
+        - backend/src/services/registers.service.ts
+        - frontend/src/pages/TemplatesPage.tsx
+        - frontend/src/features/configuration/TemplateLinkPanel.tsx
+      tests:
+        - backend/test/configVersion.test.mjs
+        - frontend/test/configVersion.test.mjs
+      docs:
+        - docs/product/prd.md
+      missing:
+        - No current code or test evidence for starter-risk inclusion, richer template preview metadata, or explicit deprecated/retired template lifecycle behaviour.
+      notes:
+        - This item distils the still-unshipped template-library ideas so the product extension doc is no longer the only place they are captured.
+
+  - id: PM2-05A
+    source_request: REQ-010
+    legacy_ids: ["PM2-05"]
+    title: Close the remaining person-assignment admin and audit gaps
+    type: improvement
+    capability: person-identity
+    phase: 2
+    status: needs-audit
+    priority: medium
+    confidence: medium
+    summary: Core person-reference support is live, and a system-admin unresolved-person route exists, but admin usability, delete-snapshot coverage, and assignment audit readability still need a focused verification pass and likely a small follow-up change.
+    acceptance:
+      - Admin users can find unresolved person references and owner assignments without direct database inspection.
+      - Risk-owner assignment changes produce clear, non-secret audit evidence.
+      - Permission checks continue to prevent unresolved person references from gaining edit authority.
+    remaining:
+      - Decide whether the existing system-admin unresolved-person route is sufficient on its own or still needs a dedicated UI surface.
+      - Confirm whether assignment-change audit coverage is complete and readable for create, update, correction, and delete-snapshot paths.
+      - Implement the missing admin view or audit coverage only after the audit narrows the gap.
+    dependencies: []
+    suggested_agents: ["Product Manager", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/routes/persons.routes.ts
+        - backend/src/services/personReference.service.ts
+        - backend/src/permissions/riskAccess.ts
+      tests:
+        - backend/test/personReferences.test.mjs
+        - frontend/test/riskOwner.behavior.test.tsx
+      docs:
+        - docs/planning/groups/group-01-finish-started-work.md
+      notes:
+        - The backend route evidence now exists in Planning V3; old planning is only needed for optional historical context.
+        - Current code exposes `/persons/unresolved` for System Admins, but no dedicated unresolved-person frontend admin view was found in the audit.
+
+  - id: PM11-01
+    source_request: REQ-001
+    legacy_ids: ["PM11-01", "PM11-02", "PM11-03", "PM11-07"]
+    title: Ship personal saved views and tighten reporting-export foundations
+    type: feature
+    capability: reporting-saved-views
+    phase: 11
+    status: in-active-release
+    priority: high
+    confidence: medium
+    summary: Personal saved-view data model, routes, UI, and audit hooks are part of the active v1.9.0 release scope, but the feature still needs release-readiness verification, flag decisions, and a clear boundary against later shared-view/report-builder work.
+    acceptance:
+      - Users can create, list, apply, update, and delete personal saved views for filters, sort, and column state.
+      - Saved-view operations are register-scoped, permission-checked, and audited.
+      - The initial release explicitly excludes shared views, charts, scheduled reports, and report-builder scope.
+      - Exported data continues to respect permissions and matches visible filtered data.
+    remaining:
+      - Verify current feature-flag defaults and confirm whether the product is ready to expose saved views by default.
+      - Confirm release notes, docs, and test evidence for the intended v1.9.x saved-view scope.
+      - Keep report-builder, shared views, scheduled reports, charts, CSV import, and broader export polish out of v1.9.0 unless explicitly pulled into scope.
+    dependencies:
+      - PM4-CLOSEOUT
+    suggested_agents: ["Product Manager", "Backend Developer", "Frontend Developer", "Test Engineer", "Release Manager"]
+    evidence:
+      code:
+        - backend/src/services/savedViews.service.ts
+        - backend/src/routes/savedViews.routes.ts
+        - frontend/src/features/risks/SavedViewsPanel.tsx
+      tests:
+        - backend/test/savedViews.test.mjs
+        - frontend/test/savedViews.behavior.test.tsx
+        - frontend/test/savedViews.test.mjs
+      docs:
+        - docs/decisions/ADR-0009-api-key-scope-and-saved-views.md
+      missing:
+        - No clear evidence yet that the savedViews feature flag is enabled for normal release use.
+        - Risk CSV export currently exports core risk columns rather than arbitrary saved-view column state.
+      notes:
+        - Personal saved views are implemented and tested on this branch; the remaining gap is release verification and final feature-flag confirmation.
+
+  - id: PM13-01
+    source_request: REQ-002
+    legacy_ids: ["PM13-01"]
+    title: Finish and verify API key management baseline
+    type: security
+    capability: api-keys
+    phase: 13
+    status: in-progress
+    priority: high
+    confidence: medium
+    summary: Admin oversight routes plus user self-service API key routes, services, audit actions, and UI paths are part of the active v1.9.0 release scope, and the current branch still has active uncommitted PM13-01 implementation changes.
+    acceptance:
+      - Users can create, list, and revoke their own API keys without ever retrieving the raw key again after creation.
+      - System Admins can list and revoke API keys across users for oversight and offboarding.
+      - Audit logs record creation and revocation using key prefixes only and never expose raw keys or hashes.
+      - Authentication and offboarding behaviour are explicitly documented, including any deferred hardening gaps.
+    remaining:
+      - Re-audit the current branch state once the active API key changes are stable.
+      - Run backend and frontend API key regression tests before release sign-off.
+      - Keep key-based authentication hardening and deactivated-user enforcement explicitly split into follow-up PM13-03 instead of silently treating them as done here.
+      - Verify release docs and UX copy align with the accepted inherit-scope design.
+    dependencies: []
+    suggested_agents: ["Product Manager", "Backend Developer", "Frontend Developer", "Test Engineer", "Release Manager"]
+    evidence:
+      code:
+        - backend/src/services/apiKeys.service.ts
+        - backend/src/routes/apiKeys.routes.ts
+        - frontend/src/pages/ApiKeysPage.tsx
+      tests:
+        - backend/test/apiKeys.test.mjs
+        - frontend/test/apiKeys.behavior.test.tsx
+        - frontend/test/apiKeys.test.mjs
+      docs:
+        - docs/decisions/ADR-0009-api-key-scope-and-saved-views.md
+      branch_worktree:
+        - backend/src/controllers/apiKeys.controller.ts
+        - backend/src/routes/apiKeys.routes.ts
+        - backend/src/routes/index.ts
+        - backend/src/routes/users.routes.ts
+        - backend/src/services/apiKeys.service.ts
+        - backend/src/validators/apiKeys.schemas.ts
+        - backend/test/apiKeys.test.mjs
+        - frontend/src/api/apiKeys.api.ts
+        - frontend/src/pages/ApiKeysPage.tsx
+        - frontend/src/pages/ProfilePage.tsx
+        - frontend/test/apiKeys.behavior.test.tsx
+        - frontend/test/apiKeys.test.mjs
+      missing:
+        - API-key request authentication middleware is not implemented in v1.9.0 and remains PM13-03.
+        - Deactivated-user invalidation for key-auth requests is not implemented in v1.9.0 and remains PM13-03.
+      notes:
+        - Current repo state shows active v1.9.0 implementation rather than a settled audit-only candidate.
+
+  - id: PM13-03
+    source_request: REQ-002
+    legacy_ids: []
+    title: Harden API key authentication and deactivated-user enforcement
+    type: security
+    capability: api-keys
+    phase: 13
+    status: deferred
+    priority: medium
+    confidence: medium
+    summary: ADR-0009 and the current API key service both call out a remaining hardening gap around key-auth request enforcement and immediate deactivated-user invalidation; this is explicitly out of v1.9.0 unless release sign-off pulls it forward.
+    acceptance:
+      - API key request middleware verifies key-hash match, revocation state, expiry, and owning user active state on every authenticated request.
+      - Deactivating a user prevents that user's API keys from authenticating without relying on manual admin revocation.
+      - Automated tests cover revoked, expired, and deactivated-owner key-auth rejection paths.
+      - Release and security docs describe the final offboarding enforcement behaviour accurately.
+    remaining:
+      - Confirm whether v1.9.0 should ship before this hardening item or wait for it.
+      - Implement the key-auth middleware enforcement and regression tests when the follow-up is approved.
+      - Close the current documentation caveat in ADR-0009 once the hardening work is actually delivered.
+    dependencies:
+      - PM13-01
+    suggested_agents: ["Product Manager", "Backend Developer", "Test Engineer", "Release Manager"]
+    evidence:
+      code:
+        - backend/src/services/apiKeys.service.ts
+      tests:
+        - backend/test/apiKeys.test.mjs
+      docs:
+        - docs/decisions/ADR-0009-api-key-scope-and-saved-views.md
+      notes:
+        - This is a newly explicit follow-up item distilled from current code and ADR evidence so Planning V3 does not hide the known hardening gap inside PM13-01.
+        - "`backend/src/middleware/authenticate.ts` currently authenticates JWT bearer tokens, not API keys."
+
+  - id: PM5-CORE
+    source_request: REQ-003
+    legacy_ids: ["PM5-01", "PM5-02", "PM5-03", "PM5-04", "PM5-05", "PM5-06", "PM5-07", "PM5-08", "PM5-09", "PM5-10"]
+    title: Finish the advanced custom-field model
+    type: feature
+    capability: advanced-fields
+    phase: 5
+    status: needs-audit
+    priority: high
+    confidence: medium-high
+    summary: Validation modes, multi-select fields, calculated fields, and role-based visibility controls are already present, but the remaining field model still needs a focused end-to-end audit before close-out.
+    acceptance:
+      - Custom fields support allow, warn, and block validation behaviour consistently in API, UI, and published config snapshots.
+      - Multi-select and calculated fields remain supported end to end, including safe migration and recalculation behaviour.
+      - Field visibility rules are enforced consistently in detail views, tables, exports, and any response-owner context.
+      - Field lifecycle actions stay safe, auditable, and compatible with historical data.
+    remaining:
+      - Audit any remaining visibility gaps outside the core form and configuration surfaces.
+      - Confirm whether response-owner visibility is fully honoured once child-record response actions exist.
+      - Confirm whether custom-field visibility should affect risk CSV export, which currently exports core risk columns only.
+      - Close any remaining documentation or rollout gaps introduced by the recent Phase 5 foundations.
+    dependencies:
+      - PM4-CLOSEOUT
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/services/customFields.service.ts
+        - backend/src/services/customFieldValues.service.ts
+        - frontend/src/features/configuration/CustomFieldModal.tsx
+      tests:
+        - backend/test/customFieldLifecycle.test.mjs
+        - backend/test/formulaEvaluator.test.mjs
+        - frontend/test/configuration.test.mjs
+      docs:
+        - docs/product/prd.md
+        - docs/planning/PM0-02-data-model-extension.md
+      missing:
+        - No single end-to-end verification yet confirms that response-owner visibility is honoured consistently across all intended surfaces.
+        - "`visibleToRiskResponseOwners` is configurable, but there is no first-class child response-owner context until PM7 work exists."
+      notes:
+        - This item has materially more implementation than a plain ready item, but not enough closed-loop evidence for shippable status.
+
+  - id: PM6-CORE
+    source_request: REQ-004
+    legacy_ids: ["PM6-01", "PM6-02", "PM6-03", "PM6-04", "PM6-05", "PM6-06", "PM6-07", "PM6-08", "PM6-09", "PM6-10"]
+    title: Add configurable formulas and inherent-residual scoring
+    type: feature
+    capability: advanced-scoring
+    phase: 6
+    status: ready
+    priority: high
+    confidence: medium
+    summary: The current product has basic scoring, matrix, and risk-ID foundations, but it still lacks the broader scoring methodology model described in the PRD.
+    acceptance:
+      - Registers can define supported score formulas safely, with validation and recalculation controls.
+      - Registers can enable inherent and residual risk fields without breaking existing single-score registers.
+      - Residual and inherent scoring outputs are visible consistently in API, UI, and exported data where enabled.
+      - Bulk or workflow updates introduced by the scoring model remain permission-safe and auditable.
+    remaining:
+      - Finalise the scoring configuration model and migration path from fixed scoring.
+      - Define the smallest releasable inherent-residual slice before touching later residual-suggestion ideas.
+      - Confirm how much of PM6 should ship before PM11, PM10, and PM12 consume the new data model.
+    dependencies:
+      - PM5-CORE
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/services/scoring.service.ts
+        - backend/src/services/matrix.service.ts
+        - frontend/src/features/configuration/ScoringConfigurationPanel.tsx
+      tests:
+        - backend/test/riskScoring.test.mjs
+        - frontend/test/configuration.test.mjs
+      docs:
+        - docs/product/prd.md
+      notes:
+        - This item still relies on PRD and architecture intent for the missing methodology features; old phase docs are fallback only.
+
+  - id: PM6-RESIDUAL-SUGGESTIONS
+    source_request: REQ-004
+    legacy_ids: []
+    title: Use child actions as control evidence for residual risk suggestions
+    type: feature
+    capability: advanced-scoring
+    phase: 6
+    status: ready
+    priority: medium
+    confidence: medium
+    summary: Residual suggestion logic driven by child-record response actions is not implemented, and its scope was previously captured only in the product extension doc rather than in Planning V3.
+    acceptance:
+      - Registers that enable both inherent-residual scoring and child-record response actions can configure residual suggestion behaviour without forcing automatic residual updates.
+      - Suggested residual likelihood, impact, score, and level can be explained from action inputs, status/category effects, and register rules.
+      - Users who can edit residual fields may optionally apply suggested values, while users without that permission can at most view them.
+      - Audit evidence records configuration changes and user application of suggested values without requiring audit of every suggestion display.
+    remaining:
+      - Decide the smallest releasable slice for categories, status multipliers, diminishing returns, caps, and apply-suggestion UX.
+      - Confirm which parts belong in PM6 versus follow-on child-action configuration work once PM7 is real.
+      - Add concrete API and test planning only after PM6-CORE and PM7-CORE are stable enough to consume.
+    dependencies:
+      - PM6-CORE
+      - PM7-CORE
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/services/scoring.service.ts
+        - backend/src/services/reviews.service.ts
+        - frontend/src/pages/HelpPage.tsx
+      tests:
+        - backend/test/riskScoring.test.mjs
+      docs:
+        - docs/product/prd.md
+      missing:
+        - No current residual-suggestion endpoints, per-register configuration model, child-action category/status model, or apply-suggestion audit flow exists in code.
+      notes:
+        - This item preserves the distinct residual-suggestion concept without pretending that PM6-CORE or PM7-CORE already implement it.
+
+  - id: PM7-CORE
+    source_request: REQ-005
+    legacy_ids: ["PM7-01", "PM7-02", "PM7-03", "PM7-04", "PM7-05", "PM7-06", "PM7-07", "PM7-08", "PM7-09", "PM7-10", "PM7-11", "PM7-12"]
+    title: Introduce child-record response actions
+    type: feature
+    capability: child-actions
+    phase: 7
+    status: ready
+    priority: high
+    confidence: medium
+    summary: Response actions still behave like simple risk fields in the live product, so first-class action records are the main missing workflow foundation.
+    acceptance:
+      - Response actions exist as separate records with ownership, state, dates, and audit history.
+      - Actions can link to one or more risks without weakening register and risk permissions.
+      - Risk views, action views, and delete behaviour preserve traceability and last-known snapshots where required.
+      - The product clearly distinguishes simple-field mode from child-record mode during rollout or migration.
+    remaining:
+      - Define the minimum data model and permission model first.
+      - Split CRUD and UX work from migration concerns so the first release stays bounded.
+      - Confirm whether any current PRD extensions should be deferred until the core record model is stable.
+    dependencies:
+      - PM5-CORE
+      - PM6-CORE
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/prisma/schema.prisma
+        - frontend/src/features/risks/RiskFormModal.tsx
+      tests:
+        - backend/test/reviews.test.mjs
+      docs:
+        - docs/product/prd.md
+        - docs/planning/groups/group-03-actions-reviews-and-notifications.md
+      notes:
+        - This work item is intentionally distilled; the old phase doc is only needed for deeper ticket slicing.
+
+  - id: PM8-CORE
+    source_request: REQ-005
+    legacy_ids: ["PM8-01", "PM8-02", "PM8-03", "PM8-04", "PM8-05", "PM8-06", "PM8-07", "PM8-08"]
+    title: Extend MVP reviews into rule-driven review workflows
+    type: feature
+    capability: advanced-reviews
+    phase: 8
+    status: ready
+    priority: high
+    confidence: medium
+    summary: MVP review foundations exist, but the product still lacks the richer review-rule model needed for action reviews, escalations, and broader workflow automation.
+    acceptance:
+      - Review rules can target the intended objects and due-date logic without requiring manual chasing.
+      - Review outcomes, comments, and attestation evidence remain auditable and understandable to non-specialist users.
+      - Advanced reviews integrate cleanly with child actions where that model is enabled.
+    remaining:
+      - Confirm the smallest rule set that should ship first.
+      - Sequence review-rule work after the child-action model is stable enough to consume.
+      - Avoid coupling notification delivery into the first review-rule implementation unless it is essential.
+    dependencies:
+      - PM7-CORE
+    suggested_agents: ["Product Manager", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/services/reviews.service.ts
+        - frontend/src/features/risks/ReviewModal.tsx
+      tests:
+        - backend/test/reviews.test.mjs
+      docs:
+        - docs/product/prd.md
+        - docs/planning/groups/group-03-actions-reviews-and-notifications.md
+      notes:
+        - Current foundations are enough to start; old planning detail is not required for the baseline scope.
+
+  - id: PM9-CORE
+    source_request: REQ-006
+    legacy_ids: ["PM9-01", "PM9-02", "PM9-03", "PM9-04", "PM9-05", "PM9-06", "PM9-07", "PM9-08", "PM9-09"]
+    title: Add notification and reminder infrastructure
+    type: feature
+    capability: notifications
+    phase: 9
+    status: deferred
+    priority: medium
+    confidence: medium
+    summary: Notification infrastructure remains strategically important, but it should follow the action and review model rather than being pulled forward prematurely.
+    acceptance:
+      - In-app and email notification models have clear ownership, audit, and retry behaviour.
+      - Reminder and escalation behaviour maps to real workflow states, not just inferred dates.
+      - SMTP and credential handling follow the project security model.
+    remaining:
+      - Bring this forward only after PM7 and PM8 scope is stable.
+      - Decide the minimum viable notification channels before building background jobs.
+    dependencies:
+      - PM7-CORE
+      - PM8-CORE
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/config/featureFlags.ts
+        - backend/test/observability.test.mjs
+      tests:
+        - backend/test/observability.test.mjs
+      docs:
+        - docs/product/prd.md
+        - docs/planning/PM0-02-data-model-extension.md
+      notes:
+        - Still relies mostly on product and architecture docs; there is no meaningful shipped product scope yet.
+
+  - id: PM10-CORE
+    source_request: REQ-007
+    legacy_ids: ["PM10-01", "PM10-02", "PM10-03", "PM10-04", "PM10-05", "PM10-06", "PM10-07", "PM10-08", "PM10-09", "PM10-10"]
+    title: Finish practical data portability beyond the current config and CSV exports
+    type: improvement
+    capability: import-export
+    phase: 10
+    status: ready
+    priority: medium
+    confidence: medium
+    summary: Config bundle import/export plus risk and audit CSV export paths exist, but CSV import and the broader portability story still need a clean post-MVP delivery plan.
+    acceptance:
+      - Risk and audit exports remain permission-safe, auditable, and aligned with visible filtered data.
+      - CSV import can validate, map, and reject bad data safely once the field and scoring model is stable.
+      - Import and export behaviour handles custom-field and scoring complexity without silent data corruption.
+    remaining:
+      - Split near-term export polish from larger CSV import work if needed.
+      - Sequence import after PM5 and PM6 to avoid redesigning data mapping twice.
+      - Confirm whether saved-view-aware export or custom-field export belongs in a follow-up reporting item rather than v1.9.0.
+    dependencies:
+      - PM5-CORE
+      - PM6-CORE
+      - PM4-CLOSEOUT
+    suggested_agents: ["Product Manager", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/services/export.service.ts
+        - backend/src/services/configExport.service.ts
+        - backend/src/services/configImport.service.ts
+      tests:
+        - backend/test/registers.test.mjs
+      docs:
+        - docs/planning/groups/group-04-portability-reporting-and-integrations.md
+        - docs/product/prd.md
+      notes:
+        - Old phase docs may still help with CSV import edge cases, but they should not be required for normal understanding.
+        - v1.9.0 personal saved views do not make CSV export saved-view-column-aware.
+
+  - id: PM12-CORE
+    source_request: REQ-008
+    legacy_ids: ["PM12-01", "PM12-02", "PM12-03", "PM12-04", "PM12-05", "PM12-06"]
+    title: Implement attachments and evidence support on the approved storage model
+    type: feature
+    capability: attachments-evidence
+    phase: 12
+    status: ready
+    priority: medium
+    confidence: medium
+    summary: Attachment storage architecture is decided, but the product still needs upload, download, linking, permissions, audit, and cleanup behaviour.
+    acceptance:
+      - Users can upload, list, download, and soft-delete permitted attachments without exposing storage internals.
+      - Attachment links work for risks first and leave a clean path for actions and reviews.
+      - Audit records capture metadata and deletion events without storing file content.
+      - Deployment docs cover volume, backup, file-size, and MIME-type controls.
+    remaining:
+      - Decide the smallest useful attachment scope for the first release, likely risk attachments before action/review attachments.
+      - Confirm whether any schema work should wait for PM7 if action attachments are deferred.
+      - Carry ADR-0006 operational consequences into release docs when implementation starts.
+    dependencies:
+      - PM7-CORE
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Frontend Developer", "Test Engineer", "Release Manager"]
+    evidence:
+      code:
+        - backend/prisma/schema.prisma
+      tests: []
+      docs:
+        - docs/decisions/ADR-0006-attachment-storage.md
+        - docs/planning/PM0-02-data-model-extension.md
+      notes:
+        - This item is ready because the architecture direction is clear, but the product implementation has not started.
+
+  - id: PM3-CORE
+    source_request: REQ-009
+    legacy_ids: ["PM3-01", "PM3-02", "PM3-03", "PM3-04", "PM3-05", "PM3-06", "PM3-07", "PM3-08"]
+    title: Add enterprise authentication and recovery foundations
+    type: feature
+    capability: enterprise-auth
+    phase: 3
+    status: deferred
+    priority: medium
+    confidence: medium
+    summary: Enterprise authentication still matters for some customers, but current evidence suggests the product only has a placeholder feature flag rather than a near-term deliverable.
+    acceptance:
+      - The app supports the agreed enterprise auth entry point, account mapping, and failure handling.
+      - Account recovery and fallback flows are defined for supported deployment modes.
+      - Audit and permission behaviour remain consistent across local and enterprise-auth users.
+    remaining:
+      - Reconfirm commercial priority before active design or implementation.
+      - Choose the first supported auth pattern explicitly instead of leaving scope abstract.
+    dependencies: []
+    suggested_agents: ["Product Manager", "Principal Architect", "Backend Developer", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - backend/src/config/featureFlags.ts
+        - frontend/src/hooks/useFeatureFlags.ts
+      tests: []
+      docs:
+        - docs/product/prd.md
+        - docs/planning/groups/group-02-auth-fields-and-scoring.md
+      notes:
+        - Still depends primarily on product intent and should remain deferred until there is a concrete need.
+
+  - id: BUG-001
+    source_issue: "#100"
+    title: Keep main audit screen search facets on one line at normal desktop width
+    type: bug
+    capability: audit-log-ui
+    phase: null
+    status: ready
+    priority: medium
+    confidence: medium
+    summary: The system audit page currently wraps the search facets onto two lines, leaving the Object type filter isolated on its own row instead of preserving a single-row filter bar.
+    observed_behaviour:
+      - On the main audit screen, the Search, Actor, IP Address, From date, To date, Action, and Object type facets do not fit on one row.
+      - The Object type facet wraps onto a second line on its own, making the filter bar look broken and less scannable.
+    expected_behaviour:
+      - On the main audit screen, the core search facets should sit on one line at the intended normal desktop layout width.
+      - The filter bar should preserve readable labels and usable inputs without isolating Object type on a separate row.
+    acceptance:
+      - The main audit screen keeps Search, Actor, IP Address, From date, To date, Action, and Object type on a single row at the agreed standard desktop breakpoint.
+      - The layout remains usable and readable without overlapping labels, clipped inputs, or inaccessible controls.
+      - Any responsive fallback for narrower widths is intentional rather than leaving a single facet stranded on its own row.
+    remaining:
+      - Confirm the target desktop breakpoint or container width that should be treated as the normal audit-screen layout.
+      - Inspect the current audit filter layout and width allocation before implementation so the fix does not regress smaller screens.
+      - Add or update frontend coverage if the audit filter layout has an existing practical test seam.
+    dependencies: []
+    suggested_agents: ["Product Manager", "Frontend Developer", "Test Engineer"]
+    evidence:
+      code:
+        - frontend/src/features/audit/AuditFilters.tsx
+        - frontend/src/features/audit/AuditLogPanel.tsx
+        - frontend/src/pages/AuditPage.tsx
+      tests:
+        - frontend/test/audit.test.mjs
+      docs: []
+      notes:
+        - Source issue is a direct user-reported UI defect rather than a legacy planning migration item.
+        - The issue text is clear enough to refine, but it does not yet specify an exact viewport width; implementation should confirm the intended desktop baseline first.
