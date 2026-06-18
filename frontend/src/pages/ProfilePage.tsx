@@ -128,6 +128,7 @@ export function ProfilePage() {
     }
   });
 
+  const [newPasswordFocused, setNewPasswordFocused] = useState(false);
   const newPassword = passwordForm.values.newPassword;
   const passwordStrength = getPasswordStrength(newPassword);
 
@@ -161,7 +162,7 @@ export function ProfilePage() {
   }
 
   return (
-    <Stack gap="lg" maw={900}>
+    <Stack gap="lg">
       <Title order={2}>My Profile</Title>
 
       <Stack gap="md">
@@ -171,7 +172,7 @@ export function ProfilePage() {
             updateNameMutation.mutate(values.name);
           })}
         >
-          <Stack gap="sm">
+          <Stack gap="sm" maw={400}>
             {updateNameMutation.error ? (
               <ApiErrorAlert error={updateNameMutation.error} />
             ) : null}
@@ -197,7 +198,7 @@ export function ProfilePage() {
             });
           })}
         >
-          <Stack gap="sm">
+          <Stack gap="sm" maw={400}>
             {changePasswordMutation.error ? (
               <ApiErrorAlert error={changePasswordMutation.error} />
             ) : null}
@@ -209,35 +210,40 @@ export function ProfilePage() {
               data-1p-ignore={null}
               {...passwordForm.getInputProps("currentPassword")}
             />
-            <Popover
-              opened={newPassword.length > 0}
-              position="bottom"
-              width="target"
-              withinPortal={false}
+            <div
+              onFocusCapture={() => setNewPasswordFocused(true)}
+              onBlurCapture={() => setNewPasswordFocused(false)}
             >
-              <Popover.Target>
-                <PasswordInput
-                  label="New password"
-                  autoComplete="new-password"
-                  data-bwignore={null}
-                  data-lpignore={null}
-                  data-1p-ignore={null}
-                  {...passwordForm.getInputProps("newPassword")}
-                />
-              </Popover.Target>
-              <Popover.Dropdown>
-                <Stack gap={4}>
-                  <Progress
-                    value={passwordStrength.score}
-                    color={passwordStrength.color}
-                    size="sm"
+              <Popover
+                opened={newPasswordFocused && newPassword.length > 0}
+                position="bottom"
+                width="target"
+                withinPortal={false}
+              >
+                <Popover.Target>
+                  <PasswordInput
+                    label="New password"
+                    autoComplete="new-password"
+                    data-bwignore={null}
+                    data-lpignore={null}
+                    data-1p-ignore={null}
+                    {...passwordForm.getInputProps("newPassword")}
                   />
-                  <Text size="xs" c="dimmed">
-                    Strength: {passwordStrength.label}
-                  </Text>
-                </Stack>
-              </Popover.Dropdown>
-            </Popover>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Stack gap={4}>
+                    <Progress
+                      value={passwordStrength.score}
+                      color={passwordStrength.color}
+                      size="sm"
+                    />
+                    <Text size="xs" c="dimmed">
+                      Strength: {passwordStrength.label}
+                    </Text>
+                  </Stack>
+                </Popover.Dropdown>
+              </Popover>
+            </div>
             <PasswordInput
               label="Confirm new password"
               autoComplete="new-password"
@@ -389,7 +395,6 @@ export function ProfilePage() {
           <Divider />
           <Stack gap="md">
             <Title order={4}>Appearance</Title>
-            <Divider />
             <Group justify="space-between">
               <Text size="sm">Colour scheme</Text>
               <SegmentedControl
