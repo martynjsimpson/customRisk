@@ -1,7 +1,7 @@
 # Active Release
 
-Status: proposed
-Version: TBD
+Status: ready-for-release
+Version: v1.9.1
 Release type: patch
 
 ## Selected work items
@@ -21,9 +21,8 @@ Release type: patch
   `frontend/src/pages/AuditPage.tsx`
 - **Tests:** `frontend/test/audit.test.mjs`
 - **Required agents:** Frontend Developer, Test Engineer
-- **Decisions needed:**
-  - Confirm the target desktop breakpoint or container width to treat as the normal audit-screen layout baseline before
-    implementation. The source issue does not specify a viewport width.
+- **Status:** done
+- **done_in:** v1.9.1
 
 ---
 
@@ -45,8 +44,18 @@ and should be proposed as its own release once this patch is shipped.
 
 ## Decisions needed
 
-1. **BUG-001:** Confirm the target desktop breakpoint for the audit filter bar before the Frontend Developer starts.
-2. **Version number:** To be assigned by Release Manager after human approval of this scope.
+_(none — all resolved)_
+
+## Test / sign-off
+
+- [x] Implementation complete
+- [x] Regression tests pass (299 tests: 191 backend, 85 frontend static, 22 frontend runtime, 1 shared)
+- [x] Typecheck clean across all packages
+- [x] Documentation pass complete
+
+## Blockers
+
+_(none)_
 
 ---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
