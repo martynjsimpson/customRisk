@@ -6,7 +6,6 @@ export const apiKeyIdParamsSchema = z.object({
 
 export const createApiKeySchema = z.object({
   name: z.string().trim().min(1).max(255),
-  userId: z.string().uuid(),
   expiresAt: z.coerce.date().optional()
 });
 

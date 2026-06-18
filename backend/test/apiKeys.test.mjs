@@ -47,14 +47,21 @@ test("API key service uses cryptographically random key generation", async () =>
   assert.match(service, /cr_live_/);
 });
 
-test("API key service enforces System Admin on all operations", async () => {
+test("API key service enforces System Admin on admin operations (list all, admin revoke)", async () => {
   const service = await readFile(
     new URL("../src/services/apiKeys.service.ts", import.meta.url),
     "utf8"
   );
 
+  // Admin guard must be present for the admin-scoped functions
   assert.match(service, /isSystemAdmin/);
   assert.match(service, /System Admin permission is required/);
+
+  // User self-service create must NOT require admin — userId comes from session
+  // (the create function must not check isSystemAdmin)
+  const createFnMatch = service.match(/export async function createApiKey[\s\S]+?^}/m);
+  assert.ok(createFnMatch, "createApiKey function must exist");
+  assert.doesNotMatch(createFnMatch[0], /isSystemAdmin/);
 });
 
 test("API key service audits creation and revocation with prefix — never hash or raw key", async () => {
@@ -99,15 +106,16 @@ test("API key routes expose list, create, and delete operations only — no GET 
   assert.doesNotMatch(routes, /router\.get\("\/:id"/);
 });
 
-test("API key validator requires name and userId", async () => {
+test("API key validator requires name; userId is no longer accepted (comes from session)", async () => {
   const { createApiKeySchema } = await import("../src/validators/apiKeys.schemas.ts");
 
-  const valid = createApiKeySchema.parse({ name: "My key", userId: "00000000-0000-4000-8000-000000000001" });
+  const valid = createApiKeySchema.parse({ name: "My key" });
   assert.equal(valid.name, "My key");
-  assert.equal(valid.userId, "00000000-0000-4000-8000-000000000001");
+  assert.equal(valid.userId, undefined);
 
-  assert.throws(() => createApiKeySchema.parse({ userId: "00000000-0000-4000-8000-000000000001" }), /name/);
-  assert.throws(() => createApiKeySchema.parse({ name: "x", userId: "not-a-uuid" }));
+  // name is required
+  assert.throws(() => createApiKeySchema.parse({}), /name/);
+  assert.throws(() => createApiKeySchema.parse({ name: "" }), /name/);
 });
 
 test("revoke operation sets revokedAt and returns 409 for already-revoked keys", async () => {

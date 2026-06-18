@@ -18,6 +18,7 @@ import { requireFeature } from "../middleware/requireFeature.js";
 import { requireSystemAdmin } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import { asyncRoute } from "../utils/asyncRoute.js";
+import { createMyApiKeysRouter } from "./apiKeys.routes.js";
 import {
   changePasswordSchema,
   createUserSchema,
@@ -32,6 +33,7 @@ export function createUsersRouter() {
   const router = Router();
 
   // Self-service /me routes — any authenticated user
+  router.use("/me/api-keys", authenticate, requireFeature("apiKeys"), createMyApiKeysRouter());
   router.patch(
     "/me",
     authenticate,

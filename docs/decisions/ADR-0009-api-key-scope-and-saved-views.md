@@ -25,7 +25,7 @@ PM10-10 (audit log CSV export) is also in scope but requires no schema change an
 
 An API key is authenticated as, and carries exactly the permissions of, the `user` referenced by `api_key.user_id`. There is no per-key scope, register restriction, or capability subset in v1.9.0. This matches the principle already recorded in PM0-04 §14.4 ("an authenticated API key session follows the same role model as a user session; the key carries the permissions of the user it is associated with").
 
-API keys are **user-scoped, not system-scoped**: every key has a non-nullable `user_id` FK. Key management (create/list/revoke) is a System-Admin-only operation per PM0-04 §14.4, but the key itself acts as its owning user.
+API keys are **user-scoped, not system-scoped**: every key has a non-nullable `user_id` FK. Users manage their own keys via `/users/me/api-keys` (create, list, self-revoke); System Admins have read-only visibility across all keys and can revoke any key via `/admin/api-keys`. The key itself always acts as its owning user.
 
 No `scope` column is added to `api_key` in v1.9.0. PM0-02 §Phase 13 anticipated an optional nullable `scope` column where `null` = "inherit user permissions"; we defer adding that column until scoped keys are an actual requirement. The current table already represents the "inherit" case implicitly (absence of a scope column = always inherit), so adding the column later is a clean additive migration with `null` as the backfill default. Adding it now would be speculative schema with no consuming code.
 
@@ -100,11 +100,11 @@ No new npm library is required. `filterJson` / `sortJson` / `columnsJson` are st
 
 ## 4. Consequences
 
-- PM13-02 can build the API key admin UI with zero schema migration. The only new audit object/actions (`API_KEY`, `API_KEY_CREATED/REVOKED/USED`) are already enumerated in `AuditObjectType` (the `API_KEY` enum value is present in the schema) and PM0-04 §14.2.
+- PM13-02 can build the API key routes with zero schema migration. Routes: `POST /users/me/api-keys`, `GET /users/me/api-keys`, `DELETE /users/me/api-keys/:id` (user self-service); `GET /admin/api-keys`, `DELETE /admin/api-keys/:id` (System Admin cross-user). The only new audit object/actions (`API_KEY`, `API_KEY_CREATED/REVOKED/USED`) are already enumerated in `AuditObjectType` (the `API_KEY` enum value is present in the schema) and PM0-04 §14.2.
 - A future "scoped API keys" feature is an additive migration (nullable `scope` column, default `null` = inherit). This ADR does not block it; it defers it. A follow-up ADR should record the scope model when that work is scheduled.
 - The `saved_view` table is purely additive (PM0-02 §Phase 11). Rollback is a single `DROP TABLE`. No backfill.
 - When register-level view sharing is introduced (post-PM5), the `saved_view` table will need a sharing/visibility column and a re-evaluation of the unique constraint. That is a separate future decision, not in scope here.
-- API key request middleware must verify, on every request: key hash match, `revoked_at IS NULL`, expiry not passed, **and** the owning `user.is_active = true`. A revoked key or deactivated owner must fail authentication immediately (evaluated from current DB state, never cached).
+- API key request middleware must verify, on every request: key hash match, `revoked_at IS NULL`, expiry not passed, **and** the owning `user.is_active = true`. A revoked key or deactivated owner must fail authentication immediately (evaluated from current DB state, never cached). **Known gap (PM13-03):** automated enforcement that a deactivated user's keys stop working is deferred to the PM13-03 API hardening pass. For v1.9.0, the offboarding case is covered by the admin revoke action.
 
 ---
 
