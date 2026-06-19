@@ -1529,7 +1529,7 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: in-active-release
   priority: medium
   confidence: medium
   summary: Only the /help page displays a subtitle beneath its title. All pages should display short descriptive helper
@@ -1626,7 +1626,7 @@ items:
   type: improvement
   capability: help-content
   phase: null
-  status: ready
+  status: in-active-release
   priority: medium
   confidence: medium
   summary: Help content is currently embedded in source code, making it hard to maintain and update without a code change.
@@ -1661,7 +1661,7 @@ items:
   type: improvement
   capability: help-content
   phase: null
-  status: ready
+  status: in-active-release
   priority: medium
   confidence: high
   summary: The /help page content has not been kept in sync with the live product. A review pass is needed to identify
@@ -1691,7 +1691,7 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: in-active-release
   priority: medium
   confidence: medium
   summary: The Review status row in the risk detail modal appears at a fixed position (end of table) because it is not part
@@ -1732,7 +1732,8 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.14.0
   priority: medium
   confidence: high
   summary: The left-hand navigation hover and active highlight does not use rounded corners, inconsistent with the rounded
@@ -1760,7 +1761,8 @@ items:
   type: improvement
   capability: audit-log-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.14.0
   priority: low
   confidence: high
   summary: API key prefixes in the audit log are displayed without a trailing ellipsis (e.g. `cr_live_27e6515b`), which could
@@ -1790,7 +1792,8 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.14.0
   priority: high
   confidence: medium
   summary: Action buttons throughout the app — including "Review", "Edit", and "Delete" in the register table, the /templates
@@ -1831,7 +1834,8 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.14.0
   priority: medium
   confidence: high
   summary: The Review History table in the View Risk modal is not paginated. It should be paginated with a page size of 5
@@ -1869,7 +1873,8 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.14.0
   priority: medium
   confidence: high
   summary: The Audit History table in the View Risk modal is not paginated. As audit records accumulate the list can become
@@ -1907,7 +1912,7 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: in-active-release
   priority: low
   confidence: high
   summary: The docs/planning directory and all its contents are superseded by the planning system under docs/work. It should
