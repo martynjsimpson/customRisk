@@ -68,19 +68,33 @@ export function AuditLogPanel({
 
   return (
     <Stack>
+      {title ? (
+        <Group justify="space-between" align="center" wrap="nowrap">
+          <Title order={1}>{title}</Title>
+          <Button
+            variant="light"
+            leftSection={<IconDownload size={16} />}
+            loading={exporting}
+            onClick={handleExport}
+          >
+            Export CSV
+          </Button>
+        </Group>
+      ) : null}
       <Group justify="space-between" align="flex-end" wrap="nowrap">
         <Box style={{ flex: 1, minWidth: 0 }}>
-          {title ? <Title order={1} mb="xs">{title}</Title> : null}
           <AuditFilters filters={filters} onChange={handleFilterChange} />
         </Box>
-        <Button
-          variant="light"
-          leftSection={<IconDownload size={16} />}
-          loading={exporting}
-          onClick={handleExport}
-        >
-          Export CSV
-        </Button>
+        {!title ? (
+          <Button
+            variant="light"
+            leftSection={<IconDownload size={16} />}
+            loading={exporting}
+            onClick={handleExport}
+          >
+            Export CSV
+          </Button>
+        ) : null}
       </Group>
       {exportError && <Alert color="red">{exportError}</Alert>}
       <ApiErrorAlert error={auditQuery.error} fallback="Unable to load audit events" />
