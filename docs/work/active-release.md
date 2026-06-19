@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.13.0
 
 ## Release goal
@@ -96,7 +96,7 @@ done_in: v1.13.0
 ## Test / sign-off
 
 - [x] Implementation pass complete
-- [x] Regression test pass complete (339 tests, 0 failures)
+- [x] Regression test pass complete (344 tests, 0 failures)
 - [x] TypeScript typecheck clean
 - [x] Documentation pass complete
 

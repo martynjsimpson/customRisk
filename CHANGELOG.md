@@ -25,6 +25,11 @@ Version levels:
 - **Export CSV on /my-risks (UI-006)**
   - An Export CSV button has been added to the /my-risks page, consistent in style and position with the register page export. The export reflects the current filter state — if filters are active, only the filtered risks are exported; if no filters are active, all risks owned by the user across all registers are exported.
 
+### Fixed
+
+- **Filter controls on /my-risks not updating results (UI-005)**
+  - Typing in the search box or selecting from the state, risk level, or register dropdowns had no effect. The filter state was being written to the URL correctly, but a React `useMemo` dependency on the `URLSearchParams` object reference (rather than the primitive values within it) prevented the query from refetching. Fixed by extracting individual filter values as `useMemo` dependencies.
+
 ### Changed
 
 - **Date picker for API key expiry (UI-012)**
