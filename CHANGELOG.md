@@ -15,6 +15,37 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-06-19
+
+### Fixed
+
+- **Save View completely broken on register page (BUG-003)**
+  - Saving a view was failing on every attempt because the frontend was sending `columns` as an object instead of an array. The API rejected the payload with a validation error, making the Save View feature entirely unusable. The serialisation is now correct — `columns` is always sent as an array, and the API types have been tightened to `string[]` to prevent the same mistake recurring.
+
+- **Calculated fields unreadable in dark mode (BUG-004)**
+  - Calculated field inputs in the add and edit risk modals used a hardcoded light-grey background that stayed light regardless of colour scheme, making the text invisible in dark mode. Replaced with a Mantine CSS variable that adapts correctly to both light and dark themes.
+
+- **Review button shown for risks that don't require review (BUG-005)**
+  - The /my-risks table was showing a Review button for every risk, even when the parent register has reviews disabled. Risks with a review status of "not required" no longer show the button. Risks with an active review requirement are unaffected.
+
+- **Views dropdown styled differently from adjacent toolbar controls (BUG-006)**
+  - The Views dropdown on the register page used a different button variant and size from the Columns dropdown and Export CSV button next to it. All three toolbar controls now use a consistent `light` variant.
+
+- **Export CSV on /audit wrongly styled and mispositioned (BUG-007)**
+  - The Export CSV button on the audit page used the wrong button variant and appeared below the page title rather than inline with it. The button now matches the register page pattern — `light` variant, sitting in the same row as the page title.
+
+- **Rogue icon in /help page header (BUG-008)**
+  - The /help page was the only page rendering a theme icon before its heading text. The icon has been removed so the header matches every other page in the app.
+
+- **Redundant "Show closed" checkbox on register page (UI-003)**
+  - The register page filter bar had both a State dropdown (which already includes Closed as an option) and a separate "Show closed" checkbox. The checkbox was redundant and has been removed. Closed risks remain accessible via the State dropdown.
+
+- **Version-controlled alert positioned below action buttons on config page (UI-009)**
+  - The "Configuration is version-controlled" alert on the register configuration page appeared after the action buttons, making it easy to miss. It now appears above the buttons, where it provides context before the user acts.
+
+- **Permissions page not using Mantine Fieldset (UI-010)**
+  - The register permissions page was the only settings sub-page not using Mantine Fieldset for content grouping. The add-permission form and the current permissions table are now each wrapped in a Fieldset, consistent with the configuration settings page pattern.
+
 ## [1.10.0] - 2026-06-18
 
 ### Fixed
