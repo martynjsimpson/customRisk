@@ -14,6 +14,7 @@ import {
   type SaveCustomFieldOptionInput
 } from "../../api/customFields.api";
 import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
+import { updateRegister } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { usePermissions } from "../../hooks/usePermissions";
 import { CORE_RISK_FIELDS } from "../risks/coreRiskFields";
@@ -127,6 +128,14 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
             )
           })
         : updateCustomField(registerId, fieldId, { displayOrder }),
+    onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
+  });
+
+  // Mutation to persist a new position for the Review status row.
+  // reviewStatusPosition: null means "last".
+  const reorderReviewStatusMutation = useMutation<unknown, Error, number | null>({
+    mutationFn: (reviewStatusPosition) =>
+      updateRegister(registerId, { reviewStatusPosition }),
     onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
 
@@ -372,6 +381,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       <ApiErrorAlert error={activateFieldMutation.error} fallback="Unable to activate field" />
       <ApiErrorAlert error={deactivateFieldMutation.error} fallback="Unable to deactivate field" />
       <ApiErrorAlert error={deleteFieldMutation.error} fallback="Unable to delete field" />
+      <ApiErrorAlert error={reorderReviewStatusMutation.error} fallback="Unable to update review status position" />
       <CustomFieldTable
         fields={fields}
         onReorder={(fieldId, newDisplayOrder) => reorderFieldMutation.mutate({ fieldId, displayOrder: newDisplayOrder })}
@@ -382,6 +392,12 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         onDeleteField={isSystemAdmin ? openDeleteConfirm : undefined}
         isSystemAdmin={isSystemAdmin}
         readOnly={isReadOnly}
+        // Only pass reviewStatusPosition when reviews are enabled — this hides the row
+        // in the table when reviews are turned off for the register.
+        reviewStatusPosition={configQuery.data?.register.reviewsEnabled
+          ? (configQuery.data.register.reviewStatusPosition ?? null)
+          : undefined}
+        onReorderReviewStatus={(newDisplayOrder) => reorderReviewStatusMutation.mutate(newDisplayOrder)}
       />
       {!isReadOnly ? (
         <Group justify="flex-end">
