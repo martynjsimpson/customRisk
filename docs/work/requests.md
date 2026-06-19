@@ -16,7 +16,14 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
-None.
+### REQ-038
+Request ID: REQ-038
+Title: Allow register admins to control the position of the Review field in the risk detail modal
+Type: improvement
+Status: inbox
+Priority: medium
+Summary: The Review status row in the risk detail modal is not part of the register's field configuration, so admins cannot control its position relative to other fields the way they can for custom fields. It currently appears at a fixed position (end of table). The field configuration system should be extended to include Review as a configurable field so its display order can be set per register.
+Source: verification feedback (v1.12.0 release)
 
 ## Refined requests
 
