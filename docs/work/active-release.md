@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.14.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Visual polish and modal usability pass. Restyle action buttons throughout the ap
 ### UI-017 — Restyle action buttons to look like buttons, not links
 Source: REQ-041 (consolidated with REQ-046)
 Capability: register-ui
-Status: ready
+Status: done
+done_in: v1.14.0
 
 **Problem:** Action buttons ("Review", "Edit", "Delete", and similar) throughout the app have a background matching the page surface, making them look like plain text links rather than interactive controls. Font size is also inconsistent with other buttons. The same issue affects the /templates screen buttons ("Create Register", "Update Config", "Deactivate").
 
@@ -34,7 +35,8 @@ Status: ready
 ### UI-015 — Apply rounded corners to left nav hover and active states
 Source: REQ-047
 Capability: register-ui
-Status: ready
+Status: done
+done_in: v1.14.0
 
 **Problem:** The left-hand navigation hover and active highlight does not use rounded corners, inconsistent with the rounded corner treatment used on buttons, frames, and other UI elements throughout the app.
 
@@ -52,7 +54,8 @@ Status: ready
 ### UI-016 — Append ellipsis to API key prefix in audit log
 Source: REQ-044
 Capability: audit-log-ui
-Status: ready
+Status: done
+done_in: v1.14.0
 
 **Problem:** API key prefixes in the audit log are displayed without a trailing ellipsis (e.g. `cr_live_27e6515b`), which could imply the value is the full key rather than a truncated prefix.
 
@@ -70,7 +73,8 @@ Status: ready
 ### UI-019 — Paginate Audit History table in View Risk modal
 Source: REQ-039
 Capability: register-ui
-Status: ready
+Status: done
+done_in: v1.14.0
 
 **Problem:** The Audit History table in the View Risk modal is unpaginated. As audit records accumulate the list can become very long and slow to render.
 
@@ -91,7 +95,8 @@ Status: ready
 ### UI-018 — Paginate Review History table in View Risk modal
 Source: REQ-040
 Capability: register-ui
-Status: ready
+Status: done
+done_in: v1.14.0
 
 **Problem:** The Review History table in the View Risk modal is unpaginated. As review records accumulate the list can become very long.
 
@@ -122,10 +127,10 @@ Status: ready
 
 ## Test / sign-off
 
-- [ ] Implementation pass complete
-- [ ] Regression test pass complete
-- [ ] TypeScript typecheck clean
-- [ ] Documentation pass complete
+- [x] Implementation pass complete
+- [x] Regression test pass complete
+- [x] TypeScript typecheck clean
+- [x] Documentation pass complete
 
 ## Blockers
 
