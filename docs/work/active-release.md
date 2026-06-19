@@ -103,6 +103,10 @@ done_in: v1.11.0
 **Key files:** `frontend/src/features/audit/AuditLogPanel.tsx`, `frontend/src/pages/AuditPage.tsx`
 **Agents:** Frontend Developer
 
+**Verification feedback:** Export CSV button still appears alongside the search facets, not inline with the page title.
+**Ruling:** in scope — acceptance criteria explicitly requires title-row positioning matching the register page.
+**Fix:** Move the Export CSV button to the title row, not the filter bar.
+
 ---
 
 ### BUG-008 — Remove icon from /help page header (medium)
