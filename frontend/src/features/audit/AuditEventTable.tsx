@@ -68,7 +68,7 @@ export function AuditEventTable({
                     <Badge>{event.action}</Badge>
                   </Table.Td>
                   {showRegister && <Table.Td>{event.registerDisplayName ?? "—"}</Table.Td>}
-                  {showObject && <Table.Td>{event.objectType === "API_KEY" ? `${event.objectDisplayName ?? event.objectId}…` : (event.objectDisplayName ?? event.objectId)}</Table.Td>}
+                  {showObject && <Table.Td>{event.objectType === "API_KEY" ? (event.objectDisplayName ?? event.objectId ?? "").replace(/(cr_[a-z]+_[a-f0-9]+)(?!…)(\))?/g, "$1…$2") : (event.objectDisplayName ?? event.objectId)}</Table.Td>}
                   <Table.Td>{event.objectType === "API_KEY" ? event.summary.replace(/(cr_[a-z]+_[a-f0-9]+)(?!…)(\))?/g, "$1…$2") : event.summary}</Table.Td>
                 </Table.Tr>
                 {canExpand && isExpanded && (

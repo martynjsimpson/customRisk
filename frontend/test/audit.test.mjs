@@ -264,6 +264,37 @@ test("RiskDetailModal passes showIpAddress=false to AuditEventTable", async () =
   assert.match(modal, /showIpAddress=\{false\}/);
 });
 
+test("AuditEventTable Object column applies parenthesis-aware regex — not bare ellipsis append", async () => {
+  // Regression test for the Object column fix: `grg (cr_live_0e3de5ae…)` not `grg (cr_live_0e3de5ae)…`
+  //
+  // The Object column (showObject render path) must use the same (?!…)(\))? regex with "$1…$2"
+  // replacement as the Summary column. Before the fix, the Object column used a bare string append
+  // that placed the ellipsis outside any closing parenthesis.
+  const table = await readFile(
+    new URL("../src/features/audit/AuditEventTable.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // showObject must be present and the objectDisplayName/objectId path must contain the replace call
+  assert.match(table, /showObject/);
+  assert.match(table, /objectDisplayName/);
+
+  // Both occurrences of the replace call (object column + summary column) must use the paren-aware pattern.
+  // Count occurrences of the replacement string "$1…$2" — there must be at least two (one per column).
+  const replacementCount = (table.match(/"\$1…\$2"/g) ?? []).length;
+  assert.ok(
+    replacementCount >= 2,
+    `Expected at least 2 uses of "$1…$2" replacement (one for Object column, one for Summary column), found ${replacementCount}`
+  );
+
+  // Both occurrences of the regex pattern must capture the closing paren in a group
+  const patternCount = (table.match(/\(\?!…\)\(\\?\)\)\?/g) ?? []).length;
+  assert.ok(
+    patternCount >= 2,
+    `Expected at least 2 uses of the (?!…)(\\))? pattern (one for Object column, one for Summary column), found ${patternCount}`
+  );
+});
+
 test("AuditEventTable API key summary regex places ellipsis inside closing parenthesis", async () => {
   // Regression test for the fix: `expire (cr_live_27e6515b…)` not `expire (cr_live_27e6515b)…`
   //
