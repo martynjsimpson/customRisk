@@ -132,6 +132,16 @@ done_in: v1.14.0
 - [x] TypeScript typecheck clean
 - [x] Documentation pass complete
 
+## Verification feedback
+
+**UI-017 — /my-risks page missed**
+**Ruling:** In scope — acceptance criteria says "action buttons across the app"; /my-risks was not included in the initial audit.
+**Fix:** Frontend Developer to apply `variant="light"` to action buttons on /my-risks.
+
+**UI-016 — Ellipsis placement wrong in parenthesised context**
+**Ruling:** In scope — acceptance criteria requires the ellipsis to be part of the key identifier. When the prefix appears inside parentheses (e.g. `expire (cr_live_27e6515b)`), the ellipsis should be inside the closing bracket: `expire (cr_live_27e6515b…)`.
+**Fix:** Frontend Developer to adjust the regex replacement in `AuditEventTable.tsx` so the ellipsis is appended before any closing parenthesis.
+
 ## Blockers
 
 None.
