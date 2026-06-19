@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import {
+  exportMyRisksController,
   getAdminSummaryController,
   getMyRisksController,
   getMyWorkController
@@ -16,6 +17,7 @@ export function createDashboardRouter() {
   router.use(authenticate);
   router.get("/my-work", asyncRoute(getMyWorkController));
   router.get("/my-risks", validateRequest({ query: myRisksQuerySchema }), asyncRoute(getMyRisksController));
+  router.get("/my-risks/export", validateRequest({ query: myRisksQuerySchema }), asyncRoute(exportMyRisksController));
   router.get("/admin-summary", asyncRoute(getAdminSummaryController));
 
   return router;

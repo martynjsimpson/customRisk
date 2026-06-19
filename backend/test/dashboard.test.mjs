@@ -115,3 +115,49 @@ test("getMyRisks service accepts explicit state filter overriding the default", 
   // When a state is supplied it should be applied directly
   assert.match(service, /state: query\.state/);
 });
+
+test("my-risks export route is registered under /my-risks/export", async () => {
+  const dashboardRoutes = await readFile(new URL("../src/routes/dashboard.routes.ts", import.meta.url), "utf8");
+
+  assert.match(dashboardRoutes, /router\.get\("\/my-risks\/export"/);
+  assert.match(dashboardRoutes, /exportMyRisksController/);
+  assert.match(dashboardRoutes, /validateRequest\(\{[^}]*query: myRisksQuerySchema/s);
+});
+
+test("my-risks export controller sets CSV headers and delegates to exportMyRisksCsv", async () => {
+  const controller = await readFile(new URL("../src/controllers/dashboard.controller.ts", import.meta.url), "utf8");
+
+  assert.match(controller, /exportMyRisksCsv\(actorOrThrow\(request\), request\.query\)/);
+  assert.match(controller, /text\/csv/);
+  assert.match(controller, /Content-Disposition/);
+  assert.match(controller, /attachment; filename=/);
+});
+
+test("exportMyRisksCsv service delegates to getMyRisks and uses ownership filter", async () => {
+  const exportService = await readFile(new URL("../src/services/export.service.ts", import.meta.url), "utf8");
+
+  assert.match(exportService, /exportMyRisksCsv/);
+  assert.match(exportService, /getMyRisks\(actor, query\)/);
+  assert.match(exportService, /myRisksExportGenerated/);
+  assert.match(exportService, /my-risks\.csv/);
+});
+
+test("exportMyRisksCsv service records audit event with SYSTEM scope", async () => {
+  const exportService = await readFile(new URL("../src/services/export.service.ts", import.meta.url), "utf8");
+
+  assert.match(exportService, /scopeType: "SYSTEM"/);
+  assert.match(exportService, /objectId: actor\.id/);
+});
+
+test("exportMyRisksCsv CSV includes Register column absent from per-register export", async () => {
+  const exportService = await readFile(new URL("../src/services/export.service.ts", import.meta.url), "utf8");
+
+  // My-risks export spans multiple registers so must include register name
+  assert.match(exportService, /"Register"/);
+});
+
+test("myRisksExportGenerated audit action is defined", async () => {
+  const { auditActions } = await import("../src/audit/auditActions.ts");
+
+  assert.equal(auditActions.myRisksExportGenerated, "MY_RISKS_EXPORT_GENERATED");
+});

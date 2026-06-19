@@ -1,9 +1,9 @@
 import { Anchor, Badge, Button, Group, Loader, Select, Stack, Table, Text, TextInput, Title } from "@mantine/core";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { getMyRisks, type DashboardRisk, type MyRisksQuery } from "../api/dashboard.api";
+import { exportMyRisks, getMyRisks, type DashboardRisk, type MyRisksQuery } from "../api/dashboard.api";
 import { getRegister } from "../api/registers.api";
 import { getRiskFormConfig } from "../api/risks.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
@@ -296,6 +296,18 @@ export function MyRisksPage() {
     ]);
   };
 
+  const exportMutation = useMutation({
+    mutationFn: () => exportMyRisks(filters),
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+
   const openDetail = (riskId: string) => {
     setDetailRiskId(riskId);
     setEditingRiskId(null);
@@ -338,12 +350,18 @@ export function MyRisksPage() {
     <Stack>
       <Group justify="space-between">
         <Title order={1}>My Risks</Title>
-        <ColumnPicker
-          groups={columnPickerGroups}
-          visibleColumns={visibleColumns}
-          onChange={setColumns}
-        />
+        <Group>
+          <ColumnPicker
+            groups={columnPickerGroups}
+            visibleColumns={visibleColumns}
+            onChange={setColumns}
+          />
+          <Button variant="light" onClick={() => exportMutation.mutate()} loading={exportMutation.isPending}>
+            Export CSV
+          </Button>
+        </Group>
       </Group>
+      <ApiErrorAlert error={exportMutation.error} fallback="Unable to export risks" />
       <Group align="end">
         <TextInput
           label="Search"

@@ -152,3 +152,66 @@ test("UI-005: getMyRisks API function accepts a MyRisksQuery parameter", async (
   assert.match(api, /registerId\?:/, "MyRisksQuery must include registerId");
   assert.match(api, /getMyRisks\(query: MyRisksQuery/, "getMyRisks must accept MyRisksQuery");
 });
+
+/**
+ * UI-006 — Export CSV button on /my-risks page
+ *
+ * An Export CSV button must appear in the title row of MyRisksPage.
+ * It must call the exportMyRisks API function with the currently active filter state.
+ * The dashboard.api.ts module must export the exportMyRisks function.
+ */
+
+test("UI-006: MyRisksPage imports exportMyRisks from dashboard.api", async () => {
+  const page = await readFile(
+    new URL("../src/pages/MyRisksPage.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(page, /exportMyRisks/, "must import exportMyRisks");
+  assert.match(page, /from "\.\.\/api\/dashboard\.api"/, "must import from dashboard.api");
+});
+
+test("UI-006: exportMyRisks is exported from dashboard.api.ts", async () => {
+  const api = await readFile(
+    new URL("../src/api/dashboard.api.ts", import.meta.url),
+    "utf8"
+  );
+  assert.match(api, /export async function exportMyRisks/, "must export exportMyRisks");
+  assert.match(api, /\/dashboard\/my-risks\/export/, "must call the correct endpoint");
+  assert.match(api, /responseType: "blob"/, "must request blob response type");
+});
+
+test("UI-006: exportMyRisks accepts the same query params as getMyRisks", async () => {
+  const api = await readFile(
+    new URL("../src/api/dashboard.api.ts", import.meta.url),
+    "utf8"
+  );
+  assert.match(api, /exportMyRisks\(query: MyRisksQuery/, "exportMyRisks must accept MyRisksQuery");
+});
+
+test("UI-006: MyRisksPage renders an Export CSV button", async () => {
+  const page = await readFile(
+    new URL("../src/pages/MyRisksPage.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(page, /Export CSV/, "must render Export CSV button text");
+  assert.match(page, /exportMutation/, "must use a mutation for the export");
+  assert.match(page, /exportMutation\.mutate\(\)/, "must call mutate on button click");
+  assert.match(page, /exportMutation\.isPending/, "must show loading state while exporting");
+});
+
+test("UI-006: Export CSV button passes active filters to exportMyRisks", async () => {
+  const page = await readFile(
+    new URL("../src/pages/MyRisksPage.tsx", import.meta.url),
+    "utf8"
+  );
+  // The mutation function must be called with the current filters object
+  assert.match(page, /exportMyRisks\(filters\)/, "mutationFn must pass filters to exportMyRisks");
+});
+
+test("UI-006: Export error is displayed to the user", async () => {
+  const page = await readFile(
+    new URL("../src/pages/MyRisksPage.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(page, /exportMutation\.error/, "must pass exportMutation.error to ApiErrorAlert");
+});

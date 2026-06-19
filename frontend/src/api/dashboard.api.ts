@@ -66,6 +66,21 @@ export async function getMyRisks(query: MyRisksQuery = {}) {
   return response.data.data;
 }
 
+export async function exportMyRisks(query: MyRisksQuery = {}) {
+  const params: Record<string, string> = {};
+  if (query.search) params.search = query.search;
+  if (query.state) params.state = query.state;
+  if (query.riskLevel) params.riskLevel = query.riskLevel;
+  if (query.registerId) params.registerId = query.registerId;
+  const response = await apiClient.get("/dashboard/my-risks/export", {
+    params,
+    responseType: "blob"
+  });
+  const disposition = response.headers["content-disposition"] as string | undefined;
+  const filename = disposition?.match(/filename="([^"]+)"/)?.[1] ?? "my-risks.csv";
+  return { blob: response.data as Blob, filename };
+}
+
 export async function getAdminSummary() {
   const response = await apiClient.get<{
     data: Pick<MyWorkDashboard, "adminRegisterSummaries" | "systemSummary" | "recentAuditActivity">;
