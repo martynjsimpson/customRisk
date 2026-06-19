@@ -434,13 +434,13 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                 <Table.Td>
                   <Group justify="flex-end" gap="xs" wrap="nowrap">
                     {(canManage || (canEditOwnedRows && risk.owner?.id === user?.id)) && register.reviewsEnabled ? (
-                      <Button variant="subtle" size="xs" onClick={() => openReview(risk.id)}>Review</Button>
+                      <Button variant="light" size="xs" onClick={() => openReview(risk.id)}>Review</Button>
                     ) : null}
                     {canManage || (canEditOwnedRows && risk.owner?.id === user?.id) ? (
-                      <Button variant="subtle" size="xs" onClick={() => openEdit(risk.id)}>Edit</Button>
+                      <Button variant="light" size="xs" onClick={() => openEdit(risk.id)}>Edit</Button>
                     ) : null}
                     {isSystemAdmin ? (
-                      <Button variant="subtle" color="red" size="xs" onClick={() => openDelete(risk.id)}>
+                      <Button variant="light" color="red" size="xs" onClick={() => openDelete(risk.id)}>
                         Delete
                       </Button>
                     ) : null}
