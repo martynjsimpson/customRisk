@@ -30,6 +30,21 @@ test("risk review schema requires explicit confirmation and supports optional co
   assert.throws(() => createRiskReviewSchema.parse({ confirmed: false }));
 });
 
+test("listRiskReviews enforces a hard cap of 100 records ordered by date descending", async () => {
+  const service = await readFile(new URL("../src/services/reviews.service.ts", import.meta.url), "utf8");
+
+  // The cap constant must be declared and set to 100
+  assert.match(service, /RISK_REVIEW_HISTORY_CAP\s*=\s*100/);
+
+  // listRiskReviews must include both take and orderBy in its query
+  const fnStart = service.indexOf("export async function listRiskReviews");
+  const fnEnd = service.indexOf("\nexport async function", fnStart + 1);
+  const fnBody = service.slice(fnStart, fnEnd === -1 ? undefined : fnEnd);
+
+  assert.match(fnBody, /take:\s*RISK_REVIEW_HISTORY_CAP/);
+  assert.match(fnBody, /orderBy:\s*\{\s*reviewedAt:\s*"desc"/);
+});
+
 test("risk review creates a single RISK_REVIEWED audit event with next-review-date field change embedded", async () => {
   const service = await readFile(new URL("../src/services/reviews.service.ts", import.meta.url), "utf8");
   const actions = await readFile(new URL("../src/audit/auditActions.ts", import.meta.url), "utf8");
