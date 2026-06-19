@@ -825,6 +825,8 @@ items:
       intended target.
     - The engines constraint change alone does not prevent operators running older Node in production, but it signals the supported
       minimum clearly and lets package managers warn on mismatch.
+    - PM note: this change is likely more disruptive than it appears. Things may break. It should be isolated in its own
+      dedicated release — do not bundle with other work items.
 - id: BUG-001
   source_issue: '#100'
   title: Keep main audit screen search facets on one line at normal desktop width
@@ -1234,7 +1236,9 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.12.0
   priority: medium
   confidence: high
   summary: The risk view modal shows "Risk Detail" as its sticky header text, and the edit risk modal shows a generic
@@ -1295,7 +1299,9 @@ items:
   type: improvement
   capability: my-risks-ui
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.12.0
   priority: medium
   confidence: medium
   summary: Clicking Edit or a risk ID on /my-risks currently navigates to /registers/<registerID> and opens the modal
@@ -1399,7 +1405,9 @@ items:
   type: improvement
   capability: homepage
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.12.0
   priority: medium
   confidence: medium
   summary: The Admin summary homepage widget shows open risk counts and overdue review counts per register as plain numbers.
@@ -1428,7 +1436,9 @@ items:
   type: improvement
   capability: homepage
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.12.0
   priority: medium
   confidence: medium
   summary: The My overdue risks homepage widget should include a Review button per risk that opens the review modal directly
@@ -1672,6 +1682,47 @@ items:
     notes:
     - Can be done alongside MAINT-002 (externalise content) or after, so corrections are made in the final format.
     - If done before MAINT-002, corrections will require a subsequent migration when the content is externalised.
+- id: UI-014
+  source_request: REQ-038
+  title: Make Review status field position configurable in risk detail modal
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: The Review status row in the risk detail modal appears at a fixed position (end of table) because it is not part
+    of the register's field configuration system. Register admins should be able to control its display position relative
+    to other fields, consistent with how custom fields can be ordered.
+  acceptance:
+  - Register admins can set the display position of the Review status field within the risk detail modal via the field configuration UI.
+  - The configured position is respected when rendering the risk detail modal table.
+  - The Review status field remains non-removable (it is always shown when reviews are enabled); only its position is configurable.
+  - No regression to custom field ordering, review status display, or the field configuration page.
+  remaining:
+  - Confirm how the backend stores field display order for the register configuration and extend it to include the Review status field.
+  - Update the field configuration UI to expose position control for Review status.
+  - Update the risk detail modal renderer to honour the configured position.
+  - Add or update tests for the configuration save and modal render paths.
+  dependencies:
+  - PM5-CORE
+  suggested_agents:
+  - Backend Developer
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskDetailModal.tsx
+    - frontend/src/pages/RegisterConfigPage.tsx
+    - backend/src/services/registerConfig.service.ts
+    tests:
+    - frontend/test/risks.test.mjs
+    - backend/test/registers.test.mjs
+    notes:
+    - Gap surfaced during v1.12.0 verification — Review status was moved from modal body header to a plain table row, but
+      the ordering gap was explicitly deferred to the backlog rather than fixed in-release.
+    - The Review status field is only relevant when reviews are enabled for the register; behaviour when reviews are disabled
+      (field hidden) does not change.
 - id: MAINT-004
   source_request: REQ-017
   title: Investigate and improve CI/CD pipeline performance
