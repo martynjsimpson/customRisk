@@ -1,6 +1,7 @@
 import {
   Badge,
   Button,
+  Fieldset,
   Group,
   Loader,
   Select,
@@ -101,73 +102,77 @@ export function RegisterDetailPage() {
             <ApiErrorAlert error={usersQuery.error} fallback="Unable to load permission candidates" />
             <ApiErrorAlert error={addPermissionMutation.error} fallback="Unable to add permission" />
             <ApiErrorAlert error={removePermissionMutation.error} fallback="Unable to remove permission" />
-            <form
-              onSubmit={permissionForm.onSubmit(() => {
-                addPermissionMutation.mutate();
-              })}
-            >
-              <Group align="end">
-                <Select
-                  label="User"
-                  data={(usersQuery.data ?? []).map((user) => ({
-                    value: user.id,
-                    label: `${user.name} (${user.email})`
-                  }))}
-                  searchable
-                  required
-                  {...permissionForm.getInputProps("userId")}
-                />
-                <Select
-                  label="Role"
-                  data={[
-                    { value: "REGISTER_ADMIN", label: "Register Admin" },
-                    { value: "REGISTER_VIEWER", label: "Register Viewer" }
-                  ]}
-                  {...permissionForm.getInputProps("role")}
-                />
-                <Button type="submit" loading={addPermissionMutation.isPending}>Add</Button>
-              </Group>
-            </form>
-            {permissionsQuery.isLoading ? <Loader /> : null}
-            <Table.ScrollContainer minWidth={640}>
-              <Table>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>User</Table.Th>
-                    <Table.Th>Role</Table.Th>
-                    <Table.Th />
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {(permissionsQuery.data ?? []).map((permission) => (
-                    <Table.Tr key={permission.id}>
-                      <Table.Td>{permission.user.name}</Table.Td>
-                      <Table.Td>
-                        <Badge>{permission.role}</Badge>
-                      </Table.Td>
-                      <Table.Td>
-                        <Group justify="flex-end" wrap="nowrap">
-                          <Button
-                            variant="subtle"
-                            color="red"
-                            onClick={() => removePermissionMutation.mutate(permission.id)}
-                          >
-                            Remove
-                          </Button>
-                        </Group>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
-                  {permissionsQuery.data?.length === 0 ? (
+            <Fieldset legend="Add Permission">
+              <form
+                onSubmit={permissionForm.onSubmit(() => {
+                  addPermissionMutation.mutate();
+                })}
+              >
+                <Group align="end">
+                  <Select
+                    label="User"
+                    data={(usersQuery.data ?? []).map((user) => ({
+                      value: user.id,
+                      label: `${user.name} (${user.email})`
+                    }))}
+                    searchable
+                    required
+                    {...permissionForm.getInputProps("userId")}
+                  />
+                  <Select
+                    label="Role"
+                    data={[
+                      { value: "REGISTER_ADMIN", label: "Register Admin" },
+                      { value: "REGISTER_VIEWER", label: "Register Viewer" }
+                    ]}
+                    {...permissionForm.getInputProps("role")}
+                  />
+                  <Button type="submit" loading={addPermissionMutation.isPending}>Add</Button>
+                </Group>
+              </form>
+            </Fieldset>
+            <Fieldset legend="Current Permissions">
+              {permissionsQuery.isLoading ? <Loader /> : null}
+              <Table.ScrollContainer minWidth={640}>
+                <Table>
+                  <Table.Thead>
                     <Table.Tr>
-                      <Table.Td colSpan={3}>
-                        <Text c="dimmed">No register permissions have been assigned.</Text>
-                      </Table.Td>
+                      <Table.Th>User</Table.Th>
+                      <Table.Th>Role</Table.Th>
+                      <Table.Th />
                     </Table.Tr>
-                  ) : null}
-                </Table.Tbody>
-              </Table>
-            </Table.ScrollContainer>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {(permissionsQuery.data ?? []).map((permission) => (
+                      <Table.Tr key={permission.id}>
+                        <Table.Td>{permission.user.name}</Table.Td>
+                        <Table.Td>
+                          <Badge>{permission.role}</Badge>
+                        </Table.Td>
+                        <Table.Td>
+                          <Group justify="flex-end" wrap="nowrap">
+                            <Button
+                              variant="subtle"
+                              color="red"
+                              onClick={() => removePermissionMutation.mutate(permission.id)}
+                            >
+                              Remove
+                            </Button>
+                          </Group>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
+                    {permissionsQuery.data?.length === 0 ? (
+                      <Table.Tr>
+                        <Table.Td colSpan={3}>
+                          <Text c="dimmed">No register permissions have been assigned.</Text>
+                        </Table.Td>
+                      </Table.Tr>
+                    ) : null}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
+            </Fieldset>
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="audit" pt="md">
