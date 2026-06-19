@@ -16,41 +16,243 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
-_(no items currently in inbox)_
+None.
 
 ## Refined requests
 
-### REQ-013
-Request ID: REQ-013
-Title: Fix SavedViewsPanel crash on /registers — views.map is not a function
-Type: bug
-Status: refined
-Priority: critical
-Summary: Navigating to /registers throws an unhandled application error in SavedViewsPanel.tsx at line 85. The component calls `.map()` on `views`, but `views` is not an array at that point (likely null, undefined, or a non-array API response shape). The register page is completely unusable when this crash occurs.
-Notes: Stack trace points to SavedViewsPanel@SavedViewsPanel.tsx:85. Root cause is almost certainly a missing array guard or an API response that does not return the expected array for saved views.
-Derived work items: BUG-002
-Source: human report (direct)
+### REQ-037
+Request ID: REQ-037
+Title: Remove redundant "show closed" checkbox from register page
+Type: improvement
+Status: in-active-release
+Priority: medium
+Summary: The /registers/<registerID> page has both a "State" dropdown filter (with options including Open, Closed, Draft) and a separate "Show closed" checkbox. The checkbox is redundant since closed risks can already be shown by selecting "Closed" in the state dropdown. The checkbox should be removed to simplify the filter UI.
+Derived work items: UI-003
+Source: human request (direct)
 
-### REQ-014
-Request ID: REQ-014
-Title: Polish the /profile page — fix card styling and API keys table overflow
+### REQ-036
+Request ID: REQ-036
+Title: Add Export CSV button to /my-risks page
 Type: improvement
 Status: refined
 Priority: medium
-Summary: The /profile page uses Card components with a grey background that does not match the rest of the app. The API keys table also overflows its card and produces a horizontal scrollbar at normal desktop widths. Both fixed together as a single TLC pass.
-Notes: ProfilePage.tsx is the only file in the frontend that uses Mantine Card. Table overflow root cause is the combination of outer Stack maw=520, Card padding="lg", and Table.ScrollContainer minWidth=480 against six columns.
-Derived work items: UI-001
-Source: human report (direct)
+Summary: The /my-risks page has no CSV export capability. An Export CSV button should be added, styled and positioned consistently with the equivalent button on /registers/<registerID> and other pages that have it.
+Derived work items: UI-006
+Source: human request (direct)
 
-### REQ-015
-Request ID: REQ-015
-Title: Add a password strength meter to the change password form on /profile
+### REQ-035
+Request ID: REQ-035
+Title: Add search filters to /my-risks page
 Type: improvement
 Status: refined
-Priority: low
-Summary: The change password form on /profile gives no feedback on password strength. A live strength meter below the new password field would help users choose stronger passwords without requiring server-side enforcement.
-Notes: Mantine docs include a password strength example using Progress and Popover — no new dependency needed. Advisory only by default.
-Derived work items: QOL-001
+Priority: medium
+Summary: The /my-risks page currently has no search or filter capability. Filters should be added in a style consistent with the /registers/<registerID> page. Care is needed because the /my-risks table is a unified cross-register view, so filters must work across all registers rather than assuming a single register's schema — custom field filters in particular may need special handling.
+Notes: The register page filter pattern is the reference. Cross-register nature of the table means register-specific custom field filters may be out of scope or need a different approach — PM should define scope at refinement.
+Derived work items: UI-005
+Source: human request (direct)
+
+### REQ-034
+Request ID: REQ-034
+Title: Make Admin summary widget counts link to pre-filtered register
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The "Admin summary" homepage widget displays open risk counts and overdue review counts per register, but these are plain numbers. Each count should be a clickable link that navigates to the relevant register page with the appropriate filter pre-applied — e.g. clicking the open risks count opens /registers/<registerID> filtered to open risks only, and clicking the overdue reviews count filters to overdue reviews only.
+Notes: Requires a mechanism to pass filter state into the register page via URL params or navigation state. Both the open risks column and the overdue reviews column should be made into links.
+Derived work items: UI-007
+Source: human request (direct)
+
+### REQ-033
+Request ID: REQ-033
+Title: Add inline review action to "My overdue risks" homepage widget
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The "My overdue risks" homepage widget should include a Review button for each risk so users can complete a review without leaving the page. The review modal should open in-place (not navigate away), consistent with the approach requested in REQ-022. After the review is submitted the widget should refresh to reflect the updated state.
+Notes: Related to REQ-022 (in-place modals on /my-risks). Same pattern applies here — modal opens on the homepage, widget data refreshes on completion.
+Derived work items: UI-008
+Source: human request (direct)
+
+### REQ-032
+Request ID: REQ-032
+Title: Externalise /help content out of source code
+Type: improvement
+Status: refined
+Priority: medium
+Summary: Help content on the /help page is currently embedded directly in code, making it hard to maintain and impossible to localise. The content should be moved to external files (e.g. Markdown or similar) so it can be edited independently of the codebase. The chosen approach must also support including or referencing images within help articles, and should lay the groundwork for future multi-language support.
+Notes: Solution should consider: file-based content (e.g. Markdown files served as assets), image support (inline or referenced), and a structure that could accommodate locale variants in future. REQ-031 (content accuracy audit) should ideally be done after or alongside this change.
+Derived work items: MAINT-002
+Source: human request (direct)
+
+### REQ-031
+Request ID: REQ-031
+Title: Audit and update /help page content for accuracy
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The content on the /help page has not been kept in sync with how the application currently works. A review pass is needed to identify and correct any outdated, inaccurate, or missing information so the help content accurately reflects the live product.
+Derived work items: MAINT-003
+Source: human request (direct)
+
+### REQ-030
+Request ID: REQ-030
+Title: Align "Views" dropdown styling with columns and export buttons
+Type: bug
+Status: in-active-release
+Priority: high
+Summary: On the /registers/<registerID> page, the "Views" dropdown is styled differently from the adjacent "Columns" dropdown and "Export CSV" button. All three controls should share a consistent style.
+Derived work items: BUG-006
+Source: human request (direct)
+
+### REQ-029
+Request ID: REQ-029
+Title: Fix "Save View" broken on register — columns type mismatch
+Type: bug
+Status: in-active-release
+Priority: critical
+Summary: The "Save View" feature on the register page is completely broken. Attempting to save a view throws a validation error, making the feature unusable. The root cause appears to be a type mismatch in the request payload: the API expects `columns` to be an array but is receiving an object.
+Notes: Exact error: "Invalid request body — Columns: Invalid input: expected array, received object". Likely a serialisation issue on the frontend when building the save view request body.
+Derived work items: BUG-003
+Source: human request (direct)
+
+### REQ-028
+Request ID: REQ-028
+Title: Move "Configuration is version-controlled" alert above action buttons
+Type: improvement
+Status: in-active-release
+Priority: medium
+Summary: On the register configuration page, the "Configuration is version-controlled" alert box currently appears below the action button group (create draft, export config, etc.). It should be moved above that box so the contextual information is presented before the actions it relates to.
+Derived work items: UI-009
+Source: human request (direct)
+
+### REQ-027
+Request ID: REQ-027
+Title: Use Mantine Fieldset on register permissions page
+Type: improvement
+Status: in-active-release
+Priority: medium
+Summary: The register permissions page does not use Mantine Fieldset components for grouping its content, unlike the configuration → settings page and other configuration sub-pages which already follow this pattern. The permissions page should be updated to match for visual and structural consistency.
+Notes: Reference the configuration → settings page and its sub-pages as the pattern to follow.
+Derived work items: UI-010
+Source: human request (direct)
+
+### REQ-026
+Request ID: REQ-026
+Title: Fix calculated field dark mode styling in risk modals
+Type: bug
+Status: in-active-release
+Priority: high
+Summary: Calculated fields are unreadable in dark mode in both the add risk and edit risk modals — they appear to use hardcoded or incorrect colours that do not adapt to the dark theme. The fields need to honour the app's dark mode colour scheme so their values are legible in both modals.
+Notes: Confirmed in both the add risk modal and the edit risk modal.
+Derived work items: BUG-004
+Source: human request (direct)
+
+### REQ-025
+Request ID: REQ-025
+Title: Show live risk ID and title in sticky edit risk modal header
+Type: improvement
+Status: refined
+Priority: medium
+Summary: Similar to REQ-024 for the view modal, the edit risk modal's sticky header should show the risk ID and a live reflection of the title field value so the user retains context while scrolling. Since the title is an editable input in this modal, the header should display the current value of that input and update on every keystroke rather than embedding the input itself.
+Notes: Related to REQ-024. The exact implementation approach is open — PM and dev should determine the best way to mirror the title input value in the header. Update should be reactive (on each character press).
+Derived work items: UI-002
+Source: human request (direct)
+
+### REQ-024
+Request ID: REQ-024
+Title: Show Risk ID and title in sticky risk view modal header
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The risk view modal currently shows "Risk Detail" as the header text. Replacing this with the risk's ID and title would provide useful persistent context as the user scrolls through the modal content, since the header is sticky. This is a small change with a meaningful UX benefit.
+Notes: Replace the static "Risk Detail" text with the risk ID and title. Header is already sticky so no layout changes needed.
+Derived work items: UI-002
+Source: human request (direct)
+
+### REQ-023
+Request ID: REQ-023
+Title: Hide review button on /my-risks when reviews not required
+Type: bug
+Status: in-active-release
+Priority: high
+Summary: The /my-risks table shows a Review button for all risks regardless of whether the parent register has reviews enabled. When a risk's review status is "not required", the Review button should be hidden as it is not applicable and creates a misleading UI.
+Notes: Condition to check: the register for that risk has reviews disabled, which surfaces as a review status of "not required" on the risk.
+Derived work items: BUG-005
+Source: human request (direct)
+
+### REQ-022
+Request ID: REQ-022
+Title: Open edit/view modals in-place on the /my-risks page
+Type: improvement
+Status: refined
+Priority: medium
+Summary: Clicking "Edit" or a risk ID from the /my-risks page currently navigates the user away to /registers/<registerID> and opens the modal there. Both actions should instead open the relevant modal directly on the /my-risks page, keeping the user in context without a page jump.
+Notes: Affects both the edit action and the risk ID link. The modal content itself does not need to change — only where it is triggered from.
+Derived work items: UI-004
+Source: human request (direct)
+
+### REQ-021
+Request ID: REQ-021
+Title: Overhaul the homepage — it has not been updated since MVP
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The homepage has not received meaningful attention since the initial MVP and needs a significant rework. The PM should assess what a post-MVP homepage should offer, potentially overlapping with or superseding any existing planned work in this area.
+Notes: User flagged this may conflict with already-planned work — check backlog for related items before scoping.
+Derived work items: UI-013
+Source: human request (direct)
+
+### REQ-020
+Request ID: REQ-020
+Title: Add descriptive helper text under the title on all pages
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The /help page displays a short descriptive subtitle beneath the page title, but no other pages follow this pattern. Helper text should be added to all pages to improve orientation and consistency. On the /api-keys page specifically, the existing alert box content is a good candidate to be repurposed as the helper text rather than shown as an alert.
+Notes: Use the /help page subtitle as the reference pattern. For /api-keys, convert the alert box into helper text rather than duplicating the content. Exception: on /registers/<registerID> the helper text should be the register's own description field rather than generic page-level text, since the page title is already the register name.
+Derived work items: UI-011
+Source: human request (direct)
+
+### REQ-019
+Request ID: REQ-019
+Title: Remove icon from /help page header
+Type: bug
+Status: in-active-release
+Priority: medium
+Summary: The /help page displays an icon before the "Help" heading text in the page header. No other page in the app follows this pattern, making it visually inconsistent. The icon should be removed so the header matches the style of all other pages.
+Derived work items: BUG-008
+Source: human request (direct)
+
+### REQ-018
+Request ID: REQ-018
+Title: Fix /audit page Export CSV button styling and layout
+Type: bug
+Status: in-active-release
+Priority: high
+Summary: The Export CSV button on the /audit page is styled incorrectly — it should use the same blue button style as the Export CSV button on the /registers/<registerID> page. The button should also be moved onto the same line as the page title, matching the layout pattern used on the register page.
+Notes: Use the /registers/<registerID> page as the reference for both the button variant/colour and the title-row layout.
+Derived work items: BUG-007
+Source: human request (direct)
+
+### REQ-017
+Request ID: REQ-017
+Title: Investigate and improve CI/CD pipeline performance
+Type: maintenance
+Status: refined
+Priority: medium
+Summary: The CI/CD pipeline is running slowly and impacting developer velocity. The team should audit the current pipeline configuration to identify bottlenecks and explore improvements such as caching, parallelisation, or tooling changes to reduce build and test times.
+Derived work items: MAINT-004
+Source: human request (direct)
+
+### REQ-016
+Request ID: REQ-016
+Title: Use date picker input in Create API Key modal
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The Create API Key modal includes a date field but renders it as a plain text input rather than a proper date picker. The audit log search filter already implements a date picker component that could be reused here. The inconsistency creates a worse UX and makes it easier for users to enter invalid dates.
+Notes: Reference the date picker component used in the audit log search filter as the pattern to follow.
+Derived work items: UI-012
 Source: human request (direct)
 
 ### REQ-011
@@ -166,7 +368,41 @@ Evidence: `backend/src/routes/persons.routes.ts`, `backend/src/services/personRe
 
 ## Done
 
-No current `done` requests are tracked here. Completed request outcomes can be added here when it is useful to show that the human-facing ask has been satisfied.
+### REQ-013
+Request ID: REQ-013
+Title: Fix SavedViewsPanel crash on /registers — views.map is not a function
+Type: bug
+Status: done
+Done in: v1.10.0
+Priority: critical
+Summary: Navigating to /registers throws an unhandled application error in SavedViewsPanel.tsx at line 85. The component calls `.map()` on `views`, but `views` is not an array at that point (likely null, undefined, or a non-array API response shape). The register page is completely unusable when this crash occurs.
+Notes: Stack trace points to SavedViewsPanel@SavedViewsPanel.tsx:85. Root cause is almost certainly a missing array guard or an API response that does not return the expected array for saved views.
+Derived work items: BUG-002
+Source: human report (direct)
+
+### REQ-014
+Request ID: REQ-014
+Title: Polish the /profile page — fix card styling and API keys table overflow
+Type: improvement
+Status: done
+Done in: v1.10.0
+Priority: medium
+Summary: The /profile page uses Card components with a grey background that does not match the rest of the app. The API keys table also overflows its card and produces a horizontal scrollbar at normal desktop widths. Both fixed together as a single TLC pass.
+Notes: ProfilePage.tsx is the only file in the frontend that uses Mantine Card. Table overflow root cause is the combination of outer Stack maw=520, Card padding="lg", and Table.ScrollContainer minWidth=480 against six columns.
+Derived work items: UI-001
+Source: human report (direct)
+
+### REQ-015
+Request ID: REQ-015
+Title: Add a password strength meter to the change password form on /profile
+Type: improvement
+Status: done
+Done in: v1.10.0
+Priority: low
+Summary: The change password form on /profile gives no feedback on password strength. A live strength meter below the new password field would help users choose stronger passwords without requiring server-side enforcement.
+Notes: Mantine docs include a password strength example using Progress and Popover — no new dependency needed. Advisory only by default.
+Derived work items: QOL-001
+Source: human request (direct)
 
 ## Deferred requests
 

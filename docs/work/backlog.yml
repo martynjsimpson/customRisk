@@ -871,15 +871,17 @@ items:
     - Source issue is a direct user-reported UI defect rather than a legacy planning migration item.
     - The issue text is clear enough to refine, but it does not yet specify an exact viewport width; implementation should
       confirm the intended desktop baseline first.
-    - User-confirmed breakpoint: wrapping observed at 1728 x 1117 (MacBook Pro default resolution). This is the target desktop
-      width the fix must handle.
+    - "User-confirmed breakpoint: wrapping observed at 1728 x 1117 (MacBook Pro default resolution). This is the target desktop
+      width the fix must handle."
 - id: QOL-001
   source_request: REQ-015
   title: Add password strength meter to change password form on /profile
   type: improvement
   capability: profile-preferences
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.10.0
   priority: low
   confidence: high
   summary: The new password field on the /profile change password form gives no feedback on password strength. Adding a
@@ -917,7 +919,9 @@ items:
   type: improvement
   capability: profile-preferences
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.10.0
   priority: medium
   confidence: high
   summary: The /profile page is the only page in the frontend that uses Mantine Card components. The cards render with
@@ -969,7 +973,9 @@ items:
   type: bug
   capability: reporting-saved-views
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.10.0
   priority: critical
   confidence: high
   summary: SavedViewsPanel.tsx calls .map() on `views` at line 85, but `views` is not an array when the crash occurs. The
@@ -1010,3 +1016,679 @@ items:
     - This is a regression introduced with the v1.9.0 saved-views feature (PM11-01). The feature shipped but the non-array
       edge case was not caught in testing.
     - Fix is likely small (one guard or initialiser) but must be verified against the full saved-views UX to avoid silent regressions.
+- id: BUG-003
+  source_request: REQ-029
+  title: Fix "Save View" broken on register — columns type mismatch
+  type: bug
+  capability: reporting-saved-views
+  phase: null
+  status: ready
+  priority: critical
+  confidence: high
+  summary: The Save View feature on the register page is completely broken. Attempting to save a view throws a validation
+    error. Root cause is a type mismatch — the API expects `columns` as an array but the frontend is sending an object.
+  observed_behaviour:
+  - Saving a view throws "Invalid request body — Columns: Invalid input: expected array, received object".
+  - The Save View feature is completely unusable.
+  expected_behaviour:
+  - Users can save a view successfully with the current filter, sort, and column state persisted.
+  acceptance:
+  - Saving a view from the register page sends `columns` as an array in the request body.
+  - Save View succeeds and the saved view appears in the views list without error.
+  - No regression to the view list, apply, update, or delete flows.
+  - Frontend tests cover the save-view request serialisation to confirm columns is always an array.
+  remaining:
+  - Inspect the frontend view-save request builder to find where columns is serialised as an object instead of an array.
+  - Fix the serialisation bug and confirm the API contract is satisfied.
+  - Add or update a test to catch this serialisation path.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/SavedViewsPanel.tsx
+    - frontend/src/api/savedViews.api.ts
+    tests:
+    - frontend/test/savedViews.behavior.test.tsx
+    - frontend/test/savedViews.test.mjs
+    notes:
+    - Exact error reported by user — confirms API schema validation is working and the bug is on the frontend serialisation side.
+    - Columns state in Mantine Table is likely a Record/object shape that needs converting to an array before dispatch.
+- id: BUG-004
+  source_request: REQ-026
+  title: Fix calculated field dark mode styling in risk modals
+  type: bug
+  capability: advanced-fields
+  phase: null
+  status: ready
+  priority: high
+  confidence: high
+  summary: Calculated fields are unreadable in dark mode in both the add risk and edit risk modals. They appear to use
+    hardcoded or theme-unaware colours that do not adapt to the dark colour scheme.
+  observed_behaviour:
+  - Calculated fields in the add risk modal are illegible in dark mode.
+  - Calculated fields in the edit risk modal are illegible in dark mode.
+  expected_behaviour:
+  - Calculated field values are readable in both light and dark mode in all risk modals.
+  acceptance:
+  - Calculated fields render with legible colours in both light and dark mode in the add and edit risk modals.
+  - No hardcoded colour values remain in the calculated field display component.
+  - No regression to light mode rendering.
+  remaining:
+  - Inspect the calculated field display component for hardcoded or non-adaptive colour usage.
+  - Replace with Mantine theme tokens or CSS variables that adapt to colour scheme.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskFormModal.tsx
+    - frontend/src/features/configuration/CustomFieldModal.tsx
+    tests:
+    - frontend/test/configuration.test.mjs
+    notes:
+    - Confirmed in both add and edit risk modals — likely the same display component shared between them.
+    - Mantine provides `useMantineColorScheme` and CSS variables for theme-aware styling; prefer that approach over conditional checks.
+- id: BUG-005
+  source_request: REQ-023
+  title: Hide Review button on /my-risks when reviews are not required
+  type: bug
+  capability: advanced-reviews
+  phase: null
+  status: ready
+  priority: high
+  confidence: high
+  summary: The /my-risks table shows a Review button for all risks regardless of whether the parent register has reviews
+    enabled. Risks with a review status of "not required" should not show this button.
+  observed_behaviour:
+  - The Review button appears on /my-risks for risks where the register has reviews disabled (review status "not required").
+  expected_behaviour:
+  - The Review button is hidden for risks where review status is "not required".
+  acceptance:
+  - Risks with review status "not required" do not show a Review button in the /my-risks table.
+  - Risks with an active review requirement continue to show the Review button.
+  - No regression to the review flow for risks where reviews are required.
+  remaining:
+  - Confirm how the /my-risks table receives review status per risk — check if the API already returns review status or if
+    an additional field is needed.
+  - Add conditional rendering in the /my-risks row based on review status.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/MyRisksPage.tsx
+    tests:
+    - frontend/test/myRisks.test.mjs
+    notes:
+    - The condition to check is whether the register for that risk has reviews disabled, which surfaces as review status
+      "not required" on the risk record.
+- id: BUG-006
+  source_request: REQ-030
+  title: Align "Views" dropdown styling with Columns and Export CSV controls
+  type: bug
+  capability: reporting-saved-views
+  phase: null
+  status: ready
+  priority: high
+  confidence: high
+  summary: On the /registers/<registerID> page the Views dropdown is styled differently from the adjacent Columns dropdown
+    and Export CSV button. All three controls should share a consistent style.
+  observed_behaviour:
+  - The Views dropdown has a different visual style from Columns and Export CSV on the register page toolbar.
+  expected_behaviour:
+  - Views, Columns, and Export CSV controls share a consistent button/dropdown style on the register page.
+  acceptance:
+  - The Views dropdown matches the Columns dropdown and Export CSV button in variant, size, and colour.
+  - No regression to Views, Columns, or Export CSV functionality.
+  remaining:
+  - Compare the Mantine component variant/size props used for each control and align Views to match.
+  dependencies:
+  - BUG-003
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/pages/RegisterPage.tsx
+    - frontend/src/features/risks/SavedViewsPanel.tsx
+    tests: []
+    notes:
+    - Depends on BUG-003 being fixed first so the Views feature is usable — style fix is low value while the underlying feature
+      is broken.
+- id: BUG-007
+  source_request: REQ-018
+  title: Fix /audit page Export CSV button styling and layout
+  type: bug
+  capability: audit-log-ui
+  phase: null
+  status: ready
+  priority: high
+  confidence: high
+  summary: The Export CSV button on /audit is styled incorrectly and positioned below the page title rather than inline
+    with it. It should use the same blue button style and title-row layout as the equivalent button on the register page.
+  observed_behaviour:
+  - Export CSV on /audit uses a different style from the register page equivalent.
+  - The button is not positioned on the same line as the page title.
+  expected_behaviour:
+  - Export CSV on /audit uses the same variant/colour as the register page Export CSV button.
+  - The button sits inline with the page title, matching the register page layout pattern.
+  acceptance:
+  - Export CSV on /audit matches the button variant, colour, and title-row position of the register page Export CSV button.
+  - No regression to the audit export functionality.
+  remaining:
+  - Reference the register page layout for the title-row button pattern.
+  - Update AuditPage.tsx to match.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/pages/AuditPage.tsx
+    - frontend/src/pages/RegisterPage.tsx
+    tests: []
+    notes:
+    - Use the register page as the reference for both the button variant/colour and the title-row layout.
+- id: BUG-008
+  source_request: REQ-019
+  title: Remove icon from /help page header
+  type: bug
+  capability: help-content
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The /help page displays an icon before the page heading text. No other page in the app follows this pattern.
+    The icon should be removed for visual consistency.
+  observed_behaviour:
+  - The /help page header renders an icon before the "Help" heading.
+  expected_behaviour:
+  - The /help page header matches all other page headers — no leading icon.
+  acceptance:
+  - No icon is rendered before the /help page heading.
+  - No other page layout is affected.
+  remaining:
+  - Remove the icon element from the /help page header component.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/pages/HelpPage.tsx
+    tests: []
+    notes:
+    - One-line change. Can be batched with other small UI polish items.
+- id: UI-002
+  source_request: REQ-024
+  legacy_ids:
+  - REQ-025
+  title: Show risk ID and title in sticky risk modal headers
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The risk view modal shows "Risk Detail" as its sticky header text, and the edit risk modal shows a generic
+    heading. Both should show the risk ID and title so users retain context while scrolling. In the edit modal the title
+    display should mirror the live value of the title input field.
+  acceptance:
+  - The risk view modal sticky header shows the risk ID and title instead of "Risk Detail".
+  - The edit risk modal sticky header shows the risk ID and the live current value of the title field, updating on every
+    keystroke.
+  - No regression to modal layout, scroll behaviour, or submit/cancel flows.
+  remaining:
+  - Confirm the current sticky header implementation in both modals before implementing.
+  - For the edit modal, determine the best approach to mirror the title input value (e.g. controlled state) without introducing
+    layout issues.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskFormModal.tsx
+    - frontend/src/features/risks/RiskDetailModal.tsx
+    tests: []
+    notes:
+    - REQ-025 (edit modal) and REQ-024 (view modal) are closely related and should be implemented together.
+    - The header is already sticky so no layout changes are needed — this is purely a content change.
+- id: UI-003
+  source_request: REQ-037
+  title: Remove redundant "Show closed" checkbox from register page
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The /registers/<registerID> page has both a State dropdown filter (with Open, Closed, Draft options) and a
+    separate Show closed checkbox. The checkbox is redundant and should be removed to simplify the filter bar.
+  acceptance:
+  - The Show closed checkbox is removed from the register page filter bar.
+  - Closed risks remain accessible via the State dropdown filter.
+  - No regression to the register page filter behaviour or any existing filter tests.
+  remaining:
+  - Confirm that removing the checkbox does not break any filter state persistence or URL param logic that uses it.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/RegisterPage.tsx
+    tests:
+    - frontend/test/risks.test.mjs
+    notes:
+    - Small change. Verify that the State dropdown already handles closed risks correctly before removing the checkbox.
+- id: UI-004
+  source_request: REQ-022
+  title: Open edit and view modals in-place on /my-risks page
+  type: improvement
+  capability: my-risks-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: Clicking Edit or a risk ID on /my-risks currently navigates to /registers/<registerID> and opens the modal
+    there. Both actions should open the modal directly on the /my-risks page to keep the user in context.
+  acceptance:
+  - Clicking a risk ID on /my-risks opens the risk view modal on the /my-risks page without navigating away.
+  - Clicking Edit on /my-risks opens the risk edit modal on the /my-risks page without navigating away.
+  - After the modal is dismissed or submitted, the user remains on /my-risks with the table refreshed if needed.
+  - No regression to the modal content or submit/cancel behaviour.
+  remaining:
+  - Confirm the risk view and edit modals are generic enough to be mounted from /my-risks or if they assume register page context.
+  - Wire up the modal open state on MyRisksPage.tsx.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/MyRisksPage.tsx
+    - frontend/src/features/risks/RiskFormModal.tsx
+    - frontend/src/features/risks/RiskDetailModal.tsx
+    tests:
+    - frontend/test/myRisks.test.mjs
+    notes:
+    - Modal content does not need to change — only the trigger location.
+    - Check whether the modal components need a registerId prop or similar to operate in cross-register context.
+- id: UI-005
+  source_request: REQ-035
+  title: Add search and filter capability to /my-risks page
+  type: improvement
+  capability: my-risks-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: The /my-risks page has no search or filter capability. Standard filters (title/description search, state,
+    risk level, register) should be added consistent with the register page filter pattern. Custom field filters are out
+    of scope for this item due to the cross-register nature of the view.
+  acceptance:
+  - The /my-risks page has a filter bar with at minimum search (title/description), state, risk level, and register filters.
+  - Filters work correctly across risks from different registers.
+  - Custom field filters are explicitly out of scope for this item.
+  - Filter state is applied to the displayed table and clears cleanly on reset.
+  - No regression to existing /my-risks functionality.
+  remaining:
+  - Confirm which filter fields the /my-risks API endpoint supports or can support with query params.
+  - Implement filter bar UI consistent with the register page filter pattern, excluding custom field filters.
+  - Add or update tests for the filter behaviour.
+  dependencies: []
+  suggested_agents:
+  - Backend Developer
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/MyRisksPage.tsx
+    - backend/src/routes/risks.routes.ts
+    tests:
+    - frontend/test/myRisks.test.mjs
+    - backend/test/risks.test.mjs
+    notes:
+    - Custom field filters are out of scope because /my-risks is a cross-register view and custom fields vary per register.
+    - The backend may need new query parameters to support filtering; check current /my-risks route handler.
+- id: UI-006
+  source_request: REQ-036
+  title: Add Export CSV button to /my-risks page
+  type: improvement
+  capability: my-risks-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The /my-risks page has no CSV export capability. An Export CSV button should be added, styled and positioned
+    consistently with the equivalent control on the register page.
+  acceptance:
+  - An Export CSV button appears on /my-risks styled and positioned consistently with the register page Export CSV button.
+  - Clicking Export CSV exports the current visible (filtered, if filters are active) set of risks owned by the user across
+    all registers.
+  - Export respects permissions — only risks the user can see are exported.
+  - No regression to existing /my-risks functionality.
+  remaining:
+  - Confirm whether the backend already supports a my-risks CSV export endpoint or if a new endpoint is needed.
+  - Implement button in the /my-risks page title row, matching the register page layout.
+  dependencies: []
+  suggested_agents:
+  - Backend Developer
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/MyRisksPage.tsx
+    - backend/src/services/export.service.ts
+    tests:
+    - frontend/test/myRisks.test.mjs
+    - backend/test/registers.test.mjs
+    notes:
+    - The export service likely needs a my-risks variant that filters by ownership rather than register scope.
+- id: UI-007
+  source_request: REQ-034
+  title: Make Admin summary widget counts link to pre-filtered register
+  type: improvement
+  capability: homepage
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: The Admin summary homepage widget shows open risk counts and overdue review counts per register as plain numbers.
+    Each count should be a clickable link that navigates to the relevant register page with the appropriate filter pre-applied.
+  acceptance:
+  - The open risks count in the Admin summary widget links to /registers/<registerID> with the open risks filter pre-applied.
+  - The overdue reviews count links to /registers/<registerID> with the overdue reviews filter pre-applied.
+  - No regression to the Admin summary widget data display or other homepage widgets.
+  remaining:
+  - Confirm the URL parameter or navigation state mechanism for pre-applying filters on the register page.
+  - Implement link behaviour on both the open risks and overdue reviews columns.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/features/homepage
+    - frontend/src/pages/RegisterPage.tsx
+    tests: []
+    notes:
+    - Requires a mechanism to pass filter state into the register page — check if the register page already supports URL
+      params for filter state, as this would be the cleanest approach.
+- id: UI-008
+  source_request: REQ-033
+  title: Add inline review action to "My overdue risks" homepage widget
+  type: improvement
+  capability: homepage
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: The My overdue risks homepage widget should include a Review button per risk that opens the review modal directly
+    on the homepage without navigating away. After submission the widget refreshes.
+  acceptance:
+  - Each risk in the My overdue risks widget shows a Review button.
+  - Clicking Review opens the review modal in-place on the homepage.
+  - After the review is submitted the widget data refreshes to reflect the updated state.
+  - No regression to the review modal content or submit flow.
+  remaining:
+  - Confirm the review modal is mountable from a homepage context (not tied to the register page).
+  - Implement Review button and modal wiring in the homepage widget.
+  dependencies:
+  - UI-004
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/features/homepage
+    - frontend/src/features/risks/ReviewModal.tsx
+    tests: []
+    notes:
+    - Related to UI-004 (in-place modals on /my-risks). Confirm the modal portability pattern is consistent between the
+      two use cases.
+    - Blocked by UI-004 in a soft sense — if the modal requires register context to function, that constraint must be resolved
+      first.
+- id: UI-009
+  source_request: REQ-028
+  title: Move "Configuration is version-controlled" alert above action buttons
+  type: improvement
+  capability: config-lifecycle-templates
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: On the register configuration page, the "Configuration is version-controlled" alert box appears below the
+    action button group. It should be positioned above the action buttons so the contextual information is presented before
+    the actions it relates to.
+  acceptance:
+  - The version-controlled alert is rendered above the action button group on the configuration page.
+  - No regression to the configuration page layout or functionality.
+  remaining:
+  - Locate the alert and button group in the configuration page component and reorder them.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/pages/RegisterConfigPage.tsx
+    tests: []
+    notes:
+    - One-line reorder. Can be batched with other small config page polish items.
+- id: UI-010
+  source_request: REQ-027
+  title: Use Mantine Fieldset on register permissions page for visual consistency
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The register permissions page does not use Mantine Fieldset for grouping its content, unlike the configuration
+    settings page and other configuration sub-pages. The permissions page should be updated to match.
+  acceptance:
+  - The register permissions page uses Mantine Fieldset for content grouping, consistent with the configuration settings
+    page pattern.
+  - No regression to permissions page functionality or existing tests.
+  remaining:
+  - Reference the configuration settings page and sub-pages for the Fieldset pattern to follow.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/pages/RegisterPermissionsPage.tsx
+    - frontend/src/pages/RegisterConfigPage.tsx
+    tests: []
+    notes:
+    - Small UI-consistency change. Can be batched with other small polish items.
+- id: UI-011
+  source_request: REQ-020
+  title: Add descriptive helper text beneath page titles across the app
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: Only the /help page displays a subtitle beneath its title. All pages should display short descriptive helper
+    text to improve user orientation. The /api-keys alert box content should be repurposed as helper text. On register
+    pages the register description field should serve as the helper text.
+  acceptance:
+  - All pages show a short descriptive subtitle beneath the page title, following the /help page pattern.
+  - The /api-keys page uses its current alert box content as helper text rather than an alert.
+  - The /registers/<registerID> page uses the register description as its helper text.
+  - No regression to any page layout or functionality.
+  remaining:
+  - Audit all pages to identify which need helper text authored vs. which already have it or use dynamic content.
+  - Author helper text for each page without dynamic content.
+  - Convert the /api-keys alert to helper text format.
+  - Wire the register description field into the register page subtitle.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/pages/HelpPage.tsx
+    - frontend/src/pages/ApiKeysPage.tsx
+    - frontend/src/pages/RegisterPage.tsx
+    tests: []
+    notes:
+    - The /help page subtitle is the reference pattern. All other pages should adopt the same layout component.
+    - This item touches many pages — implementation should be systematic but each individual change is small.
+- id: UI-012
+  source_request: REQ-016
+  title: Use date picker in Create API Key modal
+  type: improvement
+  capability: api-keys
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The Create API Key modal uses a plain text input for the expiry date field instead of a proper date picker.
+    The audit log search filter already implements a date picker component that can be reused.
+  acceptance:
+  - The Create API Key modal expiry date field uses a date picker component matching the audit log search filter pattern.
+  - Users cannot easily enter invalid dates.
+  - No regression to API key creation functionality or existing tests.
+  remaining:
+  - Identify and extract (or reference) the date picker component used in the audit log search filter.
+  - Replace the plain text input in the Create API Key modal with the date picker.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/ApiKeysPage.tsx
+    - frontend/src/features/audit/AuditFilters.tsx
+    tests:
+    - frontend/test/apiKeys.behavior.test.tsx
+    notes:
+    - Reuse the existing date picker component to avoid adding a new dependency.
+- id: UI-013
+  source_request: REQ-021
+  title: Overhaul the homepage — post-MVP rework
+  type: feature
+  capability: homepage
+  phase: null
+  status: deferred
+  priority: medium
+  confidence: low
+  summary: The homepage has not been updated since MVP and needs a significant rework. Scope overlaps with or may supersede
+    other planned homepage improvements (UI-007, UI-008). PM must define what the post-MVP homepage should offer before
+    implementation begins.
+  acceptance:
+  - The homepage provides meaningful, up-to-date value for end users post-MVP.
+  - Scope is explicitly defined by PM before any implementation starts.
+  - Existing homepage widgets are either incorporated, replaced, or formally retired.
+  remaining:
+  - PM to assess what the post-MVP homepage should offer — check backlog for related items (UI-007, UI-008).
+  - Resolve whether UI-007 and UI-008 are subsets of this work or independent.
+  - Define scope explicitly before adding to a release.
+  dependencies: []
+  suggested_agents:
+  - Product Manager
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/HomePage.tsx
+    tests: []
+    notes:
+    - Deferred until PM has defined scope. UI-007 and UI-008 are ready and can ship independently if the homepage overhaul
+      scope is not yet defined.
+- id: MAINT-002
+  source_request: REQ-032
+  title: Externalise /help page content out of source code
+  type: improvement
+  capability: help-content
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: Help content is currently embedded in source code, making it hard to maintain and update without a code change.
+    Content should be moved to external files (e.g. Markdown) that can be edited independently and support future localisation.
+    Image references must be supported.
+  acceptance:
+  - Help content is stored in external files (e.g. Markdown or similar) rather than inline in HelpPage.tsx.
+  - Images can be included or referenced from help content files.
+  - The help page renders the externalised content correctly.
+  - The structure supports locale variants in future (e.g. locale subdirectories) without requiring architectural rework.
+  - No regression to help page display.
+  remaining:
+  - Choose the file format and serving approach (Markdown files as static assets, JSON, or similar).
+  - Confirm image handling — inline base64, public asset references, or a separate image folder.
+  - Define the directory structure with future locale support in mind.
+  - Migrate existing content to the new format.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/pages/HelpPage.tsx
+    tests: []
+    notes:
+    - REQ-031 (content accuracy audit) should ideally be done after or alongside this change so content is corrected in
+      the new format.
+    - Prefer a simple solution that does not require a new CMS dependency — static Markdown files served as assets is
+      the most pragmatic approach.
+- id: MAINT-003
+  source_request: REQ-031
+  title: Audit and update /help page content for accuracy
+  type: improvement
+  capability: help-content
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The /help page content has not been kept in sync with the live product. A review pass is needed to identify
+    and correct outdated, inaccurate, or missing information.
+  acceptance:
+  - All help content accurately describes the current state of the live product.
+  - No outdated or incorrect information remains in help content.
+  - Any missing help topics that would benefit users are added.
+  remaining:
+  - Review all help content against the live product systematically.
+  - Correct any inaccurate or outdated sections.
+  - Identify and add any missing topics.
+  dependencies: []
+  suggested_agents:
+  - Product Manager
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/pages/HelpPage.tsx
+    tests: []
+    notes:
+    - Can be done alongside MAINT-002 (externalise content) or after, so corrections are made in the final format.
+    - If done before MAINT-002, corrections will require a subsequent migration when the content is externalised.
+- id: MAINT-004
+  source_request: REQ-017
+  title: Investigate and improve CI/CD pipeline performance
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: low
+  summary: The CI/CD pipeline is running slowly and impacting developer velocity. An audit of the current pipeline configuration
+    should identify bottlenecks and explore improvements such as caching, parallelisation, or tooling changes.
+  acceptance:
+  - The CI/CD pipeline bottlenecks are identified and documented.
+  - At least one concrete improvement is implemented and validated to reduce build or test time.
+  - CI remains reliable — no regression to test correctness or deployment safety.
+  remaining:
+  - Profile the current pipeline to identify the slowest stages.
+  - Evaluate caching, parallelisation, and tooling options.
+  - Implement the highest-value improvement and measure the result.
+  dependencies: []
+  suggested_agents:
+  - devops-engineer
+  evidence:
+    code:
+    - .github/workflows
+    tests: []
+    notes:
+    - This is an investigation item — scope and delivery estimate will be determined during the investigation phase.
+    - Low confidence because the bottleneck is unknown until profiled.
