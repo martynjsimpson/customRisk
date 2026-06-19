@@ -7,7 +7,6 @@ import { listRiskAudit } from "../../api/audit.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { AuditEventTable } from "../audit/AuditEventTable";
 import { CORE_RISK_FIELDS } from "./coreRiskFields";
-import { ReviewStatusBadge } from "../../components/ReviewStatusBadge/ReviewStatusBadge";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge/RiskLevelBadge";
 
 function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[number]["id"]): ReactNode {
@@ -110,10 +109,6 @@ export function RiskDetailModal({
       <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk detail" />
       {selectedRiskQuery.data ? (
         <Stack>
-          <Group justify="space-between">
-            <Title order={3}>{selectedRiskQuery.data.displayRiskId}</Title>
-            <ReviewStatusBadge status={selectedRiskQuery.data.reviewStatus} />
-          </Group>
           <Table.ScrollContainer minWidth={400}>
             <Table>
               <Table.Tbody>
@@ -157,6 +152,10 @@ export function RiskDetailModal({
                       </Table.Tr>
                     )
                   )}
+                <Table.Tr>
+                  <Table.Th>Review Status</Table.Th>
+                  <Table.Td>{selectedRiskQuery.data!.reviewStatus.replace(/_/g, " ")}</Table.Td>
+                </Table.Tr>
               </Table.Tbody>
             </Table>
           </Table.ScrollContainer>
