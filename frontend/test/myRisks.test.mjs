@@ -87,3 +87,68 @@ test("BUG-005: MyRisksPage imports reviewStatus from DashboardRisk type", async 
   // DashboardRisk must expose reviewStatus so the conditional has data to check
   assert.match(dashboardApi, /reviewStatus/);
 });
+
+/**
+ * UI-005 — Search and filter bar on /my-risks page
+ *
+ * Filter state must be stored in URL search params and passed to the API.
+ * The filter bar must include: text search, state, risk level, and register.
+ * A Reset button must clear all filters.
+ */
+
+test("UI-005: MyRisksPage uses useSearchParams to read filter state", async () => {
+  const page = await readFile(
+    new URL("../src/pages/MyRisksPage.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(page, /useSearchParams/, "must import and use useSearchParams");
+  assert.match(page, /searchParams\.get\("search"\)/, "must read search from URL params");
+  assert.match(page, /searchParams\.get\("state"\)/, "must read state from URL params");
+  assert.match(page, /searchParams\.get\("riskLevel"\)/, "must read riskLevel from URL params");
+  assert.match(page, /searchParams\.get\("registerId"\)/, "must read registerId from URL params");
+});
+
+test("UI-005: MyRisksPage passes filters to getMyRisks", async () => {
+  const page = await readFile(
+    new URL("../src/pages/MyRisksPage.tsx", import.meta.url),
+    "utf8"
+  );
+  // getMyRisks must be called with the filters object
+  assert.match(page, /getMyRisks\(filters\)/, "must pass filters to getMyRisks");
+  // filters must be in the query key so the query re-runs when filters change
+  assert.match(page, /queryKey.*"my-risks".*filters/s, "filters must be in the TanStack Query key");
+});
+
+test("UI-005: MyRisksPage renders search, state, risk level, and register filter inputs", async () => {
+  const page = await readFile(
+    new URL("../src/pages/MyRisksPage.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(page, /label="Search"/, "must have Search text input");
+  assert.match(page, /label="State"/, "must have State select");
+  assert.match(page, /label="Risk level"/, "must have Risk level select");
+  assert.match(page, /label="Register"/, "must have Register select");
+});
+
+test("UI-005: MyRisksPage has a Reset button that clears all filters", async () => {
+  const page = await readFile(
+    new URL("../src/pages/MyRisksPage.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(page, /resetFilters/, "must have a resetFilters function");
+  assert.match(page, /setSearchParams\({}, { replace: true }\)/, "resetFilters must clear all URL params");
+  assert.match(page, /Reset/, "must render a Reset button");
+});
+
+test("UI-005: getMyRisks API function accepts a MyRisksQuery parameter", async () => {
+  const api = await readFile(
+    new URL("../src/api/dashboard.api.ts", import.meta.url),
+    "utf8"
+  );
+  assert.match(api, /export interface MyRisksQuery/, "must export MyRisksQuery interface");
+  assert.match(api, /search\?:/, "MyRisksQuery must include search");
+  assert.match(api, /state\?:/, "MyRisksQuery must include state");
+  assert.match(api, /riskLevel\?:/, "MyRisksQuery must include riskLevel");
+  assert.match(api, /registerId\?:/, "MyRisksQuery must include registerId");
+  assert.match(api, /getMyRisks\(query: MyRisksQuery/, "getMyRisks must accept MyRisksQuery");
+});

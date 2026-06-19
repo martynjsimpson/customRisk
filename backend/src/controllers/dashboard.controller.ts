@@ -13,7 +13,7 @@ export async function getMyWorkController(request: Request, response: Response) 
 }
 
 export async function getMyRisksController(request: Request, response: Response) {
-  sendData(response, await getMyRisks(actorOrThrow(request)));
+  sendData(response, await getMyRisks(actorOrThrow(request), request.query));
 }
 
 export async function getAdminSummaryController(request: Request, response: Response) {
