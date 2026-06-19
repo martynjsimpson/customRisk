@@ -15,6 +15,21 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-06-19
+
+### Added
+
+- **Search and filter bar on /my-risks (UI-005)**
+  - The /my-risks page now has a filter bar with title/description text search, state, risk level, and register dropdowns. Filters work across risks from different registers. Filter state is stored in URL params — refreshing the page or sharing the URL restores the active filters. A Reset button clears all active filters.
+
+- **Export CSV on /my-risks (UI-006)**
+  - An Export CSV button has been added to the /my-risks page, consistent in style and position with the register page export. The export reflects the current filter state — if filters are active, only the filtered risks are exported; if no filters are active, all risks owned by the user across all registers are exported.
+
+### Changed
+
+- **Date picker for API key expiry (UI-012)**
+  - The expiry date field in the Create API Key modal now uses a native date picker instead of a plain text input, preventing invalid date entry.
+
 ## [1.12.0] - 2026-06-19
 
 ### Added
