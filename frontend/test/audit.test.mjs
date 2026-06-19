@@ -263,3 +263,22 @@ test("RiskDetailModal passes showIpAddress=false to AuditEventTable", async () =
   assert.match(modal, /AuditEventTable/);
   assert.match(modal, /showIpAddress=\{false\}/);
 });
+
+test("AuditEventTable API key summary regex places ellipsis inside closing parenthesis", async () => {
+  // Regression test for the fix: `expire (cr_live_27e6515b…)` not `expire (cr_live_27e6515b)…`
+  //
+  // The correct pattern captures the optional `)` in group 2 and uses "$1…$2" so the ellipsis
+  // lands BEFORE the closing paren. The previous buggy pattern ended with `…` outside the group,
+  // producing `(cr_live_27e6515b)…` instead of `(cr_live_27e6515b…)`.
+  const table = await readFile(
+    new URL("../src/features/audit/AuditEventTable.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // The replace call must capture the optional `)` and use it as $2 in the replacement
+  assert.match(table, /\(\?!…\)\(\\?\\\)\)\?/);  // (?!…)(\))?  — paren captured in group 2
+  // The replacement string must be "$1…$2" so paren comes AFTER the ellipsis, not before
+  assert.match(table, /"\$1…\$2"/);
+  // Sanity: the old buggy pattern would end the replacement outside any group — guard against regression
+  assert.doesNotMatch(table, /"\$1…\)"/);  // would mean paren is hardcoded after ellipsis
+});
