@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.13.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Complete the /my-risks page as a genuinely useful destination: add search and fi
 ### UI-005 — Add search and filter capability to /my-risks page
 Source: REQ-035
 Capability: my-risks-ui
-Status: proposed
+Status: done
+done_in: v1.13.0
 
 **Problem:** The /my-risks page has no search or filter capability. Users cannot narrow their risk list by title, state, risk level, or register.
 
@@ -37,7 +38,8 @@ Status: proposed
 ### UI-006 — Add Export CSV button to /my-risks page
 Source: REQ-036
 Capability: my-risks-ui
-Status: proposed
+Status: done
+done_in: v1.13.0
 
 **Problem:** The /my-risks page has no CSV export capability.
 
@@ -60,7 +62,8 @@ Status: proposed
 ### UI-012 — Use date picker in Create API Key modal
 Source: REQ-016
 Capability: api-keys
-Status: proposed
+Status: done
+done_in: v1.13.0
 
 **Problem:** The Create API Key modal uses a plain text input for the expiry date field. The audit log search filter already implements a date picker that can be reused.
 
@@ -92,10 +95,10 @@ Status: proposed
 
 ## Test / sign-off
 
-- [ ] Implementation pass complete
-- [ ] Regression test pass complete
-- [ ] TypeScript typecheck clean
-- [ ] Documentation pass complete
+- [x] Implementation pass complete
+- [x] Regression test pass complete (339 tests, 0 failures)
+- [x] TypeScript typecheck clean
+- [x] Documentation pass complete
 
 ## Blockers
 
