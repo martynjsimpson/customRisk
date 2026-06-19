@@ -1701,15 +1701,10 @@ function AuditExportTab() {
 export function HelpPage() {
   return (
     <Stack>
-      <Group>
-        <ThemeIcon size="lg" variant="light" color="blue">
-          <IconHelp size={20} />
-        </ThemeIcon>
-        <Stack gap={0}>
-          <Title order={1}>Help &amp; Documentation</Title>
-          <Text c="dimmed">Guidance on using customRisk and understanding risk management concepts.</Text>
-        </Stack>
-      </Group>
+      <Stack gap={0}>
+        <Title order={1}>Help &amp; Documentation</Title>
+        <Text c="dimmed">Guidance on using customRisk and understanding risk management concepts.</Text>
+      </Stack>
 
       <Tabs defaultValue="getting-started" keepMounted={false}>
         <Tabs.List mb="md" grow>
