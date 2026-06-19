@@ -89,9 +89,13 @@ done_in: v1.12.0
 
 **Key files:** `frontend/src/features/risks/RiskFormModal.tsx`, `frontend/src/features/risks/RiskDetailModal.tsx`
 
-**Verification feedback:** Risk ID appears twice in the view modal — once in the sticky header (new, correct) and again at the top of the modal body table. The review status badge was sitting next to that risk ID in the body and is left dangling when the ID is removed.
+**Verification feedback (round 1):** Risk ID appears twice in the view modal — once in the sticky header (new, correct) and again at the top of the modal body table. The review status badge was sitting next to that risk ID in the body and is left dangling when the ID is removed.
 **Ruling:** in scope — removing the duplicate ID is required to meet "no regression to modal layout"; the review status treatment is a direct consequence of that change.
-**Fix:** Remove the risk ID from the modal body table. Move the review status from a badge into the table as a plain row alongside the other fields.
+**Fix (round 1):** Remove the risk ID from the modal body table. Move the review status from a badge into the table as a plain row.
+
+**Verification feedback (round 2):** Review status row shows plain text instead of a badge, and the label reads "Review Status" — it should match the "Review" column label used elsewhere. The row also appears at the end of the table; Review Status is not part of the register field configuration so the admin cannot order it — flagged as a backlog gap.
+**Ruling:** badge + label fix in scope; field configuration ordering gap deferred to backlog.
+**Fix (round 2):** Use ReviewStatusBadge as the cell value. Rename label to "Review". Log ordering gap in requests.md.
 **Agents:** Frontend Developer
 
 ---
