@@ -15,6 +15,24 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-06-19
+
+### Added
+
+- **Pagination for Audit History and Review History in View Risk modal (UI-018, UI-019)**
+  - Both history tables in the View Risk modal are now paginated with 5 rows per page. A hard server-side cap of 100 records is enforced — the most recent 100 are returned. When the cap applies, the table shows a note explaining that only the most recent 100 records are shown.
+
+### Changed
+
+- **Action buttons now visually distinct from plain text links (UI-017)**
+  - Table row action buttons (Review, Edit, Delete, Revoke, and similar) across all pages now use the Mantine `light` variant, giving them a clear button appearance. Previously they used the `subtle` variant which made them look like plain text links. Modal cancel and secondary text actions that are intentionally low-weight are unchanged.
+
+- **Rounded corners on left nav hover and active states (UI-015)**
+  - The left-hand navigation highlight now uses rounded corners consistent with the rest of the app's design language.
+
+- **Ellipsis appended to API key prefixes in the audit log (UI-016)**
+  - API key prefixes in the audit log (both the Object column and the event description) now show a trailing ellipsis (e.g. `cr_live_27e6515b…`) to make clear the value is a truncated prefix, not the full key.
+
 ## [1.13.0] - 2026-06-19
 
 ### Added
