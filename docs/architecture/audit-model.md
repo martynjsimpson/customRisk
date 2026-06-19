@@ -32,7 +32,6 @@ It is not the canonical route inventory or physical schema definition.
 - Use this document for audit behavior, access rules, and implementation expectations.
 - Use `backend/prisma/schema.prisma` as the canonical physical schema.
 - Use `docs/postman/` for the currently implemented audit API endpoints and request examples.
-- Use `docs/planning/PM0-04-audit-permission-extension.md` for post-MVP additions and future object types/actions.
 
 ---
 

@@ -4,7 +4,7 @@
 **Date:** 2026-05-20  
 **Applies to:** Custom Risk frontend quality gates after v1.5.x  
 **Related architecture:** `docs/architecture/technical-architecture.md`  
-**Related documents:** `docs/operations/development-workflow.md`, `docs/planning/ai-build-instructions.md`
+**Related documents:** `docs/operations/development-workflow.md`
 
 ---
 

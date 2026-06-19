@@ -34,8 +34,6 @@ items:
     tests:
     - backend/test/auth.test.mjs
     - frontend/test/preferences.behavior.test.tsx
-    docs:
-    - docs/planning/post-mvp-backlog.md
     notes:
     - Verified as done in the current planning audit and retained only to prevent duplicate reopenings.
 - id: PM4-CLOSEOUT
@@ -80,7 +78,6 @@ items:
     - backend/test/configVersion.test.mjs
     - frontend/test/configVersion.test.mjs
     docs:
-    - docs/planning/post-mvp-backlog.md
     - docs/product/prd.md
     notes:
     - Retained as a done baseline because later work depends on it heavily.
@@ -170,7 +167,6 @@ items:
     - backend/test/personReferences.test.mjs
     - frontend/test/riskOwner.behavior.test.tsx
     docs:
-    - docs/planning/groups/group-01-finish-started-work.md
     notes:
     - The backend route evidence now exists in Planning V3; old planning is only needed for optional historical context.
     - Current code exposes `/persons/unresolved` for System Admins, but no dedicated unresolved-person frontend admin view
@@ -389,7 +385,6 @@ items:
     - frontend/test/configuration.test.mjs
     docs:
     - docs/product/prd.md
-    - docs/planning/PM0-02-data-model-extension.md
     notes:
     - Audit confirmed validationMode (ALLOW/WARN/BLOCK) enforced in customFieldValues.service.ts.
     - visibleToRoles filtering confirmed server-side in risks.service.ts (list and detail) and registerConfig.service.ts.
@@ -550,7 +545,6 @@ items:
     - backend/test/reviews.test.mjs
     docs:
     - docs/product/prd.md
-    - docs/planning/groups/group-03-actions-reviews-and-notifications.md
     notes:
     - This work item is intentionally distilled; the old phase doc is only needed for deeper ticket slicing.
 - id: PM8-CORE
@@ -596,7 +590,6 @@ items:
     - backend/test/reviews.test.mjs
     docs:
     - docs/product/prd.md
-    - docs/planning/groups/group-03-actions-reviews-and-notifications.md
     notes:
     - Current foundations are enough to start; old planning detail is not required for the baseline scope.
 - id: PM9-CORE
@@ -643,7 +636,6 @@ items:
     - backend/test/observability.test.mjs
     docs:
     - docs/product/prd.md
-    - docs/planning/PM0-02-data-model-extension.md
     notes:
     - Still relies mostly on product and architecture docs; there is no meaningful shipped product scope yet.
 - id: PM10-CORE
@@ -693,7 +685,6 @@ items:
     tests:
     - backend/test/registers.test.mjs
     docs:
-    - docs/planning/groups/group-04-portability-reporting-and-integrations.md
     - docs/product/prd.md
     notes:
     - Old phase docs may still help with CSV import edge cases, but they should not be required for normal understanding.
@@ -742,7 +733,6 @@ items:
     tests: []
     docs:
     - docs/decisions/ADR-0006-attachment-storage.md
-    - docs/planning/PM0-02-data-model-extension.md
     notes:
     - This item is ready because the architecture direction is clear, but the product implementation has not started.
 - id: PM3-CORE
@@ -786,7 +776,6 @@ items:
     tests: []
     docs:
     - docs/product/prd.md
-    - docs/planning/groups/group-02-auth-fields-and-scoring.md
     notes:
     - Still depends primarily on product intent and should remain deferred until there is a concrete need.
 - id: MAINT-001
@@ -1929,7 +1918,6 @@ items:
   - devops-engineer
   evidence:
     code:
-    - docs/planning/
     tests: []
     notes:
     - Confirm no active CI jobs, scripts, or agent prompts reference files under docs/planning before deleting.

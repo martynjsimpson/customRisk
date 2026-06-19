@@ -6,7 +6,7 @@ This directory uses the `Request -> Work item -> Active release -> Done` model.
 - `backlog.yml` is the PM-refined, agent-readable backlog.
 - `active-release.md` is the only current delivery scope.
 
-There are no slices, batches, or active phase documents in this model. Release versions are assigned later by the Release Manager after the release scope is approved. The old `docs/planning/` files remain migration and reference sources only.
+There are no slices, batches, or active phase documents in this model. Release versions are assigned later by the Release Manager after the release scope is approved.
 
 Agents should not read old planning files by default. Agents should not create new planning files, phase files, or side-car backlog files without human approval. This model is intentionally small so it can later migrate to GitHub Issues if that becomes useful.
 
@@ -96,5 +96,4 @@ Do not try to make request status mirror every downstream work item status.
 ## Migration notes
 
 - `docs/work-management-model.md` and this directory describe the same operating model.
-- `docs/planning/` is still useful for historic detail, but only as a fallback reference.
 - `docs/product/prd.md`, relevant architecture docs, ADRs, code, and tests are the primary truth sources for current capability status.

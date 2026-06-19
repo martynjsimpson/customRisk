@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Date:** 2026-05-07  
 **Applies to:** Custom Risk — post-MVP configuration lifecycle (PM4-01 to PM4-11)  
-**Related documents:** PM0-02 Data Model Extension Plan, `docs/planning/phases/phase-04-config-lifecycle.md` (PM4-01 notes)
+**Related documents:** PM0-02 Data Model Extension Plan
 
 ---
 
