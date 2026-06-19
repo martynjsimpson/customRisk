@@ -28,6 +28,11 @@ export function RegisterConfigurationPanel({ registerId, canManage }: RegisterCo
 
   return (
     <Stack>
+      {configLocked ? (
+        <Alert color="blue" title="Configuration is version-controlled">
+          Create a draft using the banner above to edit register configuration.
+        </Alert>
+      ) : null}
       {draftConfigMode ? (
         <Paper withBorder p="sm">
           <Stack gap="sm">
@@ -35,11 +40,6 @@ export function RegisterConfigurationPanel({ registerId, canManage }: RegisterCo
             <TemplateLinkPanel registerId={registerId} canManage={canManage} />
           </Stack>
         </Paper>
-      ) : null}
-      {configLocked ? (
-        <Alert color="blue" title="Configuration is version-controlled">
-          Create a draft using the banner above to edit register configuration.
-        </Alert>
       ) : null}
       <Tabs defaultValue="settings">
         <Tabs.List>
