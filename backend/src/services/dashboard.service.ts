@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
+import type { MyRisksQuery } from "../validators/dashboard.schemas.js";
 import { listAuditEvents } from "./audit.service.js";
 import { formatPersonDisplay, personReferenceSelect } from "./personReference.service.js";
 import {
@@ -188,12 +189,46 @@ async function buildRegisterSummary(registerId: string) {
   };
 }
 
-export async function getMyRisks(actor: AuthenticatedActor) {
+export async function getMyRisks(actor: AuthenticatedActor, query: MyRisksQuery = {}) {
+  const ownershipFilter: Prisma.RiskWhereInput = {
+    OR: [
+      { ownerUserId: actor.id },
+      { ownerPerson: { userId: actor.id } }
+    ]
+  };
+
+  const where: Prisma.RiskWhereInput = {
+    AND: [ownershipFilter]
+  };
+
+  // Default: exclude closed risks unless caller explicitly requests a specific state
+  if (!query.state) {
+    (where.AND as Prisma.RiskWhereInput[]).push({ state: { not: "CLOSED" } });
+  } else {
+    (where.AND as Prisma.RiskWhereInput[]).push({ state: query.state });
+  }
+
+  if (query.search) {
+    (where.AND as Prisma.RiskWhereInput[]).push({
+      OR: [
+        { title: { contains: query.search, mode: "insensitive" } },
+        { description: { contains: query.search, mode: "insensitive" } }
+      ]
+    });
+  }
+
+  if (query.riskLevel) {
+    (where.AND as Prisma.RiskWhereInput[]).push({
+      riskLevel: { name: { equals: query.riskLevel, mode: "insensitive" } }
+    });
+  }
+
+  if (query.registerId) {
+    (where.AND as Prisma.RiskWhereInput[]).push({ registerId: query.registerId });
+  }
+
   const risks = await prisma.risk.findMany({
-    where: {
-      ownerUserId: actor.id,
-      state: { not: "CLOSED" }
-    },
+    where,
     include: dashboardRiskInclude,
     orderBy: [{ nextReviewDate: "asc" }, { systemUpdatedAt: "desc" }]
   });

@@ -346,7 +346,7 @@ export function ProfilePage() {
             <TextInput label="Name" required placeholder="e.g. CI pipeline" {...generateForm.getInputProps("name")} />
             <TextInput
               label="Expires at (optional)"
-              placeholder="YYYY-MM-DD"
+              type="date"
               description="Leave blank for no expiry"
               {...generateForm.getInputProps("expiresAt")}
             />

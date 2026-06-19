@@ -1,8 +1,9 @@
-import { Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Anchor, Badge, Button, Group, Loader, Select, Stack, Table, Text, TextInput, Title } from "@mantine/core";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
-import { getMyRisks, type DashboardRisk } from "../api/dashboard.api";
+import { exportMyRisks, getMyRisks, type DashboardRisk, type MyRisksQuery } from "../api/dashboard.api";
 import { getRegister } from "../api/registers.api";
 import { getRiskFormConfig } from "../api/risks.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
@@ -136,13 +137,82 @@ function MyRiskCell({ risk, columnKey }: { risk: DashboardRisk; columnKey: strin
   }
 }
 
+const RISK_STATE_OPTIONS = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "OPEN", label: "Open" },
+  { value: "CLOSED", label: "Closed" },
+] as const;
+
 export function MyRisksPage() {
   const { isSystemAdmin } = usePermissions();
   const { user } = useCurrentUser();
   const queryClient = useQueryClient();
-  const risksQuery = useQuery({ queryKey: ["dashboard", "my-risks"], queryFn: getMyRisks });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const search = searchParams.get("search") ?? undefined;
+  const state = (searchParams.get("state") as MyRisksQuery["state"]) ?? undefined;
+  const riskLevel = searchParams.get("riskLevel") ?? undefined;
+  const registerId = searchParams.get("registerId") ?? undefined;
+
+  const filters: MyRisksQuery = useMemo(() => ({
+    search,
+    state,
+    riskLevel,
+    registerId,
+  }), [search, state, riskLevel, registerId]);
+
+  const risksQuery = useQuery({
+    queryKey: ["dashboard", "my-risks", filters],
+    queryFn: () => getMyRisks(filters),
+  });
 
   const risks = useMemo(() => risksQuery.data ?? [], [risksQuery.data]);
+
+  const riskLevelOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const options: Array<{ value: string; label: string }> = [];
+    for (const risk of risks) {
+      if (risk.riskLevel && !seen.has(risk.riskLevel.name)) {
+        seen.add(risk.riskLevel.name);
+        options.push({ value: risk.riskLevel.name, label: risk.riskLevel.name });
+      }
+    }
+    return options;
+  }, [risks]);
+
+  const registerOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const options: Array<{ value: string; label: string }> = [];
+    for (const risk of risks) {
+      if (!seen.has(risk.register.id)) {
+        seen.add(risk.register.id);
+        options.push({ value: risk.register.id, label: risk.register.name });
+      }
+    }
+    return options;
+  }, [risks]);
+
+  const setFilter = (patch: Partial<MyRisksQuery>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === undefined || value === null || value === "") {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
+      }
+      return next;
+    }, { replace: true });
+  };
+
+  const resetFilters = () => {
+    setSearchParams({}, { replace: true });
+  };
+
+  const hasActiveFilters = Boolean(
+    filters.search || filters.state || filters.riskLevel || filters.registerId
+  );
 
   // Modal state — track the selected risk and which modal is open
   const [detailRiskId, setDetailRiskId] = useState<string | null>(null);
@@ -231,6 +301,18 @@ export function MyRisksPage() {
     ]);
   };
 
+  const exportMutation = useMutation({
+    mutationFn: () => exportMyRisks(filters),
+    onSuccess: ({ blob, filename }) => {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+  });
+
   const openDetail = (riskId: string) => {
     setDetailRiskId(riskId);
     setEditingRiskId(null);
@@ -273,11 +355,50 @@ export function MyRisksPage() {
     <Stack>
       <Group justify="space-between">
         <Title order={1}>My Risks</Title>
-        <ColumnPicker
-          groups={columnPickerGroups}
-          visibleColumns={visibleColumns}
-          onChange={setColumns}
+        <Group>
+          <ColumnPicker
+            groups={columnPickerGroups}
+            visibleColumns={visibleColumns}
+            onChange={setColumns}
+          />
+          <Button variant="light" onClick={() => exportMutation.mutate()} loading={exportMutation.isPending}>
+            Export CSV
+          </Button>
+        </Group>
+      </Group>
+      <ApiErrorAlert error={exportMutation.error} fallback="Unable to export risks" />
+      <Group align="end">
+        <TextInput
+          label="Search"
+          value={filters.search ?? ""}
+          onChange={(event) => setFilter({ search: event.currentTarget.value || undefined })}
         />
+        <Select
+          label="State"
+          clearable
+          data={RISK_STATE_OPTIONS}
+          value={filters.state ?? null}
+          onChange={(value) => setFilter({ state: (value as MyRisksQuery["state"]) ?? undefined })}
+        />
+        <Select
+          label="Risk level"
+          clearable
+          data={riskLevelOptions}
+          value={filters.riskLevel ?? null}
+          onChange={(value) => setFilter({ riskLevel: value ?? undefined })}
+        />
+        <Select
+          label="Register"
+          clearable
+          data={registerOptions}
+          value={filters.registerId ?? null}
+          onChange={(value) => setFilter({ registerId: value ?? undefined })}
+        />
+        {hasActiveFilters ? (
+          <Button variant="subtle" onClick={resetFilters}>
+            Reset
+          </Button>
+        ) : null}
       </Group>
       <ApiErrorAlert error={risksQuery.error} fallback="Unable to load assigned risks" />
       {risksQuery.isLoading ? <Loader /> : null}
@@ -345,7 +466,7 @@ export function MyRisksPage() {
             {risks.length === 0 && !risksQuery.isLoading ? (
               <Table.Tr>
                 <Table.Td colSpan={totalCols}>
-                  <Text c="dimmed">No risks are assigned to you.</Text>
+                  <Text c="dimmed">{hasActiveFilters ? "No risks match the current filters." : "No risks are assigned to you."}</Text>
                 </Table.Td>
               </Table.Tr>
             ) : null}

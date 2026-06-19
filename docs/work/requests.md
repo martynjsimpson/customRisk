@@ -20,10 +20,11 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 Request ID: REQ-038
 Title: Allow register admins to control the position of the Review field in the risk detail modal
 Type: improvement
-Status: inbox
+Status: refined
 Priority: medium
 Summary: The Review status row in the risk detail modal is not part of the register's field configuration, so admins cannot control its position relative to other fields the way they can for custom fields. It currently appears at a fixed position (end of table). The field configuration system should be extended to include Review as a configurable field so its display order can be set per register.
 Source: verification feedback (v1.12.0 release)
+Derived work items: UI-014
 
 ## Refined requests
 
@@ -63,7 +64,8 @@ Source: human request (direct)
 Request ID: REQ-034
 Title: Make Admin summary widget counts link to pre-filtered register
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.12.0
 Priority: medium
 Summary: The "Admin summary" homepage widget displays open risk counts and overdue review counts per register, but these are plain numbers. Each count should be a clickable link that navigates to the relevant register page with the appropriate filter pre-applied — e.g. clicking the open risks count opens /registers/<registerID> filtered to open risks only, and clicking the overdue reviews count filters to overdue reviews only.
 Notes: Requires a mechanism to pass filter state into the register page via URL params or navigation state. Both the open risks column and the overdue reviews column should be made into links.
@@ -74,7 +76,8 @@ Source: human request (direct)
 Request ID: REQ-033
 Title: Add inline review action to "My overdue risks" homepage widget
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.12.0
 Priority: medium
 Summary: The "My overdue risks" homepage widget should include a Review button for each risk so users can complete a review without leaving the page. The review modal should open in-place (not navigate away), consistent with the approach requested in REQ-022. After the review is submitted the widget should refresh to reflect the updated state.
 Notes: Related to REQ-022 (in-place modals on /my-risks). Same pattern applies here — modal opens on the homepage, widget data refreshes on completion.
@@ -164,7 +167,8 @@ Source: human request (direct)
 Request ID: REQ-025
 Title: Show live risk ID and title in sticky edit risk modal header
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.12.0
 Priority: medium
 Summary: Similar to REQ-024 for the view modal, the edit risk modal's sticky header should show the risk ID and a live reflection of the title field value so the user retains context while scrolling. Since the title is an editable input in this modal, the header should display the current value of that input and update on every keystroke rather than embedding the input itself.
 Notes: Related to REQ-024. The exact implementation approach is open — PM and dev should determine the best way to mirror the title input value in the header. Update should be reactive (on each character press).
@@ -175,7 +179,8 @@ Source: human request (direct)
 Request ID: REQ-024
 Title: Show Risk ID and title in sticky risk view modal header
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.12.0
 Priority: medium
 Summary: The risk view modal currently shows "Risk Detail" as the header text. Replacing this with the risk's ID and title would provide useful persistent context as the user scrolls through the modal content, since the header is sticky. This is a small change with a meaningful UX benefit.
 Notes: Replace the static "Risk Detail" text with the risk ID and title. Header is already sticky so no layout changes needed.
@@ -198,7 +203,8 @@ Source: human request (direct)
 Request ID: REQ-022
 Title: Open edit/view modals in-place on the /my-risks page
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.12.0
 Priority: medium
 Summary: Clicking "Edit" or a risk ID from the /my-risks page currently navigates the user away to /registers/<registerID> and opens the modal there. Both actions should instead open the relevant modal directly on the /my-risks page, keeping the user in context without a page jump.
 Notes: Affects both the edit action and the risk ID link. The modal content itself does not need to change — only where it is triggered from.

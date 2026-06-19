@@ -4,8 +4,10 @@ import { auditActions } from "../audit/auditActions.js";
 import { prisma } from "../db/prisma.js";
 import { rowsToCsv } from "../utils/csv.js";
 import type { AuthenticatedActor } from "../types/express.js";
+import type { MyRisksQuery } from "../validators/dashboard.schemas.js";
 import type { ListRisksQuery } from "../validators/risks.schemas.js";
 import { listRisks } from "./risks.service.js";
+import { getMyRisks } from "./dashboard.service.js";
 import { recordAuditEvent } from "./audit.service.js";
 
 const riskExportHeaders = [
@@ -104,6 +106,60 @@ export async function exportRisksCsv(
   return {
     csv,
     filename: filenameFromRegisterName(register.name),
+    rowCount: rows.length
+  };
+}
+
+export async function exportMyRisksCsv(actor: AuthenticatedActor, query: MyRisksQuery) {
+  const risks = await getMyRisks(actor, query);
+
+  const rows = risks.map((risk) => ({
+    "Risk ID": risk.displayRiskId,
+    "Register": risk.register.name,
+    Title: risk.title,
+    State: risk.state,
+    Owner: risk.owner?.name ?? "",
+    "Owner Email": risk.owner?.email ?? "",
+    "Risk Score": risk.riskScore,
+    "Risk Level": risk.riskLevel.name,
+    "Next Review Date": risk.nextReviewDate ?? "",
+    "Review Status": risk.reviewStatus,
+    "Last Updated": risk.systemUpdatedAt.toISOString()
+  }));
+
+  const headers = [
+    "Risk ID",
+    "Register",
+    "Title",
+    "State",
+    "Owner",
+    "Owner Email",
+    "Risk Score",
+    "Risk Level",
+    "Next Review Date",
+    "Review Status",
+    "Last Updated"
+  ];
+
+  const csv = rowsToCsv(headers, rows);
+
+  await recordAuditEvent({
+    action: auditActions.myRisksExportGenerated,
+    actor,
+    objectType: "EXPORT",
+    objectId: actor.id,
+    objectDisplayName: actor.name,
+    scopeType: "SYSTEM",
+    summary: "My risks export generated",
+    metadataJson: {
+      rowCount: rows.length,
+      filters: query as unknown as Prisma.InputJsonValue
+    }
+  });
+
+  return {
+    csv,
+    filename: "my-risks.csv",
     rowCount: rows.length
   };
 }
