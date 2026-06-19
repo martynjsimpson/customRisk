@@ -84,7 +84,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
         queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
         queryClient.invalidateQueries({ queryKey: ["registers"] }),
         queryClient.invalidateQueries({ queryKey: ["register-config", registerId] }),
-        queryClient.invalidateQueries({ queryKey: ["risk-form-config", registerId] })
+        queryClient.invalidateQueries({ queryKey: ["risk-form-config", registerId], refetchType: "all" })
       ]);
     }
   });
