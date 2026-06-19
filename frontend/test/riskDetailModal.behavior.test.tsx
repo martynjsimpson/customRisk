@@ -173,6 +173,116 @@ async function renderModal(overrides?: { reviews?: object[]; auditEvents?: objec
 // Tests
 // ---------------------------------------------------------------------------
 
+describe("RiskDetailModal — reviewStatusPosition ordering", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function renderWithReviewPosition(reviewStatusPosition: number | null, customFieldDisplayOrder: number) {
+    const customFieldId = "cf-1";
+    getRiskMock.mockResolvedValue({
+      ...makeRisk(),
+      customFields: []
+    });
+    listRiskReviewsMock.mockResolvedValue([]);
+    listRiskAuditMock.mockResolvedValue({ data: [], meta: { total: 0 } });
+
+    const formConfig = {
+      ...makeFormConfig(),
+      register: {
+        ...makeFormConfig().register,
+        reviewsEnabled: true,
+        reviewStatusPosition
+      },
+      customFields: [
+        {
+          id: customFieldId,
+          registerId: "reg-1",
+          fieldName: "My Custom Field",
+          fieldType: "TEXT" as const,
+          helpText: null,
+          isRequired: false,
+          validationMode: "ALLOW" as const,
+          displayOrder: customFieldDisplayOrder,
+          isActive: true,
+          formula: null,
+          formulaDependencies: [],
+          visibleToRoles: [],
+          visibleToRiskResponseOwners: true,
+          options: []
+        }
+      ]
+    };
+
+    const { RiskDetailModal } = await import("../src/features/risks/RiskDetailModal");
+
+    render(
+      <Wrapper>
+        <RiskDetailModal
+          registerId="reg-1"
+          riskId="risk-1"
+          formConfig={formConfig as any}
+          opened={true}
+          canReview={false}
+          canEditRows={false}
+          canDelete={false}
+          onClose={vi.fn()}
+          onRequestEdit={vi.fn()}
+          onRequestReview={vi.fn()}
+          onRequestDelete={vi.fn()}
+        />
+      </Wrapper>
+    );
+
+    // Wait for the risk data to load and the table rows to appear
+    await waitFor(() => {
+      expect(screen.getByText("Risk Title")).toBeTruthy();
+    });
+  }
+
+  function getFieldOrder(...fieldNames: string[]): number[] {
+    // Find all th elements (field label cells) in the risk detail table
+    const thElements = document.querySelectorAll("table th");
+    const texts = Array.from(thElements).map((el) => el.textContent ?? "");
+    return fieldNames.map((name) => texts.indexOf(name));
+  }
+
+  it("places Review status after the custom field when reviewStatusPosition is greater than the custom field displayOrder", async () => {
+    // Custom field at 970, Review status at 975 (between 970 and 980).
+    // Review status should appear AFTER "My Custom Field" in the DOM.
+    await renderWithReviewPosition(975, 970);
+
+    const [customFieldIndex, reviewStatusIndex] = getFieldOrder("My Custom Field", "Review status");
+
+    expect(customFieldIndex).toBeGreaterThanOrEqual(0);
+    expect(reviewStatusIndex).toBeGreaterThanOrEqual(0);
+    expect(reviewStatusIndex).toBeGreaterThan(customFieldIndex);
+  });
+
+  it("places Review status before the custom field when reviewStatusPosition is less than the custom field displayOrder", async () => {
+    // Custom field at 980, Review status at 975 (between 970 and 980).
+    // Review status should appear BEFORE "My Custom Field" in the DOM.
+    await renderWithReviewPosition(975, 980);
+
+    const [customFieldIndex, reviewStatusIndex] = getFieldOrder("My Custom Field", "Review status");
+
+    expect(customFieldIndex).toBeGreaterThanOrEqual(0);
+    expect(reviewStatusIndex).toBeGreaterThanOrEqual(0);
+    expect(reviewStatusIndex).toBeLessThan(customFieldIndex);
+  });
+
+  it("places Review status last when reviewStatusPosition is null", async () => {
+    // null means last — Review status should appear AFTER "My Custom Field"
+    await renderWithReviewPosition(null, 970);
+
+    const [customFieldIndex, reviewStatusIndex] = getFieldOrder("My Custom Field", "Review status");
+
+    expect(customFieldIndex).toBeGreaterThanOrEqual(0);
+    expect(reviewStatusIndex).toBeGreaterThanOrEqual(0);
+    expect(reviewStatusIndex).toBeGreaterThan(customFieldIndex);
+  });
+});
+
 describe("RiskDetailModal — Review History pagination and cap note", () => {
   beforeEach(() => {
     vi.clearAllMocks();

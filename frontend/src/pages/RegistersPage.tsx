@@ -25,8 +25,11 @@ export function RegistersPage() {
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={1}>Registers</Title>
+      <Group justify="space-between" align="flex-start">
+        <Stack gap={0}>
+          <Title order={1}>Registers</Title>
+          <Text c="dimmed">All risk registers you have access to.</Text>
+        </Stack>
         {isSystemAdmin ? <Button onClick={openWizard}>Create register</Button> : null}
       </Group>
       <ApiErrorAlert error={registersQuery.error} fallback="Unable to load registers" />

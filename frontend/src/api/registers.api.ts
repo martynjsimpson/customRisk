@@ -27,6 +27,9 @@ export interface RegisterRecord {
   reviewAttestationText: string;
   allowViewerExport: boolean;
   customFieldValidationEnabled: boolean;
+  // Position of the Review status row in the risk detail modal (0-based index).
+  // null means "place Review status last" — the default for all existing registers.
+  reviewStatusPosition: number | null;
   effectiveRole: "SYSTEM_ADMIN" | "REGISTER_ADMIN" | "REGISTER_VIEWER" | "RISK_OWNER" | "NONE";
   openRisksCount: number;
   overdueRisksCount: number;
@@ -69,6 +72,7 @@ export type UpdateRegisterInput = Partial<
     | "defaultReviewFrequencyMonths"
     | "allowViewerExport"
     | "customFieldValidationEnabled"
+    | "reviewStatusPosition"
   >
 >;
 

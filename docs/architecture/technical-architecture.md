@@ -581,9 +581,7 @@ Each seeded register should contain 8–12 risks with a realistic spread of:
 
 ## 11. Explicitly Deferred for Post-MVP
 
-The authoritative MVP exclusion list is in:
-
-- `docs/planning/archive/mvp-scope.md` (archived — MVP is complete)
+MVP is complete. The following are deferred decisions for post-MVP delivery:
 
 Architecture-specific deferrals that are not already governed by MVP product scope:
 
@@ -609,4 +607,3 @@ The architecture document set is:
 5. **Audit Model** — Audit event structure, action names, scopes, field changes, snapshots, and audit access rules.
 6. **Security Model** — Authentication, sessions, passwords, CORS, validation, secrets, and security logging. API keys are post-MVP.
 7. **Schema** — Reference document pointing to `backend/prisma/schema.prisma` as the canonical Prisma schema.
-8. **Post-MVP Planning** — Phase documents under `docs/planning/phases/` defining post-MVP feature delivery.

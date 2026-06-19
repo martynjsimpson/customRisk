@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Date:** 2026-05-07  
 **Applies to:** Custom Risk — post-MVP person identity expansion (PM2-01 to PM2-05) and all subsequent phases that assign persons to objects  
-**Related documents:** PM0-02 Data Model Extension Plan (Phase 2 section), `docs/planning/phases/phase-02-person-identity.md` (PM2-01 notes)
+**Related documents:** PM0-02 Data Model Extension Plan (Phase 2 section)
 
 ---
 

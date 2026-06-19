@@ -163,7 +163,10 @@ export function ProfilePage() {
 
   return (
     <Stack gap="lg">
-      <Title order={2}>My Profile</Title>
+      <Stack gap={0}>
+        <Title order={1}>My Profile</Title>
+        <Text c="dimmed">Manage your display name, password, API keys, and appearance preferences.</Text>
+      </Stack>
 
       <Stack gap="md">
         <Title order={4}>Display Name</Title>

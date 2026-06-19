@@ -15,6 +15,24 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-06-19
+
+### Added
+
+- **Help content externalised to Markdown files (MAINT-002, MAINT-003)**
+  - The /help page content is now stored in static Markdown files under `frontend/public/help/en/` rather than embedded in source code. Content is fetched at runtime with no new build dependencies. The directory structure supports future localisation without restructuring. Help content has been audited and corrected to reflect the current product: added API keys documentation, corrected register permissions (Viewer and Admin only), added the State field to risk creation, documented the Calculated field type, and added My Risks column picker and register filter.
+
+- **Descriptive helper text beneath page titles (UI-011)**
+  - All pages now show a short subtitle beneath the page title, matching the pattern already used on /help. The /api-keys page converts its previous alert box into helper text. Register pages use the register's own description field as their subtitle.
+
+- **Review status field position configurable in risk detail modal (UI-014)**
+  - Register admins can now control where the Review status row appears within the risk detail modal's field table, relative to custom fields. The position is set in the register's field configuration UI and stored in the register config (version-controlled alongside all other settings). Review status defaults to the last position in existing registers, preserving current behaviour. The position control is hidden when reviews are disabled for a register.
+
+### Changed
+
+- **Deleted legacy docs/planning directory (MAINT-005)**
+  - The `docs/planning` directory and all 63 files within it have been removed. These documents were superseded by the `docs/work` planning system and risked being consulted as authoritative. References across architecture docs, ADRs, and the work README have been updated.
+
 ## [1.14.0] - 2026-06-19
 
 ### Added

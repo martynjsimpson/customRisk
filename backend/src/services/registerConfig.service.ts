@@ -19,6 +19,7 @@ const registerConfigSelect = {
   reviewAttestationText: true,
   allowViewerExport: true,
   customFieldValidationEnabled: true,
+  reviewStatusPosition: true,
   createdAt: true,
   updatedAt: true
 };
@@ -96,7 +97,8 @@ function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterConfigSnap
     ...snapshot,
     register: {
       ...snapshot.register,
-      customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true
+      customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true,
+      reviewStatusPosition: snapshot.register.reviewStatusPosition ?? null
     },
     customFields: snapshot.customFields.map((field) => ({
       ...field,

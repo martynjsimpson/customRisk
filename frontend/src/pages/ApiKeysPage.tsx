@@ -1,5 +1,4 @@
 import {
-  Alert,
   Badge,
   Button,
   Code,
@@ -10,7 +9,6 @@ import {
   Text,
   Title
 } from "@mantine/core";
-import { IconInfoCircle } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { adminListApiKeys, adminRevokeApiKey } from "../api/apiKeys.api";
@@ -34,15 +32,14 @@ export function ApiKeysPage() {
 
   return (
     <Stack>
-      <Group justify="space-between">
+      <Stack gap={0}>
         <Title order={1}>API Keys</Title>
-      </Group>
-
-      <Alert color="blue" icon={<IconInfoCircle size={16} />} title="Admin oversight view">
-        This is a read-only audit view of all API keys across all users. To create or manage your
-        own keys, visit your Profile page. System Admins can revoke any key here for offboarding or
-        security reasons.
-      </Alert>
+        <Text c="dimmed">
+          A read-only audit view of all API keys across all users. To create or manage your own
+          keys, visit your Profile page. System Admins can revoke any key here for offboarding or
+          security purposes.
+        </Text>
+      </Stack>
 
       <ApiErrorAlert error={keysQuery.error} fallback="Unable to load API keys" />
       <ApiErrorAlert error={revokeMutation.error} fallback="Unable to revoke API key" />

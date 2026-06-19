@@ -1,129 +1,140 @@
 # Active Release
 
 Status: ready-for-release
-Version: v1.14.0
+Version: v1.15.0
 
 ## Release goal
 
-Visual polish and modal usability pass. Restyle action buttons throughout the app so they look like buttons rather than plain links, apply rounded corners to the left nav highlight, add a trailing ellipsis to API key prefixes in the audit log, and add pagination with a hard row cap to both the Audit History and Review History tables inside the View Risk modal.
+Help content externalisation, page-level helper text, Review status field ordering, and legacy planning cleanup. Five items across three capabilities — help content infrastructure, register UI configuration, and maintenance.
 
 ## Selected work items
 
-### UI-017 — Restyle action buttons to look like buttons, not links
-Source: REQ-041 (consolidated with REQ-046)
-Capability: register-ui
+### MAINT-005 — Delete legacy docs/planning directory
+Source: REQ-045
+Capability: build-toolchain
 Status: done
-done_in: v1.14.0
+done_in: v1.15.0
 
-**Problem:** Action buttons ("Review", "Edit", "Delete", and similar) throughout the app have a background matching the page surface, making them look like plain text links rather than interactive controls. Font size is also inconsistent with other buttons. The same issue affects the /templates screen buttons ("Create Register", "Update Config", "Deactivate").
+**Problem:** The `docs/planning` directory and all its contents are superseded by the planning system under `docs/work`. It creates confusion and the risk of agents or humans consulting outdated documents.
 
 **Acceptance criteria:**
-- Action buttons across the app are visually distinct from plain text links — they have appropriate visual weight via background, border, or clearly button-like styling.
-- Button font size is consistent with other buttons in the app.
-- The /templates screen buttons ("Create Register", "Update Config", "Deactivate") are fixed as part of the same pass.
-- Dark mode is handled correctly after restyling.
-- No regression to button functionality or other intentionally plain/link-style elements.
+- The `docs/planning` directory and all its contents are deleted from the repository.
+- No other files in the repository reference `docs/planning` in a way that breaks after deletion.
+- The deletion is confirmed in a single clean commit.
 
-**Decision:** Developer should audit all action button usages before implementing and agree on a single Mantine button variant to standardise on. Do not restyle buttons that are intentionally plain (e.g. secondary text-only actions that are meant to look like links). Delete buttons should not be styled with a destructive red variant unless that is already established as the app pattern.
+**Implementation note:** Check for references to `docs/planning` in source files, docs, CI config, and agent prompts before deleting. Do this first in the session — it is trivially small and cleans house before other work begins.
 
-**Key files:** `frontend/src/pages/RegisterPage.tsx`, `frontend/src/pages/TemplatesPage.tsx`, `frontend/src/features/risks/RiskFormModal.tsx` (and other pages discovered in audit)
-**Tests:** `frontend/test/risks.test.mjs`
-**Agents:** Frontend Developer, Test Engineer
+**Key files:** `docs/planning/` (delete entirely)
+**Tests:** none
+**Agents:** devops-engineer
 
 ---
 
-### UI-015 — Apply rounded corners to left nav hover and active states
-Source: REQ-047
-Capability: register-ui
+### MAINT-002 — Externalise /help page content out of source code
+Source: REQ-032
+Capability: help-content
 Status: done
-done_in: v1.14.0
+done_in: v1.15.0
 
-**Problem:** The left-hand navigation hover and active highlight does not use rounded corners, inconsistent with the rounded corner treatment used on buttons, frames, and other UI elements throughout the app.
+**Problem:** Help content on the /help page is embedded directly in `HelpPage.tsx`, making it hard to maintain and impossible to localise without a code change.
 
 **Acceptance criteria:**
-- The left nav hover state uses rounded corners consistent with the app's design language.
-- The left nav active/selected state uses rounded corners consistent with the app's design language.
-- No regression to left nav navigation behaviour or other UI elements.
+- Help content is stored in external files (Markdown) rather than inline in `HelpPage.tsx`.
+- Images can be included or referenced from help content files.
+- The help page renders the externalised content correctly.
+- The directory structure supports locale variants in future (e.g. locale subdirectories) without requiring architectural rework.
+- No regression to help page display.
 
-**Key files:** `frontend/src/components/AppShell.tsx` (or equivalent nav component)
+**Decision: format and structure** → Static Markdown files served as public assets. Use a locale-subdirectory structure from the outset (e.g. `frontend/public/help/en/`) so future localisation does not require a restructure. Images go alongside the content files in the same directory. The help page fetches content at runtime; no CMS or new build dependency is introduced.
+
+**Implementation note:** Implement MAINT-002 before MAINT-003 in the same session. Content accuracy corrections (MAINT-003) should be made in the new Markdown format, not in the old inline source.
+
+**Key files:** `frontend/src/pages/HelpPage.tsx`, new `frontend/public/help/en/` content files
+**Tests:** none expected beyond visual verification
+**Agents:** Frontend Developer
+
+---
+
+### MAINT-003 — Audit and update /help page content for accuracy
+Source: REQ-031
+Capability: help-content
+Status: done
+done_in: v1.15.0
+
+**Problem:** Help content has not been kept in sync with the live product. Some sections are outdated or inaccurate.
+
+**Acceptance criteria:**
+- All help content accurately describes the current state of the live product.
+- No outdated or incorrect information remains.
+- Any missing help topics that would benefit users are added.
+
+**Implementation note:** Do this immediately after MAINT-002 in the same session, working directly in the new Markdown files. Do not correct content in the old inline source.
+
+**Key files:** `frontend/public/help/en/` (Markdown files created in MAINT-002)
+**Tests:** none
+**Agents:** Frontend Developer
+
+---
+
+### UI-011 — Add descriptive helper text beneath page titles across the app
+Source: REQ-020
+Capability: register-ui
+Status: done
+done_in: v1.15.0
+
+**Problem:** Only the /help page displays a short subtitle beneath the page title. All other pages lack this orientation text, making the app feel inconsistently finished.
+
+**Acceptance criteria:**
+- All pages show a short descriptive subtitle beneath the page title, following the /help page pattern.
+- The /api-keys page converts its existing alert box content into helper text rather than showing an alert.
+- The /registers/<registerID> page uses the register's own description field as its helper text.
+- No regression to any page layout or functionality.
+
+**Implementation note:** Audit all pages to determine which need helper text authored vs. which already have it. The /help page subtitle is the reference layout component. The /api-keys alert conversion and the register description wiring are the two cases that differ from a plain authored string.
+
+**Key files:** `frontend/src/pages/HelpPage.tsx` (reference), `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/pages/RegisterPage.tsx`, and all other page components discovered in the audit
 **Tests:** none expected
 **Agents:** Frontend Developer
 
 ---
 
-### UI-016 — Append ellipsis to API key prefix in audit log
-Source: REQ-044
-Capability: audit-log-ui
-Status: done
-done_in: v1.14.0
-
-**Problem:** API key prefixes in the audit log are displayed without a trailing ellipsis (e.g. `cr_live_27e6515b`), which could imply the value is the full key rather than a truncated prefix.
-
-**Acceptance criteria:**
-- API key prefix values in the audit log description text are rendered with a trailing ellipsis (e.g. `cr_live_27e6515b...`).
-- API key prefix values in the affected field column are rendered with a trailing ellipsis.
-- No regression to audit log display or functionality.
-
-**Key files:** `frontend/src/features/audit/AuditLogPanel.tsx`
-**Tests:** none expected
-**Agents:** Frontend Developer
-
----
-
-### UI-019 — Paginate Audit History table in View Risk modal
-Source: REQ-039
+### UI-014 — Make Review status field position configurable in risk detail modal
+Source: REQ-038
 Capability: register-ui
 Status: done
-done_in: v1.14.0
+done_in: v1.15.0
 
-**Problem:** The Audit History table in the View Risk modal is unpaginated. As audit records accumulate the list can become very long and slow to render.
+**Problem:** The Review status row in the risk detail modal appears at a fixed position (currently end of table) because it is not part of the register's field configuration system. Register admins cannot control its display order relative to custom fields.
 
 **Acceptance criteria:**
-- The Audit History table is paginated with a page size of 5 rows.
-- A hard cap of 100 audit records is enforced server-side; the backend does not return more than 100 records regardless of total count.
-- The UI displays a note when the cap applies, explaining that only the most recent 100 records are shown.
-- No regression to audit history display or the View Risk modal.
+- Register admins can set the display position of the Review status field within the risk detail modal via the field configuration UI.
+- The configured position is respected when rendering the risk detail modal table.
+- The Review status field remains non-removable; only its position is configurable.
+- No regression to custom field ordering, review status display, or the field configuration page.
 
-**Implementation note:** Confirm whether risk audit history is fetched inline with the risk detail or as a separate request; implement the cap at whichever layer serves the data. Implement alongside UI-018 so both history tables in the modal receive consistent treatment.
+**Decision: default position** → Review status defaults to the last position in existing registers, preserving current behaviour. No migration or admin prompt required; the admin explicitly reorders it if they want it elsewhere.
 
-**Key files:** `frontend/src/features/risks/RiskDetailModal.tsx`, `backend/src/services/audit.service.ts`, `backend/src/routes/risks.routes.ts`
+**Decision: config UI visibility** → The position control for Review status is hidden (not rendered) when reviews are disabled for the register. The field is not shown in that case, so the ordering is meaningless.
+
+**Key files:** `frontend/src/features/risks/RiskDetailModal.tsx`, `frontend/src/pages/RegisterConfigPage.tsx`, `backend/src/services/registerConfig.service.ts`
 **Tests:** `frontend/test/risks.test.mjs`, `backend/test/registers.test.mjs`
-**Agents:** Backend Developer, Frontend Developer, Test Engineer
-
----
-
-### UI-018 — Paginate Review History table in View Risk modal
-Source: REQ-040
-Capability: register-ui
-Status: done
-done_in: v1.14.0
-
-**Problem:** The Review History table in the View Risk modal is unpaginated. As review records accumulate the list can become very long.
-
-**Acceptance criteria:**
-- The Review History table is paginated with a page size of 5 rows.
-- A hard cap of 100 review records is enforced server-side; the backend does not return more than 100 records regardless of total count.
-- The UI displays a note when the cap applies, explaining that only the most recent 100 records are shown.
-- No regression to review history display or the View Risk modal.
-
-**Implementation note:** Implement alongside UI-019 so both history tables in the modal receive consistent treatment. Confirm whether review history is fetched inline with the risk detail or as a separate request; implement the cap accordingly.
-
-**Key files:** `frontend/src/features/risks/RiskDetailModal.tsx`, `backend/src/services/reviews.service.ts`, `backend/src/routes/risks.routes.ts`
-**Tests:** `frontend/test/risks.test.mjs`, `backend/test/reviews.test.mjs`
 **Agents:** Backend Developer, Frontend Developer, Test Engineer
 
 ---
 
 ## Required agents
 
-- Frontend Developer (UI-017, UI-015, UI-016, UI-019, UI-018)
-- Backend Developer (UI-019, UI-018)
-- Test Engineer (UI-017, UI-019, UI-018)
+- devops-engineer (MAINT-005)
+- Frontend Developer (MAINT-002, MAINT-003, UI-011, UI-014)
+- Backend Developer (UI-014)
+- Test Engineer (UI-014)
 
 ## Decisions
 
-- **UI-017 button variant:** Developer to audit all action button usages first and agree on a single Mantine variant to standardise on. Do not restyle elements that are intentionally plain/link-style. Delete buttons should not adopt destructive red styling unless that is already the app's established pattern.
-- **UI-019 / UI-018 pagination:** Page size 5, hard server-side cap of 100 rows, UI note when cap applies. Both tables in the same modal should be implemented together for consistency.
+- **MAINT-002 format** → Static Markdown files served as public assets, locale-subdirectory structure (`frontend/public/help/en/`), images alongside content files, no new CMS or build dependency
+- **MAINT-002 → MAINT-003 sequencing** → MAINT-003 must follow MAINT-002 in the same session; all content corrections go into the new Markdown files
+- **UI-014 default position** → Review status defaults to last position in existing registers; no migration or prompt required
+- **UI-014 config UI visibility** → Position control is hidden when reviews are disabled for the register
 
 ## Test / sign-off
 
@@ -132,19 +143,17 @@ done_in: v1.14.0
 - [x] TypeScript typecheck clean
 - [x] Documentation pass complete
 
-## Verification feedback
-
-**UI-017 — /my-risks page missed**
-**Ruling:** In scope — acceptance criteria says "action buttons across the app"; /my-risks was not included in the initial audit.
-**Fix:** Frontend Developer to apply `variant="light"` to action buttons on /my-risks.
-
-**UI-016 — Ellipsis placement wrong in parenthesised context**
-**Ruling:** In scope — acceptance criteria requires the ellipsis to be part of the key identifier. When the prefix appears inside parentheses (e.g. `expire (cr_live_27e6515b)`), the ellipsis should be inside the closing bracket: `expire (cr_live_27e6515b…)`.
-**Fix:** Frontend Developer to adjust the regex replacement in `AuditEventTable.tsx` so the ellipsis is appended before any closing parenthesis.
-
 ## Blockers
 
-None.
+None. All clear.
+
+---
+
+## Verification feedback
+
+**Verification feedback:** Configuring the Review status field position in the register field config UI does not affect the position in the risk detail modal.
+**Ruling:** In scope — directly against UI-014 acceptance criterion "the configured position is respected when rendering the risk detail modal table."
+**Fix:** Coordinate mismatch between `CustomFieldTable` and `RiskDetailModal`. `CustomFieldTable` passes a `displayOrder` midpoint value to `onReorderReviewStatus`, but `reviewStatusPosition` is supposed to be a 0-based index that the modal sorts against `def.displayOrder` values. Fix: when the Review status row is dropped in `CustomFieldTable`, compute its 0-based position in the sorted list and pass that to `onReorderReviewStatus`. The modal's sort logic uses `reviewStatusPosition` directly as a sort key against `def.displayOrder`, so the coordinate space must be consistent.
 
 ---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*

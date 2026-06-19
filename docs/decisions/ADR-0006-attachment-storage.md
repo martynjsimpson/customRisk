@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Date:** 2026-05-07  
 **Applies to:** Custom Risk — post-MVP attachments and evidence (PM12-01 to PM12-06)  
-**Related documents:** PM0-02 Data Model Extension Plan (Phase 12 section), `docs/planning/phases/phase-12-attachments.md` (PM12-01 notes), Technical Architecture v1.0
+**Related documents:** PM0-02 Data Model Extension Plan (Phase 12 section), Technical Architecture v1.0
 
 ---
 

@@ -32,3 +32,20 @@ test("new register defaults to a 3-level Low/Medium/High scoring scale", async (
   // Low likelihood + High impact → Medium (not High), ensures symmetry
   assert.match(service, /\["Low",\s*"Medium",\s*"Medium"\]/);
 });
+
+test("reviewStatusPosition is included in updateRegister write path, validator, and audit field changes", async () => {
+  const service = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
+  const schema = await readFile(new URL("../src/validators/registers.schemas.ts", import.meta.url), "utf8");
+
+  // Validator accepts the field
+  assert.match(schema, /reviewStatusPosition/);
+
+  // Service writes the field to the DB
+  assert.match(service, /reviewStatusPosition: input\.reviewStatusPosition/);
+
+  // Service selects the field back
+  assert.match(service, /reviewStatusPosition: true/);
+
+  // Audit trail includes the field
+  assert.match(service, /Review status position/);
+});

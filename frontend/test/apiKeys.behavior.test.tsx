@@ -94,13 +94,13 @@ describe("PM13-01-A — ApiKeysPage admin audit view", () => {
     (api.adminListApiKeys as ReturnType<typeof vi.fn>).mockResolvedValue([]);
   });
 
-  it("renders the oversight alert with no create button", async () => {
+  it("renders the oversight helper text with no create button", async () => {
     const { ApiKeysPage } = await import("../src/pages/ApiKeysPage");
 
     render(<ApiKeysPage />, { wrapper: Wrapper });
 
     await waitFor(() => {
-      expect(screen.getByText(/admin oversight view/i)).toBeTruthy();
+      expect(screen.getByText(/read-only audit view/i)).toBeTruthy();
     });
 
     expect(screen.queryByRole("button", { name: /create/i })).toBeNull();

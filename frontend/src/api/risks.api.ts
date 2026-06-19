@@ -121,6 +121,9 @@ export interface RiskFormConfig {
     defaultNewRiskState: RiskState;
     reviewsEnabled: boolean;
     customFieldValidationEnabled: boolean;
+    // Position of the Review status row in the risk detail modal (0-based index).
+    // null means "place Review status last".
+    reviewStatusPosition: number | null;
   };
   users: RiskPerson[];
   customFields: CustomFieldDefinition[];

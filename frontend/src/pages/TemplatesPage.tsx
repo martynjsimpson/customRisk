@@ -442,8 +442,11 @@ export function TemplatesPage() {
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={1}>Register Templates</Title>
+      <Group justify="space-between" align="flex-start">
+        <Stack gap={0}>
+          <Title order={1}>Register Templates</Title>
+          <Text c="dimmed">Reusable configuration blueprints for creating consistent registers across the organisation.</Text>
+        </Stack>
         <Button onClick={() => setCreateTemplateOpen(true)}>Create template</Button>
       </Group>
       <ApiErrorAlert error={templatesQuery.error} fallback="Unable to load templates" />

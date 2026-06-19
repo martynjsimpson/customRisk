@@ -347,7 +347,8 @@ export async function compareRegisterToTemplate(registerId: string, templateVers
     "defaultReviewFrequencyMonths",
     "reviewAttestationText",
     "allowViewerExport",
-    "customFieldValidationEnabled"
+    "customFieldValidationEnabled",
+    "reviewStatusPosition"
   ];
 
   const registerSettings: string[] = [];

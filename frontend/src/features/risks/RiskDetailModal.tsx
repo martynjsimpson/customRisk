@@ -92,6 +92,13 @@ export function RiskDetailModal({
   onRequestDelete
 }: RiskDetailModalProps) {
   const activeCustomFields = formConfig.customFields.filter((field) => field.isActive);
+  // reviewStatusPosition is 0-based. null means "append after all other rows".
+  // We synthesise a displayOrder for the review status row:
+  // - If null: use a very high number so it sorts last.
+  // - If set: use it as-is in the same coordinate space as custom field displayOrders.
+  const reviewStatusDisplayOrder = formConfig.register.reviewStatusPosition !== null
+    ? formConfig.register.reviewStatusPosition
+    : Number.MAX_SAFE_INTEGER;
   const [reviewPage, setReviewPage] = useState(1);
   const [auditPage, setAuditPage] = useState(1);
 
@@ -140,29 +147,47 @@ export function RiskDetailModal({
                           dateValue: null,
                           person: null,
                           personUser: null,
-                          dropdownOption: null
+                          dropdownOption: null,
+                          selectedOptions: []
                         }
                     };
-                  })
+                  }),
+                  // Review status row — only included when reviews are enabled.
+                  // Its displayOrder is derived from reviewStatusPosition on the register config.
+                  ...(formConfig.register.reviewsEnabled
+                    ? [{
+                        kind: "review-status" as const,
+                        id: "__review_status__",
+                        displayOrder: reviewStatusDisplayOrder,
+                        fieldName: "Review status"
+                      }]
+                    : [])
                 ]
                   .sort((a, b) => a.displayOrder - b.displayOrder)
-                  .map((field) =>
-                    field.kind === "core" ? (
-                      <Table.Tr key={field.id}>
-                        <Table.Th>{field.fieldName}</Table.Th>
-                        <Table.Td>{coreDetailValue(selectedRiskQuery.data!, field.id)}</Table.Td>
-                      </Table.Tr>
-                    ) : (
+                  .map((field) => {
+                    if (field.kind === "review-status") {
+                      return (
+                        <Table.Tr key={field.id}>
+                          <Table.Th>{field.fieldName}</Table.Th>
+                          <Table.Td><ReviewStatusBadge status={selectedRiskQuery.data!.reviewStatus} /></Table.Td>
+                        </Table.Tr>
+                      );
+                    }
+                    if (field.kind === "core") {
+                      return (
+                        <Table.Tr key={field.id}>
+                          <Table.Th>{field.fieldName}</Table.Th>
+                          <Table.Td>{coreDetailValue(selectedRiskQuery.data!, field.id)}</Table.Td>
+                        </Table.Tr>
+                      );
+                    }
+                    return (
                       <Table.Tr key={field.id}>
                         <Table.Th>{field.fieldName}</Table.Th>
                         <Table.Td>{customDetailValue(field.entry)}</Table.Td>
                       </Table.Tr>
-                    )
-                  )}
-                <Table.Tr>
-                  <Table.Th>Review</Table.Th>
-                  <Table.Td><ReviewStatusBadge status={selectedRiskQuery.data!.reviewStatus} /></Table.Td>
-                </Table.Tr>
+                    );
+                  })}
               </Table.Tbody>
             </Table>
           </Table.ScrollContainer>

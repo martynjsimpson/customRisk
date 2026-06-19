@@ -202,6 +202,9 @@ test("config snapshot type covers all seven required sections", async () => {
   assert.match(snapshot, /reviewsEnabled/);
   assert.match(snapshot, /reviewAttestationText/);
   assert.match(snapshot, /allowViewerExport/);
+
+  // reviewStatusPosition is part of the snapshot register settings
+  assert.match(snapshot, /reviewStatusPosition/);
 });
 
 test("Phase 4 audit actions are defined in auditActions for all thirteen new events", async () => {

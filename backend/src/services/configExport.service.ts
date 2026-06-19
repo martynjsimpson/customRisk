@@ -18,7 +18,8 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       defaultReviewFrequencyMonths: true,
       reviewAttestationText: true,
       allowViewerExport: true,
-      customFieldValidationEnabled: true
+      customFieldValidationEnabled: true,
+      reviewStatusPosition: true
     }
   });
 
@@ -74,7 +75,8 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
       reviewAttestationText: register.reviewAttestationText,
       allowViewerExport: register.allowViewerExport,
-      customFieldValidationEnabled: register.customFieldValidationEnabled
+      customFieldValidationEnabled: register.customFieldValidationEnabled,
+      reviewStatusPosition: register.reviewStatusPosition
     },
     customFields: customFields.map((field) => ({
       id: field.id,

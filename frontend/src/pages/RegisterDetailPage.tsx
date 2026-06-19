@@ -77,8 +77,13 @@ export function RegisterDetailPage() {
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={1}>{registerQuery.data?.name ?? "Register"}</Title>
+      <Group justify="space-between" align="flex-start">
+        <Stack gap={0}>
+          <Title order={1}>{registerQuery.data?.name ?? "Register"}</Title>
+          {registerQuery.data?.description ? (
+            <Text c="dimmed">{registerQuery.data.description}</Text>
+          ) : null}
+        </Stack>
         <Badge>{registerQuery.data?.effectiveRole}</Badge>
       </Group>
       {registerQuery.isLoading ? <Loader /> : null}

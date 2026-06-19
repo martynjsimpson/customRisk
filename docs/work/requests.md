@@ -20,7 +20,8 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 Request ID: REQ-047
 Title: Apply rounded corners to left nav hover/active states
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.14.0
 Priority: medium
 Summary: The app consistently uses rounded corners on buttons, frames, and other UI elements, but the hover and active highlight on the left-hand navigation does not follow this style. The nav hover and active states should be updated to use rounded corners to match the rest of the design language.
 Derived work items: UI-015
@@ -40,7 +41,7 @@ Source: human request (direct)
 Request ID: REQ-045
 Title: Delete legacy docs/planning directory
 Type: maintenance
-Status: refined
+Status: in-active-release
 Priority: low
 Summary: The old docs/planning directory and all its contents are now superseded by the new planning process under docs/work. It should be deleted to keep the repository clean and avoid confusion.
 Derived work items: MAINT-005
@@ -50,7 +51,8 @@ Source: human request (direct)
 Request ID: REQ-044
 Title: Append ellipsis to API key prefix in audit log
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.14.0
 Priority: low
 Summary: In the audit log, API key prefixes are displayed as-is (e.g. `cr_live_27e6515b`), which could imply it is the full key. Since the prefix is only the beginning of the key, it should be rendered with a trailing ellipsis (e.g. `cr_live_27e6515b...`) to make clear that the value is truncated. This applies both to the description text and the prefix displayed in the affected field column.
 Derived work items: UI-016
@@ -82,7 +84,8 @@ Source: human request (direct)
 Request ID: REQ-041
 Title: Restyle action buttons to look like buttons, not links
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.14.0
 Priority: high
 Summary: Action buttons such as "Review", "Edit", and "Delete" — used throughout the app in the register table, modals, and elsewhere — have a background matching the page, making them look like plain links rather than interactive controls. They lack the visual weight expected of CTAs. Additionally, their font size is inconsistent with other buttons in the app. All three issues should be resolved with a consistent button style applied globally.
 Notes: REQ-046 (/templates page buttons) is consolidated into this request and UI-017.
@@ -93,7 +96,8 @@ Source: human request (direct)
 Request ID: REQ-040
 Title: Paginate Review History table in View Risk modal
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.14.0
 Priority: medium
 Summary: The Review History table in the View Risk modal should be paginated with a page size of 5 rows. A hard limit of 100 rows should be enforced, and the UI should display a note explaining that only the most recent 100 review records are shown.
 Derived work items: UI-018
@@ -103,7 +107,8 @@ Source: human request (direct)
 Request ID: REQ-039
 Title: Paginate Audit History table in View Risk modal
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.14.0
 Priority: medium
 Summary: The Audit History table in the View Risk modal is currently not paginated. As audit records accumulate over time the list could become very long and slow. Pagination should be added with a page size of 5 rows. A hard cap of 100 rows should also be enforced to keep performance predictable, and the UI should display a note explaining that only the most recent 100 audit records are shown.
 Derived work items: UI-019
@@ -113,7 +118,7 @@ Source: human request (direct)
 Request ID: REQ-038
 Title: Allow register admins to control the position of the Review field in the risk detail modal
 Type: improvement
-Status: refined
+Status: in-active-release
 Priority: medium
 Summary: The Review status row in the risk detail modal is not part of the register's field configuration, so admins cannot control its position relative to other fields the way they can for custom fields. It currently appears at a fixed position (end of table). The field configuration system should be extended to include Review as a configurable field so its display order can be set per register.
 Source: verification feedback (v1.12.0 release)
@@ -181,7 +186,7 @@ Source: human request (direct)
 Request ID: REQ-032
 Title: Externalise /help content out of source code
 Type: improvement
-Status: refined
+Status: in-active-release
 Priority: medium
 Summary: Help content on the /help page is currently embedded directly in code, making it hard to maintain and impossible to localise. The content should be moved to external files (e.g. Markdown or similar) so it can be edited independently of the codebase. The chosen approach must also support including or referencing images within help articles, and should lay the groundwork for future multi-language support.
 Notes: Solution should consider: file-based content (e.g. Markdown files served as assets), image support (inline or referenced), and a structure that could accommodate locale variants in future. REQ-031 (content accuracy audit) should ideally be done after or alongside this change.
@@ -192,7 +197,7 @@ Source: human request (direct)
 Request ID: REQ-031
 Title: Audit and update /help page content for accuracy
 Type: improvement
-Status: refined
+Status: in-active-release
 Priority: medium
 Summary: The content on the /help page has not been kept in sync with how the application currently works. A review pass is needed to identify and correct any outdated, inaccurate, or missing information so the help content accurately reflects the live product.
 Derived work items: MAINT-003
@@ -319,7 +324,7 @@ Source: human request (direct)
 Request ID: REQ-020
 Title: Add descriptive helper text under the title on all pages
 Type: improvement
-Status: refined
+Status: in-active-release
 Priority: medium
 Summary: The /help page displays a short descriptive subtitle beneath the page title, but no other pages follow this pattern. Helper text should be added to all pages to improve orientation and consistency. On the /api-keys page specifically, the existing alert box content is a good candidate to be repurposed as the helper text rather than shown as an alert.
 Notes: Use the /help page subtitle as the reference pattern. For /api-keys, convert the alert box into helper text rather than duplicating the content. Exception: on /registers/<registerID> the helper text should be the register's own description field rather than generic page-level text, since the page title is already the register name.

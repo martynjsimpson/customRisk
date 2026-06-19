@@ -72,6 +72,7 @@ export interface ConfigSnapshotRegisterSettings {
   reviewAttestationText: string;
   allowViewerExport: boolean;
   customFieldValidationEnabled: boolean;
+  reviewStatusPosition: number | null;
 }
 
 export interface RegisterConfigSnapshot {
