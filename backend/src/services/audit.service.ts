@@ -184,17 +184,27 @@ export async function listRegisterAuditEvents(
   });
 }
 
+const RISK_AUDIT_HISTORY_CAP = 100;
+
 export async function listRiskAuditEvents(
   _actor: AuthenticatedActor,
   registerId: string,
   riskId: string,
-  query: AuditQuery
+  _query: AuditQuery
 ) {
-  return listAuditEvents({
-    ...query,
-    registerId,
-    riskId
+  const where: Prisma.AuditEventWhereInput = { registerId, riskId };
+
+  const data = await prisma.auditEvent.findMany({
+    where,
+    include: { fieldChanges: true, riskSnapshot: true },
+    orderBy: { occurredAt: "desc" },
+    take: RISK_AUDIT_HISTORY_CAP
   });
+
+  return {
+    data: data.map(mapAuditEvent),
+    meta: { total: data.length, page: 1, pageSize: RISK_AUDIT_HISTORY_CAP }
+  };
 }
 
 export async function getAuditEvent(actor: AuthenticatedActor, auditEventId: string) {
