@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Group, Pagination, Stack } from "@mantine/core";
+import { Alert, Box, Button, Group, Pagination, Stack, Title } from "@mantine/core";
 import { IconDownload } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -17,6 +17,7 @@ interface AuditLogPanelProps {
   exportFn: (query: AuditQuery) => Promise<void>;
   showObject?: boolean;
   showRegister?: boolean;
+  title?: string;
 }
 
 export function AuditLogPanel({
@@ -24,7 +25,8 @@ export function AuditLogPanel({
   queryFn,
   exportFn,
   showObject = false,
-  showRegister = false
+  showRegister = false,
+  title
 }: AuditLogPanelProps) {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<AuditQuery>({});
@@ -68,10 +70,11 @@ export function AuditLogPanel({
     <Stack>
       <Group justify="space-between" align="flex-end" wrap="nowrap">
         <Box style={{ flex: 1, minWidth: 0 }}>
+          {title ? <Title order={1} mb="xs">{title}</Title> : null}
           <AuditFilters filters={filters} onChange={handleFilterChange} />
         </Box>
         <Button
-          variant="default"
+          variant="light"
           leftSection={<IconDownload size={16} />}
           loading={exporting}
           onClick={handleExport}
