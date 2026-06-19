@@ -149,12 +149,17 @@ export function MyRisksPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const search = searchParams.get("search") ?? undefined;
+  const state = (searchParams.get("state") as MyRisksQuery["state"]) ?? undefined;
+  const riskLevel = searchParams.get("riskLevel") ?? undefined;
+  const registerId = searchParams.get("registerId") ?? undefined;
+
   const filters: MyRisksQuery = useMemo(() => ({
-    search: searchParams.get("search") ?? undefined,
-    state: (searchParams.get("state") as MyRisksQuery["state"]) ?? undefined,
-    riskLevel: searchParams.get("riskLevel") ?? undefined,
-    registerId: searchParams.get("registerId") ?? undefined,
-  }), [searchParams]);
+    search,
+    state,
+    riskLevel,
+    registerId,
+  }), [search, state, riskLevel, registerId]);
 
   const risksQuery = useQuery({
     queryKey: ["dashboard", "my-risks", filters],
