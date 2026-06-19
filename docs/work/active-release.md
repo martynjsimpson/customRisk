@@ -88,6 +88,10 @@ done_in: v1.12.0
 **Implementation note:** The header is already sticky — this is a content change only. For the edit modal, mirror the title input's controlled state value into the header; no layout changes needed.
 
 **Key files:** `frontend/src/features/risks/RiskFormModal.tsx`, `frontend/src/features/risks/RiskDetailModal.tsx`
+
+**Verification feedback:** Risk ID appears twice in the view modal — once in the sticky header (new, correct) and again at the top of the modal body table. The review status badge was sitting next to that risk ID in the body and is left dangling when the ID is removed.
+**Ruling:** in scope — removing the duplicate ID is required to meet "no regression to modal layout"; the review status treatment is a direct consequence of that change.
+**Fix:** Remove the risk ID from the modal body table. Move the review status from a badge into the table as a plain row alongside the other fields.
 **Agents:** Frontend Developer
 
 ---
