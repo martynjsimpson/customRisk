@@ -1,116 +1,131 @@
 # Active Release
 
-Status: ready-for-release
-Version: v1.13.0
+Status: in-progress
+Version: v1.14.0
 
 ## Release goal
 
-Complete the /my-risks page as a genuinely useful destination: add search and filter capability, add CSV export, and make filter state URL-driven for consistency with the rest of the app. Also ships a small date-picker improvement in the Create API Key modal as a self-contained polish item.
+Visual polish and modal usability pass. Restyle action buttons throughout the app so they look like buttons rather than plain links, apply rounded corners to the left nav highlight, add a trailing ellipsis to API key prefixes in the audit log, and add pagination with a hard row cap to both the Audit History and Review History tables inside the View Risk modal.
 
 ## Selected work items
 
-### UI-005 — Add search and filter capability to /my-risks page
-Source: REQ-035
-Capability: my-risks-ui
-Status: done
-done_in: v1.13.0
+### UI-017 — Restyle action buttons to look like buttons, not links
+Source: REQ-041 (consolidated with REQ-046)
+Capability: register-ui
+Status: ready
 
-**Problem:** The /my-risks page has no search or filter capability. Users cannot narrow their risk list by title, state, risk level, or register.
-
-**Acceptance criteria:**
-- The /my-risks page has a filter bar with at minimum: title/description text search, state, risk level, and register filters.
-- Filters work correctly across risks from different registers.
-- Custom field filters are explicitly out of scope (cross-register view; custom fields vary per register).
-- Filter state is reflected in URL params, consistent with the rest of the app — refreshing the page or sharing the URL restores the active filters.
-- Filter state clears cleanly on reset.
-- No regression to existing /my-risks functionality.
-
-**Decision:** Use URL params for filter state — consistent with UI-007 and the broader app convention. Not navigation state.
-
-**Implementation note:** Confirm which query params the /my-risks backend endpoint currently supports before implementing the filter bar. New query params may be needed (e.g. `search`, `state`, `riskLevel`, `registerId`). Implement UI-005 before UI-006 so the export can respect active filter state.
-
-**Key files:** `frontend/src/pages/MyRisksPage.tsx`, `backend/src/routes/risks.routes.ts`
-**Tests:** `frontend/test/myRisks.test.mjs`, `backend/test/risks.test.mjs`
-**Agents:** Backend Developer, Frontend Developer, Test Engineer
-
----
-
-### UI-006 — Add Export CSV button to /my-risks page
-Source: REQ-036
-Capability: my-risks-ui
-Status: done
-done_in: v1.13.0
-
-**Problem:** The /my-risks page has no CSV export capability.
+**Problem:** Action buttons ("Review", "Edit", "Delete", and similar) throughout the app have a background matching the page surface, making them look like plain text links rather than interactive controls. Font size is also inconsistent with other buttons. The same issue affects the /templates screen buttons ("Create Register", "Update Config", "Deactivate").
 
 **Acceptance criteria:**
-- An Export CSV button appears on /my-risks styled and positioned consistently with the register page Export CSV button (title row, same variant/colour).
-- Clicking Export CSV exports the current visible set of risks — if filters are active (from UI-005), export reflects the filtered set; if no filters are active, exports all risks owned by the user across all registers.
-- Export respects permissions — only risks the user can see are exported.
-- No regression to existing /my-risks functionality.
+- Action buttons across the app are visually distinct from plain text links — they have appropriate visual weight via background, border, or clearly button-like styling.
+- Button font size is consistent with other buttons in the app.
+- The /templates screen buttons ("Create Register", "Update Config", "Deactivate") are fixed as part of the same pass.
+- Dark mode is handled correctly after restyling.
+- No regression to button functionality or other intentionally plain/link-style elements.
 
-**Decision:** Export respects active filter state. UI-005 must be implemented first so the filter state mechanism is in place.
+**Decision:** Developer should audit all action button usages before implementing and agree on a single Mantine button variant to standardise on. Do not restyle buttons that are intentionally plain (e.g. secondary text-only actions that are meant to look like links). Delete buttons should not be styled with a destructive red variant unless that is already established as the app pattern.
 
-**Implementation note:** Confirm whether the backend already supports a my-risks CSV export endpoint or if a new one is needed. The existing export service likely needs a my-risks variant that filters by ownership rather than register scope.
-
-**Key files:** `frontend/src/pages/MyRisksPage.tsx`, `backend/src/services/export.service.ts`
-**Tests:** `frontend/test/myRisks.test.mjs`, `backend/test/registers.test.mjs`
-**Agents:** Backend Developer, Frontend Developer, Test Engineer
-
----
-
-### UI-012 — Use date picker in Create API Key modal
-Source: REQ-016
-Capability: api-keys
-Status: done
-done_in: v1.13.0
-
-**Problem:** The Create API Key modal uses a plain text input for the expiry date field. The audit log search filter already implements a date picker that can be reused.
-
-**Acceptance criteria:**
-- The Create API Key modal expiry date field uses a date picker component matching the audit log search filter pattern.
-- Users cannot easily enter invalid dates.
-- No regression to API key creation functionality or existing tests.
-
-**Implementation note:** Reuse the date picker component from `AuditFilters.tsx` — no new dependency should be needed. This item is self-contained and can be implemented in any order relative to UI-005/UI-006.
-
-**Key files:** `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/features/audit/AuditFilters.tsx`
-**Tests:** `frontend/test/apiKeys.behavior.test.tsx`
+**Key files:** `frontend/src/pages/RegisterPage.tsx`, `frontend/src/pages/TemplatesPage.tsx`, `frontend/src/features/risks/RiskFormModal.tsx` (and other pages discovered in audit)
+**Tests:** `frontend/test/risks.test.mjs`
 **Agents:** Frontend Developer, Test Engineer
+
+---
+
+### UI-015 — Apply rounded corners to left nav hover and active states
+Source: REQ-047
+Capability: register-ui
+Status: ready
+
+**Problem:** The left-hand navigation hover and active highlight does not use rounded corners, inconsistent with the rounded corner treatment used on buttons, frames, and other UI elements throughout the app.
+
+**Acceptance criteria:**
+- The left nav hover state uses rounded corners consistent with the app's design language.
+- The left nav active/selected state uses rounded corners consistent with the app's design language.
+- No regression to left nav navigation behaviour or other UI elements.
+
+**Key files:** `frontend/src/components/AppShell.tsx` (or equivalent nav component)
+**Tests:** none expected
+**Agents:** Frontend Developer
+
+---
+
+### UI-016 — Append ellipsis to API key prefix in audit log
+Source: REQ-044
+Capability: audit-log-ui
+Status: ready
+
+**Problem:** API key prefixes in the audit log are displayed without a trailing ellipsis (e.g. `cr_live_27e6515b`), which could imply the value is the full key rather than a truncated prefix.
+
+**Acceptance criteria:**
+- API key prefix values in the audit log description text are rendered with a trailing ellipsis (e.g. `cr_live_27e6515b...`).
+- API key prefix values in the affected field column are rendered with a trailing ellipsis.
+- No regression to audit log display or functionality.
+
+**Key files:** `frontend/src/features/audit/AuditLogPanel.tsx`
+**Tests:** none expected
+**Agents:** Frontend Developer
+
+---
+
+### UI-019 — Paginate Audit History table in View Risk modal
+Source: REQ-039
+Capability: register-ui
+Status: ready
+
+**Problem:** The Audit History table in the View Risk modal is unpaginated. As audit records accumulate the list can become very long and slow to render.
+
+**Acceptance criteria:**
+- The Audit History table is paginated with a page size of 5 rows.
+- A hard cap of 100 audit records is enforced server-side; the backend does not return more than 100 records regardless of total count.
+- The UI displays a note when the cap applies, explaining that only the most recent 100 records are shown.
+- No regression to audit history display or the View Risk modal.
+
+**Implementation note:** Confirm whether risk audit history is fetched inline with the risk detail or as a separate request; implement the cap at whichever layer serves the data. Implement alongside UI-018 so both history tables in the modal receive consistent treatment.
+
+**Key files:** `frontend/src/features/risks/RiskDetailModal.tsx`, `backend/src/services/audit.service.ts`, `backend/src/routes/risks.routes.ts`
+**Tests:** `frontend/test/risks.test.mjs`, `backend/test/registers.test.mjs`
+**Agents:** Backend Developer, Frontend Developer, Test Engineer
+
+---
+
+### UI-018 — Paginate Review History table in View Risk modal
+Source: REQ-040
+Capability: register-ui
+Status: ready
+
+**Problem:** The Review History table in the View Risk modal is unpaginated. As review records accumulate the list can become very long.
+
+**Acceptance criteria:**
+- The Review History table is paginated with a page size of 5 rows.
+- A hard cap of 100 review records is enforced server-side; the backend does not return more than 100 records regardless of total count.
+- The UI displays a note when the cap applies, explaining that only the most recent 100 records are shown.
+- No regression to review history display or the View Risk modal.
+
+**Implementation note:** Implement alongside UI-019 so both history tables in the modal receive consistent treatment. Confirm whether review history is fetched inline with the risk detail or as a separate request; implement the cap accordingly.
+
+**Key files:** `frontend/src/features/risks/RiskDetailModal.tsx`, `backend/src/services/reviews.service.ts`, `backend/src/routes/risks.routes.ts`
+**Tests:** `frontend/test/risks.test.mjs`, `backend/test/reviews.test.mjs`
+**Agents:** Backend Developer, Frontend Developer, Test Engineer
 
 ---
 
 ## Required agents
 
-- Backend Developer (UI-005, UI-006)
-- Frontend Developer (UI-005, UI-006, UI-012)
-- Test Engineer (UI-005, UI-006, UI-012)
+- Frontend Developer (UI-017, UI-015, UI-016, UI-019, UI-018)
+- Backend Developer (UI-019, UI-018)
+- Test Engineer (UI-017, UI-019, UI-018)
 
 ## Decisions
 
-- **UI-005 filter state:** Use URL params — consistent with the rest of the app. Not navigation state.
-- **UI-006 export scope:** Export respects active filter state when filters are applied; exports all owned risks when no filters are active.
-- **UI-005/UI-006 ordering:** Implement UI-005 before UI-006 so the export can reference the filter state mechanism.
-- **UI-012 date picker:** Reuse the existing AuditFilters date picker component. No new dependency.
+- **UI-017 button variant:** Developer to audit all action button usages first and agree on a single Mantine variant to standardise on. Do not restyle elements that are intentionally plain/link-style. Delete buttons should not adopt destructive red styling unless that is already the app's established pattern.
+- **UI-019 / UI-018 pagination:** Page size 5, hard server-side cap of 100 rows, UI note when cap applies. Both tables in the same modal should be implemented together for consistency.
 
 ## Test / sign-off
 
-- [x] Implementation pass complete
-- [x] Regression test pass complete (344 tests, 0 failures)
-- [x] TypeScript typecheck clean
-- [x] Documentation pass complete
-
-## Verification feedback
-
-**UI-005 — Verification feedback:** Filters (search text box, state, risk level, register) have no effect on the table — the results do not change no matter what is entered or selected.
-**Ruling:** In scope — filters working is a core acceptance criterion for UI-005.
-**Fix:** Frontend Developer to investigate and fix the filter/refetch mechanism in `MyRisksPage.tsx`.
-
-**UI-006 — Verification feedback:** Export CSV works correctly.
-**Ruling:** Accepted.
-
-**UI-012 — Verification feedback:** Date picker works correctly.
-**Ruling:** Accepted.
+- [ ] Implementation pass complete
+- [ ] Regression test pass complete
+- [ ] TypeScript typecheck clean
+- [ ] Documentation pass complete
 
 ## Blockers
 
