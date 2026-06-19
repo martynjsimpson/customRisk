@@ -223,14 +223,16 @@ export function MyRisksPage() {
                 ))}
                 <Table.Td>
                   <Group justify="flex-end" gap="xs" wrap="nowrap">
-                    <Button
-                      component={Link}
-                      to={`/registers/${risk.register.id}?riskId=${risk.id}&action=review`}
-                      variant="subtle"
-                      size="xs"
-                    >
-                      Review
-                    </Button>
+                    {risk.reviewStatus !== "NOT_REQUIRED" ? (
+                      <Button
+                        component={Link}
+                        to={`/registers/${risk.register.id}?riskId=${risk.id}&action=review`}
+                        variant="subtle"
+                        size="xs"
+                      >
+                        Review
+                      </Button>
+                    ) : null}
                     <Button
                       component={Link}
                       to={`/registers/${risk.register.id}?riskId=${risk.id}&action=edit`}

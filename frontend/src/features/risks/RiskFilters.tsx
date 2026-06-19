@@ -1,4 +1,4 @@
-import { Checkbox, Group, Select, TextInput } from "@mantine/core";
+import { Group, Select, TextInput } from "@mantine/core";
 
 import { type RiskListQuery, type RiskState } from "../../api/risks.api";
 import type { RiskFormConfig } from "../../api/risks.api";
@@ -54,11 +54,6 @@ export function RiskFilters({ filters, formConfig, ownerOptions, onChange }: Ris
         data={REVIEW_STATUS_OPTIONS}
         value={filters.reviewStatus ?? null}
         onChange={(value) => onChange({ reviewStatus: (value as RiskListQuery["reviewStatus"]) ?? undefined })}
-      />
-      <Checkbox
-        label="Include closed"
-        checked={filters.includeClosed ?? false}
-        onChange={(event) => onChange({ includeClosed: event.currentTarget.checked })}
       />
     </Group>
   );
