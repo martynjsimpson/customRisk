@@ -148,4 +148,12 @@ done_in: v1.15.0
 None. All clear.
 
 ---
+
+## Verification feedback
+
+**Verification feedback:** Configuring the Review status field position in the register field config UI does not affect the position in the risk detail modal.
+**Ruling:** In scope — directly against UI-014 acceptance criterion "the configured position is respected when rendering the risk detail modal table."
+**Fix:** Coordinate mismatch between `CustomFieldTable` and `RiskDetailModal`. `CustomFieldTable` passes a `displayOrder` midpoint value to `onReorderReviewStatus`, but `reviewStatusPosition` is supposed to be a 0-based index that the modal sorts against `def.displayOrder` values. Fix: when the Review status row is dropped in `CustomFieldTable`, compute its 0-based position in the sorted list and pass that to `onReorderReviewStatus`. The modal's sort logic uses `reviewStatusPosition` directly as a sort key against `def.displayOrder`, so the coordinate space must be consistent.
+
+---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
