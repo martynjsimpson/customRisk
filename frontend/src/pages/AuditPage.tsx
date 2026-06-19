@@ -13,6 +13,7 @@ export function AuditPage() {
         showObject
         showRegister
         title="Audit"
+        subtitle="A complete, immutable record of every action taken across all registers."
       />
     </Stack>
   );

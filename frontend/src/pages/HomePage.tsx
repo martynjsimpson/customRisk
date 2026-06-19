@@ -91,7 +91,10 @@ export function HomePage() {
 
   return (
     <Stack>
-      <Title order={1}>Home</Title>
+      <Stack gap={0}>
+        <Title order={1}>Home</Title>
+        <Text c="dimmed">Your personal dashboard — risks assigned to you and recent system activity.</Text>
+      </Stack>
       <Paper withBorder p="md" radius="sm">
         <Text fw={600}>Signed in as {user?.name}</Text>
         <Text c="dimmed" size="sm">

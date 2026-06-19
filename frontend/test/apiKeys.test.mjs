@@ -58,8 +58,8 @@ test("ApiKeysPage is the admin audit view with Owner column and no create button
   assert.doesNotMatch(page, /createApiKey/);
   assert.doesNotMatch(page, /createMyApiKey/);
 
-  // Admin oversight alert
-  assert.match(page, /admin oversight view/i);
+  // Admin oversight description (was an Alert, now helper text beneath the page title per UI-011)
+  assert.match(page, /read-only audit view/i);
 
   // Revoke action still present
   assert.match(page, /Revoke/);

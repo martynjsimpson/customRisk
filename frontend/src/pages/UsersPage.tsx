@@ -82,8 +82,11 @@ export function UsersPage() {
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={1}>Users</Title>
+      <Group justify="space-between" align="flex-start">
+        <Stack gap={0}>
+          <Title order={1}>Users</Title>
+          <Text c="dimmed">Manage user accounts, roles, and system access.</Text>
+        </Stack>
         <Button onClick={startCreate}>
           Add user
         </Button>

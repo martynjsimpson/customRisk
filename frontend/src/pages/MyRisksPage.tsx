@@ -353,8 +353,11 @@ export function MyRisksPage() {
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={1}>My Risks</Title>
+      <Group justify="space-between" align="flex-start">
+        <Stack gap={0}>
+          <Title order={1}>My Risks</Title>
+          <Text c="dimmed">All risks assigned to you across every register you have access to.</Text>
+        </Stack>
         <Group>
           <ColumnPicker
             groups={columnPickerGroups}
