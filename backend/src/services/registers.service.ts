@@ -30,6 +30,7 @@ const registerSelect = {
   reviewAttestationText: true,
   allowViewerExport: true,
   customFieldValidationEnabled: true,
+  reviewStatusPosition: true,
   createdAt: true,
   updatedAt: true,
   linkedTemplateVersion: {
@@ -372,6 +373,7 @@ export async function updateRegister(
           defaultReviewFrequencyMonths: input.defaultReviewFrequencyMonths,
           allowViewerExport: input.allowViewerExport,
           customFieldValidationEnabled: input.customFieldValidationEnabled,
+          reviewStatusPosition: input.reviewStatusPosition,
           updatedByUserId: actor.id
         },
         select: registerSelect
@@ -396,7 +398,8 @@ export async function updateRegister(
             { name: "reviewsEnabled", label: "Reviews enabled", valueType: "BOOLEAN" },
             { name: "defaultReviewFrequencyMonths", label: "Default review frequency", valueType: "NUMBER" },
             { name: "allowViewerExport", label: "Allow viewer export", valueType: "BOOLEAN" },
-            { name: "customFieldValidationEnabled", label: "Custom field validation enabled", valueType: "BOOLEAN" }
+            { name: "customFieldValidationEnabled", label: "Custom field validation enabled", valueType: "BOOLEAN" },
+            { name: "reviewStatusPosition", label: "Review status position", valueType: "NUMBER" }
           ])
         },
         tx

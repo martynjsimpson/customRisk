@@ -71,7 +71,8 @@ const importRegisterSettingsSchema = z.object({
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120),
   reviewAttestationText: z.string(),
   allowViewerExport: z.boolean(),
-  customFieldValidationEnabled: z.boolean()
+  customFieldValidationEnabled: z.boolean(),
+  reviewStatusPosition: z.number().int().min(0).nullable().optional()
 });
 
 const importConfigSchema = z.object({
