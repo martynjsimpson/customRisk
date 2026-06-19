@@ -92,7 +92,7 @@ export function ApiKeysPage() {
                   <Group gap="xs" justify="flex-end" wrap="nowrap">
                     {key.status === "active" ? (
                       <Button
-                        variant="subtle"
+                        variant="light"
                         size="xs"
                         color="red"
                         loading={revokeMutation.isPending && revokeMutation.variables === key.id}

@@ -16,6 +16,99 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-047
+Request ID: REQ-047
+Title: Apply rounded corners to left nav hover/active states
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The app consistently uses rounded corners on buttons, frames, and other UI elements, but the hover and active highlight on the left-hand navigation does not follow this style. The nav hover and active states should be updated to use rounded corners to match the rest of the design language.
+Derived work items: UI-015
+Source: human request (direct)
+
+### REQ-046
+Request ID: REQ-046
+Title: Fix button styling on /templates screen
+Type: improvement
+Status: duplicate
+Priority: high
+Summary: The "Create Register", "Update Config", and "Deactivate" buttons on the /templates screen suffer from the same styling issues described in REQ-041 — they blend into the page background, look like links rather than buttons, and have inconsistent font sizing.
+Notes: Consolidated into UI-017 (derived from REQ-041). /templates is explicitly called out in UI-017's scope so it is not overlooked.
+Source: human request (direct)
+
+### REQ-045
+Request ID: REQ-045
+Title: Delete legacy docs/planning directory
+Type: maintenance
+Status: refined
+Priority: low
+Summary: The old docs/planning directory and all its contents are now superseded by the new planning process under docs/work. It should be deleted to keep the repository clean and avoid confusion.
+Derived work items: MAINT-005
+Source: human request (direct)
+
+### REQ-044
+Request ID: REQ-044
+Title: Append ellipsis to API key prefix in audit log
+Type: improvement
+Status: refined
+Priority: low
+Summary: In the audit log, API key prefixes are displayed as-is (e.g. `cr_live_27e6515b`), which could imply it is the full key. Since the prefix is only the beginning of the key, it should be rendered with a trailing ellipsis (e.g. `cr_live_27e6515b...`) to make clear that the value is truncated. This applies both to the description text and the prefix displayed in the affected field column.
+Derived work items: UI-016
+Source: human request (direct)
+
+### REQ-043
+Request ID: REQ-043
+Title: Spike: encryption of client data at rest
+Type: feature
+Status: refined
+Priority: medium
+Summary: Investigate and scope encryption of data at rest, with a focus on PII and other sensitive fields — though full encryption of all client data should be considered. This is likely to be closely related to or absorbed into REQ-042 (SaaS multi-tenant spike) as a key security requirement for any hosted offering.
+Notes: Scoping should cover which fields/tables warrant encryption, key management strategy, and the performance and complexity trade-offs of field-level vs. full database encryption. The spike should also cover Bring Your Own Key (BYOK) — allowing clients to supply and manage their own encryption keys — so that tenants retain full control over their data and the platform operator cannot access it without the client's key.
+Derived work items: SPIKE-002
+Source: human request (direct)
+
+### REQ-042
+Request ID: REQ-042
+Title: Spike: SaaS multi-tenant architecture for COTS hosting
+Type: feature
+Status: refined
+Priority: low
+Summary: Explore what it would take to offer customRisk as a commercially hosted SaaS product. This is a large scoping exercise covering architecture decisions, required code changes, and data isolation strategy. Key areas to address include: self-serve sign-up and onboarding, an organisation/tenant model with full data isolation between tenants, authentication and authorisation changes, and any infrastructure or deployment changes needed to support multiple isolated customers on shared infrastructure.
+Notes: User flagged this as requiring a dedicated scoping exercise before any implementation work is planned. Treat as a spike/discovery item rather than a deliverable work item for now. The scoping should also cover "super admin" / platform manager controls — the tools the platform operator would need to manage tenants, investigate issues, and fix problems, while preserving customer data safety and privacy (e.g. impersonation with audit trail, tenant suspension, data access controls that prevent casual browsing of customer data).
+Derived work items: SPIKE-001
+Source: human request (direct)
+
+### REQ-041
+Request ID: REQ-041
+Title: Restyle action buttons to look like buttons, not links
+Type: improvement
+Status: refined
+Priority: high
+Summary: Action buttons such as "Review", "Edit", and "Delete" — used throughout the app in the register table, modals, and elsewhere — have a background matching the page, making them look like plain links rather than interactive controls. They lack the visual weight expected of CTAs. Additionally, their font size is inconsistent with other buttons in the app. All three issues should be resolved with a consistent button style applied globally.
+Notes: REQ-046 (/templates page buttons) is consolidated into this request and UI-017.
+Derived work items: UI-017
+Source: human request (direct)
+
+### REQ-040
+Request ID: REQ-040
+Title: Paginate Review History table in View Risk modal
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The Review History table in the View Risk modal should be paginated with a page size of 5 rows. A hard limit of 100 rows should be enforced, and the UI should display a note explaining that only the most recent 100 review records are shown.
+Derived work items: UI-018
+Source: human request (direct)
+
+### REQ-039
+Request ID: REQ-039
+Title: Paginate Audit History table in View Risk modal
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The Audit History table in the View Risk modal is currently not paginated. As audit records accumulate over time the list could become very long and slow. Pagination should be added with a page size of 5 rows. A hard cap of 100 rows should also be enforced to keep performance predictable, and the UI should display a note explaining that only the most recent 100 audit records are shown.
+Derived work items: UI-019
+Source: human request (direct)
+
 ### REQ-038
 Request ID: REQ-038
 Title: Allow register admins to control the position of the Review field in the risk detail modal

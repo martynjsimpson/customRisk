@@ -1334,7 +1334,8 @@ items:
   type: improvement
   capability: my-risks-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.13.0
   priority: medium
   confidence: medium
   summary: The /my-risks page has no search or filter capability. Standard filters (title/description search, state,
@@ -1371,7 +1372,8 @@ items:
   type: improvement
   capability: my-risks-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.13.0
   priority: medium
   confidence: high
   summary: The /my-risks page has no CSV export capability. An Export CSV button should be added, styled and positioned
@@ -1561,7 +1563,8 @@ items:
   type: improvement
   capability: api-keys
   phase: null
-  status: ready
+  status: done
+  done_in: v1.13.0
   priority: medium
   confidence: high
   summary: The Create API Key modal uses a plain text input for the expiry date field instead of a proper date picker.
@@ -1723,6 +1726,279 @@ items:
       the ordering gap was explicitly deferred to the backlog rather than fixed in-release.
     - The Review status field is only relevant when reviews are enabled for the register; behaviour when reviews are disabled
       (field hidden) does not change.
+- id: UI-015
+  source_request: REQ-047
+  title: Apply rounded corners to left nav hover and active states
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The left-hand navigation hover and active highlight does not use rounded corners, inconsistent with the rounded
+    corner treatment used on buttons, frames, and other UI elements throughout the app. Both hover and active states should
+    be updated to use rounded corners to match the app's design language.
+  acceptance:
+  - The left nav hover state uses rounded corners consistent with the app's design language.
+  - The left nav active/selected state uses rounded corners consistent with the app's design language.
+  - No regression to left nav navigation behaviour or other UI elements.
+  remaining:
+  - Locate the left nav component and identify the CSS or Mantine style props controlling the hover/active highlight.
+  - Apply border-radius to match the app's standard rounding token.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/components/AppShell.tsx
+    tests: []
+    notes:
+    - Small styling change. Can be batched with other nav or UI polish items.
+- id: UI-016
+  source_request: REQ-044
+  title: Append ellipsis to API key prefix in audit log
+  type: improvement
+  capability: audit-log-ui
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: API key prefixes in the audit log are displayed without a trailing ellipsis (e.g. `cr_live_27e6515b`), which could
+    imply they are the full key. A trailing ellipsis should be added (e.g. `cr_live_27e6515b...`) in both the description
+    text and the affected field column to make clear the value is truncated.
+  acceptance:
+  - API key prefix values in the audit log description text are rendered with a trailing ellipsis.
+  - API key prefix values in the affected field column are rendered with a trailing ellipsis.
+  - No regression to audit log display or functionality.
+  remaining:
+  - Locate where API key prefix values are rendered in the audit log and add the ellipsis.
+  - Confirm both the description text and the affected field column are updated.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  evidence:
+    code:
+    - frontend/src/features/audit/AuditLogPanel.tsx
+    tests: []
+    notes:
+    - Small display change. Can be batched with other audit log or polish items.
+- id: UI-017
+  source_request: REQ-041
+  legacy_ids:
+  - REQ-046
+  title: Restyle action buttons to look like buttons, not links
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: high
+  confidence: medium
+  summary: Action buttons throughout the app — including "Review", "Edit", and "Delete" in the register table, the /templates
+    screen ("Create Register", "Update Config", "Deactivate"), and other locations — have a background matching the page
+    surface, making them look like plain text links rather than interactive controls. Font size is also inconsistent with
+    other buttons. All three issues (background, visual weight, font size) should be resolved with a consistent button style
+    applied globally.
+  acceptance:
+  - Action buttons ("Review", "Edit", "Delete", and similar) are visually distinct from plain text links — they have appropriate
+    visual weight (background, border, or clearly button-like styling).
+  - Button font size is consistent with other buttons in the app.
+  - The /templates screen buttons ("Create Register", "Update Config", "Deactivate") are fixed as part of the same pass.
+  - No regression to button functionality or other styled elements in the app.
+  remaining:
+  - Audit all locations where action buttons currently suffer from these styling issues — register table rows, modals, /templates
+    screen, and any other pages.
+  - Determine the correct Mantine button variant/size to use as the standard for these action buttons.
+  - Apply the style consistently across all identified locations.
+  - Check that dark mode is handled correctly after restyling.
+  dependencies: []
+  suggested_agents:
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/pages/RegisterPage.tsx
+    - frontend/src/pages/TemplatesPage.tsx
+    - frontend/src/features/risks/RiskFormModal.tsx
+    tests:
+    - frontend/test/risks.test.mjs
+    notes:
+    - REQ-046 (button styling on /templates) is consolidated into this item. Both describe the same class of problem.
+    - This change may touch many files. Implementation should be systematic — audit all action button usages before making changes.
+    - Be careful not to restyle buttons that are intentionally plain (e.g. text-only secondary actions that are meant to look like links).
+- id: UI-018
+  source_request: REQ-040
+  title: Paginate Review History table in View Risk modal
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The Review History table in the View Risk modal is not paginated. It should be paginated with a page size of 5
+    rows. A hard cap of 100 rows should be enforced server-side, and the UI should display a note explaining that only the
+    most recent 100 review records are shown.
+  acceptance:
+  - The Review History table is paginated with a page size of 5 rows.
+  - A hard cap of 100 review records is enforced server-side; the backend does not return more than 100 records regardless
+    of total count.
+  - The UI displays a note when the cap applies, explaining that only the most recent 100 records are shown.
+  - No regression to review history display or the View Risk modal.
+  remaining:
+  - Confirm whether the review history is fetched inline with the risk detail or as a separate request; adjust accordingly.
+  - Add server-side hard cap of 100 rows to the review history query.
+  - Implement frontend pagination with page size 5 and the explanatory cap note.
+  - Add or update tests for the cap and pagination behaviour.
+  dependencies: []
+  suggested_agents:
+  - Backend Developer
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskDetailModal.tsx
+    - backend/src/services/reviews.service.ts
+    - backend/src/routes/risks.routes.ts
+    tests:
+    - frontend/test/risks.test.mjs
+    - backend/test/reviews.test.mjs
+    notes:
+    - Related to UI-019 (audit history pagination) — both address the same pattern in the same modal. Can be implemented together.
+- id: UI-019
+  source_request: REQ-039
+  title: Paginate Audit History table in View Risk modal
+  type: improvement
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The Audit History table in the View Risk modal is not paginated. As audit records accumulate the list can become
+    very long and slow to render. Pagination should be added with a page size of 5 rows. A hard cap of 100 rows should be
+    enforced server-side, and the UI should display a note explaining that only the most recent 100 audit records are shown.
+  acceptance:
+  - The Audit History table is paginated with a page size of 5 rows.
+  - A hard cap of 100 audit records is enforced server-side; the backend does not return more than 100 records regardless
+    of total count.
+  - The UI displays a note when the cap applies, explaining that only the most recent 100 records are shown.
+  - No regression to audit history display or the View Risk modal.
+  remaining:
+  - Confirm whether risk audit history is fetched inline with the risk detail or as a separate request; adjust accordingly.
+  - Add server-side hard cap of 100 rows to the audit history query.
+  - Implement frontend pagination with page size 5 and the explanatory cap note.
+  - Add or update tests for the cap and pagination behaviour.
+  dependencies: []
+  suggested_agents:
+  - Backend Developer
+  - Frontend Developer
+  - Test Engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskDetailModal.tsx
+    - backend/src/services/audit.service.ts
+    - backend/src/routes/risks.routes.ts
+    tests:
+    - frontend/test/risks.test.mjs
+    - backend/test/registers.test.mjs
+    notes:
+    - Related to UI-018 (review history pagination) — both address the same pattern in the same modal. Can be implemented together.
+- id: MAINT-005
+  source_request: REQ-045
+  title: Delete legacy docs/planning directory
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: The docs/planning directory and all its contents are superseded by the planning system under docs/work. It should
+    be deleted to keep the repository clean and remove the risk of agents or humans consulting outdated planning documents.
+  acceptance:
+  - The docs/planning directory and all its contents are deleted from the repository.
+  - No other files in the repository reference docs/planning in a way that breaks after deletion.
+  - The deletion is confirmed in a single clean commit.
+  remaining:
+  - Check for any remaining references to docs/planning in source files, docs, or CI config before deleting.
+  - Delete the directory.
+  dependencies: []
+  suggested_agents:
+  - devops-engineer
+  evidence:
+    code:
+    - docs/planning/
+    tests: []
+    notes:
+    - Confirm no active CI jobs, scripts, or agent prompts reference files under docs/planning before deleting.
+    - Can be batched with MAINT-001 (Node 22 engine constraint) in a maintenance-only release if desired.
+- id: SPIKE-001
+  source_request: REQ-042
+  title: Spike — SaaS multi-tenant architecture for hosted offering
+  type: feature
+  capability: architecture
+  phase: null
+  status: needs-refinement
+  priority: low
+  confidence: low
+  summary: Scoping exercise to determine what it would take to offer customRisk as a commercially hosted SaaS product. Key
+    areas include self-serve onboarding, organisation/tenant model with full data isolation, auth and authorisation changes,
+    infrastructure changes, and super-admin/platform-manager controls for tenant management. No implementation work should
+    start before the spike is complete and scoped into deliverable items.
+  acceptance:
+  - A scoping document exists that covers the tenant model, data isolation strategy, auth changes, infrastructure requirements,
+    and super-admin tooling.
+  - The document includes a BYOK/encryption consideration (see SPIKE-002) and notes the relationship between the two spikes.
+  - Deliverable implementation work items are derived from the spike output before any coding starts.
+  remaining:
+  - Determine the format and owner for the spike output (ADR, scoping doc, or product doc).
+  - Coordinate with SPIKE-002 (encryption) as the two are closely related.
+  - No implementation work until spike output is reviewed and decomposed into work items.
+  dependencies: []
+  suggested_agents:
+  - Product Manager
+  - Principal Architect
+  evidence:
+    code: []
+    tests: []
+    docs:
+    - docs/product/prd.md
+    notes:
+    - This is a discovery item only. It should not be pulled into a coding release until the spike output has been reviewed
+      and decomposed into concrete, bounded work items.
+    - Low priority until there is explicit commercial or deployment pressure to host customRisk as a SaaS product.
+- id: SPIKE-002
+  source_request: REQ-043
+  title: Spike — encryption of client data at rest
+  type: security
+  capability: architecture
+  phase: null
+  status: needs-refinement
+  priority: medium
+  confidence: low
+  summary: Scoping exercise to determine the right approach to encryption of data at rest, covering PII and other sensitive
+    fields at minimum, with full database encryption as a consideration. Key areas include which fields/tables warrant encryption,
+    key management strategy (including BYOK), and the performance and complexity trade-offs of field-level vs. full database
+    encryption. Closely related to SPIKE-001 (SaaS multi-tenant) as a key security requirement for any hosted offering.
+  acceptance:
+  - A scoping document exists covering encryption scope (fields vs. full DB), key management approach, BYOK feasibility, and
+    performance/complexity trade-offs.
+  - The document notes the relationship to SPIKE-001 and flags any dependencies on the tenant model.
+  - Deliverable implementation work items are derived from the spike output before any coding starts.
+  remaining:
+  - Determine the format and owner for the spike output.
+  - Coordinate with SPIKE-001 as the two spikes are closely related.
+  - No implementation work until spike output is reviewed and decomposed into work items.
+  dependencies: []
+  suggested_agents:
+  - Product Manager
+  - Principal Architect
+  evidence:
+    code: []
+    tests: []
+    docs:
+    - docs/product/prd.md
+    notes:
+    - This is a discovery item only. Do not pull into a coding release until the spike has been completed and decomposed.
+    - BYOK (Bring Your Own Key) is an explicit scope requirement from the original request — clients should be able to supply
+      and manage their own encryption keys.
 - id: MAINT-004
   source_request: REQ-017
   title: Investigate and improve CI/CD pipeline performance

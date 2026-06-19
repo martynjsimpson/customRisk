@@ -9,6 +9,8 @@ import { calculateNextReviewDate } from "./scoring.service.js";
 import { recordAuditEvent } from "./audit.service.js";
 import type { CreateRiskReviewBody } from "../validators/risks.schemas.js";
 
+const RISK_REVIEW_HISTORY_CAP = 100;
+
 type ReviewClient = typeof prisma | Prisma.TransactionClient;
 
 function toDateOnlyString(date: Date | null) {
@@ -66,7 +68,8 @@ export async function listRiskReviews(
   const reviews = await prisma.riskReview.findMany({
     where: { registerId, riskId },
     include: { reviewedBy: { select: { id: true, name: true, email: true } } },
-    orderBy: { reviewedAt: "desc" }
+    orderBy: { reviewedAt: "desc" },
+    take: RISK_REVIEW_HISTORY_CAP
   });
 
   return reviews.map(mapRiskReview);

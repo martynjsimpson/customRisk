@@ -12,6 +12,10 @@ test("risk detail UI includes review action, review history, and risk audit hist
   assert.match(detailModal, /listRiskAudit/);
   assert.match(detailModal, /Review history/);
   assert.match(detailModal, /Audit history/);
+  // Pagination and cap constants must be present (runtime behavior tested separately)
+  assert.match(detailModal, /Pagination/);
+  assert.match(detailModal, /HISTORY_PAGE_SIZE/);
+  assert.match(detailModal, /HISTORY_CAP/);
   assert.match(detailModal, /\["audit", "risk", registerId, riskId\]/);
   assert.match(reviewModal, /completeRiskReview/);
   assert.match(reviewModal, /Confirm review/);

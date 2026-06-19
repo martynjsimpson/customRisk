@@ -34,12 +34,16 @@ interface NavItemProps {
 }
 
 function NavItem({ to, label, icon, active, collapsed, onClick }: NavItemProps) {
+  const navLinkStyles = collapsed
+    ? { root: { justifyContent: "center", borderRadius: "var(--mantine-radius-md)" } }
+    : { root: { borderRadius: "var(--mantine-radius-md)" } };
+
   const link = onClick ? (
     <NavLink
       label={collapsed ? undefined : label}
       leftSection={icon}
       active={active}
-      styles={collapsed ? { root: { justifyContent: "center" } } : undefined}
+      styles={navLinkStyles}
       onClick={onClick}
     />
   ) : (
@@ -49,7 +53,7 @@ function NavItem({ to, label, icon, active, collapsed, onClick }: NavItemProps) 
       label={collapsed ? undefined : label}
       leftSection={icon}
       active={active}
-      styles={collapsed ? { root: { justifyContent: "center" } } : undefined}
+      styles={navLinkStyles}
     />
   );
 

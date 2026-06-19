@@ -492,7 +492,7 @@ export function TemplatesPage() {
                   <Group gap="xs" justify="flex-end" wrap="nowrap">
                     {template.isActive && template.latestPublishedVersion ? (
                       <Button
-                        variant="subtle"
+                        variant="light"
                         size="xs"
                         onClick={() => setCreatingFrom(template)}
                       >
@@ -501,7 +501,7 @@ export function TemplatesPage() {
                     ) : null}
                     {template.isActive ? (
                       <Button
-                        variant="subtle"
+                        variant="light"
                         size="xs"
                         onClick={() => setUpdatingConfig(template)}
                       >
@@ -510,7 +510,7 @@ export function TemplatesPage() {
                     ) : null}
                     {template.isActive ? (
                       <Button
-                        variant="subtle"
+                        variant="light"
                         size="xs"
                         color="red"
                         onClick={() => deactivateMutation.mutate(template.id)}

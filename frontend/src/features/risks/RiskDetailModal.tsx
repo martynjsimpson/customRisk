@@ -1,5 +1,6 @@
-import { Button, Group, Loader, Modal, ScrollArea, Stack, Table, Text, Title } from "@mantine/core";
+import { Button, Group, Loader, Modal, Pagination, ScrollArea, Stack, Table, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { getRisk, listRiskReviews, type RiskDetail, type RiskFormConfig } from "../../api/risks.api";
@@ -74,6 +75,9 @@ interface RiskDetailModalProps {
   onRequestDelete: (riskId: string) => void;
 }
 
+const HISTORY_PAGE_SIZE = 5;
+const HISTORY_CAP = 100;
+
 export function RiskDetailModal({
   registerId,
   riskId,
@@ -88,6 +92,8 @@ export function RiskDetailModal({
   onRequestDelete
 }: RiskDetailModalProps) {
   const activeCustomFields = formConfig.customFields.filter((field) => field.isActive);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [auditPage, setAuditPage] = useState(1);
 
   const selectedRiskQuery = useQuery({
     queryKey: ["risk", registerId, riskId],
@@ -163,23 +169,26 @@ export function RiskDetailModal({
           <Title order={4}>Actions</Title>
           <Group justify="flex-start" gap="xs">
             {canReview ? (
-              <Button variant="subtle" size="xs" onClick={() => onRequestReview(selectedRiskQuery.data!.id)}>
+              <Button variant="light" size="xs" onClick={() => onRequestReview(selectedRiskQuery.data!.id)}>
                 Review
               </Button>
             ) : null}
             {canEditRows ? (
-              <Button variant="subtle" size="xs" onClick={() => onRequestEdit(selectedRiskQuery.data!.id)}>
+              <Button variant="light" size="xs" onClick={() => onRequestEdit(selectedRiskQuery.data!.id)}>
                 Edit
               </Button>
             ) : null}
             {canDelete ? (
-              <Button variant="subtle" color="red" size="xs" onClick={() => onRequestDelete(selectedRiskQuery.data!.id)}>
+              <Button variant="light" color="red" size="xs" onClick={() => onRequestDelete(selectedRiskQuery.data!.id)}>
                 Delete
               </Button>
             ) : null}
           </Group>
           <Title order={4}>Review history</Title>
           <ApiErrorAlert error={reviewHistoryQuery.error} fallback="Unable to load review history" />
+          {reviewHistoryQuery.data && reviewHistoryQuery.data.length === HISTORY_CAP ? (
+            <Text size="xs" c="dimmed">Only the most recent {HISTORY_CAP} reviews are shown.</Text>
+          ) : null}
           <Table.ScrollContainer minWidth={720}>
             <Table>
               <Table.Thead>
@@ -191,7 +200,7 @@ export function RiskDetailModal({
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {(reviewHistoryQuery.data ?? []).map((review) => (
+                {(reviewHistoryQuery.data ?? []).slice((reviewPage - 1) * HISTORY_PAGE_SIZE, reviewPage * HISTORY_PAGE_SIZE).map((review) => (
                   <Table.Tr key={review.id}>
                     <Table.Td>{new Date(review.reviewedAt).toLocaleString()}</Table.Td>
                     <Table.Td>{review.reviewedBy.name}</Table.Td>
@@ -207,9 +216,31 @@ export function RiskDetailModal({
               </Table.Tbody>
             </Table>
           </Table.ScrollContainer>
+          {(reviewHistoryQuery.data?.length ?? 0) > HISTORY_PAGE_SIZE ? (
+            <Pagination
+              value={reviewPage}
+              total={Math.ceil((reviewHistoryQuery.data?.length ?? 0) / HISTORY_PAGE_SIZE)}
+              onChange={setReviewPage}
+              size="sm"
+            />
+          ) : null}
           <Title order={4}>Audit history</Title>
           <ApiErrorAlert error={riskAuditQuery.error} fallback="Unable to load risk audit history" />
-          <AuditEventTable events={riskAuditQuery.data?.data ?? []} showIpAddress={false} />
+          {riskAuditQuery.data && riskAuditQuery.data.data.length === HISTORY_CAP ? (
+            <Text size="xs" c="dimmed">Only the most recent {HISTORY_CAP} audit records are shown.</Text>
+          ) : null}
+          <AuditEventTable
+            events={(riskAuditQuery.data?.data ?? []).slice((auditPage - 1) * HISTORY_PAGE_SIZE, auditPage * HISTORY_PAGE_SIZE)}
+            showIpAddress={false}
+          />
+          {(riskAuditQuery.data?.data.length ?? 0) > HISTORY_PAGE_SIZE ? (
+            <Pagination
+              value={auditPage}
+              total={Math.ceil((riskAuditQuery.data?.data.length ?? 0) / HISTORY_PAGE_SIZE)}
+              onChange={setAuditPage}
+              size="sm"
+            />
+          ) : null}
         </Stack>
       ) : selectedRiskQuery.isLoading ? (
         <Loader />
