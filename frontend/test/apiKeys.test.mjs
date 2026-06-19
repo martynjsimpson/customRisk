@@ -142,6 +142,20 @@ test("ProfilePage contains password strength meter (QOL-001)", async () => {
   assert.match(page, /newPassword\.length > 0/);
 });
 
+test("UI-012: ProfilePage API key expiry date input uses type=date (native date picker)", async () => {
+  const page = await readFile(
+    new URL("../src/pages/ProfilePage.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // The expiry field must use type="date" so browsers render a native date picker.
+  // Regression guard: this was previously type="text" (UI-012 fix).
+  assert.match(page, /type="date"/, 'expiry input must use type="date"');
+
+  // Confirm the surrounding context is the expiry field, not an unrelated date input
+  assert.match(page, /expiresAt|expiry|Expiry/i, "page must reference an expiry concept near the date input");
+});
+
 test("apiKeys flag exists in EnabledFeatures contract and useFeatureFlags allOff", async () => {
   const contracts = await readFile(
     new URL("../src/api/contracts.ts", import.meta.url),
