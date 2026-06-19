@@ -403,7 +403,7 @@ function CustomFieldInput({
         description="Calculated automatically"
         value={String(value ?? "")}
         readOnly
-        styles={{ input: { backgroundColor: "var(--mantine-color-gray-1)", cursor: "default" } }}
+        styles={{ input: { backgroundColor: "var(--mantine-color-default-hover)", cursor: "default" } }}
       />
     );
   }
