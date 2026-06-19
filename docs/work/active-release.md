@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.15.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Help content externalisation, page-level helper text, Review status field orderi
 ### MAINT-005 — Delete legacy docs/planning directory
 Source: REQ-045
 Capability: build-toolchain
-Status: ready
+Status: done
+done_in: v1.15.0
 
 **Problem:** The `docs/planning` directory and all its contents are superseded by the planning system under `docs/work`. It creates confusion and the risk of agents or humans consulting outdated documents.
 
@@ -32,7 +33,8 @@ Status: ready
 ### MAINT-002 — Externalise /help page content out of source code
 Source: REQ-032
 Capability: help-content
-Status: ready
+Status: done
+done_in: v1.15.0
 
 **Problem:** Help content on the /help page is embedded directly in `HelpPage.tsx`, making it hard to maintain and impossible to localise without a code change.
 
@@ -56,7 +58,8 @@ Status: ready
 ### MAINT-003 — Audit and update /help page content for accuracy
 Source: REQ-031
 Capability: help-content
-Status: ready
+Status: done
+done_in: v1.15.0
 
 **Problem:** Help content has not been kept in sync with the live product. Some sections are outdated or inaccurate.
 
@@ -76,7 +79,8 @@ Status: ready
 ### UI-011 — Add descriptive helper text beneath page titles across the app
 Source: REQ-020
 Capability: register-ui
-Status: ready
+Status: done
+done_in: v1.15.0
 
 **Problem:** Only the /help page displays a short subtitle beneath the page title. All other pages lack this orientation text, making the app feel inconsistently finished.
 
@@ -97,7 +101,8 @@ Status: ready
 ### UI-014 — Make Review status field position configurable in risk detail modal
 Source: REQ-038
 Capability: register-ui
-Status: ready
+Status: done
+done_in: v1.15.0
 
 **Problem:** The Review status row in the risk detail modal appears at a fixed position (currently end of table) because it is not part of the register's field configuration system. Register admins cannot control its display order relative to custom fields.
 
@@ -133,14 +138,14 @@ Status: ready
 
 ## Test / sign-off
 
-- [ ] Implementation pass complete
-- [ ] Regression test pass complete
-- [ ] TypeScript typecheck clean
-- [ ] Documentation pass complete
+- [x] Implementation pass complete
+- [x] Regression test pass complete
+- [x] TypeScript typecheck clean
+- [x] Documentation pass complete
 
 ## Blockers
 
-None.
+None. All clear.
 
 ---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
