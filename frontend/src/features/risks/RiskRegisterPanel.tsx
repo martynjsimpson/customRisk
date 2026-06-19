@@ -106,13 +106,17 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
   const { isSystemAdmin } = usePermissions();
   const flags = useFeatureFlags();
   const [page, setPage] = useState(1);
+  const initialState = (searchParams.get("state") as RiskListQuery["state"]) ?? undefined;
+  const initialReviewStatus = (searchParams.get("reviewStatus") as RiskListQuery["reviewStatus"]) ?? undefined;
   const [filters, setFilters] = useState<RiskListQuery>({
     page: 1,
     pageSize: 25,
     includeClosed: false,
     sortBy: "riskId",
     sortDir: "asc",
-    validationIssues: undefined
+    validationIssues: undefined,
+    state: initialState,
+    reviewStatus: initialReviewStatus
   });
   const [formOpened, setFormOpened] = useState(false);
   const [editingRiskId, setEditingRiskId] = useState<string | null>(null);

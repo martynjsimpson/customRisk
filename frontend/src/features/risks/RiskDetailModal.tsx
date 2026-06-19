@@ -106,7 +106,7 @@ export function RiskDetailModal({
   });
 
   return (
-    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title="Risk Detail" size="900px" scrollAreaComponent={ScrollArea.Autosize}>
+    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title={selectedRiskQuery.data ? `${selectedRiskQuery.data.displayRiskId}: ${selectedRiskQuery.data.title}` : "Risk Detail"} size="900px" scrollAreaComponent={ScrollArea.Autosize}>
       <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk detail" />
       {selectedRiskQuery.data ? (
         <Stack>

@@ -27,20 +27,31 @@ test("risk detail UI includes review action, review history, and risk audit hist
   assert.match(formModal, /type="button" variant="subtle" onClick=\{handleClose\}/);
 });
 
-test("my risks rows link to permitted register risk actions", async () => {
+test("my risks rows open modals in-place for review, edit, and delete actions", async () => {
   const page = await readFile(new URL("../src/pages/MyRisksPage.tsx", import.meta.url), "utf8");
 
+  // Permission guards must be present
   assert.match(page, /usePermissions/);
-  assert.match(page, /isSystemAdmin \?/);
-  assert.match(page, /\?riskId=\$\{risk\.id\}`/);
+  assert.match(page, /isSystemAdmin/);
+
+  // Risk ID and title must still be displayed
   assert.match(page, /\{risk\.displayRiskId\}/);
-  assert.match(page, /action=review/);
-  assert.match(page, /action=edit/);
-  assert.match(page, /action=delete/);
-  assert.match(page, /<Anchor/);
+
+  // Actions must use onClick handlers (in-place modal pattern), not navigate away
+  assert.match(page, /openEdit/);
+  assert.match(page, /openReview/);
+  assert.match(page, /openDelete/);
+
+  // Buttons must be present
   assert.match(page, /Review\s+<\/Button>/);
   assert.match(page, /Edit\s+<\/Button>/);
   assert.match(page, /Delete\s+<\/Button>/);
+
+  // Modals must be mounted on the page
+  assert.match(page, /RiskDetailModal/);
+  assert.match(page, /RiskFormModal/);
+  assert.match(page, /ReviewModal/);
+  assert.match(page, /DeleteRiskModal/);
 });
 
 test("register risk table column selection uses per-register preference scope", async () => {

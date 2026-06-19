@@ -1,11 +1,13 @@
 import { Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
 import { getMyRisks, type DashboardRisk } from "../api/dashboard.api";
+import { getRegister } from "../api/registers.api";
+import { getRiskFormConfig } from "../api/risks.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { usePermissions } from "../hooks/usePermissions";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 import { RiskLevelBadge } from "../components/RiskLevelBadge/RiskLevelBadge";
 import { ReviewStatusBadge } from "../components/ReviewStatusBadge/ReviewStatusBadge";
 import { ColumnPicker } from "../features/risks/ColumnPicker";
@@ -19,6 +21,10 @@ import {
   sortColumnsByDisplayOrder,
 } from "../features/risks/riskTableColumns";
 import { useMyRisksTableColumns } from "../features/risks/useRiskTableColumns";
+import { RiskDetailModal } from "../features/risks/RiskDetailModal";
+import { RiskFormModal } from "../features/risks/RiskFormModal";
+import { ReviewModal } from "../features/risks/ReviewModal";
+import { DeleteRiskModal } from "../features/risks/DeleteRiskModal";
 
 interface AvailableCustomField {
   columnKey: string;
@@ -132,9 +138,45 @@ function MyRiskCell({ risk, columnKey }: { risk: DashboardRisk; columnKey: strin
 
 export function MyRisksPage() {
   const { isSystemAdmin } = usePermissions();
+  const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
   const risksQuery = useQuery({ queryKey: ["dashboard", "my-risks"], queryFn: getMyRisks });
 
   const risks = useMemo(() => risksQuery.data ?? [], [risksQuery.data]);
+
+  // Modal state — track the selected risk and which modal is open
+  const [detailRiskId, setDetailRiskId] = useState<string | null>(null);
+  const [editingRiskId, setEditingRiskId] = useState<string | null>(null);
+  const [formOpened, setFormOpened] = useState(false);
+  const [reviewRiskId, setReviewRiskId] = useState<string | null>(null);
+  const [deleteRiskId, setDeleteRiskId] = useState<string | null>(null);
+
+  // The register ID for the currently active modal — drives formConfig/register fetches
+  const activeRegisterId = useMemo(() => {
+    const activeRiskId = detailRiskId ?? editingRiskId ?? reviewRiskId ?? deleteRiskId;
+    if (!activeRiskId) return null;
+    return risks.find((r) => r.id === activeRiskId)?.register.id ?? null;
+  }, [detailRiskId, editingRiskId, reviewRiskId, deleteRiskId, risks]);
+
+  const formConfigQuery = useQuery({
+    queryKey: ["risk-form-config", activeRegisterId],
+    queryFn: () => getRiskFormConfig(activeRegisterId!),
+    enabled: Boolean(activeRegisterId)
+  });
+
+  const registerQuery = useQuery({
+    queryKey: ["register", activeRegisterId],
+    queryFn: () => getRegister(activeRegisterId!),
+    enabled: Boolean(activeRegisterId)
+  });
+
+  const selectedRisk = useMemo(
+    () => risks.find((r) => r.id === (detailRiskId ?? editingRiskId)),
+    [risks, detailRiskId, editingRiskId]
+  );
+  const canEditSelectedRisk = Boolean(
+    isSystemAdmin || (user && selectedRisk?.owner?.id === user.id)
+  );
 
   const availableCustomFields = useMemo(() => buildAvailableCustomFields(risks), [risks]);
   const availableCustomFieldKeys = useMemo(
@@ -180,6 +222,53 @@ export function MyRisksPage() {
 
   const totalCols = visibleColumns.length + 1; // +1 for actions column
 
+  const invalidateAfterSave = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      queryClient.invalidateQueries({ queryKey: ["risks", activeRegisterId] }),
+      queryClient.invalidateQueries({ queryKey: ["risk", activeRegisterId] }),
+      queryClient.invalidateQueries({ queryKey: ["risk-reviews", activeRegisterId] }),
+    ]);
+  };
+
+  const openDetail = (riskId: string) => {
+    setDetailRiskId(riskId);
+    setEditingRiskId(null);
+    setFormOpened(false);
+    setReviewRiskId(null);
+    setDeleteRiskId(null);
+  };
+
+  const openEdit = (riskId: string) => {
+    setDetailRiskId(null);
+    setEditingRiskId(riskId);
+    setFormOpened(true);
+    setReviewRiskId(null);
+    setDeleteRiskId(null);
+  };
+
+  const openReview = (riskId: string) => {
+    setDetailRiskId(null);
+    setEditingRiskId(null);
+    setFormOpened(false);
+    setReviewRiskId(riskId);
+    setDeleteRiskId(null);
+  };
+
+  const openDelete = (riskId: string) => {
+    setDetailRiskId(null);
+    setEditingRiskId(null);
+    setFormOpened(false);
+    setReviewRiskId(null);
+    setDeleteRiskId(riskId);
+  };
+
+  // Find the register for the review risk (needed by ReviewModal)
+  const reviewRisk = useMemo(
+    () => risks.find((r) => r.id === reviewRiskId),
+    [risks, reviewRiskId]
+  );
+
   return (
     <Stack>
       <Group justify="space-between">
@@ -209,9 +298,9 @@ export function MyRisksPage() {
                 {showRiskId ? (
                   <Table.Td>
                     <Anchor
-                      component={Link}
-                      to={`/registers/${risk.register.id}?riskId=${risk.id}`}
+                      component="button"
                       fw={600}
+                      onClick={() => openDetail(risk.id)}
                     >
                       {risk.displayRiskId}
                     </Anchor>
@@ -225,29 +314,26 @@ export function MyRisksPage() {
                   <Group justify="flex-end" gap="xs" wrap="nowrap">
                     {risk.reviewStatus !== "NOT_REQUIRED" ? (
                       <Button
-                        component={Link}
-                        to={`/registers/${risk.register.id}?riskId=${risk.id}&action=review`}
                         variant="subtle"
                         size="xs"
+                        onClick={() => openReview(risk.id)}
                       >
                         Review
                       </Button>
                     ) : null}
                     <Button
-                      component={Link}
-                      to={`/registers/${risk.register.id}?riskId=${risk.id}&action=edit`}
                       variant="subtle"
                       size="xs"
+                      onClick={() => openEdit(risk.id)}
                     >
                       Edit
                     </Button>
                     {isSystemAdmin ? (
                       <Button
-                        component={Link}
-                        to={`/registers/${risk.register.id}?riskId=${risk.id}&action=delete`}
                         variant="subtle"
                         color="red"
                         size="xs"
+                        onClick={() => openDelete(risk.id)}
                       >
                         Delete
                       </Button>
@@ -266,6 +352,58 @@ export function MyRisksPage() {
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
+
+      {detailRiskId && activeRegisterId && formConfigQuery.data ? (
+        <RiskDetailModal
+          registerId={activeRegisterId}
+          riskId={detailRiskId}
+          formConfig={formConfigQuery.data}
+          opened={Boolean(detailRiskId)}
+          canReview={canEditSelectedRisk}
+          canEditRows={canEditSelectedRisk}
+          canDelete={isSystemAdmin}
+          onClose={() => setDetailRiskId(null)}
+          onRequestEdit={openEdit}
+          onRequestReview={openReview}
+          onRequestDelete={openDelete}
+        />
+      ) : null}
+
+      {formConfigQuery.data && registerQuery.data ? (
+        <RiskFormModal
+          register={registerQuery.data}
+          formConfig={formConfigQuery.data}
+          canManage={isSystemAdmin || registerQuery.data.effectiveRole === "REGISTER_ADMIN"}
+          opened={formOpened}
+          editingRiskId={editingRiskId}
+          onClose={() => {
+            setFormOpened(false);
+            setEditingRiskId(null);
+          }}
+          onSuccess={invalidateAfterSave}
+        />
+      ) : null}
+
+      {reviewRisk && registerQuery.data ? (
+        <ReviewModal
+          register={registerQuery.data}
+          registerId={reviewRisk.register.id}
+          riskId={reviewRiskId}
+          opened={Boolean(reviewRiskId)}
+          onClose={() => setReviewRiskId(null)}
+          onSuccess={invalidateAfterSave}
+        />
+      ) : null}
+
+      {activeRegisterId ? (
+        <DeleteRiskModal
+          registerId={activeRegisterId}
+          riskId={deleteRiskId}
+          opened={Boolean(deleteRiskId)}
+          onClose={() => setDeleteRiskId(null)}
+          onSuccess={invalidateAfterSave}
+        />
+      ) : null}
     </Stack>
   );
 }

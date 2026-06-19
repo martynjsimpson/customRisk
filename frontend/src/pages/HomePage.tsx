@@ -1,18 +1,28 @@
-import { Anchor, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
+import { Anchor, Button, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title } from "@mantine/core";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getMyWork, type DashboardRisk } from "../api/dashboard.api";
+import { getRegister } from "../api/registers.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { RiskLevelBadge } from "../components/RiskLevelBadge/RiskLevelBadge";
 import { ReviewStatusBadge } from "../components/ReviewStatusBadge/ReviewStatusBadge";
 import { AuditEventTable } from "../features/audit/AuditEventTable";
+import { ReviewModal } from "../features/risks/ReviewModal";
 
-function RiskTable({ risks }: { risks: DashboardRisk[] }) {
+interface RiskTableProps {
+  risks: DashboardRisk[];
+  onReview?: (risk: DashboardRisk) => void;
+}
+
+function RiskTable({ risks, onReview }: RiskTableProps) {
   if (risks.length === 0) {
     return <Text c="dimmed">No risks need your attention right now.</Text>;
   }
+
+  const showActions = Boolean(onReview);
 
   return (
     <Table.ScrollContainer minWidth={760}>
@@ -24,6 +34,7 @@ function RiskTable({ risks }: { risks: DashboardRisk[] }) {
             <Table.Th>Risk Level</Table.Th>
             <Table.Th>Next Review Date</Table.Th>
             <Table.Th>Review Status</Table.Th>
+            {showActions ? <Table.Th /> : null}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -43,6 +54,15 @@ function RiskTable({ risks }: { risks: DashboardRisk[] }) {
               <Table.Td><RiskLevelBadge riskLevel={risk.riskLevel} /></Table.Td>
               <Table.Td>{risk.nextReviewDate}</Table.Td>
               <Table.Td><ReviewStatusBadge status={risk.reviewStatus} /></Table.Td>
+              {showActions ? (
+                <Table.Td>
+                  <Group justify="flex-end" gap="xs" wrap="nowrap">
+                    <Button variant="subtle" size="xs" onClick={() => onReview!(risk)}>
+                      Review
+                    </Button>
+                  </Group>
+                </Table.Td>
+              ) : null}
             </Table.Tr>
           ))}
         </Table.Tbody>
@@ -53,7 +73,21 @@ function RiskTable({ risks }: { risks: DashboardRisk[] }) {
 
 export function HomePage() {
   const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
   const dashboardQuery = useQuery({ queryKey: ["dashboard", "my-work"], queryFn: getMyWork });
+
+  // Review modal state for "My overdue risks" widget
+  const [reviewRisk, setReviewRisk] = useState<DashboardRisk | null>(null);
+
+  const reviewRegisterQuery = useQuery({
+    queryKey: ["register", reviewRisk?.register.id],
+    queryFn: () => getRegister(reviewRisk!.register.id),
+    enabled: Boolean(reviewRisk)
+  });
+
+  const invalidateDashboard = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+  };
 
   return (
     <Stack>
@@ -91,7 +125,10 @@ export function HomePage() {
           <Group justify="space-between">
             <Title order={2}>My overdue risks</Title>
           </Group>
-          <RiskTable risks={dashboardQuery.data?.myOverdueRisks ?? []} />
+          <RiskTable
+            risks={dashboardQuery.data?.myOverdueRisks ?? []}
+            onReview={setReviewRisk}
+          />
         </Stack>
       </Paper>
       <Paper withBorder p="md" radius="sm">
@@ -122,11 +159,25 @@ export function HomePage() {
                           to={`/registers/${summary.register.id}`}
                           fw={600}
                         >
-                        {summary.register.name}
+                          {summary.register.name}
                         </Anchor>
                       </Table.Td>
-                      <Table.Td>{summary.openRisks}</Table.Td>
-                      <Table.Td>{summary.overdueReviews}</Table.Td>
+                      <Table.Td>
+                        <Anchor
+                          component={Link}
+                          to={`/registers/${summary.register.id}?state=OPEN`}
+                        >
+                          {summary.openRisks}
+                        </Anchor>
+                      </Table.Td>
+                      <Table.Td>
+                        <Anchor
+                          component={Link}
+                          to={`/registers/${summary.register.id}?reviewStatus=OVERDUE`}
+                        >
+                          {summary.overdueReviews}
+                        </Anchor>
+                      </Table.Td>
                     </Table.Tr>
                   ))}
                 </Table.Tbody>
@@ -144,6 +195,17 @@ export function HomePage() {
             <AuditEventTable events={dashboardQuery.data!.recentAuditActivity} showRegister />
           </Stack>
         </Paper>
+      ) : null}
+
+      {reviewRisk && reviewRegisterQuery.data ? (
+        <ReviewModal
+          register={reviewRegisterQuery.data}
+          registerId={reviewRisk.register.id}
+          riskId={reviewRisk.id}
+          opened={Boolean(reviewRisk)}
+          onClose={() => setReviewRisk(null)}
+          onSuccess={invalidateDashboard}
+        />
       ) : null}
     </Stack>
   );
