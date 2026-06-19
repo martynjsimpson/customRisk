@@ -16,7 +16,14 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
-None.
+### REQ-038
+Request ID: REQ-038
+Title: Allow register admins to control the position of the Review field in the risk detail modal
+Type: improvement
+Status: inbox
+Priority: medium
+Summary: The Review status row in the risk detail modal is not part of the register's field configuration, so admins cannot control its position relative to other fields the way they can for custom fields. It currently appears at a fixed position (end of table). The field configuration system should be extended to include Review as a configurable field so its display order can be set per register.
+Source: verification feedback (v1.12.0 release)
 
 ## Refined requests
 
@@ -24,7 +31,8 @@ None.
 Request ID: REQ-037
 Title: Remove redundant "show closed" checkbox from register page
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: medium
 Summary: The /registers/<registerID> page has both a "State" dropdown filter (with options including Open, Closed, Draft) and a separate "Show closed" checkbox. The checkbox is redundant since closed risks can already be shown by selecting "Closed" in the state dropdown. The checkbox should be removed to simplify the filter UI.
 Derived work items: UI-003
@@ -98,7 +106,8 @@ Source: human request (direct)
 Request ID: REQ-030
 Title: Align "Views" dropdown styling with columns and export buttons
 Type: bug
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: high
 Summary: On the /registers/<registerID> page, the "Views" dropdown is styled differently from the adjacent "Columns" dropdown and "Export CSV" button. All three controls should share a consistent style.
 Derived work items: BUG-006
@@ -108,7 +117,8 @@ Source: human request (direct)
 Request ID: REQ-029
 Title: Fix "Save View" broken on register — columns type mismatch
 Type: bug
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: critical
 Summary: The "Save View" feature on the register page is completely broken. Attempting to save a view throws a validation error, making the feature unusable. The root cause appears to be a type mismatch in the request payload: the API expects `columns` to be an array but is receiving an object.
 Notes: Exact error: "Invalid request body — Columns: Invalid input: expected array, received object". Likely a serialisation issue on the frontend when building the save view request body.
@@ -119,7 +129,8 @@ Source: human request (direct)
 Request ID: REQ-028
 Title: Move "Configuration is version-controlled" alert above action buttons
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: medium
 Summary: On the register configuration page, the "Configuration is version-controlled" alert box currently appears below the action button group (create draft, export config, etc.). It should be moved above that box so the contextual information is presented before the actions it relates to.
 Derived work items: UI-009
@@ -129,7 +140,8 @@ Source: human request (direct)
 Request ID: REQ-027
 Title: Use Mantine Fieldset on register permissions page
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: medium
 Summary: The register permissions page does not use Mantine Fieldset components for grouping its content, unlike the configuration → settings page and other configuration sub-pages which already follow this pattern. The permissions page should be updated to match for visual and structural consistency.
 Notes: Reference the configuration → settings page and its sub-pages as the pattern to follow.
@@ -140,7 +152,8 @@ Source: human request (direct)
 Request ID: REQ-026
 Title: Fix calculated field dark mode styling in risk modals
 Type: bug
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: high
 Summary: Calculated fields are unreadable in dark mode in both the add risk and edit risk modals — they appear to use hardcoded or incorrect colours that do not adapt to the dark theme. The fields need to honour the app's dark mode colour scheme so their values are legible in both modals.
 Notes: Confirmed in both the add risk modal and the edit risk modal.
@@ -173,7 +186,8 @@ Source: human request (direct)
 Request ID: REQ-023
 Title: Hide review button on /my-risks when reviews not required
 Type: bug
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: high
 Summary: The /my-risks table shows a Review button for all risks regardless of whether the parent register has reviews enabled. When a risk's review status is "not required", the Review button should be hidden as it is not applicable and creates a misleading UI.
 Notes: Condition to check: the register for that risk has reviews disabled, which surfaces as a review status of "not required" on the risk.
@@ -217,7 +231,8 @@ Source: human request (direct)
 Request ID: REQ-019
 Title: Remove icon from /help page header
 Type: bug
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: medium
 Summary: The /help page displays an icon before the "Help" heading text in the page header. No other page in the app follows this pattern, making it visually inconsistent. The icon should be removed so the header matches the style of all other pages.
 Derived work items: BUG-008
@@ -227,7 +242,8 @@ Source: human request (direct)
 Request ID: REQ-018
 Title: Fix /audit page Export CSV button styling and layout
 Type: bug
-Status: in-active-release
+Status: done
+Done in: v1.11.0
 Priority: high
 Summary: The Export CSV button on the /audit page is styled incorrectly — it should use the same blue button style as the Export CSV button on the /registers/<registerID> page. The button should also be moved onto the same line as the page title, matching the layout pattern used on the register page.
 Notes: Use the /registers/<registerID> page as the reference for both the button variant/colour and the title-row layout.

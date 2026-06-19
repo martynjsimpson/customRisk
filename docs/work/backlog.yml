@@ -1022,7 +1022,8 @@ items:
   type: bug
   capability: reporting-saved-views
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: critical
   confidence: high
   summary: The Save View feature on the register page is completely broken. Attempting to save a view throws a validation
@@ -1061,7 +1062,8 @@ items:
   type: bug
   capability: advanced-fields
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: high
   confidence: high
   summary: Calculated fields are unreadable in dark mode in both the add risk and edit risk modals. They appear to use
@@ -1097,7 +1099,8 @@ items:
   type: bug
   capability: advanced-reviews
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: high
   confidence: high
   summary: The /my-risks table shows a Review button for all risks regardless of whether the parent register has reviews
@@ -1132,7 +1135,8 @@ items:
   type: bug
   capability: reporting-saved-views
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: high
   confidence: high
   summary: On the /registers/<registerID> page the Views dropdown is styled differently from the adjacent Columns dropdown
@@ -1164,7 +1168,8 @@ items:
   type: bug
   capability: audit-log-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: high
   confidence: high
   summary: The Export CSV button on /audit is styled incorrectly and positioned below the page title rather than inline
@@ -1197,7 +1202,8 @@ items:
   type: bug
   capability: help-content
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: medium
   confidence: high
   summary: The /help page displays an icon before the page heading text. No other page in the app follows this pattern.
@@ -1260,7 +1266,8 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: medium
   confidence: high
   summary: The /registers/<registerID> page has both a State dropdown filter (with Open, Closed, Draft options) and a
@@ -1455,7 +1462,8 @@ items:
   type: improvement
   capability: config-lifecycle-templates
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: medium
   confidence: high
   summary: On the register configuration page, the "Configuration is version-controlled" alert box appears below the
@@ -1481,7 +1489,8 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.11.0
   priority: medium
   confidence: high
   summary: The register permissions page does not use Mantine Fieldset for grouping its content, unlike the configuration

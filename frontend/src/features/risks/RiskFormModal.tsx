@@ -583,7 +583,7 @@ export function RiskFormModal({
 
   return (
     <>
-      <Modal opened={opened} onClose={handleClose} title={editingRiskId ? "Edit risk" : "Add risk"} size="lg">
+      <Modal opened={opened} onClose={handleClose} title={editingRiskId ? (form.values.title ? `Edit: ${form.values.title}` : "Edit risk") : "Add risk"} size="lg">
         <Stack>
           <ApiErrorAlert error={getApiErrorCode(saveMutation.error) !== "VALIDATION_WARNING" ? saveMutation.error : null} fallback="Unable to save risk" />
           <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk" />

@@ -65,8 +65,9 @@ test("BUG-005: Edit button is always rendered regardless of reviewStatus", async
   );
 
   // Edit must exist and must not be gated behind the NOT_REQUIRED check
-  // (to confirm we didn't accidentally remove unconditional actions)
-  assert.match(page, /action=edit/);
+  // (to confirm we didn't accidentally remove unconditional actions).
+  // UI-004: Edit now opens a modal in-place (onClick handler) rather than navigating away.
+  assert.match(page, /openEdit/);
   assert.match(page, /Edit\s+<\/Button>/);
 });
 

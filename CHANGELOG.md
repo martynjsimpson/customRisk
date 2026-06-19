@@ -15,6 +15,24 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-06-19
+
+### Added
+
+- **Inline modals on /my-risks (UI-004)**
+  - Clicking a risk ID or Edit on the /my-risks page now opens the view or edit modal directly on that page, without navigating away to the register. After dismissing or submitting, the user stays on /my-risks and the table refreshes.
+
+- **Inline Review action on "My overdue risks" homepage widget (UI-008)**
+  - Each row in the My overdue risks widget now has a Review button. Clicking it opens the review modal in-place on the homepage — no navigation required. The widget data refreshes automatically after submission.
+
+- **Admin summary widget counts link to pre-filtered register (UI-007)**
+  - The open risks and overdue reviews counts in the Admin summary homepage widget are now clickable links. Each links to the relevant register page with the correct filter pre-applied, so admins can drill straight into the filtered list.
+
+### Changed
+
+- **Risk modal sticky headers now show risk ID and title (UI-002)**
+  - The risk view modal header now shows the risk ID and title instead of the generic "Risk Detail" label. The edit modal header shows the risk ID and the live title field value, updating as the user types.
+
 ## [1.11.0] - 2026-06-19
 
 ### Fixed

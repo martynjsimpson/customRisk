@@ -7,8 +7,8 @@ import { listRiskAudit } from "../../api/audit.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { AuditEventTable } from "../audit/AuditEventTable";
 import { CORE_RISK_FIELDS } from "./coreRiskFields";
-import { ReviewStatusBadge } from "../../components/ReviewStatusBadge/ReviewStatusBadge";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge/RiskLevelBadge";
+import { ReviewStatusBadge } from "../../components/ReviewStatusBadge/ReviewStatusBadge";
 
 function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[number]["id"]): ReactNode {
   switch (fieldId) {
@@ -106,14 +106,10 @@ export function RiskDetailModal({
   });
 
   return (
-    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title="Risk Detail" size="900px" scrollAreaComponent={ScrollArea.Autosize}>
+    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title={selectedRiskQuery.data ? `${selectedRiskQuery.data.displayRiskId}: ${selectedRiskQuery.data.title}` : "Risk Detail"} size="900px" scrollAreaComponent={ScrollArea.Autosize}>
       <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk detail" />
       {selectedRiskQuery.data ? (
         <Stack>
-          <Group justify="space-between">
-            <Title order={3}>{selectedRiskQuery.data.displayRiskId}</Title>
-            <ReviewStatusBadge status={selectedRiskQuery.data.reviewStatus} />
-          </Group>
           <Table.ScrollContainer minWidth={400}>
             <Table>
               <Table.Tbody>
@@ -157,6 +153,10 @@ export function RiskDetailModal({
                       </Table.Tr>
                     )
                   )}
+                <Table.Tr>
+                  <Table.Th>Review</Table.Th>
+                  <Table.Td><ReviewStatusBadge status={selectedRiskQuery.data!.reviewStatus} /></Table.Td>
+                </Table.Tr>
               </Table.Tbody>
             </Table>
           </Table.ScrollContainer>
