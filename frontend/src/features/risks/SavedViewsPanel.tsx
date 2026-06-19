@@ -60,7 +60,7 @@ export function SavedViewsPanel({
       createSavedView(registerId, {
         name: form.values.name.trim(),
         filters: currentFilters as object,
-        columns: { columns: currentColumns }
+        columns: currentColumns
       }),
     onSuccess: async () => {
       closeSave();
@@ -88,8 +88,7 @@ export function SavedViewsPanel({
         <Menu shadow="md" width={240} position="bottom-start">
           <Menu.Target>
             <Button
-              variant="default"
-              size="sm"
+              variant="light"
               leftSection={<IconBookmark size={16} />}
               rightSection={<IconChevronDown size={14} />}
             >

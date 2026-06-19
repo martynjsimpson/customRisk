@@ -341,8 +341,8 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
                   setFilters((current) => ({ ...current, ...(view.filters as Partial<typeof filters>) }));
                   setPage(1);
                 }
-                if (view.columns && typeof view.columns === "object" && "columns" in view.columns) {
-                  setColumns((view.columns as { columns: string[] }).columns);
+                if (Array.isArray(view.columns)) {
+                  setColumns(view.columns as string[]);
                 }
               }}
             />

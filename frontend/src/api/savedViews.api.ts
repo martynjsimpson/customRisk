@@ -7,7 +7,7 @@ export interface SavedView {
   name: string;
   filters: object | null;
   sort: object | null;
-  columns: object | null;
+  columns: string[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -16,14 +16,14 @@ export interface CreateSavedViewInput {
   name: string;
   filters?: object;
   sort?: object;
-  columns?: object;
+  columns?: string[];
 }
 
 export interface UpdateSavedViewInput {
   name?: string;
   filters?: object;
   sort?: object;
-  columns?: object;
+  columns?: string[];
 }
 
 export async function listSavedViews(registerId: string): Promise<SavedView[]> {
