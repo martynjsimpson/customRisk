@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.12.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Make the /my-risks page and homepage widget genuinely useful by enabling in-plac
 ### UI-004 — Open edit and view modals in-place on /my-risks page
 Source: REQ-022
 Capability: my-risks-ui
-Status: ready
+Status: done
+done_in: v1.12.0
 
 **Problem:** Clicking Edit or a risk ID on /my-risks navigates the user away to /registers/<registerID> and opens the modal there. Both actions should open the modal directly on /my-risks, keeping the user in context.
 
@@ -33,7 +34,8 @@ Status: ready
 ### UI-008 — Add inline review action to "My overdue risks" homepage widget
 Source: REQ-033
 Capability: homepage
-Status: ready
+Status: done
+done_in: v1.12.0
 
 **Problem:** The My overdue risks homepage widget has no Review button. Users must navigate away to complete a review. The button should open the review modal in-place on the homepage; after submission the widget refreshes.
 
@@ -53,7 +55,8 @@ Status: ready
 ### UI-007 — Make Admin summary widget counts link to pre-filtered register
 Source: REQ-034
 Capability: homepage
-Status: ready
+Status: done
+done_in: v1.12.0
 
 **Problem:** The Admin summary homepage widget shows open risk counts and overdue review counts per register as plain numbers. Each count should link to the relevant register page with the appropriate filter pre-applied.
 
@@ -72,7 +75,8 @@ Status: ready
 ### UI-002 — Show risk ID and title in sticky risk modal headers
 Source: REQ-024, REQ-025
 Capability: register-ui
-Status: ready
+Status: done
+done_in: v1.12.0
 
 **Problem:** The risk view modal shows "Risk Detail" as its sticky header. The edit risk modal shows a generic heading. Both should show the risk ID and title so users retain context while scrolling.
 
@@ -101,10 +105,10 @@ Status: ready
 
 ## Test / sign-off
 
-- [ ] Implementation pass complete
-- [ ] Regression test pass complete
-- [ ] TypeScript typecheck clean
-- [ ] Documentation pass complete
+- [x] Implementation pass complete
+- [x] Regression test pass complete (312/312 pass)
+- [x] TypeScript typecheck clean
+- [x] Documentation pass complete
 
 ## Blockers
 
