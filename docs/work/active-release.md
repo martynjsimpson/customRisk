@@ -1,6 +1,6 @@
 # Active Release
 
-Status: ready-for-release
+Status: in-progress
 Version: v1.13.0
 
 ## Release goal
@@ -99,6 +99,18 @@ done_in: v1.13.0
 - [x] Regression test pass complete (339 tests, 0 failures)
 - [x] TypeScript typecheck clean
 - [x] Documentation pass complete
+
+## Verification feedback
+
+**UI-005 — Verification feedback:** Filters (search text box, state, risk level, register) have no effect on the table — the results do not change no matter what is entered or selected.
+**Ruling:** In scope — filters working is a core acceptance criterion for UI-005.
+**Fix:** Frontend Developer to investigate and fix the filter/refetch mechanism in `MyRisksPage.tsx`.
+
+**UI-006 — Verification feedback:** Export CSV works correctly.
+**Ruling:** Accepted.
+
+**UI-012 — Verification feedback:** Date picker works correctly.
+**Ruling:** Accepted.
 
 ## Blockers
 
