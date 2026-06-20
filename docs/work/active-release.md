@@ -113,6 +113,10 @@ done_in: v1.17.1
 
 **Observation (deferred):** The CALCULATED field formula textarea has no live validation. An invalid formula is only rejected at publish time, not when saving the field definition. The scoring formula panel already has debounced live validation — the same pattern should be applied to the custom field formula input. Deferred to a future release; PM to log as a new request.
 
+**Verification feedback (BUG-049, round 1):** Two further issues found: (1) publishing a draft that adds a CALCULATED field does not trigger recalculation of existing risks — the publish path calls `recalculateRiskLevels` and `recalculateRiskScores` but has no equivalent bulk call for CALCULATED custom field values; (2) in the risk edit form, the CALCULATED field value does not update in real time as the user edits referenced fields — it shows the last saved server-side value only.
+**Ruling:** (1) in scope — existing risks show stale/empty values after publish, violating BUG-049 acceptance criteria. Fix: add bulk `evaluateAndStoreCalculatedFields` call for all register risks in the publish path. (2) deferred — BUG-049 criteria say "displays a computed value on a risk record," meaning the saved value must be correct; real-time preview in the edit form is a UX enhancement beyond current scope. PM to log as a new request.
+**Fix:** Backend publish path in `configVersion.service.ts` — after `recalculateRiskScores`, fetch all risk IDs for the register and call `evaluateAndStoreCalculatedFields` for each.
+
 ## Decisions
 
 No open decisions. All items have established patterns or clearly specified fixes.
