@@ -84,5 +84,10 @@ No open decisions. All decisions above are resolved.
 
 None.
 
+## Verification feedback
+
+**Verification feedback:** Switching Response Action Mode on an existing register throws "Route not found".
+**Status:** investigating
+
 ---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
