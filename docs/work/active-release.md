@@ -1,135 +1,92 @@
 # Active Release
 
-Status: ready-for-release
-Version: v1.17.1
+Status: in-progress
+Version: v1.18.0
 
 ## Release goal
 
-Close the post-v1.17.0 gap: fix the critical calculated field save error that blocks all CALCULATED field use, verify calculated field end-to-end behaviour, update help docs for the scoring formula feature that shipped in v1.17.0, and make open-risk and overdue counts on /registers clickable links.
+Custom-field UX polish: surface WARN field indicators in the risk edit form, add live formula validation to the CALCULATED field modal, and show a real-time computed preview when editing a risk with CALCULATED fields.
 
 ## Selected work items
 
-### BUG-050 — Fix calculated field save error — missing validationMode
-Source: REQ-050
+### UI-021 — Show yellow asterisk for WARN fields in risk edit form
+Source: REQ-053
 Capability: custom-fields
-Status: done
-done_in: v1.17.1
+Status: proposed
 
-**Problem:** Adding or editing a custom field of type CALCULATED throws a backend validation error because the frontend omits `validationMode`. The validation mode input is intentionally hidden for CALCULATED fields, but the backend still requires one of `"ALLOW"|"WARN"|"BLOCK"`. This blocks all use of calculated fields.
+**Problem:** The risk edit form shows a red asterisk (*) for required (BLOCK) fields but gives no visual signal for WARN fields. Users cannot tell which fields are "suggested" until they attempt to save and see the warning.
 
 **Acceptance criteria:**
-- Adding a CALCULATED custom field no longer throws a validation error.
-- Editing an existing CALCULATED custom field saves successfully.
-- `validationMode` is sent as `"ALLOW"` for CALCULATED fields in all form submission paths.
-- No regression to ALLOW/WARN/BLOCK behaviour for non-CALCULATED field types.
+- Fields with `validationMode: WARN` display a yellow asterisk (*) in the risk edit form.
+- Fields with `validationMode: BLOCK` continue to display a red asterisk (*).
+- Fields with `validationMode: ALLOW` display no asterisk.
+- Both colours are visually distinguishable in light and dark mode using Mantine colour tokens (not hardcoded hex).
+- No regression to form submission, field validation behaviour, or existing required-field indicators.
 
-**Fix:** In `CustomFieldModal.tsx` onSubmit handler, add `validationMode: "ALLOW"` when `values.fieldType === "CALCULATED"`. No backend change required.
+**Key files:** `frontend/src/features/risks/RiskFormModal.tsx`
 
-**Key files:** `frontend/src/features/configuration/CustomFieldModal.tsx`
-
-**Tests:** `frontend/test/configuration.test.mjs` — add or update a test covering CALCULATED field create and edit.
+**Tests:** `frontend/test/risks.test.mjs`, `frontend/test/configuration.test.mjs`
 
 ---
 
-### BUG-049 — Verify calculated field end-to-end functionality post BUG-050 fix
-Source: REQ-049
+### UI-022 — Live formula validation in CALCULATED field modal
+Source: REQ-054
 Capability: custom-fields
-Status: done
-done_in: v1.17.1
-Depends on: BUG-050
+Status: proposed
+Depends on: BUG-050 (done in v1.17.1)
 
-**Problem:** After the save error is resolved, confirm that calculated fields actually work end-to-end with a known-good example. Catch any further issues before they are reported again.
+**Problem:** The formula textarea in CustomFieldModal.tsx gives no validation feedback. An invalid formula is silently accepted when saving the field definition and only rejected at config publish time.
 
 **Acceptance criteria:**
-- A CALCULATED custom field can be created, saved, and displays a computed value on a risk record.
-- The formula evaluator correctly resolves field references in a sample formula.
-- Any remaining bugs identified during verification are logged as separate requests.
+- The formula textarea shows live validation feedback as the user types, using a debounced call to the existing `/validate-formula` endpoint.
+- An invalid formula displays a clear error message below the textarea.
+- A valid formula clears the error state.
+- Save behaviour (blocked or warned) matches the pattern used by the scoring formula panel — developer to confirm and replicate exactly.
+- No regression to the custom field modal save flow or other field types.
 
-**Key files:** `backend/src/services/formulaEvaluator.service.ts`, `frontend/src/features/configuration/CustomFieldModal.tsx`
+**Decision:** Debounce pattern and error display → replicate exactly from `ScoringConfigurationPanel.tsx` for consistency.
 
-**Tests:** `backend/test/customFields.test.mjs`
+**Implementation note:** Confirm whether the `/validate-formula` endpoint handles CALCULATED field formula context (variable set differs from scoring formula). If not, a separate validation endpoint or payload variant may be needed — flag to PM if a new endpoint is required.
 
-**Note:** BUG-050 must be implemented before this verification step runs. Test Engineer should use a concrete example (formula, fields referenced, expected output) and document it in the test.
+**Key files:** `frontend/src/features/configuration/CustomFieldModal.tsx`, `frontend/src/features/configuration/ScoringConfigurationPanel.tsx`
+
+**Tests:** `frontend/test/configuration.test.mjs`
 
 ---
 
-### MAINT-006 — Update help docs for configurable scoring formula feature
-Source: REQ-052
-Capability: help-content
-Status: done
-done_in: v1.17.1
+### UI-023 — Real-time CALCULATED field preview in risk edit form
+Source: REQ-055
+Capability: custom-fields
+Status: proposed
+Depends on: BUG-050 (done in v1.17.1)
 
-**Problem:** PM6-SCORING shipped in v1.17.0 with no help content update. Users find no in-app guidance on configuring or using custom scoring formulas.
-
-**Acceptance criteria:**
-- Help content in `frontend/public/help/en/` updated to reflect the scoring formula feature.
-- Content covers: how to write a formula; available canonical variable names (`likelihood`, `impact`); numeric custom field references; constants; supported arithmetic operators (+, -, *, /, parentheses).
-- Content covers validation behaviour: formulas are checked on save and enforced on publish; invalid formulas are rejected with an error message.
-- Content notes that existing registers default to `likelihood × impact` and are unaffected unless a Register Admin changes the formula.
-
-**Key files:** `frontend/public/help/en/`
-
----
-
-### UI-020 — Make open-risk and overdue counts clickable links on /registers
-Source: REQ-051
-Capability: register-list
-Status: done
-done_in: v1.17.1
-
-**Problem:** The /registers page table shows plain-text open-risk and overdue counts. They should be clickable links, consistent with the pattern already used by the Admin Summary widget (REQ-034).
+**Problem:** When editing a risk, CALCULATED custom fields show the last saved server-side value and do not update as the user edits the referenced numeric fields. The correct value only appears after saving and reopening.
 
 **Acceptance criteria:**
-- Open-risk count on /registers is a link to `/registers/<registerID>` with an open-risks filter pre-applied.
-- Overdue count on /registers is a link to `/registers/<registerID>` with an overdue-reviews filter pre-applied.
-- Links match the visual and navigation pattern used by the Admin Summary widget counts.
-- No regression to /registers page load, permissions, or table sorting/filtering behaviour.
+- The CALCULATED field value updates in real time as the user edits referenced numeric fields in the risk edit form.
+- Preview is computed client-side using the formula from the register config — no extra backend call per keystroke.
+- The preview is clearly visually distinguished as a computed-but-not-yet-saved value (e.g. greyed-out or italicised — developer to choose an appropriate Mantine treatment).
+- On save, the server-side evaluated value is authoritative; the preview is discarded.
+- No regression to risk edit form submission, field validation, or the CALCULATED field display on the risk detail view.
 
-**Implementation note:** Reference the Admin Summary widget implementation for the exact filter param format before implementing.
+**Decision:** Client-side formula evaluation → implement a lightweight evaluator in the frontend rather than calling the backend on each keystroke. The backend `formulaEvaluator.service.ts` is the reference for evaluation logic. If the formula language is simple enough (arithmetic + field references), a frontend reimplementation is acceptable; if not, use a debounced backend call as a fallback and flag the approach chosen.
 
-**Key files:** `frontend/src/features/registers/RegistersPage.tsx`
+**Key files:** `frontend/src/features/risks/RiskFormModal.tsx`, `backend/src/services/formulaEvaluator.service.ts`
 
-**Tests:** `frontend/test/registers.test.mjs`
+**Tests:** `frontend/test/risks.test.mjs`
 
 ---
 
 ## Required agents
 
-- **frontend-developer** — BUG-050 (CustomFieldModal fix), UI-020 (register count links), MAINT-006 (help content update)
-- **test-engineer** — BUG-049 (end-to-end calculated field verification), test coverage for BUG-050 and UI-020
+- **frontend-developer** — UI-021 (WARN asterisk), UI-022 (formula live validation), UI-023 (real-time preview)
+- **test-engineer** — test coverage for all three items
 
-**Sequencing:** BUG-050 must be implemented before BUG-049 verification begins. All other items are independent and can run in parallel.
-
-## Verification feedback
-
-**Verification feedback (BUG-050, round 1):** After the initial fix, two follow-up defects were found: (1) formula blank on edit; (2) validationMode error on edit in draft mode.
-**Ruling:** in scope.
-**Fix:** (A) Add `formula` to `snapshotCustomFieldSchema`. (B) Pass `validationMode: "ALLOW"` on CALCULATED update path. Also fixed: `configVersion.service.ts` was dropping formula on draft snapshot build and at publish time.
-
-**Verification feedback (BUG-050, round 2):** Two further defects found: (1) deleting a draft-only CALCULATED field throws "custom field not found" — delete always calls the REST API which requires the field to exist in DB, but draft-only fields haven't been written yet; (2) formula still not persisting — `buildDraftFields` in `FieldConfigTab.tsx` explicitly maps field properties but omits `formula`, wiping it on every draft write; also `UpdateDraftConfigInput.customFields` type does not include `formula`.
-**Ruling:** in scope — both are gaps against BUG-050 acceptance criteria.
-**Fix:** (A) `buildDraftFields` must include `formula: field.formula ?? null`. (B) `UpdateDraftConfigInput.customFields` type must include `formula`. (C) Delete in draft mode must remove the field from the draft snapshot rather than calling the REST delete API.
-**Partial verification:** Delete of draft-only field confirmed working. Formula persistence still under test.
-
-**Observation (deferred):** The CALCULATED field formula textarea has no live validation. An invalid formula is only rejected at publish time, not when saving the field definition. The scoring formula panel already has debounced live validation — the same pattern should be applied to the custom field formula input. Deferred to a future release; PM to log as a new request.
-
-**Verification feedback (BUG-049, round 1):** Two further issues found: (1) publishing a draft that adds a CALCULATED field does not trigger recalculation of existing risks — the publish path calls `recalculateRiskLevels` and `recalculateRiskScores` but has no equivalent bulk call for CALCULATED custom field values; (2) in the risk edit form, the CALCULATED field value does not update in real time as the user edits referenced fields — it shows the last saved server-side value only.
-**Ruling:** (1) in scope — existing risks show stale/empty values after publish, violating BUG-049 acceptance criteria. Fix: add bulk `evaluateAndStoreCalculatedFields` call for all register risks in the publish path. (2) deferred — BUG-049 criteria say "displays a computed value on a risk record," meaning the saved value must be correct; real-time preview in the edit form is a UX enhancement beyond current scope. PM to log as a new request.
-**Fix:** Backend publish path in `configVersion.service.ts` — after `recalculateRiskScores`, fetch all risk IDs for the register and call `evaluateAndStoreCalculatedFields` for each.
-
-## Deferred items for PM
-
-These items were identified during verification and ruled out of scope for v1.17.1. PM to log each as a new request.
-
-1. **CALCULATED field formula — no live validation on save**
-   The formula textarea in the custom field modal has no validation feedback. An invalid formula is silently accepted when saving the field definition and only rejected at publish time. The scoring formula panel already has debounced live validation using the `/validate-formula` endpoint — the same pattern should be applied to the CALCULATED field formula input.
-
-2. **CALCULATED field value — no real-time preview in risk edit form**
-   When editing a risk, the CALCULATED field displays the last saved server-side value. It does not update in real time as the user changes the referenced numeric fields. The correct value appears after saving and reopening the risk. A real-time preview (client-side formula evaluation or a debounced backend call) would improve the editing experience.
+**Sequencing:** All three items are independent and can run in parallel. UI-022 and UI-023 are both in `CustomFieldModal.tsx` / `RiskFormModal.tsx` respectively — the frontend-developer should be aware of the overlap but there is no functional dependency between them.
 
 ## Decisions
 
-No open decisions. All items have established patterns or clearly specified fixes.
+No open decisions.
 
 ## Blockers
 
