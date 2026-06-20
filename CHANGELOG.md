@@ -15,6 +15,20 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-06-20
+
+### Added
+
+- **Response Action child records (PM7-CORE)**
+  - Registers now have a "Response Action Mode" setting (Simple or Child Records). In Simple mode, response actions continue to work exactly as before — a single free-text field on each risk. In Child Records mode, response actions become first-class records with three built-in fields: Response (text), Status (dropdown), and Risk Response Owner (person picker).
+  - Register Admins can switch a register to Child Records mode from the register settings page. On switching, any existing simple-field response action values are automatically migrated — each non-empty value becomes one child action record linked to its risk.
+  - Status options are: Planned, In Progress, Implemented, Deferred, Cancelled (default: Planned).
+  - Risk Owners can create new action records on their risks, and edit or soft-delete those actions. Register Admins have full CRUD on all actions in their register. Register Viewers can read all actions on risks they can view.
+  - The Risk Response Owner field on an action grants a new permission tier: Risk Response Owners can view and update the Response and Status fields of their assigned actions. They can also view limited read-only risk context (fields marked "Visible to Risk Response Owners" in register configuration), but do not gain broader access to the risk or register.
+  - Linked actions appear in the risk detail modal as a panel showing Response, Status, and Owner. Register Admins and Risk Owners can add, edit, and delete actions directly from this panel.
+  - All action field changes, status changes, and the initial migration are captured in the Risk Response Audit Log. The risk's own audit log also cross-references action status changes so Risk Owners can see action-level context without opening each action.
+  - Help content updated to cover Response Action Mode: what it is, how to enable it, how to manage action records, and what Risk Response Owners can see and do.
+
 ## [1.18.0] - 2026-06-20
 
 ### Added
