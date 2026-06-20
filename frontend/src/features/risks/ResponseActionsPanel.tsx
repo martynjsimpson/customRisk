@@ -82,7 +82,7 @@ export function ResponseActionsPanel({
     <>
       <Stack gap="xs">
         <Group justify="space-between" align="center">
-          <Title order={5}>Response Actions</Title>
+          <Title order={5}>Risk Responses</Title>
           {canCreate ? (
             <Button variant="light" size="xs" onClick={openCreate}>
               Add Action

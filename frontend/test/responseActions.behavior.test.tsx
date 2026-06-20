@@ -491,7 +491,7 @@ describe("RiskDetailModal — CHILD_RECORDS mode", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Response Actions")).toBeTruthy();
+      expect(screen.getByText("Risk Responses")).toBeTruthy();
     });
   });
 
