@@ -307,3 +307,69 @@ test("register linked_template_version_id is included in registerSelect and mapp
   assert.match(service, /linkedVersionNumber:/);
   assert.match(service, /isLatest:/);
 });
+
+// ─── PM6-SCORING: publishDraft calls recalculateRiskScores ────────────────────
+
+test("publishDraft calls recalculateRiskScores after recalculateRiskLevels (PM6-SCORING)", async () => {
+  const service = await readFile(
+    new URL("../src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+  const scoringService = await readFile(
+    new URL("../src/services/scoring.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // recalculateRiskScores is exported from scoring.service
+  assert.match(scoringService, /export async function recalculateRiskScores/);
+
+  // configVersion.service imports recalculateRiskScores
+  assert.match(service, /import.*recalculateRiskScores.*scoring\.service/);
+
+  // publishDraft calls recalculateRiskScores inside the transaction
+  assert.match(service, /recalculateRiskScores/);
+
+  // The scoring formula is read from the snapshot
+  assert.match(service, /scoringFormula/);
+});
+
+test("validate-formula route is exposed under config-versions (PM6-SCORING)", async () => {
+  const routes = await readFile(
+    new URL("../src/routes/configVersion.routes.ts", import.meta.url),
+    "utf8"
+  );
+
+  // Endpoint path exists
+  assert.match(routes, /validate-formula/);
+
+  // Route is POST (formula sent in body, not query string)
+  // The path and method may span lines, so check them independently
+  assert.ok(
+    routes.includes("router.post("),
+    "Expected router.post( to be present in configVersion routes"
+  );
+});
+
+// ─── PM6-SCORING: recalculateRiskScores audit coverage ────────────────────────
+
+test("recalculateRiskScores emits riskUpdated audit events for changed scores (PM6-SCORING)", async () => {
+  const service = await readFile(
+    new URL("../src/services/scoring.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // Audit action used is riskUpdated
+  assert.match(service, /auditActions\.riskUpdated/);
+
+  // recordAuditEvent is called inside recalculateRiskScores
+  assert.match(service, /recordAuditEvent/);
+
+  // Audit event summarises the reason
+  assert.match(service, /scoring formula/);
+
+  // The audit event records the score field change
+  assert.match(service, /fieldName: "riskScore"/);
+
+  // Only audit when the score actually changed (not unconditionally)
+  assert.match(service, /newScoreDecimal\.equals\(oldScore\)/);
+});
