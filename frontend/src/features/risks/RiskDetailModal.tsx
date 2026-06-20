@@ -252,7 +252,6 @@ export function RiskDetailModal({
           {/* ── Risk-level action buttons (not shown to RAOs) ─────────────── */}
           {!isResponseActionOwner ? (
             <>
-              <Title order={4}>Actions</Title>
               <Group justify="flex-start" gap="xs">
                 {canReview ? (
                   <Button variant="light" size="xs" onClick={() => onRequestReview(selectedRiskQuery.data!.id)}>
