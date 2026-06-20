@@ -87,7 +87,9 @@ None.
 ## Verification feedback
 
 **Verification feedback:** Switching Response Action Mode on an existing register throws "Route not found".
-**Status:** investigating
+**Investigation:** `switchResponseActionMode` in `frontend/src/api/responseActions.api.ts` calls `PATCH /registers/:registerId/settings`, but the backend register update endpoint is `PATCH /registers/:registerId` (no `/settings` suffix). The backend correctly accepts `responseActionMode` in the update schema; only the frontend URL is wrong.
+**Ruling:** In scope — mode switching is a core acceptance criterion and this is a URL mismatch.
+**Fix:** Update the fetch URL in `switchResponseActionMode` from `/registers/${registerId}/settings` to `/registers/${registerId}`.
 
 ---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
