@@ -92,4 +92,9 @@ None.
 **Fix:** Update the fetch URL in `switchResponseActionMode` from `/registers/${registerId}/settings` to `/registers/${registerId}`.
 
 ---
+
+**Verification feedback:** After switching to Child Records mode, opening a risk still shows the Response Action text area in both the view modal and edit modal. The text area should be replaced by the child actions panel.
+**Status:** investigating
+
+---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
