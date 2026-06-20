@@ -10,6 +10,7 @@ import type {
 import type { UpdateDraftBody } from "../validators/configVersion.schemas.js";
 import { recordAuditEvent } from "./audit.service.js";
 import { recalculateRiskLevels } from "./matrix.service.js";
+import { evaluateAndStoreCalculatedFields } from "./risks.service.js";
 import { recalculateRiskScores } from "./scoring.service.js";
 import { validateScoringFormula } from "./formulaEvaluator.service.js";
 
@@ -965,6 +966,18 @@ export async function publishDraft(
       scoreFormula,
       tx
     );
+
+    // --- Recalculate CALCULATED custom fields for all non-CLOSED risks ---
+    // This must run after the custom field definition upserts above so that the
+    // transaction sees the updated field definitions (including any newly active
+    // CALCULATED fields from the snapshot).
+    const activeRisks = await tx.risk.findMany({
+      where: { registerId, state: { not: "CLOSED" } },
+      select: { id: true }
+    });
+    for (const risk of activeRisks) {
+      await evaluateAndStoreCalculatedFields(risk.id, registerId, tx);
+    }
 
     // --- Update register settings ---
     // Apply register settings from snapshot only when draft originated from a template.

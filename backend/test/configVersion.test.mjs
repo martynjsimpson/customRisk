@@ -88,6 +88,22 @@ test("publish runs impact check before mutating and uses a transaction", async (
   assert.match(service, /publishedAt: new Date\(\)/);
 });
 
+test("publish calls evaluateAndStoreCalculatedFields for each non-CLOSED risk in the register", async () => {
+  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  // evaluateAndStoreCalculatedFields is imported from risks.service
+  assert.match(service, /import.*evaluateAndStoreCalculatedFields.*from.*risks\.service/);
+
+  // Non-CLOSED risks are fetched using a state: { not: "CLOSED" } filter
+  assert.match(service, /state:\s*\{\s*not:\s*["']CLOSED["']\s*\}/);
+
+  // evaluateAndStoreCalculatedFields is called inside the loop for each risk
+  assert.match(service, /evaluateAndStoreCalculatedFields\(risk\.id,\s*registerId,\s*tx\)/);
+
+  // The recalculation happens after custom field definition upserts (comment present)
+  assert.match(service, /Recalculate CALCULATED custom fields for all non-CLOSED risks/);
+});
+
 test("impact analysis checks structural blockers and warns about deactivated config items", async () => {
   const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
 
