@@ -2104,7 +2104,8 @@ items:
   title: Fix calculated field save error — missing validationMode
   type: bug
   capability: custom-fields
-  status: in-active-release
+  status: done
+  done_in: v1.17.1
   priority: critical
   confidence: high
   summary: Adding or editing a custom field of type CALCULATED throws a backend validation error because the frontend omits
@@ -2136,7 +2137,8 @@ items:
   title: Verify calculated field end-to-end functionality post BUG-050 fix
   type: bug
   capability: custom-fields
-  status: in-active-release
+  status: done
+  done_in: v1.17.1
   priority: high
   confidence: medium
   summary: Following the BUG-050 save-error fix, verify that calculated fields work correctly end-to-end. Confirm a working
@@ -2170,7 +2172,8 @@ items:
   title: Make open-risk and overdue counts clickable links on /registers
   type: improvement
   capability: register-list
-  status: in-active-release
+  status: done
+  done_in: v1.17.1
   priority: medium
   confidence: high
   summary: The /registers page table shows plain-text open-risk and overdue counts. These should be clickable links navigating
@@ -2196,12 +2199,134 @@ items:
     notes:
     - Reference implementation: Admin Summary widget (REQ-034). Use the same link and filter pattern.
 
+- id: UI-023
+  source_request: REQ-055
+  title: Show real-time CALCULATED field preview in risk edit form
+  type: improvement
+  capability: custom-fields
+  status: in-active-release
+  priority: medium
+  confidence: medium
+  summary: When editing a risk, CALCULATED custom fields show the last saved server-side value and do not update as the user
+    changes referenced numeric fields. A real-time preview should be computed client-side (using the formula from the register
+    config) and displayed in the CALCULATED field row as the user types, so the expected output is visible before saving.
+  acceptance:
+  - The CALCULATED field value updates in real time as the user edits the referenced numeric fields in the risk edit form.
+  - The preview is computed client-side using the formula stored in the register config — no extra backend call per keystroke.
+  - The preview is clearly labelled or visually distinguished as a computed preview (not yet saved).
+  - On save, the server-side evaluated value is used as the authoritative result; the preview is discarded.
+  - No regression to risk edit form submission, field validation, or the existing CALCULATED field display on the risk detail view.
+  remaining:
+  - Confirm that the formula and referenced field definitions are available in the risk edit form context (i.e. passed from the
+    register config already loaded on the page).
+  - Implement client-side formula evaluation in the edit form, reusing or referencing the formulaEvaluator logic already present
+    in the backend. Note: a lightweight client-side evaluator may need to be extracted or reimplemented for the frontend — do not
+    call the backend on every keystroke.
+  - Decide the visual treatment for the preview value (e.g. greyed-out or italicised until saved).
+  - Add or update frontend tests to cover the real-time preview behaviour.
+  dependencies:
+  - BUG-050
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskFormModal.tsx
+    - backend/src/services/formulaEvaluator.service.ts
+    tests:
+    - frontend/test/risks.test.mjs
+    notes:
+    - The formulaEvaluator service is backend-only; a client-side equivalent (or a simplified version) will be needed for
+      real-time preview without extra network calls.
+    - The formula and field definitions should already be in scope on the edit form via the register config. Confirm this before
+      designing the implementation approach.
+
+- id: UI-022
+  source_request: REQ-054
+  title: Add live formula validation to CALCULATED field modal
+  type: improvement
+  capability: custom-fields
+  status: in-active-release
+  priority: medium
+  confidence: high
+  summary: The formula textarea in CustomFieldModal.tsx gives no validation feedback when the user saves a CALCULATED field
+    definition. An invalid formula is silently accepted at save time and only rejected at config publish. The scoring formula
+    panel already uses debounced live validation against the /validate-formula endpoint — the same pattern should be applied
+    to the CALCULATED field formula input.
+  acceptance:
+  - The CALCULATED field formula textarea in the custom field modal shows live validation feedback as the user types, using
+    debounced calls to the existing /validate-formula endpoint.
+  - An invalid formula displays a clear error message below the textarea without blocking typing.
+  - A valid formula clears the error state.
+  - Saving a field definition with an invalid formula is either prevented or shows a clear warning (consistent with the scoring
+    formula panel pattern — match whatever behaviour the scoring panel uses).
+  - No regression to the custom field modal save flow or other field types.
+  remaining:
+  - Identify the debounced validation implementation in the scoring formula panel and replicate the pattern in CustomFieldModal.tsx.
+  - Confirm the /validate-formula endpoint signature accepts the formula and context needed for CALCULATED field evaluation
+    (may need different variable context than the scoring formula).
+  - Add or update frontend tests to cover the validation feedback behaviour.
+  dependencies:
+  - BUG-050
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/configuration/CustomFieldModal.tsx
+    - frontend/src/features/configuration/ScoringConfigurationPanel.tsx
+    tests:
+    - frontend/test/configuration.test.mjs
+    notes:
+    - The /validate-formula endpoint already exists from PM6-SCORING work. Confirm whether it handles both scoring formula
+      and CALCULATED field formula contexts, or whether CALCULATED field validation requires a different endpoint or payload.
+    - Match the exact debounce and error-display pattern from ScoringConfigurationPanel.tsx for consistency.
+
+- id: UI-021
+  source_request: REQ-053
+  title: Show yellow asterisk for WARN fields in risk edit form
+  type: improvement
+  capability: custom-fields
+  status: in-active-release
+  priority: high
+  confidence: high
+  summary: The risk edit form shows red asterisks (*) for required (BLOCK) fields but gives no visual indicator for WARN fields.
+    Users cannot tell which fields are "suggested" before attempting to save. A yellow asterisk should appear next to WARN-mode
+    fields, distinct from the red asterisk used for required fields.
+  acceptance:
+  - Fields with validationMode WARN display a yellow asterisk (*) in the risk edit form.
+  - Fields with validationMode BLOCK continue to display a red asterisk (*).
+  - Fields with validationMode ALLOW display no asterisk.
+  - The yellow and red asterisk indicators are visually distinguishable in both light and dark mode.
+  - No regression to form submission, field validation behaviour, or existing required-field indicators.
+  remaining:
+  - Identify where field labels and asterisks are rendered in RiskFormModal.tsx (or shared field component).
+  - Confirm how validationMode is available in the form rendering context — check whether the register config is accessible
+    at field-render time.
+  - Apply yellow colour to the asterisk when validationMode is WARN; use a Mantine colour token rather than a hardcoded hex.
+  - Add or update frontend tests to cover the WARN and BLOCK indicator rendering.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskFormModal.tsx
+    tests:
+    - frontend/test/configuration.test.mjs
+    - frontend/test/risks.test.mjs
+    notes:
+    - The existing red asterisk for required fields is the reference pattern. The yellow asterisk for WARN should follow the
+      same rendering approach but with a different colour.
+    - Mantine colour tokens (e.g. yellow.6) should be used so the indicator adapts to theme and dark mode correctly.
+
 - id: MAINT-006
   source_request: REQ-052
   title: Update help docs for configurable scoring formula feature
   type: maintenance
   capability: help-content
-  status: in-active-release
+  status: done
+  done_in: v1.17.1
   priority: medium
   confidence: high
   summary: In-app help docs were not updated when PM6-SCORING shipped in v1.17.0. Users reading help content find no guidance

@@ -100,6 +100,8 @@ export interface CustomFieldDefinition {
   displayOrder: number;
   isActive: boolean;
   options?: Array<{ id: string; label: string; displayOrder?: number; isActive?: boolean }>;
+  formula: string | null;
+  formulaDependencies: string[];
 }
 
 export interface RiskCustomFieldValueInput {

@@ -16,21 +16,45 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-055
+Request ID: REQ-055
+Title: CALCULATED field value — no real-time preview in risk edit form
+Type: improvement
+Status: in-active-release
+Priority: medium
+Summary: When editing a risk, a CALCULATED custom field displays the last saved server-side value. It does not update in real time as the user changes the referenced numeric fields. The correct value only appears after saving and reopening the risk. A real-time preview — via client-side formula evaluation or a debounced backend call — would improve the editing experience.
+Notes: Deferred from v1.17.1 during BUG-049 verification. The current behaviour is technically correct (saved value is accurate) but the UX lag is confusing. Client-side formula evaluation is likely simpler than a debounced backend call given the formula is already available from the register config.
+Derived work items: UI-023
+Source: deferred from v1.17.1
+
+### REQ-054
+Request ID: REQ-054
+Title: CALCULATED field formula — no live validation on save
+Type: improvement
+Status: in-active-release
+Priority: medium
+Summary: The formula textarea in the custom field modal gives no validation feedback when saving a field definition. An invalid formula is silently accepted and only rejected at publish time. The scoring formula panel already has debounced live validation using the /validate-formula endpoint — the same pattern should be applied to the CALCULATED field formula input in CustomFieldModal.tsx.
+Notes: Deferred from v1.17.1 during BUG-050 verification. The validate-formula endpoint already exists from PM6-SCORING work. This is a UX improvement that would prevent invalid formulas from reaching the publish step.
+Derived work items: UI-022
+Source: deferred from v1.17.1
+
 ### REQ-053
 Request ID: REQ-053
 Title: Show yellow * for warn fields in risk edit form
 Type: improvement
-Status: inbox
+Status: in-active-release
 Priority: high
 Summary: The risk edit form uses red asterisks (*) to indicate required fields, but fields with a validation mode of WARN show no visual indicator. Users have no way to tell which fields are suggested without trying to save. A yellow * should be shown next to warn fields to distinguish them from required fields (red *), making the form's validation state clear before submission.
 Notes: This is a companion to the existing required-field indicator. The yellow * means "suggested" and the red * means "required". Implementation will need to check the validationMode for each field and apply the appropriate colour to the asterisk.
+Derived work items: UI-021
 Source: human request (direct)
 
 ### REQ-052
 Request ID: REQ-052
 Title: Update help docs for scoring formula feature
 Type: maintenance
-Status: in-active-release
+Status: done
+Done in: v1.17.1
 Priority: medium
 Summary: The in-app help documentation has not been updated to cover the recently shipped scoring formula feature. Users reading the help content will find no guidance on how to configure or use custom scoring formulas. The relevant help article(s) should be updated to accurately describe the feature, including how to write a formula, what variables are available, and any constraints.
 Derived work items: MAINT-006
@@ -40,7 +64,8 @@ Source: human request (direct)
 Request ID: REQ-051
 Title: Make open risks and overdue counts links on /registers
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.17.1
 Priority: medium
 Summary: The /registers page shows a table of all registers with columns for open risk count and overdue count. These numbers are plain text. They should be made into clickable links that navigate to the relevant register page with the appropriate filter pre-applied, consistent with the same pattern already implemented on the homepage Admin Summary widget (REQ-034).
 Notes: Reference the Admin Summary widget implementation for the link and filter pattern. Open risks count should link to /registers/<registerID> filtered to open risks; overdue count should link filtered to overdue reviews.
@@ -51,7 +76,8 @@ Source: human request (direct)
 Request ID: REQ-050
 Title: Fix calculated field save error — missing validationMode
 Type: bug
-Status: in-active-release
+Status: done
+Done in: v1.17.1
 Priority: critical
 Summary: Adding or editing a custom field of type CALCULATED throws a backend validation error because the frontend does not send a validationMode value. The validation mode input is intentionally hidden for calculated fields (since the value is auto-computed and user validation is meaningless), but the backend still requires one of "ALLOW"|"WARN"|"BLOCK". The fix is to default validationMode to "ALLOW" in the form submission when fieldType is CALCULATED.
 Notes: Error text: "Invalid request body — Custom Fields 1 Validation Mode: Invalid option: expected one of 'ALLOW'|'WARN'|'BLOCK'". Fix location: CustomFieldModal.tsx form onSubmit handler — add `validationMode: "ALLOW"` when `values.fieldType === "CALCULATED"`. This blocks all use of calculated fields.
@@ -62,7 +88,8 @@ Source: human request (direct)
 Request ID: REQ-049
 Title: Investigate and fix custom calculated field functionality
 Type: bug
-Status: in-active-release
+Status: done
+Done in: v1.17.1
 Priority: high
 Summary: The user cannot get custom calculated fields to work as expected. It is unclear whether this is a configuration/UX issue (no clear documentation or example) or an actual bug. The save error (REQ-050/BUG-050) is addressed separately. Residual scope is verifying end-to-end functionality with a known-good example after the save error is fixed.
 Notes: User flagged this may be user error — needs a working example documented or surfaced in-app before treating as a definite bug. Related to REQ-003 (custom field behaviour) and the formulaEvaluator service. Depends on BUG-050 shipping first.

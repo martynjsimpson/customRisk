@@ -19,6 +19,7 @@ import {
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { evaluateFormula, FormulaEvaluationError } from "../../utils/formulaEvaluator";
 
 import {
   createRisk,
@@ -330,39 +331,89 @@ function renderCoreField({
   }
 }
 
+/**
+ * Builds the label element for a custom field, appending the appropriate
+ * asterisk based on the field's validation mode when validation is enabled:
+ *   BLOCK → red asterisk (Mantine required marker)
+ *   WARN  → yellow asterisk (advisory)
+ *   ALLOW → no asterisk
+ * When validation is not enabled the legacy isRequired boolean is used for the
+ * red asterisk.
+ */
+function FieldLabel({
+  field,
+  validationEnabled
+}: {
+  field: CustomFieldDefinition;
+  validationEnabled: boolean;
+}) {
+  const showWarn = validationEnabled && field.validationMode === "WARN";
+  if (showWarn) {
+    return (
+      <span>
+        {field.fieldName}{" "}
+        <span style={{ color: "var(--mantine-color-yellow-6)" }} aria-hidden="true">*</span>
+      </span>
+    );
+  }
+  // For BLOCK and non-validation-enabled required fields the Mantine `required`
+  // prop renders the red asterisk automatically — just return the plain string.
+  return <>{field.fieldName}</>;
+}
+
 function CustomFieldInput({
   field,
   value,
   onChange,
   hasWarning,
-  validationEnabled
+  validationEnabled,
+  calculatedPreview
 }: {
   field: CustomFieldDefinition;
   value: unknown;
   onChange: (value: unknown) => void;
   hasWarning?: boolean;
   validationEnabled: boolean;
+  calculatedPreview?: string | null;
 }) {
-  const label = field.fieldName;
+  const labelElement = <FieldLabel field={field} validationEnabled={validationEnabled} />;
   const warnProps = hasWarning ? { styles: { input: { borderColor: "var(--mantine-color-yellow-5)" } } } : {};
   const isMarkedRequired = validationEnabled ? field.validationMode === "BLOCK" : field.isRequired;
 
   if (field.fieldType === "MULTILINE_TEXT") {
-    return <Textarea label={label} required={isMarkedRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
+    return <Textarea label={labelElement} required={isMarkedRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
   }
   if (field.fieldType === "NUMBER") {
-    return <NumberInput label={label} required={isMarkedRequired} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
+    return <NumberInput label={labelElement} required={isMarkedRequired} value={typeof value === "number" ? value : undefined} onChange={onChange} />;
   }
   if (field.fieldType === "BOOLEAN") {
-    return <Checkbox label={label} checked={Boolean(value)} onChange={(event) => onChange(event.currentTarget.checked)} />;
+    return <Checkbox label={labelElement} checked={Boolean(value)} onChange={(event) => onChange(event.currentTarget.checked)} />;
   }
   if (field.fieldType === "DATE") {
-    return <TextInput label={label} required={isMarkedRequired} type="date" value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
+    return <TextInput label={labelElement} required={isMarkedRequired} type="date" value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
   }
   if (field.fieldType === "PERSON_PICKER") {
+    // PersonPicker requires label: string; handle WARN asterisk via a wrapper.
+    const showWarnAsterisk = validationEnabled && field.validationMode === "WARN";
+    if (showWarnAsterisk) {
+      return (
+        <div>
+          <Text size="sm" fw={500} mb={4}>
+            {field.fieldName}{" "}
+            <span style={{ color: "var(--mantine-color-yellow-6)" }} aria-hidden="true">*</span>
+          </Text>
+          <PersonPicker
+            label={field.fieldName}
+            required={false}
+            value={String(value ?? "")}
+            onChange={onChange}
+          />
+        </div>
+      );
+    }
     return (
       <PersonPicker
-        label={label}
+        label={field.fieldName}
         required={isMarkedRequired}
         value={String(value ?? "")}
         onChange={onChange}
@@ -372,7 +423,7 @@ function CustomFieldInput({
   if (field.fieldType === "DROPDOWN") {
     return (
       <Select
-        label={label}
+        label={labelElement}
         required={isMarkedRequired}
         data={(field.options ?? []).map((option) => ({ value: option.id, label: option.label }))}
         value={String(value ?? "") || null}
@@ -386,7 +437,7 @@ function CustomFieldInput({
     const selectedIds = Array.isArray(value) ? (value as string[]) : [];
     return (
       <MultiSelect
-        label={label}
+        label={labelElement}
         required={isMarkedRequired}
         data={(field.options ?? []).map((option) => ({ value: option.id, label: option.label }))}
         value={selectedIds}
@@ -397,18 +448,29 @@ function CustomFieldInput({
   }
 
   if (field.fieldType === "CALCULATED") {
+    // Show the live preview when available (not yet saved), otherwise fall
+    // back to the server-persisted value.
+    const isPreview = calculatedPreview !== null && calculatedPreview !== undefined;
+    const displayValue = isPreview ? calculatedPreview : String(value ?? "");
     return (
       <TextInput
-        label={label}
-        description="Calculated automatically"
-        value={String(value ?? "")}
+        label={labelElement}
+        description={isPreview ? "Preview — saved on submit" : "Calculated automatically"}
+        value={displayValue}
         readOnly
-        styles={{ input: { backgroundColor: "var(--mantine-color-default-hover)", cursor: "default" } }}
+        styles={{
+          input: {
+            backgroundColor: "var(--mantine-color-default-hover)",
+            cursor: "default",
+            fontStyle: isPreview ? "italic" : undefined,
+            color: isPreview ? "var(--mantine-color-dimmed)" : undefined
+          }
+        }}
       />
     );
   }
 
-  return <TextInput label={label} required={isMarkedRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
+  return <TextInput label={labelElement} required={isMarkedRequired} value={String(value ?? "")} onChange={(event) => onChange(event.currentTarget.value)} {...warnProps} />;
 }
 
 export function RiskFormModal({
@@ -461,6 +523,51 @@ export function RiskFormModal({
     }
   });
   const { setValues: setFormValues } = form;
+
+  // Compute live previews for CALCULATED fields based on current form values (UI-023).
+  // Keys are custom field definition IDs; values are the formatted preview strings
+  // (or null when the formula cannot be evaluated with current inputs).
+  const calculatedPreviews = useMemo<Record<string, string | null>>(() => {
+    const calculatedFields = activeCustomFields.filter((f) => f.fieldType === "CALCULATED");
+    if (calculatedFields.length === 0) return {};
+
+    // Build the fieldValues context from current NUMBER custom field values.
+    const fieldValues: Record<string, number | null> = {};
+    for (const f of activeCustomFields) {
+      if (f.fieldType === "NUMBER") {
+        const v = customValues[f.id];
+        fieldValues[f.id.toLowerCase()] = typeof v === "number" ? v : null;
+      }
+    }
+
+    // Resolve likelihood / impact numeric values from the form selection.
+    const likelihoodOption = formConfig.likelihoodValues.find(
+      (lv) => lv.id === form.values.likelihoodValueId
+    );
+    const impactOption = formConfig.impactValues.find(
+      (iv) => iv.id === form.values.impactValueId
+    );
+    const likelihoodNum = likelihoodOption?.numericValue != null ? parseFloat(String(likelihoodOption.numericValue)) : null;
+    const impactNum = impactOption?.numericValue != null ? parseFloat(String(impactOption.numericValue)) : null;
+
+    const previews: Record<string, string | null> = {};
+    for (const f of calculatedFields) {
+      if (!f.formula) { previews[f.id] = null; continue; }
+      try {
+        const result = evaluateFormula(f.formula, {
+          fieldValues,
+          score: null,
+          likelihood: likelihoodNum,
+          impact: impactNum
+        });
+        // Mirror backend serialisation: store as string, trim trailing zeros
+        previews[f.id] = String(parseFloat(result.toFixed(10)));
+      } catch {
+        previews[f.id] = null;
+      }
+    }
+    return previews;
+  }, [activeCustomFields, customValues, form.values.likelihoodValueId, form.values.impactValueId, formConfig.likelihoodValues, formConfig.impactValues]);
 
   const selectedRiskQuery = useQuery({
     queryKey: ["risk", register.id, editingRiskId],
@@ -602,6 +709,7 @@ export function RiskFormModal({
                       onChange={(value) => setCustomValues((current) => ({ ...current, [field.id]: value }))}
                       hasWarning={warningFieldIds.has(field.id)}
                       validationEnabled={validationEnabled}
+                      calculatedPreview={field.field.fieldType === "CALCULATED" ? (calculatedPreviews[field.id] ?? null) : undefined}
                     />
                   )
                 )}

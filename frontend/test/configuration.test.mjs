@@ -117,3 +117,27 @@ test("risk form renders custom fields interleaved with core fields by displayOrd
   assert.match(panel, /renderCoreField/);
   assert.match(panel, /CustomFieldInput/);
 });
+
+// UI-022: debounced formula validation in CustomFieldModal
+test("UI-022: CustomFieldModal validates formula client-side with 600ms debounce and blocks Save when invalid", async () => {
+  const modal = await readFile(new URL("../src/features/configuration/CustomFieldModal.tsx", import.meta.url), "utf8");
+
+  // Imports the evaluator
+  assert.match(modal, /import.*evaluateFormula.*formulaEvaluator/);
+
+  // Uses Mantine's useDebouncedValue at 600ms
+  assert.match(modal, /useDebouncedValue.*formula.*600/s);
+
+  // Local state tracks formula validity
+  assert.match(modal, /formulaValidation/);
+
+  // Save button is disabled when formula blocks save
+  assert.match(modal, /formulaBlocksSave/);
+  assert.match(modal, /disabled=\{formulaBlocksSave\}/);
+
+  // Green feedback shown on valid formula
+  assert.match(modal, /formulaValidation\.valid/);
+
+  // Red feedback shown on invalid formula (with error text)
+  assert.match(modal, /formulaValidation\.error/);
+});

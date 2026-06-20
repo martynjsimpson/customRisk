@@ -1,9 +1,11 @@
-import { Button, Checkbox, Modal, MultiSelect, Select, Stack, Switch, Textarea, TextInput } from "@mantine/core";
+import { Button, Checkbox, Modal, MultiSelect, Select, Stack, Switch, Text, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useEffect } from "react";
+import { useDebouncedValue } from "@mantine/hooks";
+import { useEffect, useState } from "react";
 
 import type { CustomFieldDefinition, CustomFieldType, RegisterRole, ValidationMode } from "../../api/customFields.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { evaluateFormula, FormulaEvaluationError } from "../../utils/formulaEvaluator";
 
 interface CustomFieldFormValues {
   fieldName: string;
@@ -90,6 +92,10 @@ export function CustomFieldModal({
     initialValues: createInitialValues()
   });
 
+  // Live formula validation state (UI-022)
+  const [formulaValidation, setFormulaValidation] = useState<{ valid: boolean; error?: string } | null>(null);
+  const [debouncedFormula] = useDebouncedValue(form.values.formula, 600);
+
   useEffect(() => {
     if (!opened) {
       return;
@@ -112,10 +118,49 @@ export function CustomFieldModal({
     }
 
     form.setValues(createInitialValues());
+    setFormulaValidation(null);
   // form is intentionally omitted — Mantine returns a new object reference each render,
   // which would retrigger this effect on every keystroke and reset the form values.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingField, opened]);
+
+  // Validate the formula client-side whenever it changes (debounced, 600ms — same as FormulaConfigTab)
+  useEffect(() => {
+    if (form.values.fieldType !== "CALCULATED") {
+      setFormulaValidation(null);
+      return;
+    }
+
+    if (debouncedFormula.trim() === "") {
+      setFormulaValidation(null);
+      return;
+    }
+
+    // Perform a stub evaluation: resolve all {field:uuid} references to 0 so
+    // the parser can validate syntax and structure without needing real values.
+    const deps = [...debouncedFormula.matchAll(/\{field:([0-9a-f-]{36})\}/gi)];
+    const fieldValues: Record<string, number | null> = {};
+    for (const m of deps) {
+      const id = m[1];
+      if (id) fieldValues[id.toLowerCase()] = 0;
+    }
+
+    try {
+      evaluateFormula(debouncedFormula, { fieldValues, score: 0, likelihood: 0, impact: 0 });
+      setFormulaValidation({ valid: true });
+    } catch (err) {
+      setFormulaValidation({
+        valid: false,
+        error: err instanceof FormulaEvaluationError ? err.message : "Formula is invalid"
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedFormula, form.values.fieldType]);
+
+  const isCalculated = form.values.fieldType === "CALCULATED";
+  const formulaIsEmpty = form.values.formula.trim() === "";
+  // Save is blocked when: formula is non-empty, has been validated, and is invalid.
+  const formulaBlocksSave = isCalculated && !formulaIsEmpty && formulaValidation !== null && !formulaValidation.valid;
 
   return (
     <Modal
@@ -124,7 +169,7 @@ export function CustomFieldModal({
       title={editingField ? "Edit custom field" : "Add custom field"}
     >
       <form onSubmit={form.onSubmit((values) => {
-        const isCalculated = values.fieldType === "CALCULATED";
+        if (formulaBlocksSave) return;
         onSubmit({
           ...values,
           validationMode: isCalculated ? "ALLOW" : values.validationMode,
@@ -155,14 +200,24 @@ export function CustomFieldModal({
           ) : null}
           <Checkbox label="Active" {...form.getInputProps("isActive", { type: "checkbox" })} />
           {form.values.fieldType === "CALCULATED" ? (
-            <Textarea
-              label="Formula"
-              description="Reference other fields with {field:uuid}. Supports +, -, *, / and round(), min(), max()."
-              required
-              autosize
-              minRows={2}
-              {...form.getInputProps("formula")}
-            />
+            <div>
+              <Textarea
+                label="Formula"
+                description="Reference other fields with {field:uuid}. Supports +, -, *, / and round(), min(), max()."
+                required
+                autosize
+                minRows={2}
+                styles={{ input: { fontFamily: "monospace" } }}
+                {...form.getInputProps("formula")}
+              />
+              {!formulaIsEmpty && formulaValidation !== null ? (
+                formulaValidation.valid ? (
+                  <Text size="xs" c="green" mt={4}>Formula is valid</Text>
+                ) : (
+                  <Text size="xs" c="red" mt={4}>{formulaValidation.error ?? "Formula is invalid"}</Text>
+                )
+              ) : null}
+            </div>
           ) : null}
           {!editingField && (form.values.fieldType === "DROPDOWN" || form.values.fieldType === "MULTI_SELECT") ? (
             <Textarea
@@ -183,7 +238,7 @@ export function CustomFieldModal({
             description="Controls whether Risk Response Owners can see this field on a linked parent risk."
             {...form.getInputProps("visibleToRiskResponseOwners", { type: "checkbox" })}
           />
-          <Button type="submit" loading={isSaving}>
+          <Button type="submit" loading={isSaving} disabled={formulaBlocksSave}>
             Save
           </Button>
         </Stack>
