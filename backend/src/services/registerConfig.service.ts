@@ -20,6 +20,7 @@ const registerConfigSelect = {
   allowViewerExport: true,
   customFieldValidationEnabled: true,
   reviewStatusPosition: true,
+  responseActionMode: true,
   createdAt: true,
   updatedAt: true
 };

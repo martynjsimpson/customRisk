@@ -283,6 +283,15 @@ test("registerConfig service exports isFieldVisibleToResponseActionOwner", async
   assert.match(source, /visibleToRiskResponseOwners/);
 });
 
+test("registerConfig service includes responseActionMode in registerConfigSelect so risk-form-config returns it", async () => {
+  const source = await readFile(new URL("../src/services/registerConfig.service.ts", import.meta.url), "utf8");
+
+  // registerConfigSelect must opt in to responseActionMode
+  assert.match(source, /responseActionMode:\s*true/);
+  // getRiskFormConfig must spread the register object (which carries responseActionMode) into its return value
+  assert.match(source, /\.\.\.register/);
+});
+
 // ---------------------------------------------------------------------------
 // Risk GET — mode-aware extension
 // ---------------------------------------------------------------------------
