@@ -7,7 +7,8 @@ import { useNavigate } from "react-router-dom";
 
 import { getConfigVersionStatus } from "../../api/configVersion.api";
 import { deleteRegister, getRegister, updateRegister } from "../../api/registers.api";
-import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import { switchResponseActionMode } from "../../api/responseActions.api";
+import { ApiErrorAlert, getApiErrorCode } from "../../components/ApiErrorAlert";
 import { useFeatureFlags } from "../../hooks/useFeatureFlags";
 import { usePermissions } from "../../hooks/usePermissions";
 
@@ -22,6 +23,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   const flags = useFeatureFlags();
   const [deleteConfirmOpen, { open: openDeleteConfirm, close: closeDeleteConfirm }] = useDisclosure(false);
   const [deleteNameInput, setDeleteNameInput] = useState("");
+  const [childRecordsConfirmOpen, { open: openChildRecordsConfirm, close: closeChildRecordsConfirm }] = useDisclosure(false);
 
   const registerQuery = useQuery({
     queryKey: ["register", registerId],
@@ -97,6 +99,25 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
     }
   });
 
+  const switchToChildRecordsMutation = useMutation({
+    mutationFn: () => switchResponseActionMode(registerId),
+    onSuccess: async () => {
+      closeChildRecordsConfirm();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
+        queryClient.invalidateQueries({ queryKey: ["registers"] }),
+        queryClient.invalidateQueries({ queryKey: ["risk-form-config", registerId], refetchType: "all" }),
+      ]);
+    },
+    onError: (error) => {
+      // 409 means the register is already in CHILD_RECORDS mode — treat as success.
+      if (getApiErrorCode(error) === "CONFLICT" || (error as { response?: { status?: number } }).response?.status === 409) {
+        closeChildRecordsConfirm();
+        void queryClient.invalidateQueries({ queryKey: ["register", registerId] });
+      }
+    },
+  });
+
   function handleFormBlur(event: FocusEvent<HTMLFormElement>) {
     if (draftConfigMode && !event.currentTarget.contains(event.relatedTarget as Node)) {
       updateSettingsMutation.mutate();
@@ -164,6 +185,29 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
             </Fieldset>
           </Stack>
         </Fieldset>
+        <Fieldset legend="Response Actions">
+          <Stack>
+            <Text size="sm">
+              <strong>Mode:</strong>{" "}
+              {registerQuery.data?.responseActionMode === "CHILD_RECORDS"
+                ? "Child Records — response actions are managed as individual records linked to each risk."
+                : "Simple — each risk has a single free-text response action field."}
+            </Text>
+            {canManage && registerQuery.data?.responseActionMode !== "CHILD_RECORDS" ? (
+              <div>
+                <Button
+                  variant="outline"
+                  size="xs"
+                  onClick={openChildRecordsConfirm}
+                  disabled={settingsLocked}
+                >
+                  Switch to Child Records mode
+                </Button>
+              </div>
+            ) : null}
+          </Stack>
+        </Fieldset>
+
         {canManage && !settingsLocked && !draftConfigMode ? (
           <Button type="submit" loading={updateSettingsMutation.isPending}>
             Save settings
@@ -184,6 +228,35 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
           </Fieldset>
         ) : null}
       </Stack>
+
+      <Modal
+        opened={childRecordsConfirmOpen}
+        onClose={closeChildRecordsConfirm}
+        title="Switch to Child Records mode"
+        size="sm"
+        centered
+      >
+        <Stack>
+          <Alert color="orange" variant="light">
+            Any existing response action text on risks in this register will be converted into child
+            action records (one per risk, with status &ldquo;Planned&rdquo; and no owner). This
+            cannot be undone in the current release.
+          </Alert>
+          <ApiErrorAlert error={switchToChildRecordsMutation.error} fallback="Unable to switch mode" />
+          <Group justify="flex-end">
+            <Button variant="subtle" onClick={closeChildRecordsConfirm} type="button">
+              Cancel
+            </Button>
+            <Button
+              loading={switchToChildRecordsMutation.isPending}
+              onClick={() => switchToChildRecordsMutation.mutate()}
+              type="button"
+            >
+              Confirm
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <Modal
         opened={deleteConfirmOpen}

@@ -10,6 +10,7 @@ import { AuditEventTable } from "../audit/AuditEventTable";
 import { CORE_RISK_FIELDS } from "./coreRiskFields";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge/RiskLevelBadge";
 import { ReviewStatusBadge } from "../../components/ReviewStatusBadge/ReviewStatusBadge";
+import { ResponseActionsPanel } from "./ResponseActionsPanel";
 
 function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[number]["id"]): ReactNode {
   switch (fieldId) {
@@ -61,6 +62,11 @@ function customDetailValue(field: RiskDetail["customFields"][number]): string {
   return "";
 }
 
+// Core fields that are always shown to Response Action Owners (regardless of
+// field config). These are the minimum context fields defined in ADR §2.5.
+const ALWAYS_VISIBLE_CORE_FIELD_IDS = new Set(["title", "state"]);
+// displayRiskId is shown in the modal title; these are the body fields.
+
 interface RiskDetailModalProps {
   registerId: string;
   riskId: string | null;
@@ -69,6 +75,10 @@ interface RiskDetailModalProps {
   canReview: boolean;
   canEditRows: boolean;
   canDelete: boolean;
+  /** Effective register role of the current user */
+  effectiveRole?: "SYSTEM_ADMIN" | "REGISTER_ADMIN" | "REGISTER_VIEWER" | "RISK_OWNER" | "RESPONSE_ACTION_OWNER" | "NONE";
+  /** Current user's id — needed to filter response actions for RAO view */
+  currentUserId?: string | null;
   onClose: () => void;
   onRequestEdit: (riskId: string) => void;
   onRequestReview: (riskId: string) => void;
@@ -86,16 +96,19 @@ export function RiskDetailModal({
   canReview,
   canEditRows,
   canDelete,
+  effectiveRole,
+  currentUserId,
   onClose,
   onRequestEdit,
   onRequestReview,
   onRequestDelete
 }: RiskDetailModalProps) {
+  const isResponseActionOwner = effectiveRole === "RESPONSE_ACTION_OWNER";
+  // Derive the response action mode from formConfig (updated by backend per ADR §4.3).
+  const responseActionMode = formConfig.register.responseActionMode ?? "SIMPLE";
+
   const activeCustomFields = formConfig.customFields.filter((field) => field.isActive);
   // reviewStatusPosition is 0-based. null means "append after all other rows".
-  // We synthesise a displayOrder for the review status row:
-  // - If null: use a very high number so it sorts last.
-  // - If set: use it as-is in the same coordinate space as custom field displayOrders.
   const reviewStatusDisplayOrder = formConfig.register.reviewStatusPosition !== null
     ? formConfig.register.reviewStatusPosition
     : Number.MAX_SAFE_INTEGER;
@@ -110,51 +123,83 @@ export function RiskDetailModal({
   const reviewHistoryQuery = useQuery({
     queryKey: ["risk-reviews", registerId, riskId],
     queryFn: () => listRiskReviews(registerId, riskId!),
-    enabled: Boolean(opened && riskId)
+    enabled: Boolean(opened && riskId) && !isResponseActionOwner
   });
   const riskAuditQuery = useQuery({
     queryKey: ["audit", "risk", registerId, riskId],
     queryFn: () => listRiskAudit(registerId, riskId!),
-    enabled: Boolean(opened && riskId)
+    enabled: Boolean(opened && riskId) && !isResponseActionOwner
   });
 
+  // Permissions for the response actions panel.
+  // Admins and Risk Owners can create and change owner; RAOs cannot.
+  const canManageActions =
+    effectiveRole === "SYSTEM_ADMIN" ||
+    effectiveRole === "REGISTER_ADMIN" ||
+    effectiveRole === "RISK_OWNER";
+  const canDeleteAction =
+    effectiveRole === "SYSTEM_ADMIN" || effectiveRole === "REGISTER_ADMIN";
+
   return (
-    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title={selectedRiskQuery.data ? `${selectedRiskQuery.data.displayRiskId}: ${selectedRiskQuery.data.title}` : "Risk Detail"} size="900px" scrollAreaComponent={ScrollArea.Autosize}>
+    <Modal
+      opened={opened && Boolean(riskId)}
+      onClose={onClose}
+      title={selectedRiskQuery.data ? `${selectedRiskQuery.data.displayRiskId}: ${selectedRiskQuery.data.title}` : "Risk Detail"}
+      size="900px"
+      scrollAreaComponent={ScrollArea.Autosize}
+    >
       <ApiErrorAlert error={selectedRiskQuery.error} fallback="Unable to load risk detail" />
       {selectedRiskQuery.data ? (
         <Stack>
+          {/* ── Risk field table ─────────────────────────────────────────── */}
           <Table.ScrollContainer minWidth={400}>
             <Table>
               <Table.Tbody>
                 {[
-                  ...CORE_RISK_FIELDS.map((field) => ({ kind: "core" as const, ...field })),
-                  ...activeCustomFields.map((def) => {
-                    const entry = selectedRiskQuery.data!.customFields.find(
-                      (field) => field.customFieldDefinition.id === def.id
-                    );
-                    return {
-                      kind: "custom" as const,
-                      id: def.id,
-                      displayOrder: def.displayOrder,
-                      fieldName: def.fieldName,
-                      entry:
-                        entry ?? {
-                          id: def.id,
-                          customFieldDefinition: def,
-                          textValue: null,
-                          numberValue: null,
-                          booleanValue: null,
-                          dateValue: null,
-                          person: null,
-                          personUser: null,
-                          dropdownOption: null,
-                          selectedOptions: []
-                        }
-                    };
-                  }),
-                  // Review status row — only included when reviews are enabled.
-                  // Its displayOrder is derived from reviewStatusPosition on the register config.
-                  ...(formConfig.register.reviewsEnabled
+                  ...CORE_RISK_FIELDS
+                    // In child records mode, suppress the legacy responseAction row.
+                    // For RAOs, suppress any core field that isn't always visible and
+                    // also suppress fields outside the minimal set (title, state shown).
+                    .filter((field) => {
+                      if (responseActionMode === "CHILD_RECORDS" && field.id === "responseAction") {
+                        return false;
+                      }
+                      if (isResponseActionOwner && !ALWAYS_VISIBLE_CORE_FIELD_IDS.has(field.id)) {
+                        return false;
+                      }
+                      return true;
+                    })
+                    .map((field) => ({ kind: "core" as const, ...field })),
+                  ...activeCustomFields
+                    // For RAOs, only show custom fields where visibleToRiskResponseOwners is true.
+                    .filter((def) => !isResponseActionOwner || def.visibleToRiskResponseOwners)
+                    .map((def) => {
+                      const entry = selectedRiskQuery.data!.customFields.find(
+                        (field) => field.customFieldDefinition.id === def.id
+                      );
+                      return {
+                        kind: "custom" as const,
+                        id: def.id,
+                        displayOrder: def.displayOrder,
+                        fieldName: def.fieldName,
+                        entry:
+                          entry ?? {
+                            id: def.id,
+                            customFieldDefinition: def,
+                            textValue: null,
+                            numberValue: null,
+                            booleanValue: null,
+                            dateValue: null,
+                            person: null,
+                            personUser: null,
+                            dropdownOption: null,
+                            selectedOptions: []
+                          }
+                      };
+                    }),
+                  // Review status row — only included when reviews are enabled and user
+                  // is not a Response Action Owner.
+                  ...(formConfig.register.reviewsEnabled && !isResponseActionOwner
                     ? [{
                         kind: "review-status" as const,
                         id: "__review_status__",
@@ -191,80 +236,104 @@ export function RiskDetailModal({
               </Table.Tbody>
             </Table>
           </Table.ScrollContainer>
-          <Title order={4}>Actions</Title>
-          <Group justify="flex-start" gap="xs">
-            {canReview ? (
-              <Button variant="light" size="xs" onClick={() => onRequestReview(selectedRiskQuery.data!.id)}>
-                Review
-              </Button>
-            ) : null}
-            {canEditRows ? (
-              <Button variant="light" size="xs" onClick={() => onRequestEdit(selectedRiskQuery.data!.id)}>
-                Edit
-              </Button>
-            ) : null}
-            {canDelete ? (
-              <Button variant="light" color="red" size="xs" onClick={() => onRequestDelete(selectedRiskQuery.data!.id)}>
-                Delete
-              </Button>
-            ) : null}
-          </Group>
-          <Title order={4}>Review history</Title>
-          <ApiErrorAlert error={reviewHistoryQuery.error} fallback="Unable to load review history" />
-          {reviewHistoryQuery.data && reviewHistoryQuery.data.length === HISTORY_CAP ? (
-            <Text size="xs" c="dimmed">Only the most recent {HISTORY_CAP} reviews are shown.</Text>
+
+          {/* ── Response Actions panel (child records mode) ──────────────── */}
+          {responseActionMode === "CHILD_RECORDS" ? (
+            <ResponseActionsPanel
+              registerId={registerId}
+              riskId={selectedRiskQuery.data.id}
+              canCreate={canManageActions}
+              canChangeOwner={canManageActions}
+              canDelete={canDeleteAction}
+              filterToUserId={isResponseActionOwner ? currentUserId : null}
+            />
           ) : null}
-          <Table.ScrollContainer minWidth={720}>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Reviewed</Table.Th>
-                  <Table.Th>Reviewer</Table.Th>
-                  <Table.Th>Comment</Table.Th>
-                  <Table.Th>Next review</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {(reviewHistoryQuery.data ?? []).slice((reviewPage - 1) * HISTORY_PAGE_SIZE, reviewPage * HISTORY_PAGE_SIZE).map((review) => (
-                  <Table.Tr key={review.id}>
-                    <Table.Td>{new Date(review.reviewedAt).toLocaleString()}</Table.Td>
-                    <Table.Td>{review.reviewedBy.name}</Table.Td>
-                    <Table.Td>{review.comment ?? ""}</Table.Td>
-                    <Table.Td>{review.calculatedNextReviewDate}</Table.Td>
-                  </Table.Tr>
-                ))}
-                {reviewHistoryQuery.data?.length === 0 ? (
-                  <Table.Tr>
-                    <Table.Td colSpan={4}><Text c="dimmed">No reviews recorded.</Text></Table.Td>
-                  </Table.Tr>
+
+          {/* ── Risk-level action buttons (not shown to RAOs) ─────────────── */}
+          {!isResponseActionOwner ? (
+            <>
+              <Title order={4}>Actions</Title>
+              <Group justify="flex-start" gap="xs">
+                {canReview ? (
+                  <Button variant="light" size="xs" onClick={() => onRequestReview(selectedRiskQuery.data!.id)}>
+                    Review
+                  </Button>
                 ) : null}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-          {(reviewHistoryQuery.data?.length ?? 0) > HISTORY_PAGE_SIZE ? (
-            <Pagination
-              value={reviewPage}
-              total={Math.ceil((reviewHistoryQuery.data?.length ?? 0) / HISTORY_PAGE_SIZE)}
-              onChange={setReviewPage}
-              size="sm"
-            />
+                {canEditRows ? (
+                  <Button variant="light" size="xs" onClick={() => onRequestEdit(selectedRiskQuery.data!.id)}>
+                    Edit
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <Button variant="light" color="red" size="xs" onClick={() => onRequestDelete(selectedRiskQuery.data!.id)}>
+                    Delete
+                  </Button>
+                ) : null}
+              </Group>
+            </>
           ) : null}
-          <Title order={4}>Audit history</Title>
-          <ApiErrorAlert error={riskAuditQuery.error} fallback="Unable to load risk audit history" />
-          {riskAuditQuery.data && riskAuditQuery.data.data.length === HISTORY_CAP ? (
-            <Text size="xs" c="dimmed">Only the most recent {HISTORY_CAP} audit records are shown.</Text>
-          ) : null}
-          <AuditEventTable
-            events={(riskAuditQuery.data?.data ?? []).slice((auditPage - 1) * HISTORY_PAGE_SIZE, auditPage * HISTORY_PAGE_SIZE)}
-            showIpAddress={false}
-          />
-          {(riskAuditQuery.data?.data.length ?? 0) > HISTORY_PAGE_SIZE ? (
-            <Pagination
-              value={auditPage}
-              total={Math.ceil((riskAuditQuery.data?.data.length ?? 0) / HISTORY_PAGE_SIZE)}
-              onChange={setAuditPage}
-              size="sm"
-            />
+
+          {/* ── Review + audit history (not shown to RAOs) ───────────────── */}
+          {!isResponseActionOwner ? (
+            <>
+              <Title order={4}>Review history</Title>
+              <ApiErrorAlert error={reviewHistoryQuery.error} fallback="Unable to load review history" />
+              {reviewHistoryQuery.data && reviewHistoryQuery.data.length === HISTORY_CAP ? (
+                <Text size="xs" c="dimmed">Only the most recent {HISTORY_CAP} reviews are shown.</Text>
+              ) : null}
+              <Table.ScrollContainer minWidth={720}>
+                <Table>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Reviewed</Table.Th>
+                      <Table.Th>Reviewer</Table.Th>
+                      <Table.Th>Comment</Table.Th>
+                      <Table.Th>Next review</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {(reviewHistoryQuery.data ?? []).slice((reviewPage - 1) * HISTORY_PAGE_SIZE, reviewPage * HISTORY_PAGE_SIZE).map((review) => (
+                      <Table.Tr key={review.id}>
+                        <Table.Td>{new Date(review.reviewedAt).toLocaleString()}</Table.Td>
+                        <Table.Td>{review.reviewedBy.name}</Table.Td>
+                        <Table.Td>{review.comment ?? ""}</Table.Td>
+                        <Table.Td>{review.calculatedNextReviewDate}</Table.Td>
+                      </Table.Tr>
+                    ))}
+                    {reviewHistoryQuery.data?.length === 0 ? (
+                      <Table.Tr>
+                        <Table.Td colSpan={4}><Text c="dimmed">No reviews recorded.</Text></Table.Td>
+                      </Table.Tr>
+                    ) : null}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
+              {(reviewHistoryQuery.data?.length ?? 0) > HISTORY_PAGE_SIZE ? (
+                <Pagination
+                  value={reviewPage}
+                  total={Math.ceil((reviewHistoryQuery.data?.length ?? 0) / HISTORY_PAGE_SIZE)}
+                  onChange={setReviewPage}
+                  size="sm"
+                />
+              ) : null}
+              <Title order={4}>Audit history</Title>
+              <ApiErrorAlert error={riskAuditQuery.error} fallback="Unable to load risk audit history" />
+              {riskAuditQuery.data && riskAuditQuery.data.data.length === HISTORY_CAP ? (
+                <Text size="xs" c="dimmed">Only the most recent {HISTORY_CAP} audit records are shown.</Text>
+              ) : null}
+              <AuditEventTable
+                events={(riskAuditQuery.data?.data ?? []).slice((auditPage - 1) * HISTORY_PAGE_SIZE, auditPage * HISTORY_PAGE_SIZE)}
+                showIpAddress={false}
+              />
+              {(riskAuditQuery.data?.data.length ?? 0) > HISTORY_PAGE_SIZE ? (
+                <Pagination
+                  value={auditPage}
+                  total={Math.ceil((riskAuditQuery.data?.data.length ?? 0) / HISTORY_PAGE_SIZE)}
+                  onChange={setAuditPage}
+                  size="sm"
+                />
+              ) : null}
+            </>
           ) : null}
         </Stack>
       ) : selectedRiskQuery.isLoading ? (

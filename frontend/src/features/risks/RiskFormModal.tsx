@@ -327,6 +327,11 @@ function renderCoreField({
         />
       );
     case "responseAction":
+      // In child records mode the response action is managed as child records,
+      // not as a free-text field on the risk form.
+      if (formConfig.register.responseActionMode === "CHILD_RECORDS") {
+        return null;
+      }
       return <Textarea key={fieldId} label="Response action" minRows={2} {...form.getInputProps("responseAction")} />;
   }
 }
