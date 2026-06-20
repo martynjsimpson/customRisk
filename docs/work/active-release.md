@@ -86,6 +86,11 @@ None.
 
 ## Verification feedback
 
+**Verification feedback:** Publishing a draft with CHILD_RECORDS → SIMPLE mode revert throws "An unexpected error occurred" when at least one risk has 2+ actions.
+**Investigation:** The raw SQL feasibility queries in `analyseImpact` and `migrateChildRecordsToSimple` filter on `r.is_deleted = false`, but the `risk` table uses `is_active` (not `is_deleted`). PostgreSQL throws a column-not-found error which surfaces as a 500.
+**Ruling:** In scope — defect in raw SQL column reference.
+**Fix:** Replace `r.is_deleted = false` with `r.is_active = true` in both queries: `backend/src/services/configVersion.service.ts` (analyseImpact feasibility query) and `backend/src/services/responseActions.service.ts` (migrateChildRecordsToSimple re-verify query).
+
 **Verification feedback:** Switching Response Action Mode on an existing register throws "Route not found".
 **Investigation:** `switchResponseActionMode` in `frontend/src/api/responseActions.api.ts` calls `PATCH /registers/:registerId/settings`, but the backend register update endpoint is `PATCH /registers/:registerId` (no `/settings` suffix). The backend correctly accepts `responseActionMode` in the update schema; only the frontend URL is wrong.
 **Ruling:** In scope — mode switching is a core acceptance criterion and this is a URL mismatch.
