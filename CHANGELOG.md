@@ -29,8 +29,12 @@ Version levels:
 
 ### Fixed
 
-- **CALCULATED custom fields can now be saved (BUG-050)**
-  - Adding or editing a custom field of type CALCULATED no longer throws a backend validation error. The frontend now sends `validationMode: "ALLOW"` for CALCULATED fields, which do not expose a validation mode selector. No change to ALLOW/WARN/BLOCK behaviour for other field types.
+- **CALCULATED custom fields now work end-to-end (BUG-050, BUG-049)**
+  - Adding a CALCULATED custom field no longer throws a validation error. The frontend now sends `validationMode: "ALLOW"` automatically for CALCULATED fields.
+  - The formula is now persisted correctly through draft saves. Previously, any draft write (reorder, edit another field, etc.) would silently wipe the formula from the snapshot.
+  - The formula is now pre-populated when reopening an existing CALCULATED field for editing.
+  - Deleting a CALCULATED field that was added in the current draft (not yet published) no longer throws a "custom field not found" error.
+  - Publishing a draft that includes CALCULATED fields now triggers recalculation of all existing risks in the register. Previously, existing risks retained stale or empty calculated values until they were individually saved.
 
 ## [1.17.0] - 2026-06-20
 
