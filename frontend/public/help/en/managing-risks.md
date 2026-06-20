@@ -16,7 +16,7 @@ From within a register, click **Add risk** to open the risk creation form. The f
 - **Risk Response Strategy** — the approach being taken to address the risk (e.g. Mitigate, Accept, Transfer, Avoid).
 - **Risk Response Action** — notes on the specific actions being taken.
 
-Any custom fields configured for the register will also appear in the form.
+Any custom fields configured for the register will also appear in the form. Custom fields may show a coloured asterisk next to their label: a red `*` means the field is required and you will not be able to save the risk until it is filled in, while a yellow `*` means the field is suggested — you will see a warning if it is left empty, but you can still save.
 
 > **Tip:** A well-written risk title is concise but specific. Avoid vague titles like "Financial risk" — prefer something like "Budget overrun due to unplanned contractor costs".
 
@@ -27,6 +27,10 @@ To edit a risk, click its row in the risk table to open the risk detail panel, t
 All standard fields are editable, as are any custom fields configured for the register. Edits are subject to your permissions: Editor and Admin roles can edit all fields, while Viewers cannot make changes.
 
 Changing the likelihood or impact values will immediately recalculate the risk level using the register's current scoring model. The updated risk level is reflected as soon as the change is saved.
+
+If the register has any **Calculated** custom fields, a live preview of each calculated value is shown while you edit. The preview updates as you change the numeric fields it references and is displayed in italic, dimmed text labelled "Preview — saved on submit". This is a guide only — the server evaluates the formula authoritatively when the risk is saved, and the stored value may differ if the formula depends on data that is only available server-side.
+
+The same asterisk convention that applies to the create form also applies here: a red `*` next to a custom field label means the field is required; a yellow `*` means it is suggested. See [Creating a Risk](#creating-a-risk) for details.
 
 > **Note:** All edits are recorded in the audit trail. The previous values are captured in the audit log so the full change history is always available.
 

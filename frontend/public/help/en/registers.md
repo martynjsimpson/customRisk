@@ -47,6 +47,27 @@ Supported field types include:
 
 The display order of custom fields is configurable — drag the rows in the Fields tab to reorder them. This order is reflected in the risk detail view and the risk create/edit form.
 
+#### Calculated field formulas
+
+A Calculated field derives its value from a mathematical expression you define when creating or editing the field. Reference any active **Number** custom field on the register using the syntax `{field:uuid}`, where `uuid` is the field's identifier (visible in the custom fields table). Numeric constants are also permitted.
+
+Supported operators and functions:
+
+| Syntax | Meaning |
+|--------|---------|
+| `+` | Addition |
+| `-` | Subtraction |
+| `*` | Multiplication |
+| `/` | Division |
+| `( )` | Grouping / precedence |
+| `round()` | Round to nearest integer |
+| `min()` | Minimum of two or more values |
+| `max()` | Maximum of two or more values |
+
+The formula input validates live as you type. If the formula contains a syntax error, an error message appears directly below the textarea and the Save button is disabled until the formula is corrected. Cross-field reference validation — checking that a UUID belongs to a real, active Number field on the register — is enforced at save time by the server.
+
+The computed value is evaluated server-side each time a risk is saved. When a user edits a risk, a live preview of the calculated value is shown in the form as they update the referenced fields, but this preview is for guidance only. The authoritative value is always the one stored on save.
+
 ### Scoring
 
 The scoring model defines how likelihood and impact values map to a risk level. You can configure the number of levels, the labels, and the thresholds that determine when a risk is classified as Low, Medium, High, or Critical.
