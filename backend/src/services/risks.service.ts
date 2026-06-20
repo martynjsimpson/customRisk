@@ -39,7 +39,7 @@ function decimalOrNull(d: Prisma.Decimal | null): number | null {
   return d ? new Prisma.Decimal(d).toNumber() : null;
 }
 
-async function evaluateAndStoreCalculatedFields(
+export async function evaluateAndStoreCalculatedFields(
   riskId: string,
   registerId: string,
   tx: Prisma.TransactionClient

@@ -61,6 +61,31 @@ test("CreateRegisterWizard is a multi-step guided flow with conditional reviews 
   assert.match(wizard, /isFormStep/);
 });
 
+test("UI-020: open-risk count renders as a link to /registers/<id>?state=OPEN", async () => {
+  const page = await readFile(new URL("../src/pages/RegistersPage.tsx", import.meta.url), "utf8");
+
+  // Open risks count must be wrapped in an Anchor/Link pointing to ?state=OPEN
+  assert.match(page, /to=\{`\/registers\/\$\{register\.id\}\?state=OPEN`\}/);
+  assert.match(page, /openRisksCount/);
+});
+
+test("UI-020: overdue count renders as a link to /registers/<id>?reviewStatus=OVERDUE", async () => {
+  const page = await readFile(new URL("../src/pages/RegistersPage.tsx", import.meta.url), "utf8");
+
+  // Overdue count must be wrapped in an Anchor/Link pointing to ?reviewStatus=OVERDUE
+  assert.match(page, /to=\{`\/registers\/\$\{register\.id\}\?reviewStatus=OVERDUE`\}/);
+  assert.match(page, /overdueRisksCount/);
+});
+
+test("UI-020: RegistersPage table renders Name, Role, Open risks and Overdue columns", async () => {
+  const page = await readFile(new URL("../src/pages/RegistersPage.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /Open risks/);
+  assert.match(page, /Overdue/);
+  assert.match(page, /Name/);
+  assert.match(page, /Role/);
+});
+
 test("RegistersPage opens the wizard on Create register click and is gated to system admins", async () => {
   const page = await readFile(new URL("../src/pages/RegistersPage.tsx", import.meta.url), "utf8");
 

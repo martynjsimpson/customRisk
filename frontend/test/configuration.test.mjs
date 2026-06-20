@@ -50,7 +50,7 @@ test("custom field configuration exposes validation modes and persists them thro
   assert.match(modal, /validationModeOptions/);
   assert.match(modal, /form\.getInputProps\("validationMode"\)/);
   assert.match(tab, /validationMode: field\.validationMode/);
-  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
+  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? "ALLOW" : values\.validationMode/);
   assert.match(tab, /validationMode:\s*values\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
 });
 
@@ -74,6 +74,37 @@ test("custom field options modal shows activate or deactivate based on option st
   assert.match(tab, /onActivate=\{\(optionId\) =>/);
   assert.match(tab, /updateOptionMutation\.mutate\(\{\s*fieldId:\s*selectedField\.id,\s*optionId,\s*values:\s*\{\s*isActive:\s*true\s*\}\s*\}\)/s);
   assert.match(tab, /onDeactivate=\{\(optionId\) =>/);
+});
+
+test("BUG-050: CustomFieldModal forces validationMode to ALLOW for CALCULATED fields on submit", async () => {
+  const modal = await readFile(new URL("../src/features/configuration/CustomFieldModal.tsx", import.meta.url), "utf8");
+
+  // The onSubmit handler must inspect fieldType and override validationMode to ALLOW for CALCULATED
+  assert.match(modal, /isCalculated.*=.*fieldType.*===.*"CALCULATED"/);
+  assert.match(modal, /validationMode.*isCalculated.*"ALLOW".*values\.validationMode/s);
+});
+
+test("BUG-050: FieldConfigTab sends correct validationMode for CALCULATED fields on create and update", async () => {
+  const tab = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
+
+  // Create path: validationMode must be undefined (not passed) for CALCULATED — CustomFieldModal handles ALLOW
+  assert.match(tab, /validationMode:\s*values\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
+  // Update path: validationMode must be explicitly "ALLOW" for CALCULATED so the draft snapshot is not dropped
+  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? "ALLOW" : values\.validationMode/);
+});
+
+test("BUG-050: ALLOW/WARN/BLOCK validation modes remain available for non-CALCULATED field types", async () => {
+  const modal = await readFile(new URL("../src/features/configuration/CustomFieldModal.tsx", import.meta.url), "utf8");
+  const api = await readFile(new URL("../src/api/customFields.api.ts", import.meta.url), "utf8");
+
+  // All three modes must exist as options
+  assert.match(modal, /validationModeOptions/);
+  assert.match(modal, /"ALLOW"/);
+  assert.match(modal, /"WARN"/);
+  assert.match(modal, /"BLOCK"/);
+
+  // The API type must still expose all three modes
+  assert.match(api, /export type ValidationMode = "ALLOW" \| "WARN" \| "BLOCK"/);
 });
 
 test("risk form renders custom fields interleaved with core fields by displayOrder", async () => {

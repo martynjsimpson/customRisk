@@ -88,6 +88,22 @@ test("publish runs impact check before mutating and uses a transaction", async (
   assert.match(service, /publishedAt: new Date\(\)/);
 });
 
+test("publish calls evaluateAndStoreCalculatedFields for each non-CLOSED risk in the register", async () => {
+  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  // evaluateAndStoreCalculatedFields is imported from risks.service
+  assert.match(service, /import.*evaluateAndStoreCalculatedFields.*from.*risks\.service/);
+
+  // Non-CLOSED risks are fetched using a state: { not: "CLOSED" } filter
+  assert.match(service, /state:\s*\{\s*not:\s*["']CLOSED["']\s*\}/);
+
+  // evaluateAndStoreCalculatedFields is called inside the loop for each risk
+  assert.match(service, /evaluateAndStoreCalculatedFields\(risk\.id,\s*registerId,\s*tx\)/);
+
+  // The recalculation happens after custom field definition upserts (comment present)
+  assert.match(service, /Recalculate CALCULATED custom fields for all non-CLOSED risks/);
+});
+
 test("impact analysis checks structural blockers and warns about deactivated config items", async () => {
   const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
 
@@ -205,6 +221,34 @@ test("config snapshot type covers all seven required sections", async () => {
 
   // reviewStatusPosition is part of the snapshot register settings
   assert.match(snapshot, /reviewStatusPosition/);
+});
+
+// ─── BUG-050: CALCULATED field formula round-trip ────────────────────────────
+
+test("BUG-050: ConfigSnapshotCustomField type includes formula field", async () => {
+  const snapshot = await readFile(new URL("../src/types/configSnapshot.ts", import.meta.url), "utf8");
+
+  // The type must carry formula so CALCULATED fields survive publish
+  assert.match(snapshot, /formula\?:\s*string\s*\|\s*null/);
+});
+
+test("BUG-050: snapshotCustomFieldSchema includes formula", async () => {
+  const schemas = await readFile(new URL("../src/validators/configVersion.schemas.ts", import.meta.url), "utf8");
+
+  // Zod schema must accept formula so incoming snapshots are not rejected
+  assert.match(schemas, /formula:\s*z\.string\(\)/);
+});
+
+test("BUG-050: configVersion service writes formula when building draft snapshot and on publish", async () => {
+  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  // formula is mapped when constructing the initial draft snapshot (createDraft / buildSnapshotFromLiveTables)
+  const draftFormulaCount = (service.match(/formula:\s*f\.formula\s*\?\?\s*null/g) ?? []).length;
+  assert.ok(draftFormulaCount >= 1, `Expected at least 1 formula mapping in draft snapshot builder, got ${draftFormulaCount}`);
+
+  // formula is written in the publish path (writing custom fields back to DB rows)
+  const publishFormulaCount = (service.match(/formula:\s*cf\.formula\s*\?\?\s*null/g) ?? []).length;
+  assert.ok(publishFormulaCount >= 2, `Expected at least 2 formula writes in publish path, got ${publishFormulaCount}`);
 });
 
 test("Phase 4 audit actions are defined in auditActions for all thirteen new events", async () => {

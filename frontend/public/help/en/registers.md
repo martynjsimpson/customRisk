@@ -53,6 +53,45 @@ The scoring model defines how likelihood and impact values map to a risk level. 
 
 > **Tip:** Align your scoring model with your organisation's existing risk framework if one exists — this makes it easier for users to apply their existing judgement to the scoring scales.
 
+#### Scoring Formula
+
+By default every register calculates risk score as `likelihood × impact`. Register Admins can replace this with a custom formula in the **Scoring** tab of register configuration.
+
+**Writing a formula**
+
+A formula is a mathematical expression that produces a numeric score. The following inputs are available:
+
+- `likelihood` — the numeric value of the risk's selected likelihood level
+- `impact` — the numeric value of the risk's selected impact level
+- Any active **Number** custom field defined on the register, referenced by its canonical field name (shown in the custom fields table)
+- Numeric constants (e.g. `2`, `0.5`)
+
+**Supported operators and grouping**
+
+| Syntax | Meaning |
+|--------|---------|
+| `+` | Addition |
+| `-` | Subtraction |
+| `*` | Multiplication |
+| `/` | Division |
+| `( )` | Grouping / precedence |
+
+**Examples**
+
+```
+likelihood * impact
+(likelihood * impact) / 2
+likelihood * impact + residual_control_score
+```
+
+**Validation and publishing**
+
+Formulas are validated when you save the scoring configuration within a draft. An invalid formula (for example, a syntax error or a reference to a field that does not exist) is rejected immediately with an error message — the draft cannot be saved until the formula is corrected.
+
+Publishing a draft enforces the same validation. If the formula is invalid at publish time the publish is blocked and an error is reported.
+
+> **Note:** Existing registers continue to use `likelihood × impact` until a Register Admin explicitly changes the formula and publishes a new draft. No scores are changed by the introduction of this feature alone.
+
 ## Draft Configuration and Edit Mode
 
 When the version-controlled configuration feature is enabled, register configuration is protected by a **draft and publish workflow**. You cannot edit configuration directly — all changes must first be staged in a draft, reviewed, and then explicitly published before they affect the live register and its risks.
