@@ -94,7 +94,9 @@ None.
 ---
 
 **Verification feedback:** After switching to Child Records mode, opening a risk still shows the Response Action text area in both the view modal and edit modal. The text area should be replaced by the child actions panel.
-**Status:** investigating
+**Investigation:** `registerConfigSelect` in `backend/src/services/registerConfig.service.ts` (line 8) does not include `responseActionMode`. The `risk-form-config` endpoint fetches the register using this select, so `responseActionMode` is always `undefined` in the frontend, which falls back to `"SIMPLE"` — causing the text area to always render.
+**Ruling:** In scope — the mode-conditional rendering is a core acceptance criterion.
+**Fix:** Add `responseActionMode: true` to `registerConfigSelect` in `backend/src/services/registerConfig.service.ts`.
 
 ---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
