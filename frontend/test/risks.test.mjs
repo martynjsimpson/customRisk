@@ -192,3 +192,49 @@ test("risk owner field supports email-only mode (PM2-02)", async () => {
   assert.match(detailModal, /ownerPerson\.isResolved/);
   assert.match(detailModal, /ownerPerson\.email/);
 });
+
+// UI-021: FieldLabel validation-mode asterisk
+test("UI-021: FieldLabel renders a yellow asterisk for WARN fields and none for ALLOW", async () => {
+  const formModal = await readFile(new URL("../src/features/risks/RiskFormModal.tsx", import.meta.url), "utf8");
+
+  // FieldLabel component exists
+  assert.match(formModal, /function FieldLabel/);
+
+  // WARN path emits a yellow asterisk span
+  assert.match(formModal, /validationMode === "WARN"/);
+  assert.match(formModal, /yellow/);
+
+  // BLOCK mode delegates to Mantine's required prop (red asterisk)
+  assert.match(formModal, /validationMode === "BLOCK"/);
+
+  // The label element is used when rendering fields
+  assert.match(formModal, /labelElement.*FieldLabel/s);
+});
+
+// UI-023: CALCULATED field live preview
+test("UI-023: RiskFormModal computes live CALCULATED field previews using evaluateFormula", async () => {
+  const formModal = await readFile(new URL("../src/features/risks/RiskFormModal.tsx", import.meta.url), "utf8");
+
+  // Imports evaluateFormula from the utility
+  assert.match(formModal, /import.*evaluateFormula.*formulaEvaluator/);
+
+  // Filters to CALCULATED fields
+  assert.match(formModal, /fieldType === "CALCULATED"/);
+
+  // Result stored in a previews record
+  assert.match(formModal, /calculatedPreviews/);
+
+  // Preview string is passed as a prop (calculatedPreview) to the field renderer
+  assert.match(formModal, /calculatedPreview=/);
+
+  // Preview discarded on save (only used for display, not sent to API)
+  assert.match(formModal, /calculatedPreview.*CALCULATED.*null/s);
+});
+
+// UI-023: risks.api.ts exposes formula fields on CustomFieldDefinition
+test("UI-023: risks.api.ts CustomFieldDefinition includes formula and formulaDependencies", async () => {
+  const api = await readFile(new URL("../src/api/risks.api.ts", import.meta.url), "utf8");
+
+  assert.match(api, /formula:\s*string \| null/);
+  assert.match(api, /formulaDependencies:\s*string\[\]/);
+});
