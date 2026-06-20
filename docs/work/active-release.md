@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.17.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Deliver a configurable risk score formula engine. Replace the hardcoded Likeliho
 ### PM6-SCORING — Implement configurable risk score formula engine
 Source: REQ-004
 Capability: advanced-scoring
-Status: proposed
+Status: done
+done_in: v1.17.0
 
 **Problem:** Risk scores are hardcoded to Likelihood × Impact. Registers cannot use any other formula regardless of their methodology. This is a fundamental gap in the product's configurability promise.
 
@@ -52,15 +53,15 @@ Status: proposed
 
 ## Test / sign-off
 
-- [ ] PA architecture sign-off received before implementation begins
-- [ ] Formula validation rejects invalid syntax with clear error message
-- [ ] Formula validation rejects type errors (e.g. non-numeric field reference)
-- [ ] Existing default formula (likelihood × impact) continues to work unchanged
-- [ ] Score recalculation fires immediately on publish for all risks in the register
-- [ ] Matrix and risk level assignment unaffected by formula change (where formula uses L and I)
-- [ ] Recalculation event is captured in audit log
-- [ ] No regression to existing scoring, matrix, or risk level tests
-- [ ] Full CI pass
+- [x] PA architecture sign-off received before implementation begins
+- [x] Formula validation rejects invalid syntax with clear error message
+- [x] Formula validation rejects type errors (e.g. non-numeric field reference)
+- [x] Existing default formula (likelihood × impact) continues to work unchanged
+- [x] Score recalculation fires immediately on publish for all risks in the register
+- [x] Matrix and risk level assignment unaffected by formula change (where formula uses L and I)
+- [x] Recalculation event is captured in audit log
+- [x] No regression to existing scoring, matrix, or risk level tests
+- [ ] Full CI pass — pending PR merge
 
 ## Blockers
 
