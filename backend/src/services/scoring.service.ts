@@ -243,7 +243,7 @@ export async function resolveRiskScoring(
 
   // Build field values map from the risk's existing custom field values when a riskId is provided.
   // On create there are no values yet; missing fields resolve to null (treated as 0 by the evaluator).
-  let fieldValues: Record<string, number | null> = {};
+  const fieldValues: Record<string, number | null> = {};
   if (riskId) {
     const numericFieldDefs = await client.customFieldDefinition.findMany({
       where: { registerId: input.registerId, fieldType: { in: ["NUMBER", "CALCULATED"] }, isActive: true },
