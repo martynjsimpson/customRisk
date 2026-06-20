@@ -1,6 +1,6 @@
 {
   "name": "custom-risk",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "private": true,
   "description": "Custom Risk MVP monorepo.",
   "workspaces": [
