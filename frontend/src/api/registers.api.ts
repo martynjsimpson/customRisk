@@ -77,6 +77,7 @@ export type UpdateRegisterInput = Partial<
     | "allowViewerExport"
     | "customFieldValidationEnabled"
     | "reviewStatusPosition"
+    | "responseActionMode"
   >
 >;
 

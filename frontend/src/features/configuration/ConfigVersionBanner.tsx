@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Badge,
   Button,
   Group,
@@ -11,6 +12,7 @@ import {
   TextInput,
   Textarea
 } from "@mantine/core";
+import { Link } from "react-router-dom";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -25,7 +27,8 @@ import {
   getConfigVersionStatus,
   importRegisterConfig,
   publishDraft,
-  type ImpactAnalysisResult
+  type ImpactAnalysisResult,
+  type ImpactEntry
 } from "../../api/configVersion.api";
 import { createTemplateFromRegister } from "../../api/templates.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
@@ -36,13 +39,45 @@ interface ConfigVersionBannerProps {
   canManage: boolean;
 }
 
+function ImpactEntryDetail({ entry, registerId }: { entry: ImpactEntry; registerId: string }) {
+  if (entry.code === "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS") {
+    const offendingRisks = (
+      entry.meta as { offendingRisks?: { riskId: string; displayRiskId: string; title: string }[] } | undefined
+    )?.offendingRisks ?? [];
+    return (
+      <Stack gap={4}>
+        <Text size="sm">{entry.message}</Text>
+        {offendingRisks.length > 0 ? (
+          <List size="sm" withPadding>
+            {offendingRisks.map((risk) => (
+              <List.Item key={risk.riskId}>
+                <Anchor
+                  component={Link}
+                  to={`/registers/${registerId}?riskId=${risk.riskId}`}
+                  size="sm"
+                >
+                  {risk.displayRiskId}
+                </Anchor>
+                {" — "}
+                {risk.title}
+              </List.Item>
+            ))}
+          </List>
+        ) : null}
+      </Stack>
+    );
+  }
+  return <Text size="sm">{entry.message}</Text>;
+}
+
 function ImpactAnalysisModal({
   opened,
   onClose,
   result,
   onPublish,
   isPublishing,
-  publishError
+  publishError,
+  registerId
 }: {
   opened: boolean;
   onClose: () => void;
@@ -50,7 +85,11 @@ function ImpactAnalysisModal({
   onPublish: () => void;
   isPublishing: boolean;
   publishError: unknown;
+  registerId: string;
 }) {
+  const structuredBlockers = (result?.entries ?? []).filter((e) => e.type === "BLOCKER");
+  const structuredWarnings = (result?.entries ?? []).filter((e) => e.type === "WARNING");
+
   return (
     <Modal opened={opened} onClose={onClose} title="Impact Analysis">
       {result ? (
@@ -82,6 +121,15 @@ function ImpactAnalysisModal({
               </List>
             </Alert>
           ) : null}
+          {structuredWarnings.length > 0 ? (
+            <Alert color="yellow" title="Warnings">
+              <Stack gap="xs">
+                {structuredWarnings.map((entry, i) => (
+                  <ImpactEntryDetail key={i} entry={entry} registerId={registerId} />
+                ))}
+              </Stack>
+            </Alert>
+          ) : null}
           {result.blockers.length > 0 ? (
             <Alert color="red" title="Blockers">
               <List size="sm">
@@ -89,6 +137,15 @@ function ImpactAnalysisModal({
                   <List.Item key={i}>{b}</List.Item>
                 ))}
               </List>
+            </Alert>
+          ) : null}
+          {structuredBlockers.length > 0 ? (
+            <Alert color="red" title="Blockers">
+              <Stack gap="xs">
+                {structuredBlockers.map((entry, i) => (
+                  <ImpactEntryDetail key={i} entry={entry} registerId={registerId} />
+                ))}
+              </Stack>
             </Alert>
           ) : null}
           <ApiErrorAlert error={publishError} fallback="Unable to publish draft" />
@@ -412,6 +469,7 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
         onPublish={() => publishDraftMutation.mutate()}
         isPublishing={publishDraftMutation.isPending}
         publishError={publishDraftMutation.error}
+        registerId={registerId}
       />
 
       <Modal size="sm" opened={publishConfirmOpen} onClose={closePublishConfirm} title="Publish draft" centered>

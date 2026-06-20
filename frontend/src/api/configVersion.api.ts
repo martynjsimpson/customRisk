@@ -20,6 +20,13 @@ export interface ConfigVersionStatus {
   hasDraft: boolean;
 }
 
+export interface ImpactEntry {
+  type: "BLOCKER" | "WARNING";
+  code: string;
+  message: string;
+  meta?: Record<string, unknown>;
+}
+
 export interface ImpactAnalysisResult {
   affectedRisks: {
     deactivatedLikelihood: number;
@@ -30,6 +37,7 @@ export interface ImpactAnalysisResult {
   };
   warnings: string[];
   blockers: string[];
+  entries?: ImpactEntry[];
   canPublish: boolean;
 }
 
@@ -43,6 +51,7 @@ interface DraftMatrixCell {
 export interface UpdateDraftConfigInput {
   register?: {
     scoringFormula?: string;
+    responseActionMode?: "SIMPLE" | "CHILD_RECORDS";
   };
   customFields?: Array<
     Pick<
