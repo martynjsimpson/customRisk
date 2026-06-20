@@ -152,6 +152,7 @@ export function RiskDetailModal({
       {selectedRiskQuery.data ? (
         <Stack>
           {/* ── Risk field table ─────────────────────────────────────────── */}
+          <Title order={4}>Risk Details</Title>
           <Table.ScrollContainer minWidth={400}>
             <Table>
               <Table.Tbody>
