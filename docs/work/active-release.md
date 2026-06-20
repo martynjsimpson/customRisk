@@ -86,10 +86,16 @@ None.
 
 ## Verification feedback
 
-**Verification feedback:** Publishing a draft with CHILD_RECORDS → SIMPLE mode revert throws "An unexpected error occurred" when at least one risk has 2+ actions.
-**Investigation:** The raw SQL feasibility queries in `analyseImpact` and `migrateChildRecordsToSimple` filter on `r.is_deleted = false`, but the `risk` table uses `is_active` (not `is_deleted`). PostgreSQL throws a column-not-found error which surfaces as a 500.
-**Ruling:** In scope — defect in raw SQL column reference.
-**Fix:** Replace `r.is_deleted = false` with `r.is_active = true` in both queries: `backend/src/services/configVersion.service.ts` (analyseImpact feasibility query) and `backend/src/services/responseActions.service.ts` (migrateChildRecordsToSimple re-verify query).
+**Verification feedback (ongoing — not yet resolved):** Publishing a draft throws a 500 "An unexpected error occurred" even after multiple fixes. HAR analysis (two sessions) reveals two root causes still outstanding:
+
+**Root cause 1 — draft snapshot missing `responseActionMode`:** Even after `buildSnapshotFromRelationalTables` was updated to include `responseActionMode`, freshly-created drafts still show no `responseActionMode` in `snapshotJson.register`. Most likely the backend process has not been restarted to pick up compiled TypeScript changes. User must restart the backend (`npm run dev` or equivalent) before testing again.
+
+**Root cause 2 — toggle PATCH goes to wrong endpoint:** When the user changes the `responseActionMode` toggle in `RegisterSettingsTab`, a `PATCH /registers/:registerId` fires WITHOUT `responseActionMode` in the body. This means the toggle change is either: (a) firing `updateSettingsMutation` (the direct settings save) instead of `updateDraftResponseActionModeMutation`, or (b) `updateDraftResponseActionModeMutation` is wired but sending to `PATCH /registers/:registerId` rather than `PATCH /registers/:registerId/config-versions/draft`. The draft snapshot never receives the mode value, so publish always sees `responseActionMode: undefined` in the snapshot, which after our undefined-guard fix is correctly a no-op — but means the mode change never takes effect.
+
+**Next session must:** 
+1. Confirm backend has been restarted and a new draft's snapshot includes `responseActionMode: "CHILD_RECORDS"` (for a CHILD_RECORDS register)
+2. Check `RegisterSettingsTab.tsx` — specifically `updateDraftResponseActionModeMutation` — to confirm it calls `updateDraftConfig(registerId, { register: { responseActionMode } })` and NOT `updateRegister`. Check what API function `updateDraftConfig` calls and what URL it hits.
+3. Check `frontend/src/api/configVersion.api.ts` `updateDraftConfig` function to confirm it PATCHes `.../config-versions/draft` not `.../registers/:id`.
 
 **Verification feedback:** Switching Response Action Mode on an existing register throws "Route not found".
 **Investigation:** `switchResponseActionMode` in `frontend/src/api/responseActions.api.ts` calls `PATCH /registers/:registerId/settings`, but the backend register update endpoint is `PATCH /registers/:registerId` (no `/settings` suffix). The backend correctly accepts `responseActionMode` in the update schema; only the frontend URL is wrong.
