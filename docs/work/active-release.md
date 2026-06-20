@@ -1,102 +1,83 @@
 # Active Release
 
-Status: ready-for-release
-Version: v1.18.0
+Status: in-progress
+Version: v1.19.0
 
 ## Release goal
 
-Custom-field UX polish: surface WARN field indicators in the risk edit form, add live formula validation to the CALCULATED field modal, and show a real-time computed preview when editing a risk with CALCULATED fields.
+Introduce first-class child-record Response Actions. By the end of this release, Register Admins can switch a register to child record mode, and users can create, view, update, and delete Response Action records linked to risks — with a full audit trail and Risk Response Owner permissions working end to end.
 
 ## Selected work items
 
-### UI-021 — Show yellow asterisk for WARN fields in risk edit form
-Source: REQ-053
-Capability: custom-fields
-Status: done
-done_in: v1.18.0
+### PM7-CORE — Introduce child-record response actions
+Source: REQ-005
+Capability: child-actions
+Status: ready
+Depends on: PM5-CORE (done), PM6-SCORING (done)
 
-**Problem:** The risk edit form shows a red asterisk (*) for required (BLOCK) fields but gives no visual signal for WARN fields. Users cannot tell which fields are "suggested" until they attempt to save and see the warning.
-
-**Acceptance criteria:**
-- Fields with `validationMode: WARN` display a yellow asterisk (*) in the risk edit form.
-- Fields with `validationMode: BLOCK` continue to display a red asterisk (*).
-- Fields with `validationMode: ALLOW` display no asterisk.
-- Both colours are visually distinguishable in light and dark mode using Mantine colour tokens (not hardcoded hex).
-- No regression to form submission, field validation behaviour, or existing required-field indicators.
-
-**Key files:** `frontend/src/features/risks/RiskFormModal.tsx`
-
-**Tests:** `frontend/test/risks.test.mjs`, `frontend/test/configuration.test.mjs`
-
----
-
-### UI-022 — Live formula validation in CALCULATED field modal
-Source: REQ-054
-Capability: custom-fields
-Status: done
-done_in: v1.18.0
-Depends on: BUG-050 (done in v1.17.1)
-
-**Problem:** The formula textarea in CustomFieldModal.tsx gives no validation feedback. An invalid formula is silently accepted when saving the field definition and only rejected at config publish time.
+**Problem:** Response actions currently behave as a simple field on each risk. There is no way to separately own, track, or audit them as first-class records. Risk Owners have no way to see which actions are in progress or completed without opening each risk individually.
 
 **Acceptance criteria:**
-- The formula textarea shows live validation feedback as the user types, using a debounced call to the existing `/validate-formula` endpoint.
-- An invalid formula displays a clear error message below the textarea.
-- A valid formula clears the error state.
-- Save behaviour (blocked or warned) matches the pattern used by the scoring formula panel — developer to confirm and replicate exactly.
-- No regression to the custom field modal save flow or other field types.
+- A register has a "Response Action Mode" configuration setting (Simple / Child Records). Default for existing registers is Simple; default for new registers is Simple.
+- When switching from Simple to Child Records, any existing simple-field response action values are migrated: each non-empty value is converted into one child action record linked to that risk. PA to confirm and design the migration step before implementation.
+- Child action records have three built-in fields: Response (multi-line text), Status (dropdown), and Risk Response Owner (Person Picker). Status defaults are: Planned, In Progress, Implemented, Deferred, Cancelled.
+- Risk Response Owner is a built-in first-class field (not a Register Admin custom field) because it drives permission derivation (§12.5). PA to confirm how this integrates with the permission model in the schema.
+- Risk Owners can create new action records linked to risks they own, edit and soft-delete those actions, and view all actions linked to their risks.
+- Risk Response Owners (derived from the Risk Response Owner field) can see and update their assigned actions. They can see limited read-only parent-risk context for fields marked "Visible to Risk Response Owners" (§5.3). They do not gain full access to the parent risk.
+- Register Admins and System Admins have full CRUD on all actions within their register scope.
+- Register Viewers can see all actions linked to risks they can view. They cannot edit.
+- The risk detail modal shows linked actions with their current status. Developer to choose an appropriate Mantine treatment for the actions section (e.g. a sub-table or card list).
+- Users can add a new action from the risk detail modal. An action add/edit modal opens in-place.
+- Soft delete of an action requires confirmation. If the action is linked to only one risk and that risk is being hard-deleted, the delete flow offers to also delete the now-orphaned action (§9.4).
+- All action field changes, status changes, and link changes are captured in the Risk Response Audit Log following the standard audit structure (who, when, what, where) (§14.4).
+- The risk audit log records that a linked action changed status, so the Risk Owner can see action-level context in the risk's own audit view (§14.3).
+- Help content in `frontend/public/help/en/` updated to cover Response Action child record mode: what it is, how to enable it, how to create/manage actions, and what Risk Response Owners can see and do.
 
-**Decision:** Debounce pattern and error display → replicate exactly from `ScoringConfigurationPanel.tsx` for consistency.
+**Decision:** Mode switching → convert existing simple-field response values into one child action record per risk when switching to child record mode. PA to design the migration step and confirm the approach is safe before implementation starts.
 
-**Implementation note:** Confirm whether the `/validate-formula` endpoint handles CALCULATED field formula context (variable set differs from scoring formula). If not, a separate validation endpoint or payload variant may be needed — flag to PM if a new endpoint is required.
+**Decision:** Status values → ship with hardcoded defaults (Planned / In Progress / Implemented / Deferred / Cancelled). Status configuration UI deferred to a follow-up release.
 
-**Key files:** `frontend/src/features/configuration/CustomFieldModal.tsx`, `frontend/src/features/configuration/ScoringConfigurationPanel.tsx`
+**Decision:** Many-to-many link model → schema must support one action linked to multiple risks from day one (§9.3). UI only needs to surface "add new action to this risk" for this release; the "link an existing action to an additional risk" flow is deferred.
 
-**Tests:** `frontend/test/configuration.test.mjs`
+**Decision:** Custom fields on actions → deferred. Only the three built-in fields (Response, Status, Risk Response Owner) ship in this release.
 
----
+**Decision:** /my-actions page (Risk Response Owner's dedicated cross-risk action view) → deferred to a follow-up release.
 
-### UI-023 — Real-time CALCULATED field preview in risk edit form
-Source: REQ-055
-Capability: custom-fields
-Status: done
-done_in: v1.18.0
-Depends on: BUG-050 (done in v1.17.1)
+**Key files (expected):**
+- `backend/prisma/schema.prisma` (new tables — PA to define)
+- `backend/src/services/` (new responseActions service)
+- `backend/src/routes/` (new responseActions routes)
+- `frontend/src/features/risks/RiskDetailModal.tsx` (actions section)
+- `frontend/src/features/risks/ResponseActionModal.tsx` (new — add/edit action)
+- `frontend/src/pages/RegisterConfigPage.tsx` (mode toggle in settings)
+- `frontend/public/help/en/` (help content update)
 
-**Problem:** When editing a risk, CALCULATED custom fields show the last saved server-side value and do not update as the user edits the referenced numeric fields. The correct value only appears after saving and reopening.
-
-**Acceptance criteria:**
-- The CALCULATED field value updates in real time as the user edits referenced numeric fields in the risk edit form.
-- Preview is computed client-side using the formula from the register config — no extra backend call per keystroke.
-- The preview is clearly visually distinguished as a computed-but-not-yet-saved value (e.g. greyed-out or italicised — developer to choose an appropriate Mantine treatment).
-- On save, the server-side evaluated value is authoritative; the preview is discarded.
-- No regression to risk edit form submission, field validation, or the CALCULATED field display on the risk detail view.
-
-**Decision:** Client-side formula evaluation → implement a lightweight evaluator in the frontend rather than calling the backend on each keystroke. The backend `formulaEvaluator.service.ts` is the reference for evaluation logic. If the formula language is simple enough (arithmetic + field references), a frontend reimplementation is acceptable; if not, use a debounced backend call as a fallback and flag the approach chosen.
-
-**Key files:** `frontend/src/features/risks/RiskFormModal.tsx`, `backend/src/services/formulaEvaluator.service.ts`
-
-**Tests:** `frontend/test/risks.test.mjs`
+**Tests:**
+- `backend/test/responseActions.test.mjs` (new)
+- `frontend/test/risks.test.mjs`
+- `frontend/test/configuration.test.mjs`
 
 ---
 
 ## Required agents
 
-- **frontend-developer** — UI-021 (WARN asterisk), UI-022 (formula live validation), UI-023 (real-time preview)
-- **test-engineer** — test coverage for all three items
+- **principal-architect** — schema design (action records table, risk-action link table), permission model integration (Risk Response Owner derivation), migration approach for simple→child mode conversion. PA must complete and document the schema and migration design before backend implementation begins.
+- **backend-developer** — CRUD and link management for action records, permission enforcement, Risk Response Audit Log, risk audit cross-reference for action status changes, simple→child migration on mode toggle.
+- **frontend-developer** — actions section in risk detail modal, action add/edit modal, "Response Action Mode" toggle in register config settings, help content update.
+- **test-engineer** — backend test coverage for CRUD, permissions, audit, and migration; frontend behavioral tests for action display, add/edit/delete flows.
 
-**Sequencing:** All three items are independent and can run in parallel. UI-022 and UI-023 are both in `CustomFieldModal.tsx` / `RiskFormModal.tsx` respectively — the frontend-developer should be aware of the overlap but there is no functional dependency between them.
+**Sequencing:** PA goes first. Backend cannot start schema-dependent work until PA delivers the schema and migration design. Frontend can begin config toggle and modal scaffolding once the API contract is broadly known but should not finalise permission-dependent UI until backend is stable.
 
 ## Decisions
 
-No open decisions.
+No open decisions. All decisions above are resolved.
 
 ## Test / sign-off
 
-- [x] Implementation complete
-- [x] Regression tests pass (439 total: 243 backend, 119 frontend static, 76 frontend behavioral, 1 shared)
-- [x] TypeScript typecheck clean
-- [x] Documentation pass complete
+- [ ] Implementation complete
+- [ ] Regression tests pass
+- [ ] TypeScript typecheck clean
+- [ ] Documentation pass complete
 
 ## Blockers
 

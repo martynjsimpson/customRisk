@@ -20,7 +20,8 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 Request ID: REQ-055
 Title: CALCULATED field value — no real-time preview in risk edit form
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.18.0
 Priority: medium
 Summary: When editing a risk, a CALCULATED custom field displays the last saved server-side value. It does not update in real time as the user changes the referenced numeric fields. The correct value only appears after saving and reopening the risk. A real-time preview — via client-side formula evaluation or a debounced backend call — would improve the editing experience.
 Notes: Deferred from v1.17.1 during BUG-049 verification. The current behaviour is technically correct (saved value is accurate) but the UX lag is confusing. Client-side formula evaluation is likely simpler than a debounced backend call given the formula is already available from the register config.
@@ -31,7 +32,8 @@ Source: deferred from v1.17.1
 Request ID: REQ-054
 Title: CALCULATED field formula — no live validation on save
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.18.0
 Priority: medium
 Summary: The formula textarea in the custom field modal gives no validation feedback when saving a field definition. An invalid formula is silently accepted and only rejected at publish time. The scoring formula panel already has debounced live validation using the /validate-formula endpoint — the same pattern should be applied to the CALCULATED field formula input in CustomFieldModal.tsx.
 Notes: Deferred from v1.17.1 during BUG-050 verification. The validate-formula endpoint already exists from PM6-SCORING work. This is a UX improvement that would prevent invalid formulas from reaching the publish step.
@@ -42,7 +44,8 @@ Source: deferred from v1.17.1
 Request ID: REQ-053
 Title: Show yellow * for warn fields in risk edit form
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.18.0
 Priority: high
 Summary: The risk edit form uses red asterisks (*) to indicate required fields, but fields with a validation mode of WARN show no visual indicator. Users have no way to tell which fields are suggested without trying to save. A yellow * should be shown next to warn fields to distinguish them from required fields (red *), making the form's validation state clear before submission.
 Notes: This is a companion to the existing required-field indicator. The yellow * means "suggested" and the red * means "required". Implementation will need to check the validationMode for each field and apply the appropriate colour to the asterisk.
@@ -490,7 +493,7 @@ Source: human request
 Request ID: REQ-005  
 Title: Add child actions and stronger review workflows so treatment work can be tracked properly  
 Type: feature  
-Status: refined  
+Status: in-active-release  
 Priority: high  
 Summary: Users need first-class response actions, richer review rules, and better ownership tracking instead of relying on a simple risk field.  
 Notes: This is the main workflow expansion chain and is a prerequisite for several later roadmap items.  
