@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.17.1
 
 ## Release goal
@@ -12,7 +12,8 @@ Close the post-v1.17.0 gap: fix the critical calculated field save error that bl
 ### BUG-050 — Fix calculated field save error — missing validationMode
 Source: REQ-050
 Capability: custom-fields
-Status: ready
+Status: done
+done_in: v1.17.1
 
 **Problem:** Adding or editing a custom field of type CALCULATED throws a backend validation error because the frontend omits `validationMode`. The validation mode input is intentionally hidden for CALCULATED fields, but the backend still requires one of `"ALLOW"|"WARN"|"BLOCK"`. This blocks all use of calculated fields.
 
@@ -33,7 +34,8 @@ Status: ready
 ### BUG-049 — Verify calculated field end-to-end functionality post BUG-050 fix
 Source: REQ-049
 Capability: custom-fields
-Status: ready
+Status: done
+done_in: v1.17.1
 Depends on: BUG-050
 
 **Problem:** After the save error is resolved, confirm that calculated fields actually work end-to-end with a known-good example. Catch any further issues before they are reported again.
@@ -54,7 +56,8 @@ Depends on: BUG-050
 ### MAINT-006 — Update help docs for configurable scoring formula feature
 Source: REQ-052
 Capability: help-content
-Status: ready
+Status: done
+done_in: v1.17.1
 
 **Problem:** PM6-SCORING shipped in v1.17.0 with no help content update. Users find no in-app guidance on configuring or using custom scoring formulas.
 
@@ -71,7 +74,8 @@ Status: ready
 ### UI-020 — Make open-risk and overdue counts clickable links on /registers
 Source: REQ-051
 Capability: register-list
-Status: ready
+Status: done
+done_in: v1.17.1
 
 **Problem:** The /registers page table shows plain-text open-risk and overdue counts. They should be clickable links, consistent with the pattern already used by the Admin Summary widget (REQ-034).
 
