@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.19.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Introduce first-class child-record Response Actions. By the end of this release,
 ### PM7-CORE — Introduce child-record response actions
 Source: REQ-005
 Capability: child-actions
-Status: ready
+Status: done
+done_in: v1.19.0
 Depends on: PM5-CORE (done), PM6-SCORING (done)
 
 **Problem:** Response actions currently behave as a simple field on each risk. There is no way to separately own, track, or audit them as first-class records. Risk Owners have no way to see which actions are in progress or completed without opening each risk individually.
@@ -74,10 +75,10 @@ No open decisions. All decisions above are resolved.
 
 ## Test / sign-off
 
-- [ ] Implementation complete
-- [ ] Regression tests pass
-- [ ] TypeScript typecheck clean
-- [ ] Documentation pass complete
+- [x] Implementation complete
+- [x] Regression tests pass (274 backend, 119 frontend static, 87 frontend runtime — all green)
+- [x] TypeScript typecheck clean
+- [x] Documentation pass complete (help content updated)
 
 ## Blockers
 
