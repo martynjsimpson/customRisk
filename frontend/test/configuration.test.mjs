@@ -50,7 +50,7 @@ test("custom field configuration exposes validation modes and persists them thro
   assert.match(modal, /validationModeOptions/);
   assert.match(modal, /form\.getInputProps\("validationMode"\)/);
   assert.match(tab, /validationMode: field\.validationMode/);
-  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
+  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? "ALLOW" : values\.validationMode/);
   assert.match(tab, /validationMode:\s*values\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
 });
 
@@ -84,13 +84,13 @@ test("BUG-050: CustomFieldModal forces validationMode to ALLOW for CALCULATED fi
   assert.match(modal, /validationMode.*isCalculated.*"ALLOW".*values\.validationMode/s);
 });
 
-test("BUG-050: FieldConfigTab passes undefined validationMode for CALCULATED fields on both create and update", async () => {
+test("BUG-050: FieldConfigTab sends correct validationMode for CALCULATED fields on create and update", async () => {
   const tab = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
 
-  // Create path: validationMode must be undefined (not passed) for CALCULATED
+  // Create path: validationMode must be undefined (not passed) for CALCULATED — CustomFieldModal handles ALLOW
   assert.match(tab, /validationMode:\s*values\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
-  // Update path: validationMode must be undefined for CALCULATED
-  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? undefined : values\.validationMode/);
+  // Update path: validationMode must be explicitly "ALLOW" for CALCULATED so the draft snapshot is not dropped
+  assert.match(tab, /validationMode:\s*editingField\.fieldType === "CALCULATED" \? "ALLOW" : values\.validationMode/);
 });
 
 test("BUG-050: ALLOW/WARN/BLOCK validation modes remain available for non-CALCULATED field types", async () => {

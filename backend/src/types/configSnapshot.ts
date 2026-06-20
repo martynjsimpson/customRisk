@@ -18,6 +18,7 @@ export interface ConfigSnapshotCustomField {
   validationMode: "ALLOW" | "WARN" | "BLOCK";
   displayOrder: number;
   isActive: boolean;
+  formula?: string | null;
   options: ConfigSnapshotCustomFieldOption[];
 }
 

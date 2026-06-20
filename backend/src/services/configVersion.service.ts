@@ -115,6 +115,7 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
       validationMode: f.validationMode,
       displayOrder: f.displayOrder,
       isActive: f.isActive,
+      formula: f.formula ?? null,
       options: f.options.map((o) => ({
         id: o.id,
         label: o.label,
@@ -863,6 +864,7 @@ export async function publishDraft(
             validationMode: cf.validationMode,
             displayOrder: cf.displayOrder,
             isActive: cf.isActive,
+            formula: cf.formula ?? null,
             updatedByUserId: actorId
           }
         });
@@ -878,6 +880,7 @@ export async function publishDraft(
             validationMode: cf.validationMode,
             displayOrder: cf.displayOrder,
             isActive: cf.isActive,
+            formula: cf.formula ?? null,
             createdByUserId: actorId,
             updatedByUserId: actorId
           }

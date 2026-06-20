@@ -23,6 +23,7 @@ const snapshotCustomFieldSchema = z.object({
   validationMode: z.enum(validationModes),
   displayOrder: z.number().int().min(1),
   isActive: z.boolean(),
+  formula: z.string().trim().min(1).nullable().optional(),
   options: z.array(snapshotCustomFieldOptionSchema)
 });
 

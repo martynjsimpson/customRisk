@@ -424,7 +424,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
                 fieldName: values.fieldName,
                 helpText: values.helpText || null,
                 isRequired: editingField.fieldType === "CALCULATED" ? false : values.isRequired,
-                validationMode: editingField.fieldType === "CALCULATED" ? undefined : values.validationMode,
+                validationMode: editingField.fieldType === "CALCULATED" ? "ALLOW" : values.validationMode,
                 isActive: values.isActive,
                 formula: editingField.fieldType === "CALCULATED" && values.formula ? values.formula : undefined,
                 visibleToRoles: values.visibleToRoles,
