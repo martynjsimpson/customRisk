@@ -405,7 +405,8 @@ items:
   type: feature
   capability: advanced-scoring
   phase: 6
-  status: ready
+  status: done
+  done_in: v1.17.0
   priority: high
   confidence: medium
   summary: Replace the hardcoded Likelihood × Impact formula with a per-register configurable scoring formula. Register Admins
@@ -2098,3 +2099,129 @@ items:
     notes:
     - This is an investigation item — scope and delivery estimate will be determined during the investigation phase.
     - Low confidence because the bottleneck is unknown until profiled.
+- id: BUG-050
+  source_request: REQ-050
+  title: Fix calculated field save error — missing validationMode
+  type: bug
+  capability: custom-fields
+  status: in-active-release
+  priority: critical
+  confidence: high
+  summary: Adding or editing a custom field of type CALCULATED throws a backend validation error because the frontend omits
+    validationMode. The fix is to default validationMode to "ALLOW" in the form onSubmit handler when fieldType is CALCULATED.
+    This is a one-line frontend fix; no backend change needed.
+  acceptance:
+  - Adding a CALCULATED custom field no longer throws a validation error.
+  - Editing an existing CALCULATED custom field saves successfully.
+  - validationMode is sent as "ALLOW" for CALCULATED fields in all form submission paths.
+  - No regression to ALLOW/WARN/BLOCK behaviour for non-CALCULATED field types.
+  remaining:
+  - In CustomFieldModal.tsx onSubmit handler, add `validationMode: "ALLOW"` when `values.fieldType === "CALCULATED"`.
+  - Add or update a test covering CALCULATED field create and edit.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/configuration/CustomFieldModal.tsx
+    tests:
+    - frontend/test/configuration.test.mjs
+    notes:
+    - Error text observed: "Invalid request body — Custom Fields 1 Validation Mode: Invalid option: expected one of 'ALLOW'|'WARN'|'BLOCK'"
+    - validationMode input is intentionally hidden for CALCULATED fields; backend still requires the value.
+
+- id: BUG-049
+  source_request: REQ-049
+  title: Verify calculated field end-to-end functionality post BUG-050 fix
+  type: bug
+  capability: custom-fields
+  status: in-active-release
+  priority: high
+  confidence: medium
+  summary: Following the BUG-050 save-error fix, verify that calculated fields work correctly end-to-end. Confirm a working
+    example, test formula evaluation behaviour, and identify any remaining bugs after the save error is resolved.
+  acceptance:
+  - A CALCULATED custom field can be created, saved, and displays a computed value on a risk record.
+  - The formula evaluator correctly resolves field references in a sample formula.
+  - Any remaining bugs identified during verification are logged as separate requests.
+  - A working example (formula, fields referenced, expected output) is documented or surfaced in-app.
+  remaining:
+  - Depends on BUG-050 being shipped first.
+  - QA/test-engineer to verify calculated field creation and display with a concrete example.
+  - Identify and log any further issues discovered during verification.
+  dependencies:
+  - BUG-050
+  suggested_agents:
+  - test-engineer
+  - frontend-developer
+  evidence:
+    code:
+    - backend/src/services/formulaEvaluator.service.ts
+    - frontend/src/features/configuration/CustomFieldModal.tsx
+    tests:
+    - backend/test/customFields.test.mjs
+    notes:
+    - REQ-049 flagged this may be user error — verify with a known-good example before treating as a definite bug.
+    - Related to REQ-003 (custom field behaviour).
+
+- id: UI-020
+  source_request: REQ-051
+  title: Make open-risk and overdue counts clickable links on /registers
+  type: improvement
+  capability: register-list
+  status: in-active-release
+  priority: medium
+  confidence: high
+  summary: The /registers page table shows plain-text open-risk and overdue counts. These should be clickable links navigating
+    to the relevant register pre-filtered to open risks or overdue reviews, consistent with the Admin Summary widget pattern
+    (REQ-034 / similar implementation).
+  acceptance:
+  - Open-risk count on /registers is a link to /registers/<registerID> with an open-risks filter pre-applied.
+  - Overdue count on /registers is a link to /registers/<registerID> with an overdue-reviews filter pre-applied.
+  - Links match the visual and navigation pattern used by the Admin Summary widget counts.
+  - No regression to /registers page load, permissions, or table sorting/filtering behaviour.
+  remaining:
+  - Identify the filter param format used by the Admin Summary widget implementation and replicate it.
+  - Update the /registers table component to render count cells as links.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/registers/RegistersPage.tsx
+    tests:
+    - frontend/test/registers.test.mjs
+    notes:
+    - Reference implementation: Admin Summary widget (REQ-034). Use the same link and filter pattern.
+
+- id: MAINT-006
+  source_request: REQ-052
+  title: Update help docs for configurable scoring formula feature
+  type: maintenance
+  capability: help-content
+  status: in-active-release
+  priority: medium
+  confidence: high
+  summary: In-app help docs were not updated when PM6-SCORING shipped in v1.17.0. Users reading help content find no guidance
+    on configuring or using custom scoring formulas. The relevant help article(s) must be updated.
+  acceptance:
+  - Help content in frontend/public/help/en/ updated to cover the scoring formula feature.
+  - Content describes how to write a formula, available canonical variable names (likelihood, impact), numeric custom field
+    references, constants, and supported arithmetic operators.
+  - Content describes validation behaviour — formulas are checked on save and on publish; invalid formulas are rejected with
+    an error message.
+  - Content notes that existing registers default to likelihood × impact and are unaffected unless a Register Admin changes
+    the formula.
+  remaining:
+  - Identify which help article(s) cover register configuration or scoring and update or create them.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  evidence:
+    code:
+    - frontend/public/help/en/
+    tests: []
+    notes:
+    - PM6-SCORING shipped in v1.17.0. This is a post-ship doc gap.

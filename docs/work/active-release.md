@@ -1,73 +1,104 @@
 # Active Release
 
-Status: ready-for-release
-Version: v1.17.0
+Status: in-progress
+Version: v1.17.1
 
 ## Release goal
 
-Deliver a configurable risk score formula engine. Replace the hardcoded Likelihood × Impact formula with a per-register formula that Register Admins can define, validate, and publish. Scores recalculate immediately across all risks in the register when a formula change is published. The engine must be architected for reuse by inherent and residual scoring in a future release.
+Close the post-v1.17.0 gap: fix the critical calculated field save error that blocks all CALCULATED field use, verify calculated field end-to-end behaviour, update help docs for the scoring formula feature that shipped in v1.17.0, and make open-risk and overdue counts on /registers clickable links.
 
 ## Selected work items
 
-### PM6-SCORING — Implement configurable risk score formula engine
-Source: REQ-004
-Capability: advanced-scoring
-Status: done
-done_in: v1.17.0
+### BUG-050 — Fix calculated field save error — missing validationMode
+Source: REQ-050
+Capability: custom-fields
+Status: ready
 
-**Problem:** Risk scores are hardcoded to Likelihood × Impact. Registers cannot use any other formula regardless of their methodology. This is a fundamental gap in the product's configurability promise.
+**Problem:** Adding or editing a custom field of type CALCULATED throws a backend validation error because the frontend omits `validationMode`. The validation mode input is intentionally hidden for CALCULATED fields, but the backend still requires one of `"ALLOW"|"WARN"|"BLOCK"`. This blocks all use of calculated fields.
 
 **Acceptance criteria:**
-- Register Admins can define a custom scoring formula in register configuration using canonical variable names for Likelihood and Impact (regardless of their configured display names), numeric custom fields, numeric constants, and arithmetic operators (+, -, *, /, parentheses).
-- The formula uses canonical variable names (e.g. `likelihood`, `impact`) so renaming L/I display labels does not break the formula.
-- The formula is validated — syntax and type check — before it can be saved in draft AND before it can be published. Invalid formulas are rejected with a clear error message.
-- When a config version containing a formula change is published, all risk scores in the register recalculate immediately.
-- Existing registers default to the Likelihood × Impact formula and are unaffected unless a Register Admin explicitly changes it.
-- The matrix and risk level assignment continue to work correctly (formula always references L and I).
-- The formula engine is architected to support reuse for inherent and residual scoring (PM6-CORE) without rework.
-- Score recalculation triggered by publish is auditable.
-- No regression to existing scoring, matrix, or risk level behaviour.
+- Adding a CALCULATED custom field no longer throws a validation error.
+- Editing an existing CALCULATED custom field saves successfully.
+- `validationMode` is sent as `"ALLOW"` for CALCULATED fields in all form submission paths.
+- No regression to ALLOW/WARN/BLOCK behaviour for non-CALCULATED field types.
 
-**Key files:** `backend/src/services/scoring.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `backend/src/services/matrix.service.ts`, `frontend/src/features/configuration/ScoringConfigurationPanel.tsx`
+**Fix:** In `CustomFieldModal.tsx` onSubmit handler, add `validationMode: "ALLOW"` when `values.fieldType === "CALCULATED"`. No backend change required.
 
-**Tests:** `backend/test/riskScoring.test.mjs`, `frontend/test/configuration.test.mjs`
+**Key files:** `frontend/src/features/configuration/CustomFieldModal.tsx`
+
+**Tests:** `frontend/test/configuration.test.mjs` — add or update a test covering CALCULATED field create and edit.
+
+---
+
+### BUG-049 — Verify calculated field end-to-end functionality post BUG-050 fix
+Source: REQ-049
+Capability: custom-fields
+Status: ready
+Depends on: BUG-050
+
+**Problem:** After the save error is resolved, confirm that calculated fields actually work end-to-end with a known-good example. Catch any further issues before they are reported again.
+
+**Acceptance criteria:**
+- A CALCULATED custom field can be created, saved, and displays a computed value on a risk record.
+- The formula evaluator correctly resolves field references in a sample formula.
+- Any remaining bugs identified during verification are logged as separate requests.
+
+**Key files:** `backend/src/services/formulaEvaluator.service.ts`, `frontend/src/features/configuration/CustomFieldModal.tsx`
+
+**Tests:** `backend/test/customFields.test.mjs`
+
+**Note:** BUG-050 must be implemented before this verification step runs. Test Engineer should use a concrete example (formula, fields referenced, expected output) and document it in the test.
+
+---
+
+### MAINT-006 — Update help docs for configurable scoring formula feature
+Source: REQ-052
+Capability: help-content
+Status: ready
+
+**Problem:** PM6-SCORING shipped in v1.17.0 with no help content update. Users find no in-app guidance on configuring or using custom scoring formulas.
+
+**Acceptance criteria:**
+- Help content in `frontend/public/help/en/` updated to reflect the scoring formula feature.
+- Content covers: how to write a formula; available canonical variable names (`likelihood`, `impact`); numeric custom field references; constants; supported arithmetic operators (+, -, *, /, parentheses).
+- Content covers validation behaviour: formulas are checked on save and enforced on publish; invalid formulas are rejected with an error message.
+- Content notes that existing registers default to `likelihood × impact` and are unaffected unless a Register Admin changes the formula.
+
+**Key files:** `frontend/public/help/en/`
+
+---
+
+### UI-020 — Make open-risk and overdue counts clickable links on /registers
+Source: REQ-051
+Capability: register-list
+Status: ready
+
+**Problem:** The /registers page table shows plain-text open-risk and overdue counts. They should be clickable links, consistent with the pattern already used by the Admin Summary widget (REQ-034).
+
+**Acceptance criteria:**
+- Open-risk count on /registers is a link to `/registers/<registerID>` with an open-risks filter pre-applied.
+- Overdue count on /registers is a link to `/registers/<registerID>` with an overdue-reviews filter pre-applied.
+- Links match the visual and navigation pattern used by the Admin Summary widget counts.
+- No regression to /registers page load, permissions, or table sorting/filtering behaviour.
+
+**Implementation note:** Reference the Admin Summary widget implementation for the exact filter param format before implementing.
+
+**Key files:** `frontend/src/features/registers/RegistersPage.tsx`
+
+**Tests:** `frontend/test/registers.test.mjs`
 
 ---
 
 ## Required agents
 
-- **principal-architect** — must go first: defines the formula storage model (schema change), evaluates whether `formulaEvaluator.service.ts` can serve as the scoring formula engine or whether a separate evaluator is needed, confirms the architecture supports inherent/residual reuse, and defines which fields are available as formula variables.
-- **backend-developer** — formula validation endpoint, bulk recalculation on publish, scoring service changes, audit integration.
-- **frontend-developer** — formula editor UI in ScoringConfigurationPanel, validation feedback, config publish flow changes.
-- **test-engineer** — formula validation, recalculation, matrix behaviour after formula change.
+- **frontend-developer** — BUG-050 (CustomFieldModal fix), UI-020 (register count links), MAINT-006 (help content update)
+- **test-engineer** — BUG-049 (end-to-end calculated field verification), test coverage for BUG-050 and UI-020
 
-**Sequencing:** PA must complete the architecture review and schema design before backend-developer or frontend-developer begin implementation. PA output is a gate, not a parallel step.
+**Sequencing:** BUG-050 must be implemented before BUG-049 verification begins. All other items are independent and can run in parallel.
 
 ## Decisions
 
-- **Formula recalculation on publish** → immediate, across all risks in the register. Not lazy.
-- **Formula variable names** → canonical names (`likelihood`, `impact`) are used in formulas, not display names. Renaming L/I labels in configuration does not affect the formula.
-- **Formula inputs** → Likelihood and Impact are always the primary inputs. Numeric custom fields and constants are also valid. The formula is not required to be valid without L and I — this is by design since the matrix depends on L/I being in the formula.
-- **Formula validation** → validated on save (draft) and enforced on publish. Invalid formulas block publishing.
-- **Inherent/residual mode** → explicitly out of scope for this release. PM6-CORE (inherent/residual) is deferred until PM7-CORE (child actions) is complete.
-
-## Test / sign-off
-
-- [x] PA architecture sign-off received before implementation begins
-- [x] Formula validation rejects invalid syntax with clear error message
-- [x] Formula validation rejects type errors (e.g. non-numeric field reference)
-- [x] Existing default formula (likelihood × impact) continues to work unchanged
-- [x] Score recalculation fires immediately on publish for all risks in the register
-- [x] Matrix and risk level assignment unaffected by formula change (where formula uses L and I)
-- [x] Recalculation event is captured in audit log
-- [x] No regression to existing scoring, matrix, or risk level tests
-- [ ] Full CI pass — pending PR merge
-
-## Verification feedback
-
-**Verification feedback:** When editing a risk and changing Likelihood or Impact, the score recalculates using a previous (stale) version of the scoring formula rather than the current published formula. The same happens when adding a new risk — it scores using the old formula. The bulk recalculation on publish works correctly.
-**Ruling:** in scope — correct per-risk scoring on create/edit is a direct acceptance criterion ("all risk scores recalculate correctly").
-**Fix:** Backend Developer to identify where individual risk create/update calculates the score and ensure it reads the current `scoringFormula` from the live `Register` row rather than using a hardcoded default or cached value.
+No open decisions. All items have established patterns or clearly specified fixes.
 
 ## Blockers
 
