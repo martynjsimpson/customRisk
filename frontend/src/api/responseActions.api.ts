@@ -98,7 +98,7 @@ export async function deleteResponseAction(
 
 export async function switchResponseActionMode(registerId: string) {
   const response = await apiClient.patch<{ data: { responseActionMode: ResponseActionMode } }>(
-    `/registers/${registerId}/settings`,
+    `/registers/${registerId}`,
     { responseActionMode: "CHILD_RECORDS" }
   );
   return response.data.data;
