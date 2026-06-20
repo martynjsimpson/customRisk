@@ -107,6 +107,7 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
       validationMode: field.validationMode,
       displayOrder: field.displayOrder,
       isActive: field.isActive,
+      formula: field.formula ?? null,
       visibleToRoles: field.visibleToRoles,
       visibleToRiskResponseOwners: field.visibleToRiskResponseOwners,
       options: field.options.map((option) => ({
@@ -357,6 +358,10 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
   const openDeleteConfirm = async (field: CustomFieldDefinition) => {
     setDeleteConfirmField(field);
     setDeleteFieldUsage(null);
+    if (hasDraft) {
+      // Draft-only fields have no persisted values — skip the usage check entirely.
+      return;
+    }
     setLoadingUsage(true);
     try {
       const usage = await getCustomFieldUsage(registerId, field.id);
@@ -367,7 +372,14 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
   };
 
   const deleteFieldMutation = useMutation<unknown, Error, { fieldId: string; force: boolean }>({
-    mutationFn: ({ fieldId, force }) => deleteCustomField(registerId, fieldId, force),
+    mutationFn: ({ fieldId, force }) =>
+      hasDraft
+        ? updateDraftConfig(registerId, {
+            customFields: buildDraftFields((current) =>
+              current.filter((field) => field.id !== fieldId)
+            )
+          })
+        : deleteCustomField(registerId, fieldId, force),
     onSuccess: async () => {
       setDeleteConfirmField(null);
       setDeleteFieldUsage(null);

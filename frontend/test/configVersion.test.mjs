@@ -286,6 +286,52 @@ test("draft config snapshots preserve custom field validation modes through publ
   assert.match(configExportService, /validationMode: field\.validationMode/);
 });
 
+test("UpdateDraftConfigInput.customFields Pick list includes formula so formula survives draft writes", async () => {
+  const api = await readFile(new URL("../src/api/configVersion.api.ts", import.meta.url), "utf8");
+
+  // The Pick type must name "formula" so TypeScript accepts it in the payload
+  assert.match(api, /"formula"/);
+
+  // The actual updateDraftConfig function must exist and accept the field
+  assert.match(api, /export async function updateDraftConfig/);
+});
+
+test("buildDraftFields in FieldConfigTab maps formula onto the draft snapshot", async () => {
+  const fieldTab = await readFile(
+    new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // formula must be explicitly mapped — not just spread — so it is never silently dropped
+  assert.match(fieldTab, /formula: field\.formula \?\? null/);
+});
+
+test("openDeleteConfirm skips usage check when hasDraft is true so draft-only fields do not 404", async () => {
+  const fieldTab = await readFile(
+    new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Early return in openDeleteConfirm when hasDraft
+  assert.match(fieldTab, /if \(hasDraft\)/);
+  assert.match(fieldTab, /return;/);
+
+  // getCustomFieldUsage is still imported (used in non-draft path)
+  assert.match(fieldTab, /getCustomFieldUsage/);
+});
+
+test("deleteFieldMutation branches on hasDraft — draft path calls updateDraftConfig, not deleteCustomField", async () => {
+  const fieldTab = await readFile(
+    new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // deleteFieldMutation mutationFn must reference both paths
+  assert.match(fieldTab, /hasDraft/);
+  assert.match(fieldTab, /current\.filter\(\(field\) => field\.id !== fieldId\)/);
+  assert.match(fieldTab, /deleteCustomField/);
+});
+
 test("draft and export snapshots preserve the register-level custom field validation toggle", async () => {
   const configVersionService = await readFile(
     new URL("../../backend/src/services/configVersion.service.ts", import.meta.url),
