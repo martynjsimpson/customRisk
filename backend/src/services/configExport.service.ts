@@ -20,7 +20,8 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       allowViewerExport: true,
       customFieldValidationEnabled: true,
       reviewStatusPosition: true,
-      scoringFormula: true
+      scoringFormula: true,
+      responseActionMode: true
     }
   });
 
@@ -78,7 +79,8 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       allowViewerExport: register.allowViewerExport,
       customFieldValidationEnabled: register.customFieldValidationEnabled,
       reviewStatusPosition: register.reviewStatusPosition,
-      scoringFormula: register.scoringFormula
+      scoringFormula: register.scoringFormula,
+      responseActionMode: register.responseActionMode
     },
     customFields: customFields.map((field) => ({
       id: field.id,

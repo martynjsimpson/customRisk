@@ -9,7 +9,8 @@ export type ApiErrorCode =
   | "RATE_LIMITED"
   | "INTERNAL_ERROR"
   | "INVALID_MODE"
-  | "INVALID_OPERATION";
+  | "INVALID_OPERATION"
+  | "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS";
 
 export type ErrorFields = Record<string, string>;
 

@@ -12,6 +12,176 @@ import {
 import type { Prisma } from "@prisma/client";
 import type { AuthenticatedActor } from "../types/express.js";
 
+// ---------------------------------------------------------------------------
+// Migration helpers (exported for use by configVersion.service.ts)
+// ---------------------------------------------------------------------------
+
+export async function migrateSimpleResponseActionsToChildRecords(
+  registerId: string,
+  actorId: string,
+  tx: Prisma.TransactionClient
+): Promise<void> {
+  const risks = await tx.risk.findMany({
+    where: {
+      registerId,
+      responseAction: { not: null }
+    },
+    select: { id: true, responseAction: true }
+  });
+
+  for (const risk of risks) {
+    const trimmed = risk.responseAction?.trim();
+    if (!trimmed) continue;
+
+    const action = await tx.responseAction.create({
+      data: {
+        response: trimmed,
+        status: "PLANNED",
+        createdByUserId: actorId,
+        updatedByUserId: actorId
+      },
+      select: { id: true }
+    });
+
+    await tx.riskResponseAction.create({
+      data: {
+        riskId: risk.id,
+        registerId,
+        responseActionId: action.id,
+        displayOrder: 0,
+        createdByUserId: actorId
+      }
+    });
+
+    await recordAuditEvent(
+      {
+        action: auditActions.responseActionMigrated,
+        actor: { id: actorId },
+        objectType: "RESPONSE_ACTION",
+        objectId: action.id,
+        objectDisplayName: action.id,
+        scopeType: "RISK",
+        registerId,
+        riskId: risk.id,
+        summary: "Response action migrated from simple field during mode switch"
+      },
+      tx
+    );
+  }
+}
+
+export async function migrateChildRecordsToSimple(
+  registerId: string,
+  actorId: string,
+  tx: Prisma.TransactionClient
+): Promise<void> {
+  // 1. Re-verify feasibility inside the transaction (defence in depth)
+  const blockers = await tx.$queryRaw<{ risk_id: string }[]>`
+    SELECT rra.risk_id
+    FROM risk_response_action rra
+    JOIN response_action ra ON ra.id = rra.response_action_id
+    JOIN risk r ON r.id = rra.risk_id
+    WHERE rra.register_id = ${registerId}
+      AND ra.is_deleted   = false
+      AND r.is_deleted    = false
+    GROUP BY rra.risk_id
+    HAVING COUNT(ra.id) >= 2
+  `;
+
+  if (blockers.length > 0) {
+    throw new ApiError(
+      409,
+      "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS",
+      "One or more risks have multiple active action records; revert aborted."
+    );
+  }
+
+  // 2. Fetch risks with exactly 1 non-deleted action and their action's response text
+  const singles = await tx.$queryRaw<{ risk_id: string; response: string; action_id: string }[]>`
+    SELECT rra.risk_id, ra.response, ra.id AS action_id
+    FROM risk_response_action rra
+    JOIN response_action ra ON ra.id = rra.response_action_id
+    JOIN risk r ON r.id = rra.risk_id
+    WHERE rra.register_id = ${registerId}
+      AND ra.is_deleted   = false
+      AND r.is_deleted    = false
+  `;
+
+  // 3. Write ResponseAction.response back into Risk.responseAction for each single-action risk
+  for (const row of singles) {
+    await tx.risk.update({
+      where: { id: row.risk_id },
+      data: {
+        responseAction: row.response,
+        updatedAt: new Date(),
+        updatedByUserId: actorId
+      }
+    });
+
+    // Emit riskUpdated audit event per risk whose responseAction was written
+    await recordAuditEvent(
+      {
+        action: auditActions.riskUpdated,
+        actor: { id: actorId },
+        objectType: "RISK",
+        objectId: row.risk_id,
+        objectDisplayName: row.risk_id,
+        scopeType: "RISK",
+        registerId,
+        riskId: row.risk_id,
+        summary: "Response action text written back to simple field during revert to Simple mode",
+        metadataJson: { fields: ["responseAction"], reason: "mode_revert_to_simple" }
+      },
+      tx
+    );
+  }
+
+  // 4. Soft-delete all ResponseAction records for this register
+  const actionLinks = await tx.riskResponseAction.findMany({
+    where: { registerId },
+    select: { responseActionId: true }
+  });
+  const ids = [...new Set(actionLinks.map((r) => r.responseActionId))];
+
+  if (ids.length > 0) {
+    // Fetch link-to-risk mapping for audit events
+    const linkRows = await tx.riskResponseAction.findMany({
+      where: { registerId, responseActionId: { in: ids } },
+      select: { responseActionId: true, riskId: true }
+    });
+    const actionToRisk = new Map(linkRows.map((lr) => [lr.responseActionId, lr.riskId]));
+
+    await tx.responseAction.updateMany({
+      where: { id: { in: ids }, isDeleted: false },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedByUserId: actorId
+      }
+    });
+
+    // 5. Emit audit events for each soft-deleted action
+    for (const actionId of ids) {
+      const riskId = actionToRisk.get(actionId);
+      await recordAuditEvent(
+        {
+          action: auditActions.responseActionDeleted,
+          actor: { id: actorId },
+          objectType: "RESPONSE_ACTION",
+          objectId: actionId,
+          objectDisplayName: actionId,
+          scopeType: "RISK",
+          registerId,
+          riskId,
+          summary: "Response action soft-deleted during revert to Simple mode",
+          metadataJson: { reason: "mode_revert_to_simple" }
+        },
+        tx
+      );
+    }
+  }
+}
+
 type ActionClient = typeof prisma | Prisma.TransactionClient;
 
 // ---------------------------------------------------------------------------

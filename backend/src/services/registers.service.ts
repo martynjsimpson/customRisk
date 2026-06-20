@@ -7,6 +7,7 @@ import { getEffectiveRegisterRole, listAccessibleRegisterIds } from "../permissi
 import type { RegisterConfigSnapshot } from "../types/configSnapshot.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
+import { migrateSimpleResponseActionsToChildRecords } from "./responseActions.service.js";
 import { utcDateOnly } from "./reviewStatus.service.js";
 import type {
   CreateRegisterPermissionBody,
@@ -78,60 +79,6 @@ const matrixLevelNames = [
   ["Medium", "Medium", "High"],
   ["Medium", "High",   "High"]
 ];
-
-async function migrateSimpleResponseActionsToChildRecords(
-  registerId: string,
-  actorId: string,
-  tx: Prisma.TransactionClient
-): Promise<void> {
-  const risks = await tx.risk.findMany({
-    where: {
-      registerId,
-      responseAction: { not: null }
-    },
-    select: { id: true, responseAction: true }
-  });
-
-  for (const risk of risks) {
-    const trimmed = risk.responseAction?.trim();
-    if (!trimmed) continue;
-
-    const action = await tx.responseAction.create({
-      data: {
-        response: trimmed,
-        status: "PLANNED",
-        createdByUserId: actorId,
-        updatedByUserId: actorId
-      },
-      select: { id: true }
-    });
-
-    await tx.riskResponseAction.create({
-      data: {
-        riskId: risk.id,
-        registerId,
-        responseActionId: action.id,
-        displayOrder: 0,
-        createdByUserId: actorId
-      }
-    });
-
-    await recordAuditEvent(
-      {
-        action: auditActions.responseActionMigrated,
-        actor: { id: actorId },
-        objectType: "RESPONSE_ACTION",
-        objectId: action.id,
-        objectDisplayName: action.id,
-        scopeType: "RISK",
-        registerId,
-        riskId: risk.id,
-        summary: "Response action migrated from simple field during mode switch"
-      },
-      tx
-    );
-  }
-}
 
 function mapPrismaError(error: unknown): never {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

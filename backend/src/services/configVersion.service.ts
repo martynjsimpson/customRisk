@@ -10,6 +10,7 @@ import type {
 import type { UpdateDraftBody } from "../validators/configVersion.schemas.js";
 import { recordAuditEvent } from "./audit.service.js";
 import { recalculateRiskLevels } from "./matrix.service.js";
+import { migrateSimpleResponseActionsToChildRecords, migrateChildRecordsToSimple } from "./responseActions.service.js";
 import { evaluateAndStoreCalculatedFields } from "./risks.service.js";
 import { recalculateRiskScores } from "./scoring.service.js";
 import { validateScoringFormula } from "./formulaEvaluator.service.js";
@@ -34,7 +35,8 @@ function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterConfigSnap
       ...snapshot.register,
       customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true,
       reviewStatusPosition: snapshot.register.reviewStatusPosition ?? null,
-      scoringFormula: snapshot.register.scoringFormula ?? ""
+      scoringFormula: snapshot.register.scoringFormula ?? "",
+      responseActionMode: snapshot.register.responseActionMode ?? "SIMPLE"
     },
     customFields: snapshot.customFields.map((field) => normalizeCustomFieldValidationMode(field))
   };
@@ -58,7 +60,8 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
           allowViewerExport: true,
           customFieldValidationEnabled: true,
           reviewStatusPosition: true,
-          scoringFormula: true
+          scoringFormula: true,
+          responseActionMode: true
         }
       }),
       prisma.customFieldDefinition.findMany({
@@ -105,7 +108,8 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
       allowViewerExport: register.allowViewerExport,
       customFieldValidationEnabled: register.customFieldValidationEnabled,
       reviewStatusPosition: register.reviewStatusPosition,
-      scoringFormula: register.scoringFormula
+      scoringFormula: register.scoringFormula,
+      responseActionMode: register.responseActionMode
     },
     customFields: customFields.map((f) => ({
       id: f.id,
@@ -451,8 +455,16 @@ export async function analyseImpact(
 
   const snapshot = draft.snapshotJson as unknown as RegisterConfigSnapshot;
 
+  type ImpactEntry = {
+    type: "BLOCKER" | "WARNING";
+    code: string;
+    message: string;
+    meta?: Record<string, unknown>;
+  };
+
   const blockers: string[] = [];
   const warnings: string[] = [];
+  const impactEntries: ImpactEntry[] = [];
 
   // --- Structural validation (blockers) ---
   const activeLikelihoods = snapshot.likelihoodValues.filter((v) => v.isActive);
@@ -516,7 +528,8 @@ export async function analyseImpact(
     liveResponseStrategies,
     liveCustomFields,
     risks,
-    customFieldValues
+    customFieldValues,
+    liveRegister
   ] = await Promise.all([
     prisma.likelihoodValue.findMany({ where: { registerId }, select: { id: true, name: true, isActive: true } }),
     prisma.impactValue.findMany({ where: { registerId }, select: { id: true, name: true, isActive: true } }),
@@ -537,7 +550,8 @@ export async function analyseImpact(
         riskId: true,
         customFieldDefinitionId: true
       }
-    })
+    }),
+    prisma.register.findUnique({ where: { id: registerId }, select: { responseActionMode: true } })
   ]);
 
   // Build sets of IDs being deactivated (were active, now inactive or absent in draft)
@@ -628,6 +642,66 @@ export async function analyseImpact(
     }
   }
 
+  // --- responseActionMode change analysis ---
+  const snapshotMode = (snapshot.register as { responseActionMode?: string }).responseActionMode ?? "SIMPLE";
+  const currentMode = liveRegister?.responseActionMode ?? "SIMPLE";
+
+  if (snapshotMode === "CHILD_RECORDS" && currentMode === "SIMPLE") {
+    const msg = "Publishing will migrate existing simple response action values to child action records.";
+    warnings.push(msg);
+    impactEntries.push({
+      type: "WARNING",
+      code: "MODE_WILL_MIGRATE_TO_CHILD_RECORDS",
+      message: msg
+    });
+  } else if (snapshotMode === "SIMPLE" && currentMode === "CHILD_RECORDS") {
+    // Feasibility check: any risk with >= 2 non-deleted actions blocks the revert
+    const actionCounts = await prisma.$queryRaw<{ risk_id: string; cnt: bigint }[]>`
+      SELECT rra.risk_id, COUNT(ra.id) AS cnt
+      FROM risk_response_action rra
+      JOIN response_action ra ON ra.id = rra.response_action_id
+      JOIN risk r ON r.id = rra.risk_id
+      WHERE rra.register_id = ${registerId}
+        AND ra.is_deleted   = false
+        AND r.is_deleted    = false
+      GROUP BY rra.risk_id
+      HAVING COUNT(ra.id) >= 2
+    `;
+
+    if (actionCounts.length > 0) {
+      const offendingRiskIds = actionCounts.map((r) => r.risk_id);
+      const offendingRisks = await prisma.risk.findMany({
+        where: { id: { in: offendingRiskIds } },
+        select: { id: true, displayRiskId: true, title: true }
+      });
+
+      const blockerMsg =
+        "Cannot revert Response Action mode to Simple: the following risks have 2 or more active action records. Reduce each to a single action (or delete all actions) before publishing.";
+      blockers.push(blockerMsg);
+      impactEntries.push({
+        type: "BLOCKER",
+        code: "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS",
+        message: blockerMsg,
+        meta: {
+          offendingRisks: offendingRisks.map((r) => ({
+            riskId: r.id,
+            displayRiskId: r.displayRiskId,
+            title: r.title
+          }))
+        }
+      });
+    } else {
+      const revertMsg =
+        "Publishing will revert Response Action mode to Simple. Each risk's most recent action text will be written back to the simple response field, and all child action records will be soft-deleted.";
+      warnings.push(revertMsg);
+      impactEntries.push({
+        type: "WARNING",
+        code: "REVERT_MODE_WILL_MIGRATE",
+        message: revertMsg
+      });
+    }
+  }
+
   const result = {
     affectedRisks: {
       deactivatedLikelihood: deactivatedLikelihoodCount,
@@ -638,6 +712,7 @@ export async function analyseImpact(
     },
     warnings,
     blockers,
+    impactEntries,
     canPublish: blockers.length === 0
   };
 
@@ -979,6 +1054,22 @@ export async function publishDraft(
       await evaluateAndStoreCalculatedFields(risk.id, registerId, tx);
     }
 
+    // --- Apply responseActionMode from snapshot (with migration if needed) ---
+    const snapshotMode = (snapshot.register as { responseActionMode?: string }).responseActionMode ?? "SIMPLE";
+    // Acquire row lock to prevent concurrent publishes from racing the migration
+    await tx.$executeRaw`SELECT id FROM register WHERE id = ${registerId} FOR UPDATE`;
+    const lockedRegister = await tx.register.findUnique({
+      where: { id: registerId },
+      select: { responseActionMode: true }
+    });
+    const currentMode = lockedRegister?.responseActionMode ?? "SIMPLE";
+
+    if (snapshotMode === "CHILD_RECORDS" && currentMode === "SIMPLE") {
+      await migrateSimpleResponseActionsToChildRecords(registerId, actorId, tx);
+    } else if (snapshotMode === "SIMPLE" && currentMode === "CHILD_RECORDS") {
+      await migrateChildRecordsToSimple(registerId, actorId, tx);
+    }
+
     // --- Update register settings ---
     // Apply register settings from snapshot only when draft originated from a template.
     // Register settings are only applied from the snapshot when the draft originated from a
@@ -1008,6 +1099,8 @@ export async function publishDraft(
         // Always promote scoringFormula from the published snapshot so that
         // resolveRiskScoring reads the correct formula on subsequent risk edits.
         scoringFormula: regSettings.scoringFormula ?? "",
+        // Always promote responseActionMode from the published snapshot.
+        responseActionMode: snapshotMode as "SIMPLE" | "CHILD_RECORDS",
         // Promote draft to current
         currentConfigVersionId: draft.id,
         draftConfigVersionId: null,
