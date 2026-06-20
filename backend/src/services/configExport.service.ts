@@ -19,7 +19,8 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       reviewAttestationText: true,
       allowViewerExport: true,
       customFieldValidationEnabled: true,
-      reviewStatusPosition: true
+      reviewStatusPosition: true,
+      scoringFormula: true
     }
   });
 
@@ -76,7 +77,8 @@ async function buildSnapshotFromLiveTables(registerId: string): Promise<Register
       reviewAttestationText: register.reviewAttestationText,
       allowViewerExport: register.allowViewerExport,
       customFieldValidationEnabled: register.customFieldValidationEnabled,
-      reviewStatusPosition: register.reviewStatusPosition
+      reviewStatusPosition: register.reviewStatusPosition,
+      scoringFormula: register.scoringFormula
     },
     customFields: customFields.map((field) => ({
       id: field.id,

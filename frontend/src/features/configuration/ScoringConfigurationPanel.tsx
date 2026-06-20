@@ -1,5 +1,6 @@
 import { Box, Fieldset, Tabs } from "@mantine/core";
 
+import { FormulaConfigTab } from "./FormulaConfigTab";
 import { ImpactConfigTab } from "./ImpactConfigTab";
 import { LikelihoodConfigTab } from "./LikelihoodConfigTab";
 import { MatrixConfigTab } from "./MatrixConfigTab";
@@ -21,6 +22,7 @@ export function ScoringConfigurationPanel({ registerId, draftConfigMode, configL
         <Tabs.Tab value="impact">Impact</Tabs.Tab>
         <Tabs.Tab value="risk-levels">Risk Levels</Tabs.Tab>
         <Tabs.Tab value="matrix">Matrix</Tabs.Tab>
+        <Tabs.Tab value="formula">Formula</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="likelihood" pt="md">
         <Fieldset legend="Likelihood">
@@ -47,6 +49,13 @@ export function ScoringConfigurationPanel({ registerId, draftConfigMode, configL
         <Fieldset legend="Risk Matrix">
           <Box style={lockedStyle}>
             <MatrixConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
+          </Box>
+        </Fieldset>
+      </Tabs.Panel>
+      <Tabs.Panel value="formula" pt="md">
+        <Fieldset legend="Scoring Formula">
+          <Box style={lockedStyle}>
+            <FormulaConfigTab registerId={registerId} draftConfigMode={draftConfigMode} />
           </Box>
         </Fieldset>
       </Tabs.Panel>

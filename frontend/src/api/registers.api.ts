@@ -27,6 +27,7 @@ export interface RegisterRecord {
   reviewAttestationText: string;
   allowViewerExport: boolean;
   customFieldValidationEnabled: boolean;
+  scoringFormula: string;
   // Position of the Review status row in the risk detail modal (0-based index).
   // null means "place Review status last" — the default for all existing registers.
   reviewStatusPosition: number | null;

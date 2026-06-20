@@ -238,6 +238,47 @@ export function evaluateFormula(formula: string, ctx: FormulaContext): number {
   return parser.parse();
 }
 
+export function validateScoringFormula(
+  formula: string,
+  availableFieldKeys: string[]
+): { valid: boolean; error?: string } {
+  // Empty string means "use default" — always valid
+  if (formula === "") {
+    return { valid: true };
+  }
+
+  if (/\{score\}/i.test(formula)) {
+    return {
+      valid: false,
+      error: "The {score} variable cannot be used in a scoring formula (circular reference)"
+    };
+  }
+
+  // Check that any {field:uuid} references are in the available set
+  const availableSet = new Set(availableFieldKeys.map((k) => k.toLowerCase()));
+  const fieldRefs = [...formula.matchAll(/\{field:([0-9a-f-]{36})\}/gi)];
+  for (const m of fieldRefs) {
+    const id = m[1];
+    if (id && !availableSet.has(id.toLowerCase())) {
+      return {
+        valid: false,
+        error: `Field ${id} is not a numeric custom field in this register`
+      };
+    }
+  }
+
+  try {
+    const fieldValues: Record<string, number> = {};
+    for (const key of availableFieldKeys) {
+      fieldValues[key.toLowerCase()] = 0;
+    }
+    evaluateFormula(formula, { fieldValues, score: null, likelihood: 0, impact: 0 });
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export function validateFormula(formula: string): { valid: boolean; error?: string } {
   try {
     // Use a stub context with all referenced fields resolving to 0

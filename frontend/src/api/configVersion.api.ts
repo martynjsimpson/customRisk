@@ -41,6 +41,9 @@ interface DraftMatrixCell {
 }
 
 export interface UpdateDraftConfigInput {
+  register?: {
+    scoringFormula?: string;
+  };
   customFields?: Array<
     Pick<
       CustomFieldDefinition,
@@ -58,6 +61,22 @@ export interface UpdateDraftConfigInput {
   impactValues?: Array<Pick<ImpactValue, "id" | "name" | "numericValue" | "displayOrder" | "isActive">>;
   riskLevels?: Array<Pick<RiskLevel, "id" | "name" | "description" | "color" | "displayOrder" | "isActive">>;
   matrixCells?: DraftMatrixCell[];
+}
+
+export interface ValidateFormulaResult {
+  valid: boolean;
+  error?: string;
+}
+
+export async function validateScoringFormula(
+  registerId: string,
+  formula: string
+): Promise<ValidateFormulaResult> {
+  const response = await apiClient.post<ApiResponse<ValidateFormulaResult>>(
+    `/registers/${registerId}/config-versions/validate-formula`,
+    { formula }
+  );
+  return response.data.data;
 }
 
 export async function getConfigVersionStatus(registerId: string): Promise<ConfigVersionStatus> {

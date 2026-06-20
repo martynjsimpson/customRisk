@@ -73,6 +73,7 @@ export interface ConfigSnapshotRegisterSettings {
   allowViewerExport: boolean;
   customFieldValidationEnabled: boolean;
   reviewStatusPosition: number | null;
+  scoringFormula: string;
 }
 
 export interface RegisterConfigSnapshot {

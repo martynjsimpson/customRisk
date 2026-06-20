@@ -7,14 +7,16 @@ import {
   getConfigVersionStatusController,
   listConfigVersionsController,
   publishDraftController,
-  updateDraftController
+  updateDraftController,
+  validateFormulaController
 } from "../controllers/configVersion.controller.js";
 import { requireRegisterManagement } from "../middleware/requirePermission.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import { asyncRoute } from "../utils/asyncRoute.js";
 import {
   registerIdParamsSchema,
-  updateDraftBodySchema
+  updateDraftBodySchema,
+  validateFormulaBodySchema
 } from "../validators/configVersion.schemas.js";
 
 export function createConfigVersionSubRouter() {
@@ -67,6 +69,13 @@ export function createConfigVersionSubRouter() {
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(publishDraftController)
+  );
+
+  router.post(
+    "/:registerId/config-versions/validate-formula",
+    validateRequest({ params: registerIdParamsSchema, body: validateFormulaBodySchema }),
+    requireRegisterManagement(),
+    asyncRoute(validateFormulaController)
   );
 
   return router;

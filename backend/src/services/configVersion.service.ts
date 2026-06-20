@@ -10,6 +10,8 @@ import type {
 import type { UpdateDraftBody } from "../validators/configVersion.schemas.js";
 import { recordAuditEvent } from "./audit.service.js";
 import { recalculateRiskLevels } from "./matrix.service.js";
+import { recalculateRiskScores } from "./scoring.service.js";
+import { validateScoringFormula } from "./formulaEvaluator.service.js";
 
 // ---------------------------------------------------------------------------
 // Helper: build a current snapshot from relational tables
@@ -30,7 +32,8 @@ function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterConfigSnap
     register: {
       ...snapshot.register,
       customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true,
-      reviewStatusPosition: snapshot.register.reviewStatusPosition ?? null
+      reviewStatusPosition: snapshot.register.reviewStatusPosition ?? null,
+      scoringFormula: snapshot.register.scoringFormula ?? ""
     },
     customFields: snapshot.customFields.map((field) => normalizeCustomFieldValidationMode(field))
   };
@@ -53,7 +56,8 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
           reviewAttestationText: true,
           allowViewerExport: true,
           customFieldValidationEnabled: true,
-          reviewStatusPosition: true
+          reviewStatusPosition: true,
+          scoringFormula: true
         }
       }),
       prisma.customFieldDefinition.findMany({
@@ -100,6 +104,7 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
       allowViewerExport: register.allowViewerExport,
       customFieldValidationEnabled: register.customFieldValidationEnabled,
       reviewStatusPosition: register.reviewStatusPosition,
+      scoringFormula: register.scoringFormula
     },
     customFields: customFields.map((f) => ({
       id: f.id,
@@ -486,6 +491,18 @@ export async function analyseImpact(
       blockers.push(
         `Matrix cell references risk level ID ${cell.riskLevelId} which is not in the draft`
       );
+    }
+  }
+
+  // --- Scoring formula validation ---
+  const scoringFormula = (snapshot.register as { scoringFormula?: string }).scoringFormula ?? "";
+  if (scoringFormula !== "") {
+    const numericFieldIds = snapshot.customFields
+      .filter((f) => f.fieldType === "NUMBER" || f.fieldType === "CALCULATED")
+      .map((f) => f.id);
+    const formulaValidation = validateScoringFormula(scoringFormula, numericFieldIds);
+    if (!formulaValidation.valid) {
+      blockers.push(`Scoring formula is invalid: ${formulaValidation.error}`);
     }
   }
 
@@ -937,6 +954,15 @@ export async function publishDraft(
       tx
     );
 
+    // --- Recalculate risk scores using the scoring formula ---
+    const scoreFormula = (snapshot.register as { scoringFormula?: string }).scoringFormula ?? "";
+    const scoresUpdated = await recalculateRiskScores(
+      { id: actorId, name: actorName, email: actorEmail, isSystemAdmin: true, isActive: true },
+      registerId,
+      scoreFormula,
+      tx
+    );
+
     // --- Update register settings ---
     // Apply register settings from snapshot only when draft originated from a template.
     // Register settings are only applied from the snapshot when the draft originated from a
@@ -992,7 +1018,8 @@ export async function publishDraft(
         metadataJson: {
           versionNumber: draft.versionNumber,
           affectedRisks: impact.affectedRisks.total,
-          warningCount: impact.warnings.length
+          warningCount: impact.warnings.length,
+          scoresRecalculated: scoresUpdated
         }
       },
       tx
