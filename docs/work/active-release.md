@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.16.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Maintenance-only release: profile and improve CI/CD pipeline performance, and up
 ### MAINT-004 — Investigate and improve CI/CD pipeline performance
 Source: REQ-017
 Capability: build-toolchain
-Status: selected
+Status: done
+done_in: v1.16.0
 
 **Problem:** The CI/CD pipeline is running slowly and impacting developer velocity. The bottleneck is unknown until profiled.
 
@@ -32,7 +33,8 @@ Status: selected
 ### MAINT-001 — Upgrade toolchain to Node 24 LTS and tighten package engine constraint
 Source: REQ-011
 Capability: build-toolchain
-Status: selected
+Status: done
+done_in: v1.16.0
 
 **Problem:** Node 24 is the current LTS line (LTS from October 2025). The project toolchain and engines constraint should be updated to target it.
 
@@ -65,15 +67,15 @@ Status: selected
 
 ## Test / sign-off
 
-- [ ] MAINT-004: pipeline improvement implemented and measured
-- [ ] MAINT-001: PA compatibility sign-off received
-- [ ] MAINT-001: all toolchain files updated to Node 24
-- [ ] Full CI pass clean after Node 24 upgrade
-- [ ] No regressions introduced
+- [x] MAINT-004: pipeline improvement implemented and measured
+- [x] MAINT-001: PA compatibility sign-off received
+- [x] MAINT-001: all toolchain files updated to Node 24
+- [x] Full CI pass clean after Node 24 upgrade
+- [x] No regressions introduced
 
 ## Blockers
 
-None. Both items are unblocked.
+None.
 
 ---
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
