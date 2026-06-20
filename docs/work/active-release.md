@@ -100,6 +100,12 @@ done_in: v1.17.1
 
 **Sequencing:** BUG-050 must be implemented before BUG-049 verification begins. All other items are independent and can run in parallel.
 
+## Verification feedback
+
+**Verification feedback (BUG-050):** After the initial fix, two follow-up defects were found during human verification: (1) the formula field is blank when opening an existing CALCULATED field for editing; (2) editing a CALCULATED field still throws `validationMode: Invalid option` on the draft path.
+**Ruling:** in scope — both are gaps against BUG-050 acceptance criteria ("Editing an existing CALCULATED custom field saves successfully").
+**Fix:** (A) Add `formula` to `snapshotCustomFieldSchema` in `backend/src/validators/configVersion.schemas.ts` so formula round-trips through draft saves. (B) In `FieldConfigTab.tsx` update path, pass `validationMode: "ALLOW"` instead of `undefined` for CALCULATED fields.
+
 ## Decisions
 
 No open decisions. All items have established patterns or clearly specified fixes.
