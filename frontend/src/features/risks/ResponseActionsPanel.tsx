@@ -1,8 +1,9 @@
 import { Badge, Button, Group, Loader, Stack, Table, Text, Title } from "@mantine/core";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import {
+  deleteResponseAction,
   listResponseActions,
   RESPONSE_ACTION_STATUS_LABELS,
   type ResponseAction,
@@ -47,6 +48,8 @@ export function ResponseActionsPanel({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<ResponseAction | null>(null);
 
+  const queryClient = useQueryClient();
+
   const actionsQuery = useQuery({
     queryKey: ["registers", registerId, "risks", riskId, "actions"],
     queryFn: () => listResponseActions(registerId, riskId),
@@ -70,6 +73,22 @@ export function ResponseActionsPanel({
   function closeModal() {
     setModalOpen(false);
     setEditingAction(null);
+  }
+
+  const deleteMutation = useMutation({
+    mutationFn: (action: ResponseAction) =>
+      deleteResponseAction(registerId, riskId, action.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["registers", registerId, "risks", riskId, "actions"],
+      });
+    },
+  });
+
+  function handleDelete(action: ResponseAction) {
+    if (window.confirm("Delete this response action? This cannot be undone.")) {
+      deleteMutation.mutate(action);
+    }
   }
 
   // Whether the current user can edit a given row. Admins/Risk Owners can edit
@@ -134,13 +153,25 @@ export function ResponseActionsPanel({
                       </Table.Td>
                       {canEditRow ? (
                         <Table.Td>
-                          <Button
-                            variant="subtle"
-                            size="xs"
-                            onClick={() => openEdit(action)}
-                          >
-                            Edit
-                          </Button>
+                          <Group gap="xs" wrap="nowrap">
+                            <Button
+                              variant="light"
+                              size="xs"
+                              onClick={() => openEdit(action)}
+                            >
+                              Edit
+                            </Button>
+                            {canDelete ? (
+                              <Button
+                                variant="light"
+                                color="red"
+                                size="xs"
+                                onClick={() => handleDelete(action)}
+                              >
+                                Delete
+                              </Button>
+                            ) : null}
+                          </Group>
                         </Table.Td>
                       ) : null}
                     </Table.Tr>

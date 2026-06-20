@@ -265,6 +265,111 @@ describe("ResponseActionsPanel", () => {
     });
   });
 
+  it("shows inline Delete button when canDelete is true and calls deleteResponseAction after confirm", async () => {
+    listResponseActionsMock.mockResolvedValue([
+      makeAction({ id: "action-del", response: "Delete me" }),
+    ]);
+    deleteResponseActionMock.mockResolvedValue(undefined);
+    // Auto-confirm the window.confirm dialog
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    const { ResponseActionsPanel } = await import(
+      "../src/features/risks/ResponseActionsPanel"
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <Wrapper>
+        <ResponseActionsPanel
+          registerId="reg-1"
+          riskId="risk-1"
+          canCreate={true}
+          canChangeOwner={true}
+          canDelete={true}
+          filterToUserId={null}
+        />
+      </Wrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Delete me")).toBeTruthy();
+    });
+
+    const deleteButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(deleteButton);
+
+    await waitFor(() => {
+      expect(deleteResponseActionMock).toHaveBeenCalledWith("reg-1", "risk-1", "action-del");
+    });
+  });
+
+  it("hides inline Delete button when canDelete is false", async () => {
+    listResponseActionsMock.mockResolvedValue([
+      makeAction({ id: "action-1", response: "Some action" }),
+    ]);
+
+    const { ResponseActionsPanel } = await import(
+      "../src/features/risks/ResponseActionsPanel"
+    );
+
+    render(
+      <Wrapper>
+        <ResponseActionsPanel
+          registerId="reg-1"
+          riskId="risk-1"
+          canCreate={false}
+          canChangeOwner={true}
+          canDelete={false}
+          filterToUserId={null}
+        />
+      </Wrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Some action")).toBeTruthy();
+    });
+
+    // Edit button is present (canChangeOwner=true), Delete button is not
+    expect(screen.getByRole("button", { name: /^edit$/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^delete$/i })).toBeNull();
+  });
+
+  it("does not call deleteResponseAction when window.confirm is cancelled", async () => {
+    listResponseActionsMock.mockResolvedValue([
+      makeAction({ id: "action-cancel", response: "Cancel delete" }),
+    ]);
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    const { ResponseActionsPanel } = await import(
+      "../src/features/risks/ResponseActionsPanel"
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <Wrapper>
+        <ResponseActionsPanel
+          registerId="reg-1"
+          riskId="risk-1"
+          canCreate={false}
+          canChangeOwner={true}
+          canDelete={true}
+          filterToUserId={null}
+        />
+      </Wrapper>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Cancel delete")).toBeTruthy();
+    });
+
+    const deleteButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(deleteButton);
+
+    expect(deleteResponseActionMock).not.toHaveBeenCalled();
+  });
+
   it("filters actions to only own when filterToUserId is set", async () => {
     listResponseActionsMock.mockResolvedValue([
       makeAction({ id: "a-1", response: "My action", ownerUserId: "user-99" }),
