@@ -26,7 +26,7 @@ const listRiskReviewsMock = vi.fn();
 const listRiskAuditMock = vi.fn();
 
 vi.mock("../src/api/risks.api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/api/risks.api")>();
+  const actual = await importOriginal();
   return {
     ...actual,
     getRisk: (...args: unknown[]) => getRiskMock(...args),

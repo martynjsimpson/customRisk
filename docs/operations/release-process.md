@@ -83,10 +83,17 @@ git push origin v<version>
 
 ### 6. Confirm the release workflow
 
-- Check GitHub Actions: the release workflow triggered by the `v*.*.*` tag should run.
-- Confirm the versioned container image is published to the container registry with tags `<version>`, `<major>.<minor>`, and `latest`.
-- Confirm a GitHub Release is created with changelog notes.
-- Confirm `docker-compose.yml` and `env.example` are attached as downloadable assets on the GitHub Release.
+The release workflow (`release.yml`) is triggered by the `v*.*.*` tag. It does **not** re-run the quality gate (typecheck, lint, test, build) because the tagged commit has already passed CI on `main`:
+
+1. The commit was first verified when it landed on the `release/vX.Y.Z` branch via CI.
+2. It was verified again when the release PR merged into `main` (CI runs on `main` pushes).
+3. Since branch protection requires all CI checks to pass before merging, the commit must have passed both times.
+
+Therefore, `release.yml` only publishes the image and creates the GitHub Release. Check:
+
+- The versioned container image is published to the container registry with tags `<version>`, `<major>.<minor>`, and `latest`.
+- A GitHub Release is created with changelog notes.
+- `docker-compose.yml` and `env.example` are attached as downloadable assets on the GitHub Release.
 
 ### 7. Verify the published image
 

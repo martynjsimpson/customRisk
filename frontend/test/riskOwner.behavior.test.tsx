@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // ---------------------------------------------------------------------------
 
 vi.mock("../src/api/risks.api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/api/risks.api")>();
+  const actual = await importOriginal();
   return {
     ...actual,
     getRisk: vi.fn(),

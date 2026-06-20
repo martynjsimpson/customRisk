@@ -33,7 +33,7 @@ vi.mock("../src/components/ApiErrorAlert", () => ({
 }));
 
 vi.mock("../src/api/risks.api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/api/risks.api")>();
+  const actual = await importOriginal();
   return { ...actual };
 });
 

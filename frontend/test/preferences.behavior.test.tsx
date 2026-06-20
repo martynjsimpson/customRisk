@@ -95,7 +95,7 @@ describe("PM1-05 — preference cache as single source of truth", () => {
       riskTableColumns: {}
     });
 
-    let capturedPrefs: ReturnType<typeof usePreferences> = null;
+    let _capturedPrefs: ReturnType<typeof usePreferences> = null;
     let triggerMutation: (() => void) | null = null;
 
     function TestComponent() {
@@ -108,7 +108,7 @@ describe("PM1-05 — preference cache as single source of truth", () => {
         }
       });
 
-      capturedPrefs = prefs;
+      _capturedPrefs = prefs;
       triggerMutation = () => mutation.mutate();
 
       return (
