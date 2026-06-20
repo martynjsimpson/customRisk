@@ -102,9 +102,13 @@ done_in: v1.17.1
 
 ## Verification feedback
 
-**Verification feedback (BUG-050):** After the initial fix, two follow-up defects were found during human verification: (1) the formula field is blank when opening an existing CALCULATED field for editing; (2) editing a CALCULATED field still throws `validationMode: Invalid option` on the draft path.
-**Ruling:** in scope — both are gaps against BUG-050 acceptance criteria ("Editing an existing CALCULATED custom field saves successfully").
-**Fix:** (A) Add `formula` to `snapshotCustomFieldSchema` in `backend/src/validators/configVersion.schemas.ts` so formula round-trips through draft saves. (B) In `FieldConfigTab.tsx` update path, pass `validationMode: "ALLOW"` instead of `undefined` for CALCULATED fields.
+**Verification feedback (BUG-050, round 1):** After the initial fix, two follow-up defects were found: (1) formula blank on edit; (2) validationMode error on edit in draft mode.
+**Ruling:** in scope.
+**Fix:** (A) Add `formula` to `snapshotCustomFieldSchema`. (B) Pass `validationMode: "ALLOW"` on CALCULATED update path. Also fixed: `configVersion.service.ts` was dropping formula on draft snapshot build and at publish time.
+
+**Verification feedback (BUG-050, round 2):** Two further defects found: (1) deleting a draft-only CALCULATED field throws "custom field not found" — delete always calls the REST API which requires the field to exist in DB, but draft-only fields haven't been written yet; (2) formula still not persisting — `buildDraftFields` in `FieldConfigTab.tsx` explicitly maps field properties but omits `formula`, wiping it on every draft write; also `UpdateDraftConfigInput.customFields` type does not include `formula`.
+**Ruling:** in scope — both are gaps against BUG-050 acceptance criteria.
+**Fix:** (A) `buildDraftFields` must include `formula: field.formula ?? null`. (B) `UpdateDraftConfigInput.customFields` type must include `formula`. (C) Delete in draft mode must remove the field from the draft snapshot rather than calling the REST delete API.
 
 ## Decisions
 
