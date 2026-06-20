@@ -643,9 +643,13 @@ export async function analyseImpact(
   }
 
   // --- responseActionMode change analysis ---
-  const snapshotMode = (snapshot.register as { responseActionMode?: string }).responseActionMode ?? "SIMPLE";
+  // snapshotMode is intentionally left as undefined when the field is absent — legacy snapshots
+  // created before responseActionMode was captured must be treated as a no-op, not as a
+  // deliberate request to revert to SIMPLE.
+  const snapshotMode = (snapshot.register as { responseActionMode?: string }).responseActionMode;
   const currentMode = liveRegister?.responseActionMode ?? "SIMPLE";
 
+  if (snapshotMode !== undefined) {
   if (snapshotMode === "CHILD_RECORDS" && currentMode === "SIMPLE") {
     const msg = "Publishing will migrate existing simple response action values to child action records.";
     warnings.push(msg);
@@ -701,6 +705,7 @@ export async function analyseImpact(
       });
     }
   }
+  } // end snapshotMode !== undefined
 
   const result = {
     affectedRisks: {
@@ -1055,7 +1060,10 @@ export async function publishDraft(
     }
 
     // --- Apply responseActionMode from snapshot (with migration if needed) ---
-    const snapshotMode = (snapshot.register as { responseActionMode?: string }).responseActionMode ?? "SIMPLE";
+    // snapshotMode is intentionally left as undefined when the field is absent — legacy snapshots
+    // created before responseActionMode was captured must be treated as a no-op, not as a
+    // deliberate request to revert to SIMPLE.
+    const snapshotMode = (snapshot.register as { responseActionMode?: string }).responseActionMode;
     // Acquire row lock to prevent concurrent publishes from racing the migration
     await tx.$executeRaw`SELECT id FROM register WHERE id = ${registerId} FOR UPDATE`;
     const lockedRegister = await tx.register.findUnique({
@@ -1064,10 +1072,12 @@ export async function publishDraft(
     });
     const currentMode = lockedRegister?.responseActionMode ?? "SIMPLE";
 
-    if (snapshotMode === "CHILD_RECORDS" && currentMode === "SIMPLE") {
-      await migrateSimpleResponseActionsToChildRecords(registerId, actorId, tx);
-    } else if (snapshotMode === "SIMPLE" && currentMode === "CHILD_RECORDS") {
-      await migrateChildRecordsToSimple(registerId, actorId, tx);
+    if (snapshotMode !== undefined && snapshotMode !== currentMode) {
+      if (snapshotMode === "CHILD_RECORDS" && currentMode === "SIMPLE") {
+        await migrateSimpleResponseActionsToChildRecords(registerId, actorId, tx);
+      } else if (snapshotMode === "SIMPLE" && currentMode === "CHILD_RECORDS") {
+        await migrateChildRecordsToSimple(registerId, actorId, tx);
+      }
     }
 
     // --- Update register settings ---
@@ -1099,8 +1109,9 @@ export async function publishDraft(
         // Always promote scoringFormula from the published snapshot so that
         // resolveRiskScoring reads the correct formula on subsequent risk edits.
         scoringFormula: regSettings.scoringFormula ?? "",
-        // Always promote responseActionMode from the published snapshot.
-        responseActionMode: snapshotMode as "SIMPLE" | "CHILD_RECORDS",
+        // Only promote responseActionMode when the snapshot explicitly carries the field.
+        // Legacy snapshots (field absent) must not overwrite the live register mode.
+        ...(snapshotMode !== undefined ? { responseActionMode: snapshotMode as "SIMPLE" | "CHILD_RECORDS" } : {}),
         // Promote draft to current
         currentConfigVersionId: draft.id,
         draftConfigVersionId: null,

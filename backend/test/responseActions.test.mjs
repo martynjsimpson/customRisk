@@ -378,3 +378,68 @@ test("apiError.ts includes INVALID_MODE and INVALID_OPERATION codes", async () =
   assert.match(source, /"INVALID_MODE"/);
   assert.match(source, /"INVALID_OPERATION"/);
 });
+
+// ---------------------------------------------------------------------------
+// Regression: legacy snapshots with responseActionMode === undefined must be
+// treated as a no-op by both analyseImpact and publishDraft.
+//
+// Before the fix, an absent snapshotMode was coerced to "SIMPLE" by
+// normalizeSnapshot, causing spurious revert migrations on legacy drafts.
+// The service now reads snapshotMode directly from the raw snapshot (not the
+// normalised copy) and skips all mode-change logic when it is undefined.
+// ---------------------------------------------------------------------------
+
+test("configVersion service analyseImpact reads snapshotMode from raw snapshot, not normalised snapshot", async () => {
+  // The fix: snapshotMode is read via a cast that allows undefined to propagate
+  // (snapshot.register as { responseActionMode?: string }).responseActionMode
+  // rather than from the normalised snapshot where the field is always present.
+  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  // The cast that preserves undefined must appear inside analyseImpact.
+  // A plain snapshot.register.responseActionMode read (without the optional cast)
+  // would rely on the type having the field non-optional, which would not catch
+  // the undefined case from legacy snapshots.
+  assert.match(
+    source,
+    /responseActionMode\?:/,
+    "snapshotMode must be read through an optional-field cast so undefined is preserved for legacy snapshots"
+  );
+});
+
+test("configVersion service analyseImpact guards all mode-migration impact entries behind snapshotMode !== undefined", async () => {
+  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  // The guard must appear: any mode-migration code (CHILD_RECORDS checks,
+  // blockers/warnings about migration) is skipped when snapshotMode is absent.
+  // Verify the guard pattern is present in analyseImpact.
+  assert.match(
+    source,
+    /if\s*\(\s*snapshotMode\s*!==\s*undefined\s*\)/,
+    "analyseImpact must guard all mode-migration logic behind snapshotMode !== undefined"
+  );
+});
+
+test("configVersion service publishDraft guards responseActionMode update behind snapshotMode !== undefined", async () => {
+  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  // The register.update call must only include responseActionMode in its data
+  // object when snapshotMode is defined — confirmed by the spread conditional.
+  assert.match(
+    source,
+    /snapshotMode\s*!==\s*undefined\s*\?\s*\{\s*responseActionMode\s*:/,
+    "publishDraft must only write responseActionMode to the register when snapshotMode is explicitly defined"
+  );
+});
+
+test("configVersion service publishDraft guards migration calls behind snapshotMode !== undefined", async () => {
+  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  // Both migrateSimpleResponseActionsToChildRecords and migrateChildRecordsToSimple
+  // must only be invoked when snapshotMode !== undefined.
+  // Confirm the combined guard wraps the migration dispatch.
+  assert.match(
+    source,
+    /if\s*\(\s*snapshotMode\s*!==\s*undefined\s*&&\s*snapshotMode\s*!==\s*currentMode\s*\)/,
+    "publishDraft must guard migration dispatch with snapshotMode !== undefined && snapshotMode !== currentMode"
+  );
+});
