@@ -9,6 +9,7 @@ import { createHealthRouter } from "./health.routes.js";
 import { createMetricsRouter } from "./metrics.routes.js";
 import { createPersonsRouter } from "./persons.routes.js";
 import { createRegistersRouter } from "./registers.routes.js";
+import { createResponseActionsSubRouter } from "./responseActions.routes.js";
 import { createTemplateRouter } from "./template.routes.js";
 import { createUsersRouter } from "./users.routes.js";
 
@@ -23,6 +24,7 @@ export function createApiRouter() {
   router.use("/dashboard", createDashboardRouter());
   router.use("/persons", createPersonsRouter());
   router.use("/registers", createRegistersRouter());
+  router.use("/registers", createResponseActionsSubRouter());
   router.use("/templates", requireFeature("draftConfig"), createTemplateRouter());
   router.use("/users", createUsersRouter());
 

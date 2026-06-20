@@ -33,7 +33,22 @@ export async function canViewRisk(
     select: { id: true }
   });
 
-  return risk !== null;
+  if (risk !== null) return true;
+
+  // Response Action Owners can view risks they have a linked action for
+  const ownsLinkedAction = await client.riskResponseAction.findFirst({
+    where: {
+      riskId,
+      registerId,
+      responseAction: {
+        ownerUserId: actor.id,
+        isDeleted: false
+      }
+    },
+    select: { id: true }
+  });
+
+  return ownsLinkedAction !== null;
 }
 
 export async function canEditRisk(

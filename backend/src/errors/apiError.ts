@@ -7,7 +7,9 @@ export type ApiErrorCode =
   | "CONFLICT"
   | "UNPROCESSABLE"
   | "RATE_LIMITED"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "INVALID_MODE"
+  | "INVALID_OPERATION";
 
 export type ErrorFields = Record<string, string>;
 

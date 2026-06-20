@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { ApiError } from "../errors/apiError.js";
 import { canManageRegister, canViewRegister, canExportRegister } from "../permissions/registerAccess.js";
 import { canEditRisk, canViewRisk } from "../permissions/riskAccess.js";
+import { canViewAction, canEditAction } from "../permissions/actionAccess.js";
 
 function requireActor(request: Request) {
   if (!request.actor) {
@@ -86,6 +87,38 @@ export function requireRiskEdit(registerParam = "registerId", riskParam = "riskI
       const registerId = routeParam(request, registerParam);
       const riskId = routeParam(request, riskParam);
       if (!registerId || !riskId || !(await canEditRisk(actor, registerId, riskId))) {
+        throw hiddenNotFound();
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+export function requireActionView(actionParam = "actionId", registerParam = "registerId") {
+  return async (request: Request, _response: Response, next: NextFunction) => {
+    try {
+      const actor = requireActor(request);
+      const registerId = routeParam(request, registerParam);
+      const actionId = routeParam(request, actionParam);
+      if (!registerId || !actionId || !(await canViewAction(actor, registerId, actionId))) {
+        throw hiddenNotFound();
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+export function requireActionOwner(actionParam = "actionId", registerParam = "registerId") {
+  return async (request: Request, _response: Response, next: NextFunction) => {
+    try {
+      const actor = requireActor(request);
+      const registerId = routeParam(request, registerParam);
+      const actionId = routeParam(request, actionParam);
+      if (!registerId || !actionId || !(await canEditAction(actor, registerId, actionId))) {
         throw hiddenNotFound();
       }
       next();

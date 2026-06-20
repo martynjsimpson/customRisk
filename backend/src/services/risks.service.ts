@@ -27,7 +27,7 @@ import type {
 import { validateCustomFieldValues } from "./customFieldValues.service.js";
 import { formatPersonDisplay, personReferenceSelect, resolvePersonInput } from "./personReference.service.js";
 import { evaluateFormula, FormulaEvaluationError, type FormulaContext } from "./formulaEvaluator.service.js";
-import { isFieldVisibleToRole } from "./registerConfig.service.js";
+import { isFieldVisibleToRole, isFieldVisibleToResponseActionOwner } from "./registerConfig.service.js";
 
 type RiskClient = typeof prisma | Prisma.TransactionClient;
 
@@ -692,7 +692,7 @@ export async function getRiskDetail(actor: AuthenticatedActor, registerId: strin
     prisma.risk.findFirst({
       where: { id: riskId, registerId },
       include: {
-        register: { select: { reviewsEnabled: true } },
+        register: { select: { reviewsEnabled: true, responseActionMode: true } },
         owner: { select: { id: true, name: true, email: true, isActive: true } },
         ownerPerson: { select: personReferenceSelect },
         likelihoodValue: true,
@@ -711,7 +711,7 @@ export async function getRiskDetail(actor: AuthenticatedActor, registerId: strin
         multiSelectValues: {
           include: {
             option: { select: { id: true, label: true } },
-            customFieldDefinition: { select: { id: true, fieldName: true, displayOrder: true, isActive: true, fieldType: true, helpText: true, isRequired: true, validationMode: true, visibleToRoles: true } }
+            customFieldDefinition: { select: { id: true, fieldName: true, displayOrder: true, isActive: true, fieldType: true, helpText: true, isRequired: true, validationMode: true, visibleToRoles: true, visibleToRiskResponseOwners: true } }
           },
           orderBy: { option: { displayOrder: "asc" } }
         },
@@ -727,17 +727,43 @@ export async function getRiskDetail(actor: AuthenticatedActor, registerId: strin
     throw new ApiError(404, "NOT_FOUND", "Risk not found");
   }
 
+  const isResponseActionOwnerOnly = actorRole === "RESPONSE_ACTION_OWNER";
+  const inChildRecordsMode = risk.register.responseActionMode === "CHILD_RECORDS";
+
   const filteredRisk = {
     ...risk,
-    customFieldValues: risk.customFieldValues.filter(
-      (v) => isFieldVisibleToRole(v.customFieldDefinition.visibleToRoles, actorRole)
-    ),
-    multiSelectValues: risk.multiSelectValues.filter(
-      (v) => isFieldVisibleToRole(v.customFieldDefinition.visibleToRoles, actorRole)
-    )
+    customFieldValues: risk.customFieldValues.filter((v) => {
+      if (!isFieldVisibleToRole(v.customFieldDefinition.visibleToRoles, actorRole)) return false;
+      if (isResponseActionOwnerOnly && inChildRecordsMode) {
+        return isFieldVisibleToResponseActionOwner(v.customFieldDefinition.visibleToRiskResponseOwners);
+      }
+      return true;
+    }),
+    multiSelectValues: risk.multiSelectValues.filter((v) => {
+      if (!isFieldVisibleToRole(v.customFieldDefinition.visibleToRoles, actorRole)) return false;
+      if (isResponseActionOwnerOnly && inChildRecordsMode) {
+        return isFieldVisibleToResponseActionOwner(v.customFieldDefinition.visibleToRiskResponseOwners);
+      }
+      return true;
+    })
   };
 
-  return mapRiskDetail(filteredRisk, risk.register.reviewsEnabled);
+  const detail = mapRiskDetail(filteredRisk, risk.register.reviewsEnabled);
+
+  // For Response Action Owners in Child Records mode, strip restricted fields
+  if (isResponseActionOwnerOnly && inChildRecordsMode) {
+    return {
+      id: detail.id,
+      registerId: detail.registerId,
+      displayRiskId: detail.displayRiskId,
+      title: detail.title,
+      state: detail.state,
+      customFields: detail.customFields,
+      responseActionMode: risk.register.responseActionMode
+    };
+  }
+
+  return { ...detail, responseActionMode: risk.register.responseActionMode };
 }
 
 export async function updateRisk(

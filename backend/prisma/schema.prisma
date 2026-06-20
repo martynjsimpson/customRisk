@@ -54,6 +54,19 @@ enum AuditScopeType {
   RISK
 }
 
+enum ResponseActionMode {
+  SIMPLE
+  CHILD_RECORDS
+}
+
+enum ResponseActionStatus {
+  PLANNED
+  IN_PROGRESS
+  IMPLEMENTED
+  DEFERRED
+  CANCELLED
+}
+
 enum AuditObjectType {
   USER
   REGISTER
@@ -73,6 +86,8 @@ enum AuditObjectType {
   CONFIG_VERSION
   REGISTER_TEMPLATE
   SAVED_VIEW
+  RESPONSE_ACTION
+  RISK_RESPONSE_ACTION
 }
 
 enum AuditValueType {
@@ -106,8 +121,9 @@ model PersonReference {
 
   user User? @relation("PersonReferenceUser", fields: [userId], references: [id], onDelete: SetNull)
 
-  ownerRisks         Risk[]               @relation("RiskOwnerPerson")
-  customFieldValues  RiskCustomFieldValue[] @relation("RiskCustomFieldPersonReference")
+  ownerRisks           Risk[]               @relation("RiskOwnerPerson")
+  customFieldValues    RiskCustomFieldValue[] @relation("RiskCustomFieldPersonReference")
+  responseActionOwners ResponseAction[]     @relation("ResponseActionOwnerPerson")
 
   @@index([userId])
   @@map("person_reference")
@@ -170,6 +186,12 @@ model User {
   templateVersionsCreated  RegisterTemplateVersion[] @relation("TemplateVersionCreatedBy")
 
   personReference PersonReference? @relation("PersonReferenceUser")
+
+  responseActionsOwned          ResponseAction[] @relation("ResponseActionOwnerUser")
+  responseActionsCreated        ResponseAction[] @relation("ResponseActionCreatedBy")
+  responseActionsUpdated        ResponseAction[] @relation("ResponseActionUpdatedBy")
+  responseActionsDeleted        ResponseAction[] @relation("ResponseActionDeletedBy")
+  riskResponseActionLinksCreated RiskResponseAction[] @relation("RiskResponseActionCreatedBy")
 
   @@index([isActive])
   @@index([isSystemAdmin])
@@ -240,6 +262,7 @@ model Register {
   customFieldValidationEnabled Boolean   @default(true) @map("custom_field_validation_enabled")
   reviewStatusPosition         Int?      @map("review_status_position")
   scoringFormula               String    @default("") @map("scoring_formula") @db.Text
+  responseActionMode           ResponseActionMode @default(SIMPLE) @map("response_action_mode")
 
   currentConfigVersionId  String?  @unique @map("current_config_version_id") @db.Uuid
   draftConfigVersionId    String?  @unique @map("draft_config_version_id") @db.Uuid
@@ -275,6 +298,7 @@ model Register {
   auditEvents            AuditEvent[]
   auditRiskSnapshots     AuditRiskSnapshot[]
   exportJobs             ExportJob[]
+  responseActionLinks    RiskResponseAction[] @relation("RegisterResponseActions")
 
   @@index([name])
   @@map("register")
@@ -343,6 +367,7 @@ model Risk {
   customFieldValues   RiskCustomFieldValue[]
   multiSelectValues   RiskCustomFieldMultiSelectValue[]
   auditEvents         AuditEvent[]
+  responseActionLinks RiskResponseAction[] @relation("RiskResponseActions")
 
   @@unique([registerId, displayRiskId])
   @@unique([registerId, riskSequence])
@@ -473,6 +498,58 @@ model ResponseStrategy {
   @@unique([registerId, displayOrder])
   @@index([registerId, isActive])
   @@map("response_strategy")
+}
+
+model ResponseAction {
+  id         String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  response   String               @db.Text
+  status     ResponseActionStatus @default(PLANNED)
+
+  ownerPersonId String? @map("owner_person_id") @db.Uuid
+  ownerUserId   String? @map("owner_user_id") @db.Uuid
+
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedByUserId String?   @map("deleted_by_user_id") @db.Uuid
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedByUserId String   @map("updated_by_user_id") @db.Uuid
+
+  ownerPerson PersonReference? @relation("ResponseActionOwnerPerson", fields: [ownerPersonId], references: [id], onDelete: SetNull)
+  ownerUser   User?            @relation("ResponseActionOwnerUser", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  deletedBy   User?            @relation("ResponseActionDeletedBy", fields: [deletedByUserId], references: [id], onDelete: SetNull)
+  createdBy   User             @relation("ResponseActionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy   User             @relation("ResponseActionUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  riskLinks RiskResponseAction[]
+
+  @@index([ownerUserId])
+  @@index([ownerPersonId])
+  @@index([isDeleted])
+  @@map("response_action")
+}
+
+model RiskResponseAction {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  riskId           String   @map("risk_id") @db.Uuid
+  registerId       String   @map("register_id") @db.Uuid
+  responseActionId String   @map("response_action_id") @db.Uuid
+  displayOrder     Int      @default(0) @map("display_order")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdByUserId  String   @map("created_by_user_id") @db.Uuid
+
+  risk           Risk           @relation("RiskResponseActions", fields: [riskId], references: [id], onDelete: Cascade)
+  register       Register       @relation("RegisterResponseActions", fields: [registerId], references: [id], onDelete: Cascade)
+  responseAction ResponseAction @relation(fields: [responseActionId], references: [id], onDelete: Cascade)
+  createdBy      User           @relation("RiskResponseActionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([riskId, responseActionId])
+  @@index([riskId, displayOrder])
+  @@index([registerId])
+  @@index([responseActionId])
+  @@map("risk_response_action")
 }
 
 model CustomFieldDefinition {

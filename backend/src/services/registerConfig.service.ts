@@ -36,6 +36,12 @@ export function isFieldVisibleToRole(
   return visibleToRoles.includes(role);
 }
 
+export function isFieldVisibleToResponseActionOwner(
+  visibleToRiskResponseOwners: boolean
+): boolean {
+  return visibleToRiskResponseOwners;
+}
+
 async function assertRegisterExists(registerId: string) {
   const register = await prisma.register.findUnique({
     where: { id: registerId },

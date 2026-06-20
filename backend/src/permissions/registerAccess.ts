@@ -31,9 +31,21 @@ export async function getEffectiveRegisterRole(
     select: { id: true }
   });
 
+  const ownsAction = await client.riskResponseAction.findFirst({
+    where: {
+      registerId,
+      responseAction: {
+        ownerUserId: actor.id,
+        isDeleted: false
+      }
+    },
+    select: { id: true }
+  });
+
   return highestRole([
     ...permissions.map((permission) => permission.role),
-    ownsRisk ? "RISK_OWNER" : "NONE"
+    ownsRisk   ? "RISK_OWNER"             : "NONE",
+    ownsAction ? "RESPONSE_ACTION_OWNER"  : "NONE"
   ]);
 }
 
@@ -90,7 +102,7 @@ export async function listAccessibleRegisterIds(actor: AuthenticatedActor, clien
     return registers.map((register) => register.id);
   }
 
-  const [permissions, ownedRisks] = await Promise.all([
+  const [permissions, ownedRisks, ownedActionLinks] = await Promise.all([
     client.registerPermission.findMany({
       where: { userId: actor.id },
       select: { registerId: true }
@@ -99,11 +111,22 @@ export async function listAccessibleRegisterIds(actor: AuthenticatedActor, clien
       where: { ownerUserId: actor.id },
       distinct: ["registerId"],
       select: { registerId: true }
+    }),
+    client.riskResponseAction.findMany({
+      where: {
+        responseAction: {
+          ownerUserId: actor.id,
+          isDeleted: false
+        }
+      },
+      distinct: ["registerId"],
+      select: { registerId: true }
     })
   ]);
 
   return [...new Set([
-    ...permissions.map((permission) => permission.registerId),
-    ...ownedRisks.map((risk) => risk.registerId)
+    ...permissions.map((p: { registerId: string }) => p.registerId),
+    ...ownedRisks.map((r: { registerId: string }) => r.registerId),
+    ...ownedActionLinks.map((l: { registerId: string }) => l.registerId)
   ])];
 }
