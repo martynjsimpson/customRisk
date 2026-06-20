@@ -109,6 +109,7 @@ done_in: v1.17.1
 **Verification feedback (BUG-050, round 2):** Two further defects found: (1) deleting a draft-only CALCULATED field throws "custom field not found" — delete always calls the REST API which requires the field to exist in DB, but draft-only fields haven't been written yet; (2) formula still not persisting — `buildDraftFields` in `FieldConfigTab.tsx` explicitly maps field properties but omits `formula`, wiping it on every draft write; also `UpdateDraftConfigInput.customFields` type does not include `formula`.
 **Ruling:** in scope — both are gaps against BUG-050 acceptance criteria.
 **Fix:** (A) `buildDraftFields` must include `formula: field.formula ?? null`. (B) `UpdateDraftConfigInput.customFields` type must include `formula`. (C) Delete in draft mode must remove the field from the draft snapshot rather than calling the REST delete API.
+**Partial verification:** Delete of draft-only field confirmed working. Formula persistence still under test.
 
 ## Decisions
 
