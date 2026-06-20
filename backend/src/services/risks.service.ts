@@ -820,7 +820,7 @@ export async function updateRisk(
     const impactValueId = input.impactValueId ?? existing.impactValueId;
     const scoring =
       input.likelihoodValueId || input.impactValueId
-        ? await resolveRiskScoring({ registerId, likelihoodValueId, impactValueId }, tx)
+        ? await resolveRiskScoring({ registerId, likelihoodValueId, impactValueId }, tx, riskId)
         : undefined;
     const createdDate = input.createdDate ? utcDateOnly(input.createdDate) : existing.createdDate;
     const shouldRecalculateNextReviewDate =

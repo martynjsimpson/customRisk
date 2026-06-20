@@ -183,9 +183,10 @@ export async function recalculateRiskScores(
 
 export async function resolveRiskScoring(
   input: ResolveRiskScoringInput,
-  client: ScoringClient = prisma
+  client: ScoringClient = prisma,
+  riskId?: string
 ) {
-  const [likelihood, impact, matrixCell] = await Promise.all([
+  const [likelihood, impact, matrixCell, register] = await Promise.all([
     client.likelihoodValue.findFirst({
       where: {
         id: input.likelihoodValueId,
@@ -215,6 +216,10 @@ export async function resolveRiskScoring(
           select: { id: true, isActive: true }
         }
       }
+    }),
+    client.register.findUnique({
+      where: { id: input.registerId },
+      select: { scoringFormula: true }
     })
   ]);
 
@@ -233,8 +238,57 @@ export async function resolveRiskScoring(
     throw new ApiError(400, "VALIDATION_ERROR", "Risk scoring configuration is incomplete", fields);
   }
 
+  const formula = register?.scoringFormula ?? "";
+  const effectiveFormula = formula === "" ? "{likelihood} * {impact}" : formula;
+
+  // Build field values map from the risk's existing custom field values when a riskId is provided.
+  // On create there are no values yet; missing fields resolve to null (treated as 0 by the evaluator).
+  let fieldValues: Record<string, number | null> = {};
+  if (riskId) {
+    const numericFieldDefs = await client.customFieldDefinition.findMany({
+      where: { registerId: input.registerId, fieldType: { in: ["NUMBER", "CALCULATED"] }, isActive: true },
+      select: { id: true }
+    });
+    const availableFieldKeys = numericFieldDefs.map((f) => f.id);
+    const storedValues = await client.riskCustomFieldValue.findMany({
+      where: { riskId, customFieldDefinitionId: { in: availableFieldKeys } },
+      select: {
+        customFieldDefinitionId: true,
+        numberValue: true,
+        textValue: true,
+        customFieldDefinition: { select: { fieldType: true } }
+      }
+    });
+    for (const fv of storedValues) {
+      let resolvedValue: number | null = null;
+      if (fv.customFieldDefinition.fieldType === "NUMBER" && fv.numberValue !== null) {
+        resolvedValue = Number(fv.numberValue);
+      } else if (fv.customFieldDefinition.fieldType === "CALCULATED" && fv.textValue !== null) {
+        const parsed = parseFloat(fv.textValue);
+        resolvedValue = isNaN(parsed) ? null : parsed;
+      }
+      fieldValues[fv.customFieldDefinitionId] = resolvedValue;
+    }
+  }
+
+  const ctx = {
+    likelihood: Number(likelihood!.numericValue),
+    impact: Number(impact!.numericValue),
+    score: null,
+    fieldValues
+  };
+
+  let riskScore: Prisma.Decimal;
+  try {
+    const result = evaluateFormula(effectiveFormula, ctx);
+    riskScore = new Prisma.Decimal(isFinite(result) ? result : 0);
+  } catch {
+    // Fall back to default likelihood * impact if the formula fails
+    riskScore = calculateRiskScore(likelihood!.numericValue, impact!.numericValue);
+  }
+
   return {
-    riskScore: calculateRiskScore(likelihood!.numericValue, impact!.numericValue),
+    riskScore,
     riskLevelId: matrixCell!.riskLevelId
   };
 }
