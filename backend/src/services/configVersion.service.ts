@@ -663,7 +663,7 @@ export async function analyseImpact(
       JOIN risk r ON r.id = rra.risk_id
       WHERE rra.register_id = ${registerId}
         AND ra.is_deleted   = false
-        AND r.is_deleted    = false
+        AND r.is_active     = true
       GROUP BY rra.risk_id
       HAVING COUNT(ra.id) >= 2
     `;

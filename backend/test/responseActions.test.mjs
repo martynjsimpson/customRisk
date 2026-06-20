@@ -240,6 +240,14 @@ test("responseActions service uses REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS impact c
   assert.match(source, /REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS/);
 });
 
+test("responseActions service migrateChildRecordsToSimple queries use r.is_active, not r.is_deleted", async () => {
+  // Regression: queries previously used r.is_deleted = false (wrong column); corrected to r.is_active = true
+  const source = await readFile(new URL("../src/services/responseActions.service.ts", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /r\.is_deleted/, "r.is_deleted is not a column on the risk table — must use r.is_active");
+  assert.match(source, /r\.is_active\s*=\s*true/, "migrateChildRecordsToSimple must filter on r.is_active = true");
+});
+
 // ---------------------------------------------------------------------------
 // configVersion.service.ts — analyseImpact structured entries (ADR-0011 amendments)
 // ---------------------------------------------------------------------------
@@ -261,6 +269,14 @@ test("configVersion service analyseImpact emits REVERT_MODE_WILL_MIGRATE code", 
   const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
 
   assert.match(source, /REVERT_MODE_WILL_MIGRATE/);
+});
+
+test("configVersion service analyseImpact feasibility query uses r.is_active, not r.is_deleted", async () => {
+  // Regression: query previously used r.is_deleted = false (wrong column); corrected to r.is_active = true
+  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /r\.is_deleted/, "r.is_deleted is not a column on the risk table — must use r.is_active");
+  assert.match(source, /r\.is_active\s*=\s*true/, "analyseImpact feasibility query must filter on r.is_active = true");
 });
 
 test("registers service includes responseActionMode in registerSelect", async () => {
