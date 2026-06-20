@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.18.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Custom-field UX polish: surface WARN field indicators in the risk edit form, add
 ### UI-021 — Show yellow asterisk for WARN fields in risk edit form
 Source: REQ-053
 Capability: custom-fields
-Status: proposed
+Status: done
+done_in: v1.18.0
 
 **Problem:** The risk edit form shows a red asterisk (*) for required (BLOCK) fields but gives no visual signal for WARN fields. Users cannot tell which fields are "suggested" until they attempt to save and see the warning.
 
@@ -32,7 +33,8 @@ Status: proposed
 ### UI-022 — Live formula validation in CALCULATED field modal
 Source: REQ-054
 Capability: custom-fields
-Status: proposed
+Status: done
+done_in: v1.18.0
 Depends on: BUG-050 (done in v1.17.1)
 
 **Problem:** The formula textarea in CustomFieldModal.tsx gives no validation feedback. An invalid formula is silently accepted when saving the field definition and only rejected at config publish time.
@@ -57,7 +59,8 @@ Depends on: BUG-050 (done in v1.17.1)
 ### UI-023 — Real-time CALCULATED field preview in risk edit form
 Source: REQ-055
 Capability: custom-fields
-Status: proposed
+Status: done
+done_in: v1.18.0
 Depends on: BUG-050 (done in v1.17.1)
 
 **Problem:** When editing a risk, CALCULATED custom fields show the last saved server-side value and do not update as the user edits the referenced numeric fields. The correct value only appears after saving and reopening.
@@ -87,6 +90,13 @@ Depends on: BUG-050 (done in v1.17.1)
 ## Decisions
 
 No open decisions.
+
+## Test / sign-off
+
+- [x] Implementation complete
+- [x] Regression tests pass (439 total: 243 backend, 119 frontend static, 76 frontend behavioral, 1 shared)
+- [x] TypeScript typecheck clean
+- [x] Documentation pass complete
 
 ## Blockers
 
