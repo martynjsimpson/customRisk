@@ -16,6 +16,16 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-049
+Request ID: REQ-049
+Title: Investigate and fix custom calculated field functionality
+Type: bug
+Status: inbox
+Priority: high
+Summary: The user cannot get custom calculated fields to work as expected. It is unclear whether this is a configuration/UX issue (no clear documentation or example) or an actual bug. The first step should be to clarify intended behaviour with a working example, then investigate any reported issues that remain after the user has confirmed they are configuring it correctly.
+Notes: User flagged this may be user error — needs a working example documented or surfaced in-app before treating as a definite bug. Related to REQ-003 (custom field behaviour) and the formulaEvaluator service.
+Source: human request (direct)
+
 ### REQ-048
 Request ID: REQ-048
 Title: Investigate bulk-batch job queue architecture
