@@ -16,6 +16,16 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-053
+Request ID: REQ-053
+Title: Show yellow * for warn fields in risk edit form
+Type: improvement
+Status: inbox
+Priority: high
+Summary: The risk edit form uses red asterisks (*) to indicate required fields, but fields with a validation mode of WARN show no visual indicator. Users have no way to tell which fields are suggested without trying to save. A yellow * should be shown next to warn fields to distinguish them from required fields (red *), making the form's validation state clear before submission.
+Notes: This is a companion to the existing required-field indicator. The yellow * means "suggested" and the red * means "required". Implementation will need to check the validationMode for each field and apply the appropriate colour to the asterisk.
+Source: human request (direct)
+
 ### REQ-052
 Request ID: REQ-052
 Title: Update help docs for scoring formula feature
