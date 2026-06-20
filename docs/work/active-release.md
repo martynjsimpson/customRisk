@@ -111,6 +111,8 @@ done_in: v1.17.1
 **Fix:** (A) `buildDraftFields` must include `formula: field.formula ?? null`. (B) `UpdateDraftConfigInput.customFields` type must include `formula`. (C) Delete in draft mode must remove the field from the draft snapshot rather than calling the REST delete API.
 **Partial verification:** Delete of draft-only field confirmed working. Formula persistence still under test.
 
+**Observation (deferred):** The CALCULATED field formula textarea has no live validation. An invalid formula is only rejected at publish time, not when saving the field definition. The scoring formula panel already has debounced live validation — the same pattern should be applied to the custom field formula input. Deferred to a future release; PM to log as a new request.
+
 ## Decisions
 
 No open decisions. All items have established patterns or clearly specified fixes.
