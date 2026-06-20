@@ -198,23 +198,69 @@ test("responseActions service soft-deletes with isDeleted, deletedAt, deletedByU
 });
 
 // ---------------------------------------------------------------------------
-// registers.service.ts — migration logic
+// registers.service.ts — migration logic (guard + delegation)
 // ---------------------------------------------------------------------------
 
-test("registers service migration function exists and uses SELECT FOR UPDATE", async () => {
+test("registers service imports and delegates to migrateSimpleResponseActionsToChildRecords", async () => {
   const source = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
 
+  // The function was moved to responseActions.service; registers.service imports and calls it
   assert.match(source, /migrateSimpleResponseActionsToChildRecords/);
   assert.match(source, /FOR UPDATE/);
-  assert.match(source, /auditActions\.responseActionMigrated/);
-  assert.match(source, /Response action migrated from simple field during mode switch/);
 });
 
-test("registers service blocks revert from CHILD_RECORDS to SIMPLE", async () => {
+test("registers service blocks direct-PATCH revert from CHILD_RECORDS to SIMPLE", async () => {
   const source = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
 
   assert.match(source, /INVALID_OPERATION/);
   assert.match(source, /Cannot revert from Child Records mode to Simple mode/);
+});
+
+// ---------------------------------------------------------------------------
+// responseActions.service.ts — migration helpers (ADR-0011 amendments A & B)
+// ---------------------------------------------------------------------------
+
+test("responseActions service exports migrateSimpleResponseActionsToChildRecords", async () => {
+  const source = await readFile(new URL("../src/services/responseActions.service.ts", import.meta.url), "utf8");
+
+  assert.match(source, /export async function migrateSimpleResponseActionsToChildRecords/);
+  assert.match(source, /auditActions\.responseActionMigrated/);
+  assert.match(source, /Response action migrated from simple field during mode switch/);
+});
+
+test("responseActions service exports migrateChildRecordsToSimple", async () => {
+  const source = await readFile(new URL("../src/services/responseActions.service.ts", import.meta.url), "utf8");
+
+  assert.match(source, /export async function migrateChildRecordsToSimple/);
+});
+
+test("responseActions service uses REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS impact code", async () => {
+  const source = await readFile(new URL("../src/services/responseActions.service.ts", import.meta.url), "utf8");
+
+  assert.match(source, /REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS/);
+});
+
+// ---------------------------------------------------------------------------
+// configVersion.service.ts — analyseImpact structured entries (ADR-0011 amendments)
+// ---------------------------------------------------------------------------
+
+test("configVersion service analyseImpact returns impactEntries array", async () => {
+  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  assert.match(source, /export async function analyseImpact/);
+  assert.match(source, /impactEntries/);
+});
+
+test("configVersion service analyseImpact emits REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS code", async () => {
+  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  assert.match(source, /REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS/);
+});
+
+test("configVersion service analyseImpact emits REVERT_MODE_WILL_MIGRATE code", async () => {
+  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+
+  assert.match(source, /REVERT_MODE_WILL_MIGRATE/);
 });
 
 test("registers service includes responseActionMode in registerSelect", async () => {
