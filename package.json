@@ -1,6 +1,6 @@
 {
   "name": "custom-risk",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "private": true,
   "description": "Custom Risk MVP monorepo.",
   "workspaces": [
@@ -9,7 +9,7 @@
     "shared"
   ],
   "engines": {
-    "node": ">=20.19"
+    "node": ">=24.0"
   },
   "scripts": {
     "dev:backend": "npm --workspace @custom-risk/backend run dev",

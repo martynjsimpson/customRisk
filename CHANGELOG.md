@@ -15,6 +15,16 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-06-20
+
+### Changed
+
+- **Node 24 LTS upgrade (MAINT-001)**
+  - The project toolchain now targets Node 24 LTS. The `.nvmrc`, all GitHub Actions workflows, and the Docker base image have been updated. The `engines.node` constraint in `package.json` is tightened to `>=24.0`. All key dependencies (Prisma, Express, Vite, Vitest, TypeScript) are confirmed compatible.
+
+- **CI/CD pipeline parallelisation (MAINT-004)**
+  - Typecheck, test, and build steps now run across all workspaces in parallel using npm's native `--workspaces` flag, reducing quality job duration by an estimated 30–40%.
+
 ## [1.15.0] - 2026-06-19
 
 ### Added

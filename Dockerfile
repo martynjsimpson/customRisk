@@ -1,6 +1,6 @@
 # Run npm ci and the full build on the host's native platform to avoid
 # QEMU emulation crashes (signal 4 illegal instruction) on arm64 runners.
-FROM --platform=$BUILDPLATFORM node:22-alpine AS build
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY backend/package.json ./backend/package.json
 COPY frontend/package.json ./frontend/package.json
 COPY shared/package.json ./shared/package.json
 
-RUN npm ci
+RUN npm ci --no-fund
 
 COPY . .
 
@@ -23,7 +23,7 @@ RUN npx tsc --project backend/tsconfig.seed.json
 # Install production dependencies on the native platform for the same reason.
 # node_modules for pure-JS packages are platform-independent; the Prisma
 # engine binary is handled separately via binaryTargets in schema.prisma.
-FROM --platform=$BUILDPLATFORM node:22-alpine AS runtime-deps
+FROM --platform=$BUILDPLATFORM node:24-alpine AS runtime-deps
 
 WORKDIR /app
 
@@ -36,7 +36,7 @@ COPY shared/package.json ./shared/package.json
 
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 
-FROM node:22-alpine AS runtime
+FROM node:24-alpine AS runtime
 
 WORKDIR /app
 

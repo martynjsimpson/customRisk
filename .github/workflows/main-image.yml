@@ -67,3 +67,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # Note: Docker image Node version is controlled by Dockerfile base image (node:24-alpine)
