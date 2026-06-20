@@ -117,6 +117,16 @@ done_in: v1.17.1
 **Ruling:** (1) in scope — existing risks show stale/empty values after publish, violating BUG-049 acceptance criteria. Fix: add bulk `evaluateAndStoreCalculatedFields` call for all register risks in the publish path. (2) deferred — BUG-049 criteria say "displays a computed value on a risk record," meaning the saved value must be correct; real-time preview in the edit form is a UX enhancement beyond current scope. PM to log as a new request.
 **Fix:** Backend publish path in `configVersion.service.ts` — after `recalculateRiskScores`, fetch all risk IDs for the register and call `evaluateAndStoreCalculatedFields` for each.
 
+## Deferred items for PM
+
+These items were identified during verification and ruled out of scope for v1.17.1. PM to log each as a new request.
+
+1. **CALCULATED field formula — no live validation on save**
+   The formula textarea in the custom field modal has no validation feedback. An invalid formula is silently accepted when saving the field definition and only rejected at publish time. The scoring formula panel already has debounced live validation using the `/validate-formula` endpoint — the same pattern should be applied to the CALCULATED field formula input.
+
+2. **CALCULATED field value — no real-time preview in risk edit form**
+   When editing a risk, the CALCULATED field displays the last saved server-side value. It does not update in real time as the user changes the referenced numeric fields. The correct value appears after saving and reopening the risk. A real-time preview (client-side formula evaluation or a debounced backend call) would improve the editing experience.
+
 ## Decisions
 
 No open decisions. All items have established patterns or clearly specified fixes.
