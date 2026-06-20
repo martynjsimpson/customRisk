@@ -63,6 +63,12 @@ done_in: v1.17.0
 - [x] No regression to existing scoring, matrix, or risk level tests
 - [ ] Full CI pass — pending PR merge
 
+## Verification feedback
+
+**Verification feedback:** When editing a risk and changing Likelihood or Impact, the score recalculates using a previous (stale) version of the scoring formula rather than the current published formula. The same happens when adding a new risk — it scores using the old formula. The bulk recalculation on publish works correctly.
+**Ruling:** in scope — correct per-risk scoring on create/edit is a direct acceptance criterion ("all risk scores recalculate correctly").
+**Fix:** Backend Developer to identify where individual risk create/update calculates the score and ensure it reads the current `scoringFormula` from the live `Register` row rather than using a hardcoded default or cached value.
+
 ## Blockers
 
 None.
