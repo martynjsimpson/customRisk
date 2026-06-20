@@ -333,6 +333,46 @@ test("publishDraft calls recalculateRiskScores after recalculateRiskLevels (PM6-
   assert.match(service, /scoringFormula/);
 });
 
+test("publishDraft writes scoringFormula to register.update unconditionally — not inside sourceTemplateVersionId block (BUG-FIX)", async () => {
+  const service = await readFile(
+    new URL("../src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // Locate the register.update call inside publishConfigVersion (publishDraft).
+  // The fix places scoringFormula AFTER the sourceTemplateVersionId spread, at the
+  // top level of the data object, so that it is always written regardless of whether
+  // the draft originated from a template.
+  //
+  // Strategy: find the comment that was added to document the fix, then assert that
+  // scoringFormula assignment follows it directly.
+  const fixComment = "Always promote scoringFormula from the published snapshot";
+  assert.ok(
+    service.includes(fixComment),
+    "Expected the unconditional scoringFormula comment to be present in publishConfigVersion"
+  );
+
+  // The scoringFormula assignment must appear AFTER the closing of the
+  // sourceTemplateVersionId conditional block (i.e. after `: {}),`).
+  const templateBlockClose = ": {}),";
+  const templateBlockCloseIdx = service.indexOf(templateBlockClose);
+  assert.ok(templateBlockCloseIdx !== -1, "Expected to find the sourceTemplateVersionId else-branch close");
+
+  const fixIdx = service.indexOf(fixComment);
+  assert.ok(
+    fixIdx > templateBlockCloseIdx,
+    "scoringFormula comment must appear AFTER the sourceTemplateVersionId conditional block closes, not inside it"
+  );
+
+  // Also assert the actual assignment is present after the comment.
+  const afterComment = service.slice(fixIdx);
+  assert.match(
+    afterComment,
+    /scoringFormula:\s*regSettings\.scoringFormula\s*\?\?\s*""/,
+    "scoringFormula must be assigned from regSettings.scoringFormula ?? \"\" after the comment"
+  );
+});
+
 test("validate-formula route is exposed under config-versions (PM6-SCORING)", async () => {
   const routes = await readFile(
     new URL("../src/routes/configVersion.routes.ts", import.meta.url),

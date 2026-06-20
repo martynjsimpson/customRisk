@@ -989,6 +989,9 @@ export async function publishDraft(
               linkedTemplateVersionId: draft.sourceTemplateVersionId
             }
           : {}),
+        // Always promote scoringFormula from the published snapshot so that
+        // resolveRiskScoring reads the correct formula on subsequent risk edits.
+        scoringFormula: regSettings.scoringFormula ?? "",
         // Promote draft to current
         currentConfigVersionId: draft.id,
         draftConfigVersionId: null,
