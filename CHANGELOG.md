@@ -15,6 +15,23 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-06-20
+
+### Added
+
+- **In-app help for scoring formulas (MAINT-006)**
+  - Help content now covers the configurable scoring formula feature that shipped in v1.17.0: how to write a formula, available variable names (`likelihood`, `impact`, numeric custom fields), supported operators, validation and publish behaviour, and a note that existing registers are unaffected unless a Register Admin changes the formula.
+
+### Changed
+
+- **Open-risk and overdue counts on /registers are now clickable links (UI-020)**
+  - The open-risk count in the register list links directly to that register filtered to open risks. The overdue count links to that register filtered to overdue reviews. Consistent with the existing Admin Summary widget pattern.
+
+### Fixed
+
+- **CALCULATED custom fields can now be saved (BUG-050)**
+  - Adding or editing a custom field of type CALCULATED no longer throws a backend validation error. The frontend now sends `validationMode: "ALLOW"` for CALCULATED fields, which do not expose a validation mode selector. No change to ALLOW/WARN/BLOCK behaviour for other field types.
+
 ## [1.17.0] - 2026-06-20
 
 ### Added
