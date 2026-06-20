@@ -781,27 +781,30 @@ items:
 - id: MAINT-001
   source_request: REQ-011
   legacy_ids: []
-  title: Tighten package engine constraint to Node 22 to match active toolchain
+  title: Upgrade toolchain to Node 24 LTS and tighten package engine constraint
   type: maintenance
   capability: build-toolchain
   phase: null
   status: ready
   priority: low
-  confidence: high
-  summary: The project toolchain (.nvmrc, GitHub Actions, Dockerfile) targets Node 22, but the root package.json engines field
-    still allows >=20.19. This mismatch means a developer or CI runner could install with Node 20 without any warning, producing
-    untested behaviour. Aligning the engines constraint to >=22 closes that gap with a one-line change.
+  confidence: medium
+  summary: Node 24 became LTS in October 2025 and is the current LTS line as of mid-2026. The project toolchain (.nvmrc,
+    GitHub Actions, Dockerfile) and the root package.json engines field should be updated to target Node 24. The Principal
+    Architect should confirm no breaking changes before the devops-engineer executes the upgrade.
   acceptance:
-  - Root package.json engines.node is set to >=22.
+  - Root package.json engines.node is set to >=24.
+  - .nvmrc, GitHub Actions CI, and Dockerfile are updated to Node 24.
   - Any workspace package.json files with their own engines.node field are updated to match.
   - The change is verified not to break CI, local install, or Docker build.
-  - No version pinning to a pre-release or non-LTS Node version (Node 22 is an LTS line; Node 25 is not targeted).
+  - No version pinning to a non-LTS Node version.
   remaining:
+  - Principal Architect to confirm Node 24 compatibility — check for any known breaking changes affecting current dependencies.
   - Confirm whether any workspace packages (backend/package.json, frontend/package.json) carry their own engines fields that
     also need updating.
   - Verify CI and Docker continue to pass after the change.
   dependencies: []
   suggested_agents:
+  - principal-architect
   - devops-engineer
   evidence:
     code:
@@ -810,12 +813,11 @@ items:
     - .github/workflows
     - Dockerfile
     notes:
-    - Node 22 is the active LTS toolchain. Node 25 (mentioned in the original request) is not an LTS release and is not the
-      intended target.
+    - Node 24 is the current LTS line (LTS from October 2025). Node 22 remains Active LTS but Node 24 is the correct upgrade target.
     - The engines constraint change alone does not prevent operators running older Node in production, but it signals the supported
       minimum clearly and lets package managers warn on mismatch.
-    - PM note: this change is likely more disruptive than it appears. Things may break. It should be isolated in its own
-      dedicated release — do not bundle with other work items.
+    - PM note: this change is potentially disruptive. It should be isolated in its own dedicated release — do not bundle with
+      other work items. PA must confirm compatibility before the devops-engineer proceeds.
 - id: BUG-001
   source_issue: '#100'
   title: Keep main audit screen search facets on one line at normal desktop width
@@ -1518,7 +1520,8 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: in-active-release
+  status: done
+  done_in: v1.15.0
   priority: medium
   confidence: medium
   summary: Only the /help page displays a subtitle beneath its title. All pages should display short descriptive helper
@@ -1615,7 +1618,8 @@ items:
   type: improvement
   capability: help-content
   phase: null
-  status: in-active-release
+  status: done
+  done_in: v1.15.0
   priority: medium
   confidence: medium
   summary: Help content is currently embedded in source code, making it hard to maintain and update without a code change.
@@ -1650,7 +1654,8 @@ items:
   type: improvement
   capability: help-content
   phase: null
-  status: in-active-release
+  status: done
+  done_in: v1.15.0
   priority: medium
   confidence: high
   summary: The /help page content has not been kept in sync with the live product. A review pass is needed to identify
@@ -1680,7 +1685,8 @@ items:
   type: improvement
   capability: register-ui
   phase: null
-  status: in-active-release
+  status: done
+  done_in: v1.15.0
   priority: medium
   confidence: medium
   summary: The Review status row in the risk detail modal appears at a fixed position (end of table) because it is not part
@@ -1901,7 +1907,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: in-active-release
+  status: done
+  done_in: v1.15.0
   priority: low
   confidence: high
   summary: The docs/planning directory and all its contents are superseded by the planning system under docs/work. It should

@@ -41,7 +41,8 @@ Source: human request (direct)
 Request ID: REQ-045
 Title: Delete legacy docs/planning directory
 Type: maintenance
-Status: in-active-release
+Status: done
+Done in: v1.15.0
 Priority: low
 Summary: The old docs/planning directory and all its contents are now superseded by the new planning process under docs/work. It should be deleted to keep the repository clean and avoid confusion.
 Derived work items: MAINT-005
@@ -118,7 +119,8 @@ Source: human request (direct)
 Request ID: REQ-038
 Title: Allow register admins to control the position of the Review field in the risk detail modal
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.15.0
 Priority: medium
 Summary: The Review status row in the risk detail modal is not part of the register's field configuration, so admins cannot control its position relative to other fields the way they can for custom fields. It currently appears at a fixed position (end of table). The field configuration system should be extended to include Review as a configurable field so its display order can be set per register.
 Source: verification feedback (v1.12.0 release)
@@ -186,7 +188,8 @@ Source: human request (direct)
 Request ID: REQ-032
 Title: Externalise /help content out of source code
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.15.0
 Priority: medium
 Summary: Help content on the /help page is currently embedded directly in code, making it hard to maintain and impossible to localise. The content should be moved to external files (e.g. Markdown or similar) so it can be edited independently of the codebase. The chosen approach must also support including or referencing images within help articles, and should lay the groundwork for future multi-language support.
 Notes: Solution should consider: file-based content (e.g. Markdown files served as assets), image support (inline or referenced), and a structure that could accommodate locale variants in future. REQ-031 (content accuracy audit) should ideally be done after or alongside this change.
@@ -197,7 +200,8 @@ Source: human request (direct)
 Request ID: REQ-031
 Title: Audit and update /help page content for accuracy
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.15.0
 Priority: medium
 Summary: The content on the /help page has not been kept in sync with how the application currently works. A review pass is needed to identify and correct any outdated, inaccurate, or missing information so the help content accurately reflects the live product.
 Derived work items: MAINT-003
@@ -324,7 +328,8 @@ Source: human request (direct)
 Request ID: REQ-020
 Title: Add descriptive helper text under the title on all pages
 Type: improvement
-Status: in-active-release
+Status: done
+Done in: v1.15.0
 Priority: medium
 Summary: The /help page displays a short descriptive subtitle beneath the page title, but no other pages follow this pattern. Helper text should be added to all pages to improve orientation and consistency. On the /api-keys page specifically, the existing alert box content is a good candidate to be repurposed as the helper text rather than shown as an alert.
 Notes: Use the /help page subtitle as the reference pattern. For /api-keys, convert the alert box into helper text rather than duplicating the content. Exception: on /registers/<registerID> the helper text should be the register's own description field rather than generic page-level text, since the page title is already the register name.
@@ -381,8 +386,8 @@ Title: Upgrade or align the project Node.js runtime
 Type: maintenance
 Status: refined
 Priority: low
-Summary: Tighten the package.json engines.node constraint from >=20.19 to >=22 to match the active toolchain already used in .nvmrc, GitHub Actions CI, and Docker. The original request referenced Node 25 and a version number that does not match the live repo state; Node 22 LTS is the correct and intended target.
-Notes: The active toolchain is already Node 22. This is a one-line engines field update, not a runtime migration. Node 25 is not an LTS release and is not targeted. Derived work item MAINT-001 captures the scoped change.
+Summary: Upgrade the project toolchain to Node 24 LTS (the current LTS line as of mid-2026) and tighten package.json engines.node to >=24. Covers .nvmrc, GitHub Actions CI, Dockerfile, and all workspace package.json files. The original request referenced Node 25 (not an LTS release); Node 24 LTS is the correct target. Principal Architect to confirm compatibility before devops-engineer executes.
+Notes: Node 24 became LTS in October 2025. PA confirmation required before proceeding. Derived work item MAINT-001 captures the scoped change.
 Derived work items: MAINT-001
 Source: human request
 
