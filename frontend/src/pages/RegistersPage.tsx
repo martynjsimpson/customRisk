@@ -55,8 +55,16 @@ export function RegistersPage() {
                 <Table.Td>
                   <Badge>{register.effectiveRole}</Badge>
                 </Table.Td>
-                <Table.Td>{register.openRisksCount}</Table.Td>
-                <Table.Td>{register.overdueRisksCount}</Table.Td>
+                <Table.Td>
+                  <Anchor component={Link} to={`/registers/${register.id}?state=OPEN`}>
+                    {register.openRisksCount}
+                  </Anchor>
+                </Table.Td>
+                <Table.Td>
+                  <Anchor component={Link} to={`/registers/${register.id}?reviewStatus=OVERDUE`}>
+                    {register.overdueRisksCount}
+                  </Anchor>
+                </Table.Td>
               </Table.Tr>
             ))}
             {registersQuery.data?.data.length === 0 ? (

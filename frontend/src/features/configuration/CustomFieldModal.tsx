@@ -123,10 +123,14 @@ export function CustomFieldModal({
       onClose={onClose}
       title={editingField ? "Edit custom field" : "Add custom field"}
     >
-      <form onSubmit={form.onSubmit((values) => onSubmit({
-        ...values,
-        isRequired: validationEnabled ? values.validationMode === "BLOCK" : values.isRequired
-      }))}>
+      <form onSubmit={form.onSubmit((values) => {
+        const isCalculated = values.fieldType === "CALCULATED";
+        onSubmit({
+          ...values,
+          validationMode: isCalculated ? "ALLOW" : values.validationMode,
+          isRequired: validationEnabled && !isCalculated ? values.validationMode === "BLOCK" : values.isRequired
+        });
+      })}>
         <Stack>
           <ApiErrorAlert error={createError} fallback="Unable to create custom field" />
           <ApiErrorAlert error={updateError} fallback="Unable to update custom field" />
