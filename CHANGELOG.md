@@ -15,6 +15,19 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-06-20
+
+### Added
+
+- **Yellow asterisk for WARN custom fields in the risk edit form (UI-021)**
+  - Custom fields with `validationMode: WARN` now display a yellow asterisk (*) next to the field label in the risk edit form, giving users a visual "suggested" signal before they attempt to save. BLOCK (required) fields continue to show a red asterisk; ALLOW fields show none. Both colours use Mantine colour tokens and work in light and dark mode.
+
+- **Live formula validation in the CALCULATED field modal (UI-022)**
+  - The formula textarea in the custom field configuration modal now validates the formula as you type (debounced 600ms). An invalid formula shows a clear error message below the textarea and disables the Save button; correcting the formula clears the error and re-enables Save. Validation is client-side against a stub context, catching syntax and structural errors immediately without needing a server round-trip.
+
+- **Real-time CALCULATED field preview in the risk edit form (UI-023)**
+  - CALCULATED custom fields in the risk edit form now update their displayed value in real time as you edit the numeric fields they reference. The preview is computed entirely client-side and is shown in italic dimmed text with a "Preview — saved on submit" label to distinguish it from the authoritative server value. On save, the server evaluates the formula authoritatively and the preview is discarded.
+
 ## [1.17.1] - 2026-06-20
 
 ### Added
