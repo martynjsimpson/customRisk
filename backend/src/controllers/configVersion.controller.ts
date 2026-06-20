@@ -9,10 +9,12 @@ import {
   publishDraft,
   updateDraft
 } from "../services/configVersion.service.js";
+import { validateScoringFormula } from "../services/formulaEvaluator.service.js";
+import { prisma } from "../db/prisma.js";
 import { actorOrThrow } from "../utils/actorOrThrow.js";
 import { sendData } from "../utils/apiResponse.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
-import type { UpdateDraftBody } from "../validators/configVersion.schemas.js";
+import type { UpdateDraftBody, ValidateFormulaBody } from "../validators/configVersion.schemas.js";
 
 export async function getConfigVersionStatusController(
   request: Request<RegisterIdParams>,
@@ -80,4 +82,32 @@ export async function publishDraftController(
     response,
     await publishDraft(request.params.registerId, actor.id, actor.name, actor.email)
   );
+}
+
+export async function validateFormulaController(
+  request: Request<RegisterIdParams, unknown, ValidateFormulaBody>,
+  response: Response
+) {
+  const { registerId } = request.params;
+  const { formula } = request.body;
+
+  // Empty formula is always valid (means use default)
+  if (formula === "") {
+    sendData(response, { valid: true });
+    return;
+  }
+
+  // Fetch numeric custom field IDs for this register to validate field references
+  const numericFields = await prisma.customFieldDefinition.findMany({
+    where: {
+      registerId,
+      fieldType: { in: ["NUMBER", "CALCULATED"] },
+      isActive: true
+    },
+    select: { id: true }
+  });
+
+  const availableFieldKeys = numericFields.map((f) => f.id);
+  const result = validateScoringFormula(formula, availableFieldKeys);
+  sendData(response, result);
 }

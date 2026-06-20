@@ -76,7 +76,8 @@ const snapshotRegisterSettingsSchema = z.object({
   reviewAttestationText: z.string().optional(),
   allowViewerExport: z.boolean().optional(),
   customFieldValidationEnabled: z.boolean().optional(),
-  reviewStatusPosition: z.number().int().min(0).nullable().optional()
+  reviewStatusPosition: z.number().int().min(0).nullable().optional(),
+  scoringFormula: z.string().optional()
 });
 
 // --- Update draft body schema ---
@@ -92,3 +93,11 @@ export const updateDraftBodySchema = z.object({
 });
 
 export type UpdateDraftBody = z.infer<typeof updateDraftBodySchema>;
+
+// --- Validate scoring formula body schema ---
+
+export const validateFormulaBodySchema = z.object({
+  formula: z.string()
+});
+
+export type ValidateFormulaBody = z.infer<typeof validateFormulaBodySchema>;

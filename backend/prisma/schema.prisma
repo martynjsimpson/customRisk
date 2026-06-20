@@ -239,6 +239,7 @@ model Register {
   allowViewerExport            Boolean   @default(false) @map("allow_viewer_export")
   customFieldValidationEnabled Boolean   @default(true) @map("custom_field_validation_enabled")
   reviewStatusPosition         Int?      @map("review_status_position")
+  scoringFormula               String    @default("") @map("scoring_formula") @db.Text
 
   currentConfigVersionId  String?  @unique @map("current_config_version_id") @db.Uuid
   draftConfigVersionId    String?  @unique @map("draft_config_version_id") @db.Uuid

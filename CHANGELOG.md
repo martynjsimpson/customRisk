@@ -15,6 +15,17 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-06-20
+
+### Added
+
+- **Configurable risk score formula engine (PM6-SCORING)**
+  - Register Admins can now define a custom scoring formula per register in the register configuration panel. Formulas use canonical variable names (`{likelihood}`, `{impact}`, and any numeric custom fields) with standard arithmetic operators, so renaming likelihood or impact display labels has no effect on the formula.
+  - Formulas are validated on save (draft) and enforced on publish — invalid formulas are rejected with a clear error message and block publishing.
+  - When a configuration version containing a formula change is published, all risk scores in the register recalculate immediately. Each score change is captured in the audit log.
+  - Existing registers default to `likelihood × impact` and are completely unaffected unless a Register Admin explicitly defines a new formula.
+  - The formula engine is designed for reuse by inherent and residual scoring in a future release.
+
 ## [1.16.0] - 2026-06-20
 
 ### Changed

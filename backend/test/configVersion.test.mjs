@@ -307,3 +307,109 @@ test("register linked_template_version_id is included in registerSelect and mapp
   assert.match(service, /linkedVersionNumber:/);
   assert.match(service, /isLatest:/);
 });
+
+// ─── PM6-SCORING: publishDraft calls recalculateRiskScores ────────────────────
+
+test("publishDraft calls recalculateRiskScores after recalculateRiskLevels (PM6-SCORING)", async () => {
+  const service = await readFile(
+    new URL("../src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+  const scoringService = await readFile(
+    new URL("../src/services/scoring.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // recalculateRiskScores is exported from scoring.service
+  assert.match(scoringService, /export async function recalculateRiskScores/);
+
+  // configVersion.service imports recalculateRiskScores
+  assert.match(service, /import.*recalculateRiskScores.*scoring\.service/);
+
+  // publishDraft calls recalculateRiskScores inside the transaction
+  assert.match(service, /recalculateRiskScores/);
+
+  // The scoring formula is read from the snapshot
+  assert.match(service, /scoringFormula/);
+});
+
+test("publishDraft writes scoringFormula to register.update unconditionally — not inside sourceTemplateVersionId block (BUG-FIX)", async () => {
+  const service = await readFile(
+    new URL("../src/services/configVersion.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // Locate the register.update call inside publishConfigVersion (publishDraft).
+  // The fix places scoringFormula AFTER the sourceTemplateVersionId spread, at the
+  // top level of the data object, so that it is always written regardless of whether
+  // the draft originated from a template.
+  //
+  // Strategy: find the comment that was added to document the fix, then assert that
+  // scoringFormula assignment follows it directly.
+  const fixComment = "Always promote scoringFormula from the published snapshot";
+  assert.ok(
+    service.includes(fixComment),
+    "Expected the unconditional scoringFormula comment to be present in publishConfigVersion"
+  );
+
+  // The scoringFormula assignment must appear AFTER the closing of the
+  // sourceTemplateVersionId conditional block (i.e. after `: {}),`).
+  const templateBlockClose = ": {}),";
+  const templateBlockCloseIdx = service.indexOf(templateBlockClose);
+  assert.ok(templateBlockCloseIdx !== -1, "Expected to find the sourceTemplateVersionId else-branch close");
+
+  const fixIdx = service.indexOf(fixComment);
+  assert.ok(
+    fixIdx > templateBlockCloseIdx,
+    "scoringFormula comment must appear AFTER the sourceTemplateVersionId conditional block closes, not inside it"
+  );
+
+  // Also assert the actual assignment is present after the comment.
+  const afterComment = service.slice(fixIdx);
+  assert.match(
+    afterComment,
+    /scoringFormula:\s*regSettings\.scoringFormula\s*\?\?\s*""/,
+    "scoringFormula must be assigned from regSettings.scoringFormula ?? \"\" after the comment"
+  );
+});
+
+test("validate-formula route is exposed under config-versions (PM6-SCORING)", async () => {
+  const routes = await readFile(
+    new URL("../src/routes/configVersion.routes.ts", import.meta.url),
+    "utf8"
+  );
+
+  // Endpoint path exists
+  assert.match(routes, /validate-formula/);
+
+  // Route is POST (formula sent in body, not query string)
+  // The path and method may span lines, so check them independently
+  assert.ok(
+    routes.includes("router.post("),
+    "Expected router.post( to be present in configVersion routes"
+  );
+});
+
+// ─── PM6-SCORING: recalculateRiskScores audit coverage ────────────────────────
+
+test("recalculateRiskScores emits riskUpdated audit events for changed scores (PM6-SCORING)", async () => {
+  const service = await readFile(
+    new URL("../src/services/scoring.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // Audit action used is riskUpdated
+  assert.match(service, /auditActions\.riskUpdated/);
+
+  // recordAuditEvent is called inside recalculateRiskScores
+  assert.match(service, /recordAuditEvent/);
+
+  // Audit event summarises the reason
+  assert.match(service, /scoring formula/);
+
+  // The audit event records the score field change
+  assert.match(service, /fieldName: "riskScore"/);
+
+  // Only audit when the score actually changed (not unconditionally)
+  assert.match(service, /newScoreDecimal\.equals\(oldScore\)/);
+});

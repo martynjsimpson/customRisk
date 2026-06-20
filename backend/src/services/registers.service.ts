@@ -31,6 +31,7 @@ const registerSelect = {
   allowViewerExport: true,
   customFieldValidationEnabled: true,
   reviewStatusPosition: true,
+  scoringFormula: true,
   createdAt: true,
   updatedAt: true,
   linkedTemplateVersion: {

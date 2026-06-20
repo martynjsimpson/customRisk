@@ -393,7 +393,7 @@ items:
     - visibleToRiskResponseOwners is stored and configurable but not enforced until PM7 child-record context exists; this
       is an accepted PM7 dependency, not a PM5-CORE gap.
     - CSV export does not include custom fields; deferred to PM10-CORE by design.
-- id: PM6-CORE
+- id: PM6-SCORING
   source_request: REQ-004
   legacy_ids:
   - PM6-01
@@ -401,41 +401,52 @@ items:
   - PM6-03
   - PM6-04
   - PM6-05
-  - PM6-06
-  - PM6-07
-  - PM6-08
-  - PM6-09
-  - PM6-10
-  title: Add configurable formulas and inherent-residual scoring
+  title: Implement configurable risk score formula engine
   type: feature
   capability: advanced-scoring
   phase: 6
   status: ready
   priority: high
   confidence: medium
-  summary: The current product has basic scoring, matrix, and risk-ID foundations, but it still lacks the broader scoring
-    methodology model described in the PRD.
+  summary: Replace the hardcoded Likelihood × Impact formula with a per-register configurable scoring formula. Register Admins
+    define the formula in configuration; the engine validates it on save and on publish and recalculates all risk scores immediately
+    when a config version containing a formula change is published. Architecture must be designed so inherent and residual
+    scoring (PM6-CORE) can reuse the same engine without rework.
   acceptance:
-  - Registers can define supported score formulas safely, with validation and recalculation controls.
-  - Registers can enable inherent and residual risk fields without breaking existing single-score registers.
-  - Residual and inherent scoring outputs are visible consistently in API, UI, and exported data where enabled.
-  - Bulk or workflow updates introduced by the scoring model remain permission-safe and auditable.
+  - Register Admins can define a custom scoring formula in register configuration using canonical variable names for Likelihood
+    and Impact (regardless of their display names), numeric custom fields, numeric constants, and arithmetic operators (+, -,
+    *, /, parentheses).
+  - The formula uses canonical variable names (e.g. likelihood, impact) so renaming L/I display labels does not break the formula.
+  - The formula is validated — syntax and type check — before it can be saved in draft and before it can be published. Invalid
+    formulas are rejected with a clear error message.
+  - When a config version containing a formula change is published, all risk scores in the register recalculate immediately.
+  - Existing registers default to the Likelihood × Impact formula and are unaffected unless a Register Admin explicitly changes it.
+  - The matrix and risk level assignment continue to work correctly because the formula always references Likelihood and Impact.
+  - The formula engine is architected to support reuse for inherent and residual scoring (PM6-CORE) without rework.
+  - Score recalculation triggered by publish is auditable.
+  - No regression to existing scoring, matrix, or risk level behaviour.
   remaining:
-  - Finalise the scoring configuration model and migration path from fixed scoring.
-  - Define the smallest releasable inherent-residual slice before touching later residual-suggestion ideas.
-  - Confirm how much of PM6 should ship before PM11, PM10, and PM12 consume the new data model.
+  - PA to define the storage model for the formula in register config (schema change likely in prisma).
+  - PA to evaluate whether formulaEvaluator.service.ts can be extended for scoring use or whether a new scoring-specific
+    evaluator is cleaner; must confirm the architecture supports inherent/residual reuse.
+  - PA to define which fields are available as formula variables (at minimum likelihood and impact; confirm whether numeric
+    custom fields are also resolvable at scoring time).
+  - Implement formula editor UI in ScoringConfigurationPanel (or equivalent).
+  - Implement backend formula validation — exposed as an endpoint usable at save time and enforced at publish time.
+  - Implement bulk recalculation of all risks in the register on config publish where the formula has changed.
+  - Add or update tests for formula validation, recalculation, and matrix behaviour after formula change.
   dependencies:
   - PM5-CORE
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/scoring.service.ts
     - backend/src/services/matrix.service.ts
+    - backend/src/services/formulaEvaluator.service.ts
     - frontend/src/features/configuration/ScoringConfigurationPanel.tsx
     tests:
     - backend/test/riskScoring.test.mjs
@@ -443,8 +454,62 @@ items:
     docs:
     - docs/product/prd.md
     notes:
-    - This item still relies on PRD and architecture intent for the missing methodology features; old phase docs are fallback
-      only.
+    - The formulaEvaluator.service.ts already handles custom calculated field formulas; PA must assess whether it is the
+      right foundation for the scoring formula engine or whether a separate evaluator is cleaner.
+    - PRD 7.2 defines supported formula inputs as numeric fields, numeric lookup values, constants, and arithmetic operators.
+    - PRD 7.3 notes that matrix-based risk level assignment is only guaranteed where the formula can be evaluated for each
+      L/I permutation — this is satisfied because the formula always uses L and I.
+
+- id: PM6-CORE
+  source_request: REQ-004
+  legacy_ids:
+  - PM6-06
+  - PM6-07
+  - PM6-08
+  - PM6-09
+  - PM6-10
+  title: Add inherent and residual risk scoring mode
+  type: feature
+  capability: advanced-scoring
+  phase: 6
+  status: deferred
+  priority: high
+  confidence: medium
+  summary: Add a per-register setting to enable inherent and residual risk fields. When enabled, the register uses separate
+    Inherent and Residual Likelihood, Impact, Score, and Level fields instead of single scoring fields. Both inherent and
+    residual scoring use the same configurable formula engine delivered in PM6-SCORING. Deferred until PM7-CORE (child actions)
+    is complete, since residual risk assessment is only meaningful once treatment records exist.
+  acceptance:
+  - Registers have a setting to enable inherent/residual mode without breaking existing single-score registers.
+  - When enabled, the register exposes Inherent Likelihood, Inherent Impact, Inherent Risk Score, Inherent Risk Level, Residual
+    Likelihood, Residual Impact, Residual Risk Score, and Residual Risk Level.
+  - Both inherent and residual scoring use the same formula engine from PM6-SCORING.
+  - Register Admins can optionally configure separate formulas for inherent and residual scoring, or use the same formula for both.
+  - Inherent and residual scoring outputs are visible in API, UI, and exported data where enabled.
+  - Existing risks in a register are not broken when the mode is enabled.
+  remaining:
+  - Define the smallest releasable slice once PM7-CORE is stable enough to inform the residual-scoring context.
+  - Confirm migration path for existing risk records when a register enables inherent/residual mode.
+  dependencies:
+  - PM6-SCORING
+  - PM7-CORE
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/scoring.service.ts
+    - backend/src/services/matrix.service.ts
+    - frontend/src/features/configuration/ScoringConfigurationPanel.tsx
+    tests:
+    - backend/test/riskScoring.test.mjs
+    docs:
+    - docs/product/prd.md
+    notes:
+    - Deferred because residual risk is only meaningful once PM7-CORE child actions exist to drive treatment context.
+    - PM6-RESIDUAL-SUGGESTIONS depends on this item and PM7-CORE.
 - id: PM6-RESIDUAL-SUGGESTIONS
   source_request: REQ-004
   legacy_ids: []
@@ -472,6 +537,7 @@ items:
   - Confirm which parts belong in PM6 versus follow-on child-action configuration work once PM7 is real.
   - Add concrete API and test planning only after PM6-CORE and PM7-CORE are stable enough to consume.
   dependencies:
+  - PM6-SCORING
   - PM6-CORE
   - PM7-CORE
   suggested_agents:
@@ -530,7 +596,7 @@ items:
   - Confirm whether any current PRD extensions should be deferred until the core record model is stable.
   dependencies:
   - PM5-CORE
-  - PM6-CORE
+  - PM6-SCORING
   suggested_agents:
   - Product Manager
   - Principal Architect
@@ -785,7 +851,9 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.16.0
   priority: low
   confidence: medium
   summary: Node 24 became LTS in October 2025 and is the current LTS line as of mid-2026. The project toolchain (.nvmrc,
@@ -2005,7 +2073,9 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.16.0
   priority: medium
   confidence: low
   summary: The CI/CD pipeline is running slowly and impacting developer velocity. An audit of the current pipeline configuration

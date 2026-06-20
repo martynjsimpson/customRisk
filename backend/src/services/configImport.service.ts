@@ -65,7 +65,8 @@ export async function importRegisterConfig(
       reviewAttestationText: parsed.register.reviewAttestationText,
       allowViewerExport: parsed.register.allowViewerExport,
       customFieldValidationEnabled: parsed.register.customFieldValidationEnabled,
-      reviewStatusPosition: parsed.register.reviewStatusPosition ?? null
+      reviewStatusPosition: parsed.register.reviewStatusPosition ?? null,
+      scoringFormula: parsed.register.scoringFormula ?? ""
     },
     customFields: parsed.customFields.map((f) => ({
       id: f.id,

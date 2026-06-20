@@ -16,6 +16,16 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-048
+Request ID: REQ-048
+Title: Investigate bulk-batch job queue architecture
+Type: maintenance
+Status: inbox
+Priority: medium
+Summary: As the risk register grows, operations that require recalculating all risks (e.g. changing the scoring formula) will become too slow to execute synchronously via a single API call. A job queue architecture should be investigated to handle bulk-batch operations asynchronously. This becomes especially important if/when the app moves to multi-tenant, where a bulk operation for one customer must not block others.
+Notes: Key concerns to address in the investigation: FIFO ordering and tenant isolation (customer A's bulk job must not block customer B); resumability (if a job fails partway through, it should know where to resume); visibility (customer admins should be able to see the status of their own queued jobs; super admins should have a system-wide queue view); and identifying which other operations beyond score recalculation may benefit from the same pattern (e.g. CSV import, bulk status changes). Related to REQ-042 (multi-tenant spike) and REQ-043 (encryption spike).
+Source: human request (direct)
+
 ### REQ-047
 Request ID: REQ-047
 Title: Apply rounded corners to left nav hover/active states
@@ -143,7 +153,8 @@ Source: human request (direct)
 Request ID: REQ-036
 Title: Add Export CSV button to /my-risks page
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.13.0
 Priority: medium
 Summary: The /my-risks page has no CSV export capability. An Export CSV button should be added, styled and positioned consistently with the equivalent button on /registers/<registerID> and other pages that have it.
 Derived work items: UI-006
@@ -153,7 +164,8 @@ Source: human request (direct)
 Request ID: REQ-035
 Title: Add search filters to /my-risks page
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.13.0
 Priority: medium
 Summary: The /my-risks page currently has no search or filter capability. Filters should be added in a style consistent with the /registers/<registerID> page. Care is needed because the /my-risks table is a unified cross-register view, so filters must work across all registers rather than assuming a single register's schema — custom field filters in particular may need special handling.
 Notes: The register page filter pattern is the reference. Cross-register nature of the table means register-specific custom field filters may be out of scope or need a different approach — PM should define scope at refinement.
@@ -363,7 +375,8 @@ Source: human request (direct)
 Request ID: REQ-017
 Title: Investigate and improve CI/CD pipeline performance
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.16.0
 Priority: medium
 Summary: The CI/CD pipeline is running slowly and impacting developer velocity. The team should audit the current pipeline configuration to identify bottlenecks and explore improvements such as caching, parallelisation, or tooling changes to reduce build and test times.
 Derived work items: MAINT-004
@@ -373,7 +386,8 @@ Source: human request (direct)
 Request ID: REQ-016
 Title: Use date picker input in Create API Key modal
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.13.0
 Priority: medium
 Summary: The Create API Key modal includes a date field but renders it as a plain text input rather than a proper date picker. The audit log search filter already implements a date picker component that could be reused here. The inconsistency creates a worse UX and makes it easier for users to enter invalid dates.
 Notes: Reference the date picker component used in the audit log search filter as the pattern to follow.
@@ -384,7 +398,8 @@ Source: human request (direct)
 Request ID: REQ-011
 Title: Upgrade or align the project Node.js runtime
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.16.0
 Priority: low
 Summary: Upgrade the project toolchain to Node 24 LTS (the current LTS line as of mid-2026) and tighten package.json engines.node to >=24. Covers .nvmrc, GitHub Actions CI, Dockerfile, and all workspace package.json files. The original request referenced Node 25 (not an LTS release); Node 24 LTS is the correct target. Principal Architect to confirm compatibility before devops-engineer executes.
 Notes: Node 24 became LTS in October 2025. PA confirmation required before proceeding. Derived work item MAINT-001 captures the scoped change.
@@ -460,8 +475,8 @@ Type: feature
 Status: partially-done  
 Priority: high  
 Summary: The platform needs configurable formulas, inherent and residual risk support, and related workflow behaviour to support more mature risk methods.  
-Notes: Basic scoring, matrix behaviour, and calculated-field formula support exist, but the full inherent/residual methodology outcome is still not delivered. Residual suggestions driven by child actions are not implemented and now need their own explicit follow-up item instead of living only in a product-extension doc.  
-Derived work items: PM6-CORE, PM6-RESIDUAL-SUGGESTIONS  
+Notes: Basic scoring, matrix behaviour, and calculated-field formula support exist. Configurable score formula engine (PM6-SCORING) is the next delivery. Inherent/residual mode (PM6-CORE) is deferred until after PM7-CORE (child actions). Residual suggestions (PM6-RESIDUAL-SUGGESTIONS) follow after both.
+Derived work items: PM6-SCORING, PM6-CORE, PM6-RESIDUAL-SUGGESTIONS  
 Source: migrated from old planning
 Evidence: `backend/src/services/scoring.service.ts`, `backend/src/services/matrix.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `backend/test/riskScoring.test.mjs`
 

@@ -72,7 +72,8 @@ const importRegisterSettingsSchema = z.object({
   reviewAttestationText: z.string(),
   allowViewerExport: z.boolean(),
   customFieldValidationEnabled: z.boolean(),
-  reviewStatusPosition: z.number().int().min(0).nullable().optional()
+  reviewStatusPosition: z.number().int().min(0).nullable().optional(),
+  scoringFormula: z.string().optional()
 });
 
 const importConfigSchema = z.object({
