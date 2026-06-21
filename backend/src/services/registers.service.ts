@@ -7,6 +7,7 @@ import { getEffectiveRegisterRole, listAccessibleRegisterIds } from "../permissi
 import type { RegisterConfigSnapshot } from "../types/configSnapshot.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import { buildFieldChanges, recordAuditEvent } from "./audit.service.js";
+import { migrateSimpleResponseActionsToChildRecords } from "./responseActions.service.js";
 import { utcDateOnly } from "./reviewStatus.service.js";
 import type {
   CreateRegisterPermissionBody,
@@ -32,6 +33,7 @@ const registerSelect = {
   customFieldValidationEnabled: true,
   reviewStatusPosition: true,
   scoringFormula: true,
+  responseActionMode: true,
   createdAt: true,
   updatedAt: true,
   linkedTemplateVersion: {
@@ -360,8 +362,40 @@ export async function updateRegister(
     throw new ApiError(404, "NOT_FOUND", "Register not found");
   }
 
+  // Guard: cannot revert from CHILD_RECORDS to SIMPLE
+  if (
+    input.responseActionMode === "SIMPLE" &&
+    existing.responseActionMode === "CHILD_RECORDS"
+  ) {
+    throw new ApiError(
+      400,
+      "INVALID_OPERATION",
+      "Cannot revert from Child Records mode to Simple mode"
+    );
+  }
+
   try {
     return await prisma.$transaction(async (tx) => {
+      let migrateMode = false;
+
+      if (input.responseActionMode === "CHILD_RECORDS") {
+        // Lock the register row to prevent concurrent migrations
+        await tx.$executeRaw`SELECT id FROM register WHERE id = ${registerId} FOR UPDATE`;
+
+        // Re-read mode inside transaction to guard against race conditions
+        const current = await tx.register.findUnique({
+          where: { id: registerId },
+          select: { responseActionMode: true }
+        });
+
+        if (current?.responseActionMode === "CHILD_RECORDS") {
+          // Already migrated by a concurrent request — silently succeed
+          throw new ApiError(409, "CONFLICT", "Register is already in Child Records mode");
+        }
+
+        migrateMode = true;
+      }
+
       const updated = await tx.register.update({
         where: { id: registerId },
         data: {
@@ -375,10 +409,15 @@ export async function updateRegister(
           allowViewerExport: input.allowViewerExport,
           customFieldValidationEnabled: input.customFieldValidationEnabled,
           reviewStatusPosition: input.reviewStatusPosition,
+          responseActionMode: input.responseActionMode,
           updatedByUserId: actor.id
         },
         select: registerSelect
       });
+
+      if (migrateMode) {
+        await migrateSimpleResponseActionsToChildRecords(registerId, actor.id, tx);
+      }
 
       await recordAuditEvent(
         {
@@ -400,7 +439,8 @@ export async function updateRegister(
             { name: "defaultReviewFrequencyMonths", label: "Default review frequency", valueType: "NUMBER" },
             { name: "allowViewerExport", label: "Allow viewer export", valueType: "BOOLEAN" },
             { name: "customFieldValidationEnabled", label: "Custom field validation enabled", valueType: "BOOLEAN" },
-            { name: "reviewStatusPosition", label: "Review status position", valueType: "NUMBER" }
+            { name: "reviewStatusPosition", label: "Review status position", valueType: "NUMBER" },
+            { name: "responseActionMode", label: "Response action mode", valueType: "TEXT" }
           ])
         },
         tx

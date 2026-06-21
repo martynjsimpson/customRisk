@@ -2,6 +2,7 @@ import { apiClient } from "./client";
 import type { ApiResponse, ListMeta } from "./types";
 import type { CustomFieldType } from "./customFields.api";
 import type { PersonDisplay } from "./persons.api";
+import type { ResponseActionMode } from "./responseActions.api";
 export type { PersonDisplay } from "./persons.api";
 
 export type RiskState = "DRAFT" | "OPEN" | "CLOSED";
@@ -99,6 +100,7 @@ export interface CustomFieldDefinition {
   validationMode: ValidationMode;
   displayOrder: number;
   isActive: boolean;
+  visibleToRiskResponseOwners: boolean;
   options?: Array<{ id: string; label: string; displayOrder?: number; isActive?: boolean }>;
   formula: string | null;
   formulaDependencies: string[];
@@ -126,6 +128,7 @@ export interface RiskFormConfig {
     // Position of the Review status row in the risk detail modal (0-based index).
     // null means "place Review status last".
     reviewStatusPosition: number | null;
+    responseActionMode: ResponseActionMode;
   };
   users: RiskPerson[];
   customFields: CustomFieldDefinition[];
@@ -138,6 +141,7 @@ export interface RiskFormConfig {
 export interface RiskDetail extends RiskListItem {
   registerId: string;
   riskSequence: number;
+  responseActionMode: ResponseActionMode;
   description: string;
   ownerPerson: PersonDisplay | null;
   createdDate: string;

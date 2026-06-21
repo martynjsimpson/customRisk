@@ -75,6 +75,7 @@ export interface ConfigSnapshotRegisterSettings {
   customFieldValidationEnabled: boolean;
   reviewStatusPosition: number | null;
   scoringFormula: string;
+  responseActionMode: "SIMPLE" | "CHILD_RECORDS";
 }
 
 export interface RegisterConfigSnapshot {

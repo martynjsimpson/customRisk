@@ -485,6 +485,8 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
         canReview={canEditSelectedRisk && register.reviewsEnabled}
         canEditRows={canEditSelectedRisk}
         canDelete={isSystemAdmin}
+        effectiveRole={register.effectiveRole}
+        currentUserId={user?.id ?? null}
         onClose={() => setDetailRiskId(null)}
         onRequestEdit={openEdit}
         onRequestReview={openReview}

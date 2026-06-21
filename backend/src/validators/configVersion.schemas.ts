@@ -78,7 +78,8 @@ const snapshotRegisterSettingsSchema = z.object({
   allowViewerExport: z.boolean().optional(),
   customFieldValidationEnabled: z.boolean().optional(),
   reviewStatusPosition: z.number().int().min(0).nullable().optional(),
-  scoringFormula: z.string().optional()
+  scoringFormula: z.string().optional(),
+  responseActionMode: z.enum(["SIMPLE", "CHILD_RECORDS"]).optional()
 });
 
 // --- Update draft body schema ---

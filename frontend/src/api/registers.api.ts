@@ -1,8 +1,10 @@
 import { apiClient } from "./client";
 import type { UserRecord } from "./users.api";
 import type { ApiResponse, ListMeta } from "./types";
+import type { ResponseActionMode } from "./responseActions.api";
 
 export type { ListMeta };
+export type { ResponseAction, ResponseActionMode } from "./responseActions.api";
 
 export interface LinkedTemplate {
   templateId: string;
@@ -31,7 +33,8 @@ export interface RegisterRecord {
   // Position of the Review status row in the risk detail modal (0-based index).
   // null means "place Review status last" — the default for all existing registers.
   reviewStatusPosition: number | null;
-  effectiveRole: "SYSTEM_ADMIN" | "REGISTER_ADMIN" | "REGISTER_VIEWER" | "RISK_OWNER" | "NONE";
+  responseActionMode: ResponseActionMode;
+  effectiveRole: "SYSTEM_ADMIN" | "REGISTER_ADMIN" | "REGISTER_VIEWER" | "RISK_OWNER" | "RESPONSE_ACTION_OWNER" | "NONE";
   openRisksCount: number;
   overdueRisksCount: number;
   updatedAt: string;
@@ -74,6 +77,7 @@ export type UpdateRegisterInput = Partial<
     | "allowViewerExport"
     | "customFieldValidationEnabled"
     | "reviewStatusPosition"
+    | "responseActionMode"
   >
 >;
 

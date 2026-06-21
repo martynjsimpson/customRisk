@@ -66,7 +66,8 @@ export async function importRegisterConfig(
       allowViewerExport: parsed.register.allowViewerExport,
       customFieldValidationEnabled: parsed.register.customFieldValidationEnabled,
       reviewStatusPosition: parsed.register.reviewStatusPosition ?? null,
-      scoringFormula: parsed.register.scoringFormula ?? ""
+      scoringFormula: parsed.register.scoringFormula ?? "",
+      responseActionMode: (parsed.register as { responseActionMode?: string }).responseActionMode === "CHILD_RECORDS" ? "CHILD_RECORDS" : "SIMPLE"
     },
     customFields: parsed.customFields.map((f) => ({
       id: f.id,

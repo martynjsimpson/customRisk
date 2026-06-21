@@ -332,6 +332,52 @@ test("deleteFieldMutation branches on hasDraft — draft path calls updateDraftC
   assert.match(fieldTab, /deleteCustomField/);
 });
 
+test("analyseImpact API response field is impactEntries, not entries", async () => {
+  // Regression: ConfigVersionBanner.tsx and configVersion.api.ts previously used the field name
+  // 'entries'; corrected to 'impactEntries' to match the backend API response shape.
+  const api = await readFile(new URL("../src/api/configVersion.api.ts", import.meta.url), "utf8");
+  const banner = await readFile(
+    new URL("../src/features/configuration/ConfigVersionBanner.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Neither file should reference the old wrong field name on the response object
+  assert.doesNotMatch(api, /result\.entries\b/, "configVersion.api.ts must not access result.entries — field is impactEntries");
+  assert.doesNotMatch(banner, /result\.entries\b/, "ConfigVersionBanner.tsx must not access result.entries — field is impactEntries");
+
+  // Both must reference the correct field name
+  assert.match(api, /impactEntries/, "configVersion.api.ts must reference impactEntries");
+  assert.match(banner, /impactEntries/, "ConfigVersionBanner.tsx must reference impactEntries");
+});
+
+test("ConfigVersionBanner Publish button always routes through analyseImpactMutation — no simple publish path", async () => {
+  // Regression: a simple publish path (clicking Publish without impact analysis) was removed.
+  // Publish must always go through analyseImpactMutation.mutate().
+  const banner = await readFile(
+    new URL("../src/features/configuration/ConfigVersionBanner.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // The Publish button in the banner body must trigger analyseImpactMutation, not publishDraft directly
+  assert.match(banner, /analyseImpactMutation\.mutate\(\)/, "Publish must trigger analyseImpactMutation");
+  // publishDraft is still called inside the ImpactAnalysisModal confirm handler — just not directly from the banner button
+  assert.match(banner, /publishDraft/, "publishDraft must still be used (inside the impact analysis modal)");
+});
+
+test("ImpactEntryDetail accepts and uses an onClose prop", async () => {
+  // Regression: ImpactEntryDetail previously had no onClose prop, so clicking a deep-link in the
+  // impact analysis modal could not close the modal.
+  const banner = await readFile(
+    new URL("../src/features/configuration/ConfigVersionBanner.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // The component signature must declare onClose
+  assert.match(banner, /ImpactEntryDetail.*onClose.*:\s*\(\)\s*=>\s*void/s, "ImpactEntryDetail must accept an onClose prop");
+  // The prop must be forwarded when the component is used
+  assert.match(banner, /ImpactEntryDetail[^/]*onClose=\{onClose\}/, "ImpactEntryDetail usages must pass onClose");
+});
+
 test("draft and export snapshots preserve the register-level custom field validation toggle", async () => {
   const configVersionService = await readFile(
     new URL("../../backend/src/services/configVersion.service.ts", import.meta.url),

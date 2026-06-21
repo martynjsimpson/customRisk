@@ -99,6 +99,7 @@ items:
     scope if product still wants that experience.
   - The product has an explicit decision on whether starter/example risks belong in template-driven register creation.
   - Any future template-local or shareable-template model is separated clearly from the current shipped global-template baseline.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Decide which, if any, of lifecycle states, preview content, starter risks, and register-local templates should become
     real roadmap scope.
@@ -146,6 +147,7 @@ items:
   - Admin users can find unresolved person references and owner assignments without direct database inspection.
   - Risk-owner assignment changes produce clear, non-secret audit evidence.
   - Permission checks continue to prevent unresolved person references from gaining edit authority.
+  - If a new admin UI surface is added, help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Decide whether the existing system-admin unresolved-person route is sufficient on its own or still needs a dedicated UI
     surface.
@@ -297,7 +299,7 @@ items:
   capability: api-keys
   phase: 13
   status: deferred
-  priority: medium
+  priority: high
   confidence: medium
   summary: ADR-0009 and the current API key service both call out a remaining hardening gap around key-auth request enforcement
     and immediate deactivated-user invalidation; this is explicitly out of v1.9.0 unless release sign-off pulls it forward.
@@ -488,6 +490,7 @@ items:
   - Register Admins can optionally configure separate formulas for inherent and residual scoring, or use the same formula for both.
   - Inherent and residual scoring outputs are visible in API, UI, and exported data where enabled.
   - Existing risks in a register are not broken when the mode is enabled.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Define the smallest releasable slice once PM7-CORE is stable enough to inform the residual-scoring context.
   - Confirm migration path for existing risk records when a register enables inherent/residual mode.
@@ -532,6 +535,7 @@ items:
     view them.
   - Audit evidence records configuration changes and user application of suggested values without requiring audit of every
     suggestion display.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Decide the smallest releasable slice for categories, status multipliers, diminishing returns, caps, and apply-suggestion
     UX.
@@ -581,7 +585,7 @@ items:
   type: feature
   capability: child-actions
   phase: 7
-  status: ready
+  status: in-active-release
   priority: high
   confidence: medium
   summary: Response actions still behave like simple risk fields in the live product, so first-class action records are the
@@ -591,6 +595,7 @@ items:
   - Actions can link to one or more risks without weakening register and risk permissions.
   - Risk views, action views, and delete behaviour preserve traceability and last-known snapshots where required.
   - The product clearly distinguishes simple-field mode from child-record mode during rollout or migration.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Define the minimum data model and permission model first.
   - Split CRUD and UX work from migration concerns so the first release stays bounded.
@@ -638,6 +643,7 @@ items:
   - Review rules can target the intended objects and due-date logic without requiring manual chasing.
   - Review outcomes, comments, and attestation evidence remain auditable and understandable to non-specialist users.
   - Advanced reviews integrate cleanly with child actions where that model is enabled.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Confirm the smallest rule set that should ship first.
   - Sequence review-rule work after the child-action model is stable enough to consume.
@@ -684,6 +690,7 @@ items:
   - In-app and email notification models have clear ownership, audit, and retry behaviour.
   - Reminder and escalation behaviour maps to real workflow states, not just inferred dates.
   - SMTP and credential handling follow the project security model.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Bring this forward only after PM7 and PM8 scope is stable.
   - Decide the minimum viable notification channels before building background jobs.
@@ -731,6 +738,7 @@ items:
   - Risk and audit exports remain permission-safe, auditable, and aligned with visible filtered data.
   - CSV import can validate, map, and reject bad data safely once the field and scoring model is stable.
   - Import and export behaviour handles custom-field and scoring complexity without silent data corruption.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Split near-term export polish from larger CSV import work if needed.
   - Sequence import after PM5 and PM6 to avoid redesigning data mapping twice.
@@ -781,6 +789,7 @@ items:
   - Attachment links work for risks first and leave a clean path for actions and reviews.
   - Audit records capture metadata and deletion events without storing file content.
   - Deployment docs cover volume, backup, file-size, and MIME-type controls.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Decide the smallest useful attachment scope for the first release, likely risk attachments before action/review attachments.
   - Confirm whether any schema work should wait for PM7 if action attachments are deferred.
@@ -826,6 +835,7 @@ items:
   - The app supports the agreed enterprise auth entry point, account mapping, and failure handling.
   - Account recovery and fallback flows are defined for supported deployment modes.
   - Audit and permission behaviour remain consistent across local and enterprise-auth users.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - Reconfirm commercial priority before active design or implementation.
   - Choose the first supported auth pattern explicitly instead of leaving scope abstract.
@@ -1665,6 +1675,7 @@ items:
   - The homepage provides meaningful, up-to-date value for end users post-MVP.
   - Scope is explicitly defined by PM before any implementation starts.
   - Existing homepage widgets are either incorporated, replaced, or formally retired.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
   remaining:
   - PM to assess what the post-MVP homepage should offer — check backlog for related items (UI-007, UI-008).
   - Resolve whether UI-007 and UI-008 are subsets of this work or independent.
@@ -2204,7 +2215,8 @@ items:
   title: Show real-time CALCULATED field preview in risk edit form
   type: improvement
   capability: custom-fields
-  status: in-active-release
+  status: done
+  done_in: v1.18.0
   priority: medium
   confidence: medium
   summary: When editing a risk, CALCULATED custom fields show the last saved server-side value and do not update as the user
@@ -2246,7 +2258,8 @@ items:
   title: Add live formula validation to CALCULATED field modal
   type: improvement
   capability: custom-fields
-  status: in-active-release
+  status: done
+  done_in: v1.18.0
   priority: medium
   confidence: high
   summary: The formula textarea in CustomFieldModal.tsx gives no validation feedback when the user saves a CALCULATED field
@@ -2287,7 +2300,8 @@ items:
   title: Show yellow asterisk for WARN fields in risk edit form
   type: improvement
   capability: custom-fields
-  status: in-active-release
+  status: done
+  done_in: v1.18.0
   priority: high
   confidence: high
   summary: The risk edit form shows red asterisks (*) for required (BLOCK) fields but gives no visual indicator for WARN fields.

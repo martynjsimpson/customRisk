@@ -1,11 +1,12 @@
-import { Alert, Button, Checkbox, Fieldset, Group, Modal, NumberInput, Stack, Text, Textarea, TextInput } from "@mantine/core";
+import { Alert, Button, Checkbox, Fieldset, Group, Modal, NumberInput, Stack, Switch, Text, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FocusEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getConfigVersionStatus } from "../../api/configVersion.api";
+import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
+import { getRegisterConfiguration } from "../../api/customFields.api";
 import { deleteRegister, getRegister, updateRegister } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { useFeatureFlags } from "../../hooks/useFeatureFlags";
@@ -40,27 +41,11 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
       reviewsEnabled: true,
       defaultReviewFrequencyMonths: 12,
       allowViewerExport: false,
-      customFieldValidationEnabled: true
+      customFieldValidationEnabled: true,
+      responseActionMode: "SIMPLE" as "SIMPLE" | "CHILD_RECORDS"
     }
   });
   const { setValues: setSettingsValues } = settingsForm;
-
-  useEffect(() => {
-    const register = registerQuery.data;
-    if (register) {
-      setSettingsValues({
-        name: register.name,
-        description: register.description ?? "",
-        riskIdPrefix: register.riskIdPrefix ?? "",
-        riskIdZeroPaddingEnabled: register.riskIdZeroPaddingEnabled,
-        riskIdZeroPaddingWidth: register.riskIdZeroPaddingWidth,
-        reviewsEnabled: register.reviewsEnabled,
-        defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
-        allowViewerExport: register.allowViewerExport,
-        customFieldValidationEnabled: register.customFieldValidationEnabled
-      });
-    }
-  }, [registerQuery.data, setSettingsValues]);
 
   const draftConfigMode = flags.draftConfig && canManage;
 
@@ -71,19 +56,83 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   });
   const hasDraft = statusQuery.data?.hasDraft ?? false;
 
+  // When in draft mode, read responseActionMode from the config snapshot (which reflects
+  // the pending draft value). Outside draft mode, fall back to the live register value.
+  const configQuery = useQuery({
+    queryKey: ["register-config", registerId],
+    queryFn: () => getRegisterConfiguration(registerId),
+    enabled: Boolean(registerId) && draftConfigMode && hasDraft
+  });
+
   const settingsLocked = draftConfigMode && !hasDraft;
+
+  useEffect(() => {
+    const register = registerQuery.data;
+    if (register) {
+      // In draft mode with a draft, the responseActionMode comes from the config snapshot.
+      // Without a draft, use the live register value.
+      const pendingMode =
+        draftConfigMode && hasDraft && configQuery.data
+          ? configQuery.data.register.responseActionMode
+          : register.responseActionMode;
+
+      setSettingsValues({
+        name: register.name,
+        description: register.description ?? "",
+        riskIdPrefix: register.riskIdPrefix ?? "",
+        riskIdZeroPaddingEnabled: register.riskIdZeroPaddingEnabled,
+        riskIdZeroPaddingWidth: register.riskIdZeroPaddingWidth,
+        reviewsEnabled: register.reviewsEnabled,
+        defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
+        allowViewerExport: register.allowViewerExport,
+        customFieldValidationEnabled: register.customFieldValidationEnabled,
+        responseActionMode: pendingMode
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerQuery.data, configQuery.data, draftConfigMode, hasDraft, setSettingsValues]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: () =>
       updateRegister(registerId, {
-        ...settingsForm.values,
-        riskIdPrefix: settingsForm.values.riskIdPrefix || null
+        name: settingsForm.values.name,
+        description: settingsForm.values.description,
+        riskIdPrefix: settingsForm.values.riskIdPrefix || null,
+        riskIdZeroPaddingEnabled: settingsForm.values.riskIdZeroPaddingEnabled,
+        riskIdZeroPaddingWidth: settingsForm.values.riskIdZeroPaddingWidth,
+        reviewsEnabled: settingsForm.values.reviewsEnabled,
+        defaultReviewFrequencyMonths: settingsForm.values.defaultReviewFrequencyMonths,
+        allowViewerExport: settingsForm.values.allowViewerExport,
+        customFieldValidationEnabled: settingsForm.values.customFieldValidationEnabled
       }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
         queryClient.invalidateQueries({ queryKey: ["registers"] }),
         queryClient.invalidateQueries({ queryKey: ["register-config", registerId] }),
+        queryClient.invalidateQueries({ queryKey: ["risk-form-config", registerId], refetchType: "all" })
+      ]);
+    }
+  });
+
+  const updateDraftResponseActionModeMutation = useMutation({
+    mutationFn: (mode: "SIMPLE" | "CHILD_RECORDS") =>
+      updateDraftConfig(registerId, { register: { responseActionMode: mode } }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["register-config", registerId] }),
+        queryClient.invalidateQueries({ queryKey: ["config-version-status", registerId] })
+      ]);
+    }
+  });
+
+  const updateDirectResponseActionModeMutation = useMutation({
+    mutationFn: (mode: "SIMPLE" | "CHILD_RECORDS") =>
+      updateRegister(registerId, { responseActionMode: mode }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["register", registerId] }),
+        queryClient.invalidateQueries({ queryKey: ["registers"] }),
         queryClient.invalidateQueries({ queryKey: ["risk-form-config", registerId], refetchType: "all" })
       ]);
     }
@@ -100,6 +149,16 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   function handleFormBlur(event: FocusEvent<HTMLFormElement>) {
     if (draftConfigMode && !event.currentTarget.contains(event.relatedTarget as Node)) {
       updateSettingsMutation.mutate();
+    }
+  }
+
+  function handleResponseActionModeChange(checked: boolean) {
+    const newMode: "SIMPLE" | "CHILD_RECORDS" = checked ? "CHILD_RECORDS" : "SIMPLE";
+    settingsForm.setFieldValue("responseActionMode", newMode);
+    if (draftConfigMode && hasDraft) {
+      updateDraftResponseActionModeMutation.mutate(newMode);
+    } else if (!draftConfigMode) {
+      updateDirectResponseActionModeMutation.mutate(newMode);
     }
   }
 
@@ -164,6 +223,22 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
             </Fieldset>
           </Stack>
         </Fieldset>
+        <Fieldset legend="Response Actions">
+          <Stack>
+            <Switch
+              label="Child Records mode"
+              description="When enabled, response actions are managed as individual records linked to each risk. When disabled, each risk has a single free-text response action field."
+              checked={settingsForm.values.responseActionMode === "CHILD_RECORDS"}
+              onChange={(event) => handleResponseActionModeChange(event.currentTarget.checked)}
+              disabled={!canManage || settingsLocked}
+            />
+            <ApiErrorAlert
+              error={updateDraftResponseActionModeMutation.error ?? updateDirectResponseActionModeMutation.error}
+              fallback="Unable to save Response Actions mode"
+            />
+          </Stack>
+        </Fieldset>
+
         {canManage && !settingsLocked && !draftConfigMode ? (
           <Button type="submit" loading={updateSettingsMutation.isPending}>
             Save settings

@@ -20,6 +20,7 @@ const registerConfigSelect = {
   allowViewerExport: true,
   customFieldValidationEnabled: true,
   reviewStatusPosition: true,
+  responseActionMode: true,
   createdAt: true,
   updatedAt: true
 };
@@ -34,6 +35,12 @@ export function isFieldVisibleToRole(
   // System Admin and Register Admin always see all fields
   if (role === "SYSTEM_ADMIN" || role === "REGISTER_ADMIN") return true;
   return visibleToRoles.includes(role);
+}
+
+export function isFieldVisibleToResponseActionOwner(
+  visibleToRiskResponseOwners: boolean
+): boolean {
+  return visibleToRiskResponseOwners;
 }
 
 async function assertRegisterExists(registerId: string) {

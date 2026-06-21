@@ -50,7 +50,8 @@ export const updateRegisterSchema = z.object({
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120).optional(),
   allowViewerExport: z.boolean().optional(),
   customFieldValidationEnabled: z.boolean().optional(),
-  reviewStatusPosition: z.number().int().min(0).nullable().optional()
+  reviewStatusPosition: z.number().int().min(0).nullable().optional(),
+  responseActionMode: z.enum(["SIMPLE", "CHILD_RECORDS"]).optional()
 });
 
 export type RegisterIdParams = z.infer<typeof registerIdParamsSchema>;

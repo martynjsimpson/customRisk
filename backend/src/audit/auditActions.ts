@@ -64,7 +64,11 @@ export const auditActions = {
   myRisksExportGenerated: "MY_RISKS_EXPORT_GENERATED",
   savedViewCreated: "SAVED_VIEW_CREATED",
   savedViewUpdated: "SAVED_VIEW_UPDATED",
-  savedViewDeleted: "SAVED_VIEW_DELETED"
+  savedViewDeleted: "SAVED_VIEW_DELETED",
+  responseActionCreated: "RESPONSE_ACTION_CREATED",
+  responseActionUpdated: "RESPONSE_ACTION_UPDATED",
+  responseActionDeleted: "RESPONSE_ACTION_DELETED",
+  responseActionMigrated: "RESPONSE_ACTION_MIGRATED"
 } as const;
 
 export type AuditAction = (typeof auditActions)[keyof typeof auditActions];
