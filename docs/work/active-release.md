@@ -44,6 +44,10 @@ Depends on: PM5-CORE (done), PM6-SCORING (done)
 
 **Decision:** /my-actions page (Risk Response Owner's dedicated cross-risk action view) → deferred to a follow-up release.
 
+**Decision (Amendment A):** Mode switching is draft-gated. The toggle is only editable when the register has an active draft. Nothing changes at toggle time; the migration fires at publish time. This keeps mode changes consistent with all other config changes.
+
+**Decision (Amendment B):** CHILD_RECORDS → SIMPLE revert is allowed if every risk has 0 or 1 active action records. If any risk has 2 or more, publish is blocked and the offending risks are listed so the user can reduce them manually. If the revert is feasible, each single action's response text is written back to the simple field and all child action records are soft-deleted.
+
 **Key files (expected):**
 - `backend/prisma/schema.prisma` (new tables — PA to define)
 - `backend/src/services/` (new responseActions service)
@@ -76,9 +80,9 @@ No open decisions. All decisions above are resolved.
 ## Test / sign-off
 
 - [x] Implementation complete
-- [x] Regression tests pass (274 backend, 119 frontend static, 87 frontend runtime — all green)
+- [x] Regression tests pass (288 backend, 122 frontend static, 95 frontend runtime — all green)
 - [x] TypeScript typecheck clean
-- [x] Documentation pass complete (help content updated)
+- [x] Documentation pass complete (help content updated, ADR-0011 with Amendments A and B)
 
 ## Blockers
 
@@ -86,28 +90,62 @@ None.
 
 ## Verification feedback
 
-**Verification feedback (ongoing — not yet resolved):** Publishing a draft throws a 500 "An unexpected error occurred" even after multiple fixes. HAR analysis (two sessions) reveals two root causes still outstanding:
-
-**Root cause 1 — draft snapshot missing `responseActionMode`:** Even after `buildSnapshotFromRelationalTables` was updated to include `responseActionMode`, freshly-created drafts still show no `responseActionMode` in `snapshotJson.register`. Most likely the backend process has not been restarted to pick up compiled TypeScript changes. User must restart the backend (`npm run dev` or equivalent) before testing again.
-
-**Root cause 2 — toggle PATCH goes to wrong endpoint:** When the user changes the `responseActionMode` toggle in `RegisterSettingsTab`, a `PATCH /registers/:registerId` fires WITHOUT `responseActionMode` in the body. This means the toggle change is either: (a) firing `updateSettingsMutation` (the direct settings save) instead of `updateDraftResponseActionModeMutation`, or (b) `updateDraftResponseActionModeMutation` is wired but sending to `PATCH /registers/:registerId` rather than `PATCH /registers/:registerId/config-versions/draft`. The draft snapshot never receives the mode value, so publish always sees `responseActionMode: undefined` in the snapshot, which after our undefined-guard fix is correctly a no-op — but means the mode change never takes effect.
-
-**Next session must:** 
-1. Confirm backend has been restarted and a new draft's snapshot includes `responseActionMode: "CHILD_RECORDS"` (for a CHILD_RECORDS register)
-2. Check `RegisterSettingsTab.tsx` — specifically `updateDraftResponseActionModeMutation` — to confirm it calls `updateDraftConfig(registerId, { register: { responseActionMode } })` and NOT `updateRegister`. Check what API function `updateDraftConfig` calls and what URL it hits.
-3. Check `frontend/src/api/configVersion.api.ts` `updateDraftConfig` function to confirm it PATCHes `.../config-versions/draft` not `.../registers/:id`.
-
-**Verification feedback:** Switching Response Action Mode on an existing register throws "Route not found".
-**Investigation:** `switchResponseActionMode` in `frontend/src/api/responseActions.api.ts` calls `PATCH /registers/:registerId/settings`, but the backend register update endpoint is `PATCH /registers/:registerId` (no `/settings` suffix). The backend correctly accepts `responseActionMode` in the update schema; only the frontend URL is wrong.
+**Verification feedback (1):** Switching Response Action Mode on an existing register throws "Route not found".
+**Investigation:** `switchResponseActionMode` in `frontend/src/api/responseActions.api.ts` calls `PATCH /registers/:registerId/settings`, but the backend register update endpoint is `PATCH /registers/:registerId` (no `/settings` suffix).
 **Ruling:** In scope — mode switching is a core acceptance criterion and this is a URL mismatch.
-**Fix:** Update the fetch URL in `switchResponseActionMode` from `/registers/${registerId}/settings` to `/registers/${registerId}`.
+**Fix:** Updated the fetch URL in `switchResponseActionMode`.
 
 ---
 
-**Verification feedback:** After switching to Child Records mode, opening a risk still shows the Response Action text area in both the view modal and edit modal. The text area should be replaced by the child actions panel.
-**Investigation:** `registerConfigSelect` in `backend/src/services/registerConfig.service.ts` (line 8) does not include `responseActionMode`. The `risk-form-config` endpoint fetches the register using this select, so `responseActionMode` is always `undefined` in the frontend, which falls back to `"SIMPLE"` — causing the text area to always render.
-**Ruling:** In scope — the mode-conditional rendering is a core acceptance criterion.
-**Fix:** Add `responseActionMode: true` to `registerConfigSelect` in `backend/src/services/registerConfig.service.ts`.
+**Verification feedback (2):** After switching to Child Records mode, opening a risk still shows the Response Action text area in both the view modal and edit modal.
+**Investigation:** `registerConfigSelect` in `backend/src/services/registerConfig.service.ts` did not include `responseActionMode`. The `risk-form-config` endpoint returned `undefined`, which fell back to `"SIMPLE"`.
+**Ruling:** In scope — mode-conditional rendering is a core acceptance criterion.
+**Fix:** Added `responseActionMode: true` to `registerConfigSelect`.
 
 ---
+
+**Verification feedback (3):** Toggle should be draft-gated — nothing should change until the config is published.
+**Investigation:** The original implementation changed the mode immediately on toggle. The correct architecture is: toggle is disabled until a draft exists, the change is stored in the draft snapshot, and migration fires at publish time.
+**Ruling:** In scope — architectural decision, approved by PA (Amendment A to ADR-0011).
+**Fix:** Refactored mode toggle to use `updateDraftConfig` path; migration moved from `updateRegister` to `publishDraft`.
+
+---
+
+**Verification feedback (4):** CHILD_RECORDS → SIMPLE revert should be allowed when each risk has 0 or 1 actions.
+**Investigation:** Original design blocked all reverts. PA reviewed and approved conditional revert (Amendment B to ADR-0011).
+**Ruling:** In scope — approved extension.
+**Fix:** Added `migrateChildRecordsToSimple`, feasibility check, `REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS` blocker, and structured `impactEntries` in `analyseImpact`.
+
+---
+
+**Verification feedback (5):** Publishing draft throws 500 "An unexpected error occurred" when reverting from CHILD_RECORDS to SIMPLE.
+**Investigation (HAR 1):** Raw SQL used `r.is_deleted = false` but the `risk` table has no such column — it uses `is_active`. Fixed.
+**Investigation (HAR 2):** Draft snapshot missing `responseActionMode` because backend not restarted; and stale compiled code path.
+**Investigation (HAR 3 — final):** `r.is_active = true` also does not exist on the `risk` table. The risk table uses `state RiskState` (DRAFT/OPEN/CLOSED). All raw SQL queries updated to `r.state <> 'CLOSED'`. Additionally `tx.risk.update()` used `updatedAt`/`updatedByUserId` but the Risk model uses `systemUpdatedAt`/`systemUpdatedByUserId`. Both fixed.
+**Ruling:** In scope — publish is a core acceptance criterion.
+**Fix:** Replace `r.is_active = true` with `r.state <> 'CLOSED'` in all four raw SQL queries across `configVersion.service.ts` and `responseActions.service.ts`; replace `updatedAt`/`updatedByUserId` with `systemUpdatedAt`/`systemUpdatedByUserId` in `migrateChildRecordsToSimple`.
+
+---
+
+**Verification feedback (6):** Impact Analysis modal shows correct blocker message but no risk IDs.
+**Investigation:** `analyseImpact` returns `impactEntries` but the frontend type declared it as `entries`, so the structured blocker section (with risk list) was never rendered.
+**Ruling:** In scope.
+**Fix:** Renamed field to `impactEntries` throughout; removed simple publish path so Publish always goes through impact analysis; `ImpactEntryDetail` now renders `meta.offendingRisks` list.
+
+---
+
+**Verification feedback (7):** Total Affected count shows 0 in impact analysis modal.
+**Investigation:** `affectedRiskIds` in `analyseImpact` was not populated for the responseActionMode change paths.
+**Ruling:** In scope.
+**Fix:** Added `affectedRiskIds.add()` calls for all three mode-change paths (blocked revert, feasible revert, upgrade to child records).
+
+---
+
+**Verification feedback (8):** Clicking a risk link in the impact analysis blocker closes the modal but does not open the risk detail.
+**Investigation:** The modal closed (via `onClose`) but the Tabs component stayed on the Configuration tab, hiding the risk modal that opened in the background.
+**Ruling:** In scope.
+**Fix:** `RegisterDetailPage` now uses controlled Tabs state with a `useEffect` that switches to the "risks" tab when `riskId` appears in search params; `ImpactAnalysisModal` has `transitionProps={{ duration: 0 }}` to prevent backdrop overlap.
+
+---
+
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
