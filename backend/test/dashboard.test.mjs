@@ -161,3 +161,40 @@ test("myRisksExportGenerated audit action is defined", async () => {
 
   assert.equal(auditActions.myRisksExportGenerated, "MY_RISKS_EXPORT_GENERATED");
 });
+
+// ---------------------------------------------------------------------------
+// BUG-057 — Admin summary must exclude soft-deleted (isActive: false) registers
+//
+// Three code paths in dashboard.service.ts must filter on isActive: true:
+//   1. listAdminRegisterIds (system admin branch) — register enumeration
+//   2. buildRegisterSummary — per-register detail lookup
+//   3. getAdminSummary (system summary block) — totalRegisters aggregate count
+//
+// These static assertions guard against any one of the three filters being
+// accidentally dropped — a regression that would cause inactive registers to
+// reappear in the Admin summary widget.
+// ---------------------------------------------------------------------------
+
+test("BUG-057: listAdminRegisterIds system admin branch filters on isActive: true", async () => {
+  const service = await readFile(new URL("../src/services/dashboard.service.ts", import.meta.url), "utf8");
+
+  // The system admin branch of listAdminRegisterIds must scope to active registers only.
+  // A naive implementation that omits this filter would return soft-deleted registers.
+  assert.match(service, /listAdminRegisterIds[\s\S]{0,300}isSystemAdmin[\s\S]{0,300}where: \{ isActive: true \}/);
+});
+
+test("BUG-057: buildRegisterSummary looks up register with isActive: true guard", async () => {
+  const service = await readFile(new URL("../src/services/dashboard.service.ts", import.meta.url), "utf8");
+
+  // buildRegisterSummary must use a compound where clause that includes isActive: true
+  // so that a deleted register causes findUnique to return null and the summary is dropped.
+  assert.match(service, /buildRegisterSummary[\s\S]{0,400}where: \{ id: registerId, isActive: true \}/);
+});
+
+test("BUG-057: getAdminSummary totalRegisters count filters on isActive: true", async () => {
+  const service = await readFile(new URL("../src/services/dashboard.service.ts", import.meta.url), "utf8");
+
+  // The system-level register count must exclude inactive registers.
+  // Without isActive: true the widget would report a count higher than the visible register list.
+  assert.match(service, /prisma\.register\.count\(\{ where: \{ isActive: true \} \}\)/);
+});

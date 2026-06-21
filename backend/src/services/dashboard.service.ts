@@ -81,7 +81,7 @@ function mapDashboardRisk(
 
 async function listAdminRegisterIds(actor: AuthenticatedActor) {
   if (actor.isSystemAdmin) {
-    const registers = await prisma.register.findMany({ select: { id: true } });
+    const registers = await prisma.register.findMany({ where: { isActive: true }, select: { id: true } });
     return registers.map((register) => register.id);
   }
 
@@ -138,7 +138,7 @@ async function listMyOverdueRisks(actor: AuthenticatedActor) {
 async function buildRegisterSummary(registerId: string) {
   const today = utcDateOnly(new Date());
   const register = await prisma.register.findUnique({
-    where: { id: registerId },
+    where: { id: registerId, isActive: true },
     select: { id: true, name: true, reviewsEnabled: true }
   });
 
@@ -256,7 +256,7 @@ export async function getAdminSummary(actor: AuthenticatedActor) {
 
   const today = utcDateOnly(new Date());
   const [totalRegisters, totalUsers, openRisks, overdueReviews, recentAuditActivity] = await Promise.all([
-    prisma.register.count(),
+    prisma.register.count({ where: { isActive: true } }),
     prisma.user.count(),
     prisma.risk.count({ where: { state: "OPEN" } }),
     prisma.risk.count({
