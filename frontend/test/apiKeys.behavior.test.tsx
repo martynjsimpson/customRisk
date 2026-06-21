@@ -169,10 +169,10 @@ describe("PM13-01-B — ProfilePage API Keys section", () => {
     // Open the generate modal
     await user.click(await screen.findByRole("button", { name: /generate api key/i }));
 
-    // The generate modal opens as a dialog. Scope the name input to inside it
-    // to avoid matching the always-visible "Name" input in the Display Name card.
-    const dialog = await screen.findByRole("dialog");
-    const nameInput = dialog.querySelector("input[placeholder='e.g. CI pipeline']") as HTMLElement;
+    // The generate modal opens as a dialog. Use the stable data-testid attribute
+    // to locate the name input rather than relying on placeholder text.
+    await screen.findByRole("dialog");
+    const nameInput = screen.getByTestId("api-key-name-input") as HTMLElement;
     await user.type(nameInput, "My test key");
 
     // Submit
@@ -207,8 +207,8 @@ describe("PM13-01-B — ProfilePage API Keys section", () => {
 
     // Generate a key
     await user.click(await screen.findByRole("button", { name: /generate api key/i }));
-    const dialog = await screen.findByRole("dialog");
-    const nameInput = dialog.querySelector("input[placeholder='e.g. CI pipeline']") as HTMLElement;
+    await screen.findByRole("dialog");
+    const nameInput = screen.getByTestId("api-key-name-input") as HTMLElement;
     await user.type(nameInput, "Ephemeral key");
     await user.click(screen.getByRole("button", { name: /^generate$/i }));
 

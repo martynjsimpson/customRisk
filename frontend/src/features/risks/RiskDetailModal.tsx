@@ -160,7 +160,7 @@ export function RiskDetailModal({
           {/* ── Risk field table ─────────────────────────────────────────── */}
           <Title order={4}>Risk Details</Title>
           <Table.ScrollContainer minWidth={400}>
-            <Table>
+            <Table data-testid="risk-detail-field-table">
               <Table.Tbody>
                 {[
                   ...CORE_RISK_FIELDS
@@ -220,7 +220,7 @@ export function RiskDetailModal({
                     if (field.kind === "review-status") {
                       return (
                         <Table.Tr key={field.id}>
-                          <Table.Th>{field.fieldName}</Table.Th>
+                          <Table.Th data-testid="risk-detail-field-th">{field.fieldName}</Table.Th>
                           <Table.Td><ReviewStatusBadge status={selectedRiskQuery.data!.reviewStatus} /></Table.Td>
                         </Table.Tr>
                       );
@@ -228,14 +228,14 @@ export function RiskDetailModal({
                     if (field.kind === "core") {
                       return (
                         <Table.Tr key={field.id}>
-                          <Table.Th>{field.fieldName}</Table.Th>
+                          <Table.Th data-testid="risk-detail-field-th">{field.fieldName}</Table.Th>
                           <Table.Td>{coreDetailValue(selectedRiskQuery.data!, field.id)}</Table.Td>
                         </Table.Tr>
                       );
                     }
                     return (
                       <Table.Tr key={field.id}>
-                        <Table.Th>{field.fieldName}</Table.Th>
+                        <Table.Th data-testid="risk-detail-field-th">{field.fieldName}</Table.Th>
                         <Table.Td>{customDetailValue(field.entry)}</Table.Td>
                       </Table.Tr>
                     );

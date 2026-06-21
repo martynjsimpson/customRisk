@@ -106,10 +106,7 @@ describe("QOL-001 — Password strength meter", () => {
 
     render(<ProfilePage />, { wrapper: Wrapper });
 
-    // The new-password field has autocomplete="new-password"
-    // ProfilePage renders current-password first, then new-password (twice for confirm)
-    const newPasswordInputs = document.querySelectorAll("input[autocomplete='new-password']");
-    const newPasswordInput = newPasswordInputs[0] as HTMLInputElement;
+    const newPasswordInput = screen.getByTestId("new-password-input") as HTMLInputElement;
     expect(newPasswordInput).toBeTruthy();
 
     await user.type(newPasswordInput, "abc");
@@ -126,8 +123,7 @@ describe("QOL-001 — Password strength meter", () => {
 
     render(<ProfilePage />, { wrapper: Wrapper });
 
-    const newPasswordInputs = document.querySelectorAll("input[autocomplete='new-password']");
-    const newPasswordInput = newPasswordInputs[0] as HTMLInputElement;
+    const newPasswordInput = screen.getByTestId("new-password-input") as HTMLInputElement;
 
     // Type a short, weak password
     await user.type(newPasswordInput, "abc");
@@ -151,12 +147,9 @@ describe("QOL-001 — Password strength meter", () => {
 
     render(<ProfilePage />, { wrapper: Wrapper });
 
-    const currentPasswordInput = document.querySelector(
-      "input[autocomplete='current-password']"
-    ) as HTMLInputElement;
-    const newPasswordInputs = document.querySelectorAll("input[autocomplete='new-password']");
-    const newPasswordInput = newPasswordInputs[0] as HTMLInputElement;
-    const confirmPasswordInput = newPasswordInputs[1] as HTMLInputElement;
+    const currentPasswordInput = screen.getByTestId("current-password-input") as HTMLInputElement;
+    const newPasswordInput = screen.getByTestId("new-password-input") as HTMLInputElement;
+    const confirmPasswordInput = screen.getByTestId("confirm-password-input") as HTMLInputElement;
 
     // Fill with a deliberately weak password — strength meter shows "Weak"
     await user.type(currentPasswordInput, "OldPassword1");
