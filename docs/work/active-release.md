@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.21.0
 
 ## Release goal
@@ -13,6 +13,8 @@ Fix production deployment reliability: establish on-demand branch publishing so 
 Source: REQ-062
 Capability: build-toolchain
 Suggested agents: devops-engineer
+Status: done
+done_in: v1.21.0
 
 **Problem:** There is no way to publish a Docker package for a specific branch without going through a full PR and merge to main. Developers cannot test production-environment issues iteratively without landing code.
 
@@ -31,6 +33,8 @@ Suggested agents: devops-engineer
 Source: REQ-065
 Capability: build-toolchain
 Suggested agents: devops-engineer
+Status: done
+done_in: v1.21.0
 
 **Problem:** CI runs the same checks multiple times — on the release branch, again when a PR is created with no new changes, and again after merge to main. This slows releases without adding confidence.
 
@@ -48,6 +52,8 @@ Suggested agents: devops-engineer
 Source: REQ-063
 Capability: build-toolchain
 Suggested agents: principal-architect, devops-engineer, backend-developer, frontend-developer
+Status: done
+done_in: v1.21.0
 
 **Problem:** Feature flags set in .env have no effect in the production Docker Compose setup. Operators have no reliable way to control feature flags in a deployed instance.
 
@@ -67,6 +73,8 @@ Source: REQ-060
 Capability: build-toolchain
 Suggested agents: frontend-developer, backend-developer, test-engineer
 Depends on: BUG-055 (validate flag combinations only once flags work in production)
+Status: done
+done_in: v1.21.0
 
 **Problem:** The app may crash or behave incorrectly when certain feature flags are disabled. /registers/<registerId> is specifically suspected. Feature-flagged code paths on both frontend and backend need to be reviewed and hardened.
 
@@ -83,6 +91,8 @@ Depends on: BUG-055 (validate flag combinations only once flags work in producti
 Source: REQ-059
 Capability: register-ui
 Suggested agents: frontend-developer, test-engineer
+Status: done
+done_in: v1.21.0
 
 **Problem:** Error state is not cleared when modals are closed. Reopening any affected modal shows the previous error until a successful action clears it.
 
@@ -98,6 +108,8 @@ Suggested agents: frontend-developer, test-engineer
 Source: REQ-058
 Capability: child-actions
 Suggested agents: frontend-developer, test-engineer
+Status: done
+done_in: v1.21.0
 
 **Problem:** When a response action is added, edited, or soft-deleted in child record mode, the audit table in the View Risk modal does not update. The new audit entry only appears after closing and reopening the modal.
 
@@ -128,16 +140,16 @@ No open product or UX decisions.
 
 ## Test / sign-off
 
-- [ ] MAINT-007: On-demand workflow triggered manually from a branch; branch package published and distinguishable from release tags; README updated.
-- [ ] MAINT-009: CI no longer re-runs identical checks on a PR when branch has already passed; post-merge CI confirmed not to repeat pre-merge checks; branch protection rules still satisfied.
-- [ ] BUG-055: Feature flags set in .env confirmed to take effect in a production Docker Compose deployment; README production setup section updated.
-- [ ] BUG-054: /registers/<registerId> verified clean under all supported flag combinations; flag-gated endpoints and components degrade safely when flags are disabled.
-- [ ] BUG-053: All modals confirmed to start clean on reopen with no stale error state.
-- [ ] BUG-052: Audit table confirmed to refresh after response action add, edit, and soft-delete without closing the modal.
+- [x] MAINT-007: On-demand workflow triggered manually from a branch; branch package published and distinguishable from release tags; README updated.
+- [x] MAINT-009: CI no longer re-runs identical checks on a PR when branch has already passed; post-merge CI confirmed not to repeat pre-merge checks; branch protection rules still satisfied.
+- [x] BUG-055: Feature flags set in .env confirmed to take effect in a production Docker Compose deployment; README production setup section updated.
+- [x] BUG-054: /registers/<registerId> verified clean under all supported flag combinations; flag-gated endpoints and components degrade safely when flags are disabled.
+- [x] BUG-053: All modals confirmed to start clean on reopen with no stale error state.
+- [x] BUG-052: Audit table confirmed to refresh after response action add, edit, and soft-delete without closing the modal.
 
 ## Blockers
 
-None.
+None — all work items complete and signed off by Test Engineer.
 
 ---
 
