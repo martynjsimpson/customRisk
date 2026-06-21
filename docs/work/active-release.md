@@ -99,4 +99,186 @@ None.
 
 ---
 
+## PA Audit — BUG-056
+
+**Date:** 2026-06-21
+**Auditor:** Principal Architect
+
+### Backend PATCH endpoints confirmed
+
+`PATCH /api/v1/registers/:registerId` — handled by `updateRegisterController` in `backend/src/controllers/registers.controller.ts`. Accepts general register fields: name, description, riskIdPrefix, riskIdZeroPaddingEnabled/Width, reviewsEnabled, defaultReviewFrequencyMonths, allowViewerExport, customFieldValidationEnabled, responseActionMode, reviewStatusPosition.
+
+`PATCH /api/v1/registers/:registerId/config-versions/draft` — handled in `backend/src/routes/configVersion.routes.ts`. This is the correct draft-only path. Updates the draft snapshot in place.
+
+The two paths are distinct. The first overwrites live register fields. The second updates draft config. When `draftConfig` flag is on, changes to scoring/field configuration should go exclusively to the draft endpoint.
+
+### Per-page audit
+
+**RegisterSettingsTab.tsx — INCORRECT (partial)**
+
+`updateSettingsMutation` calls `updateRegister(registerId, ...)` via `PATCH /:registerId`. This fires on form blur when `draftConfigMode` is true (see `handleFormBlur`). It also fires on explicit Save button click (only shown when `!draftConfigMode`), and on form submit.
+
+The blur handler `handleFormBlur` fires `updateSettingsMutation.mutate()` unconditionally when `draftConfigMode && !event.currentTarget.contains(event.relatedTarget)`. This means every time the user clicks away from the settings form in draft mode, a direct register PATCH fires with the local form state — overwriting the live register record and potentially clobbering fields that were intentionally changed in other parts of the draft.
+
+The `responseActionMode` field is handled correctly: when `draftConfigMode && hasDraft`, `updateDraftResponseActionModeMutation` calls `updateDraftConfig`. But the main settings form (name, description, riskIdPrefix, zero-padding, reviews, allowViewerExport, customFieldValidationEnabled) goes direct to `PATCH /:registerId` even in draft mode.
+
+**Fix required:** In `RegisterSettingsTab.tsx`, `handleFormBlur` must not call `updateSettingsMutation` when `draftConfigMode` is true. The settings that belong to the register record (name, description, riskIdPrefix, etc.) are not part of the draft config snapshot — they live on the register row itself and are correctly saved via direct PATCH. The real question is whether the blur-triggered PATCH is the mechanism described in the bug report.
+
+**Re-assessment:** The original bug report says "a subsequent PATCH to `<registerId>` appears to fire and overwrites the server-side draft with local page state". The direct register PATCH does not touch the draft snapshot — it updates the `Register` table row. It does not overwrite draft config version content. Therefore `RegisterSettingsTab` is **not causing draft overwrite**. The blur-triggered PATCH is benign from a draft-integrity perspective, though it could cause premature persistence of intermediate name/description edits. This is a separate UX concern, not a draft-integrity bug.
+
+**FieldConfigTab.tsx — CORRECT**
+
+All mutations branch on `hasDraft`. When `hasDraft` is true, every operation (create, update, activate, deactivate, reorder, delete field; create, update, deactivate option) calls `updateDraftConfig`. When `hasDraft` is false, operations call the direct field/option API endpoints. One mutation (`reorderReviewStatusMutation`) calls `updateRegister(registerId, { reviewStatusPosition })` directly. This updates the register row (not draft config) — `reviewStatusPosition` is a register-level field not part of the config snapshot, so this is correct.
+
+**ScoringConfigurationPanel.tsx — CORRECT (pass-through only)**
+
+This is a layout component. It passes `draftConfigMode` down to child tabs and applies a CSS lock when `configLocked`. No mutations.
+
+**LikelihoodConfigTab.tsx — CORRECT (delegates to ScoringValueConfigTab)**
+
+Thin wrapper. All mutation logic is in `ScoringValueConfigTab`.
+
+**ImpactConfigTab.tsx — CORRECT (delegates to ScoringValueConfigTab)**
+
+Same pattern as LikelihoodConfigTab.
+
+**ScoringValueConfigTab.tsx — CORRECT**
+
+All mutations branch on `hasDraft`. When `hasDraft` is true, calls `updateDraftConfig` with the appropriate section (`likelihoodValues` or `impactValues`). When false, calls the direct scoring API (`createValue`, `updateValue`, `deactivateValue`). No direct register PATCH anywhere in this component.
+
+**RiskLevelConfigTab.tsx — CORRECT**
+
+Same pattern. All mutations branch on `hasDraft`: draft path calls `updateDraftConfig({ riskLevels: ... })`; non-draft path calls `createRiskLevel`, `updateRiskLevel`, `deactivateRiskLevel`. No direct register PATCH.
+
+**FormulaConfigTab.tsx — CORRECT**
+
+`saveMutation` calls `updateDraftConfig(registerId, { register: { scoringFormula: f } })` exclusively. The save button is only rendered when `draftConfigMode` is true. When `draftConfigMode` is false the textarea is read-only and the save button is not rendered. No direct register PATCH.
+
+**MatrixConfigTab.tsx — CORRECT**
+
+`saveMatrixMutation` branches on `hasDraft`. Draft path calls `updateDraftConfig({ matrixCells: ... })`; non-draft path calls `updateMatrix(registerId, ...)`. The `updateMatrix` call is a dedicated matrix API endpoint, not a direct register PATCH. No incorrect PATCH.
+
+**TemplateLinkPanel.tsx — CORRECT**
+
+`applyMutation` calls `applyTemplateUpdateToDraft` (draft path). `unlinkMutation` calls `unlinkRegisterFromTemplate` (a DELETE to `/:registerId/template-link`). Neither fires a direct register PATCH that could overwrite draft state.
+
+### Summary verdict
+
+No config page is incorrectly routing saves through a direct `PATCH /:registerId` that would overwrite draft config snapshot content. The draft config snapshot is a separate data structure (`ConfigVersion` record with a snapshot column) and is only updated via `PATCH /config-versions/draft`. The direct register PATCH updates the `Register` table row (name, description, etc.) and does not touch the draft snapshot.
+
+The most likely explanation for the original bug report is one of:
+1. The `onBlur` handler in `RegisterSettingsTab` fires on focus-leaving the settings form and saves name/description etc. to the live register record unexpectedly — this is a UX issue (premature save) but not a draft config integrity issue.
+2. The form state in `RegisterSettingsTab` re-initialises from `registerQuery.data` and then calls `updateRegister` with those re-initialised values, which may produce confusing saves mid-session. But again, this only touches the `Register` row, not the draft snapshot.
+
+### Fix recommendation
+
+**Frontend (RegisterSettingsTab.tsx):** The `handleFormBlur` function should not fire `updateSettingsMutation` in draft mode if the intent is that register settings (name, description, etc.) should only be saved explicitly. The blur-on-leave auto-save was presumably carried over from the pre-draft flow. The fix is to guard the blur handler: only call `updateSettingsMutation.mutate()` when `!draftConfigMode`. The explicit Save button (already gated to `!draftConfigMode`) provides the correct save path in non-draft mode. In draft mode, users should save register settings explicitly via a separate mechanism, or the team should decide those fields (name/description/prefix/etc.) are always saved directly to the register record even during draft editing — in which case the blur auto-save should be documented as intentional.
+
+**Backend:** No backend change required. The routing is correct. The two PATCH targets (`/:registerId` and `/config-versions/draft`) serve distinct purposes and are correctly separated.
+
+**Scope assessment:** The fix is contained to a single guard condition in `RegisterSettingsTab.tsx` line in `handleFormBlur`. This is safe to include in this release. No other pages require changes.
+
+---
+
+## PA Design — MAINT-008
+
+**Date:** 2026-06-21
+**Author:** Principal Architect
+
+### Decision 1: Is the current pino setup sufficient?
+
+The core setup in `backend/src/config/logger.ts` is sound. Pino is the correct choice: it emits structured JSON natively, it is fast, and the `mixin` for observability bindings (requestId, correlationId, traceId, source, jobName, jobId) is already wired to `AsyncLocalStorage` via `getObservabilityBindings()` in `backend/src/observability/requestContext.ts`. The `requestContextMiddleware` and `requestMetricsMiddleware` in `backend/src/middleware/observability.ts` already populate and log the request lifecycle.
+
+**No transport changes are needed.** Pino emits JSON to stdout; Docker captures stdout from the container and exposes it via `docker compose logs`. This is the correct pattern for containerised deployments — log aggregation is a concern for the operator's infrastructure (Loki, CloudWatch, Datadog, etc.), not for the application itself. Do not add a pino transport (e.g. `pino-pretty`) to the production logger — pretty-print belongs only in local development.
+
+**Dev vs prod distinction:** The logger currently uses `process.env.NODE_ENV === "test"` to silence logs in tests. It does not differentiate dev from prod in terms of format. The backend developer should add a `pino-pretty` transport in development mode:
+
+In `backend/src/config/logger.ts`, change the logger construction to:
+
+```typescript
+export const logger = pino({
+  level: process.env.LOG_LEVEL ?? (process.env.NODE_ENV === "test" ? "silent" : "info"),
+  base: undefined,
+  mixin: () => getObservabilityBindings(),
+  ...(process.env.NODE_ENV === "development"
+    ? { transport: { target: "pino-pretty", options: { colorize: true } } }
+    : {})
+});
+```
+
+This keeps JSON output in production (and CI, since `NODE_ENV` will not be `development` there) and gives readable output locally. `pino-pretty` must be added as a dev dependency in `backend/package.json`.
+
+### Decision 2: Additional log calls to add
+
+The following log calls are missing and should be added by the backend developer. All use the module-level `logger` import already present in those files.
+
+**`backend/src/middleware/errorHandler.ts`**
+
+The `notFoundHandler` currently sends a 404 response silently. Add a `logger.debug` call before `sendError` so 404s are visible at debug level but not noise in production:
+
+```typescript
+logger.debug({ method: request.method, path: request.path }, "Route not found");
+```
+
+The `errorHandler` already logs unhandled errors at `logger.error` — this is correct. The `ApiError` branch (known application errors, 4xx) currently returns without logging. Add `logger.info` for 4xx ApiErrors so they are traceable without being alarming:
+
+```typescript
+if (error instanceof ApiError) {
+  if (error.statusCode >= 500) {
+    logger.error({ error, method: request.method, route: getSafeRouteLabel(request) }, "API error");
+  } else {
+    logger.info({ code: error.code, statusCode: error.statusCode, method: request.method, route: getSafeRouteLabel(request) }, "Client error response");
+  }
+  sendError(...);
+  return;
+}
+```
+
+Do not log `error.message` in the structured fields for 4xx — the code and statusCode are sufficient for correlation without leaking validation detail into logs.
+
+**`backend/src/services/auth.service.ts`**
+
+The `safeRecordAuthAudit` helper already logs at `logger.error` when the audit write fails — correct. Add `logger.info` calls at the successful login and logout paths so auth events are queryable in logs even without the audit table. Suggested log points: after `signAccessToken` succeeds (login), with fields `{ userId, email }` and message `"User login succeeded"`; and at logout/token revoke with `{ userId }` and message `"User session revoked"`. Do not log passwords or tokens. Level: `info`.
+
+**`backend/src/server.ts`**
+
+Already logs startup (`"Custom Risk backend listening"`) and shutdown/error paths at `info`/`error`. This is correct and complete. No changes needed here.
+
+**`backend/src/services/personReference.service.ts`**
+
+Already has `logger.warn` for the failure case. No additional logging required.
+
+**Service layer (general):** The backend developer should add `logger.debug` calls at the entry point of significant service operations — e.g. publish draft, discard draft, apply template — with the `registerId` and (where available) acting `userId` as structured fields. These are debug-level so they do not appear in production with the default `info` level, but they are available during incident investigation when `LOG_LEVEL=debug` is temporarily set. The backend developer should use their judgement on which service functions qualify — a guideline is: any operation that mutates a config version, publishes a draft, or modifies user/register permissions.
+
+### Decision 3: Recommended LOG_LEVEL default for production
+
+The recommended production default is `info`. This captures HTTP request completion (from `requestMetricsMiddleware`), startup/shutdown lifecycle, auth events, and unhandled errors, without emitting per-query debug noise.
+
+The backend developer must ensure `LOG_LEVEL=info` is present in `.env.example` (or `env.example` if that is the project convention — check which file exists) with a comment explaining the valid values (`error`, `warn`, `info`, `debug`) and when to use each.
+
+Add `LOG_LEVEL` to the `docker-compose.yml` environment block for the `app` service:
+
+```yaml
+LOG_LEVEL: ${LOG_LEVEL:-info}
+```
+
+This allows operators to override via their `.env` without editing the compose file.
+
+### Decision 4: Log flow across Docker containers
+
+The `docker-compose.yml` defines two containers: `app` (the Express backend) and `db` (PostgreSQL). The `app` container writes logs to stdout/stderr; Docker captures them. The `db` container's PostgreSQL logs are separate and do not flow through the application logger.
+
+The backend developer does not need to do anything special for log aggregation — stdout is the correct output destination. The DevOps engineer should document in `docs/operations/observability.md`:
+
+- `docker compose logs -f app` — tail application logs
+- `docker compose logs -f db` — tail PostgreSQL logs
+- `LOG_LEVEL=debug docker compose up` — temporarily elevate verbosity for investigation (or set in `.env`)
+- JSON log format: each line is a JSON object; pipe to `jq` locally for readability: `docker compose logs -f app | jq .`
+- In production, pipe container stdout into the operator's chosen aggregation stack (Loki, CloudWatch, etc.). No application-side aggregation is required or recommended.
+- No log rotation is needed at the application level; Docker's `json-file` log driver handles rotation. Operators who need log persistence should configure a logging driver in their Docker daemon or use a sidecar.
+
+There is no second backend container, no worker process, and no background job runner at this time. If background jobs are added in future, the existing `runWithJobContext` in `backend/src/observability/requestContext.ts` already supports job-scoped observability bindings (jobName, jobId) — the job logs will appear in the same stream with those fields present, making them filterable without additional infrastructure.
+
+---
+
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
