@@ -122,6 +122,8 @@ Status: proposed
 
 No open product or UX decisions. All items are implementation-ready.
 
+**Decision (v1.24.0, in-session):** E2E-001 CI gating → E2E tests are NOT added to CI. They are run manually by the Test Engineer when changes relate to existing E2E coverage. The CI `e2e` job added by devops-engineer has been removed. ADR-0011 §2.5 updated to reflect this. The operations doc (`docs/operations/e2e-testing.md`) should document manual run instructions only.
+
 **Decision:** MAINT-016 extraction boundaries and feature directory naming → developer judgment call during implementation. The developer should identify natural component boundaries in each file before extracting.
 
 **Decision:** MAINT-019 block comment coverage → all three agent types (backend-developer, frontend-developer, test-engineer) should each handle the files within their domain during the same release to complete the sweep in one pass.

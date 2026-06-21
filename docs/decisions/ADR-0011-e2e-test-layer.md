@@ -72,11 +72,9 @@ Both scripts are invoked via root `package.json` scripts (`e2e:seed`, `e2e:teard
 
 ### 2.5 CI Gating Policy
 
-- E2E tests run as a dedicated `e2e` job in CI.
-- The `e2e` job depends on the `quality` job passing (unit and runtime tests must pass first).
-- Chromium only; no parallel browser matrix.
-- On failure, Playwright HTML report artifacts are uploaded for diagnosis.
-- E2E failures block merge.
+E2E tests are **not run in CI**. They are run manually by the Test Engineer when changes are made that relate to coverage already present in the E2E suite. This decision was made to avoid the overhead of running a full-stack E2E job on every pull request while the suite is still being established.
+
+The CI pipeline (`ci.yml`) has no `e2e` job. When CI gating of E2E tests is introduced in future, this section should be updated and an ADR amendment recorded.
 
 ### 2.6 Configuration
 
@@ -118,7 +116,7 @@ Rejected as the default mode. Running against staging introduces deployment lag 
 ## 5. Consequences
 
 - Layer 3 is added to the official test strategy and supersedes the note in ADR-0008 §4.2 that deferred E2E to the future.
-- The `e2e/` directory is established at the repository root. It is owned jointly by the test engineer (fixture and test authorship) and the devops engineer (CI job wiring).
+- The `e2e/` directory is established at the repository root. It is owned by the test engineer (fixture and test authorship).
 - The principal architect owns the `playwright.config.ts` shape and any future changes to the CI gating policy.
 - Playwright and its browser binaries become a dev dependency. Browser binaries are installed via `npx playwright install --with-deps chromium` and are not committed to the repository.
 - The `e2e:seed` and `e2e:teardown` scripts are registered in root `package.json` and must remain in sync with the fixture files.
