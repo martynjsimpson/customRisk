@@ -1,3 +1,14 @@
+/**
+ * MVP acceptance workflow — static assertion tests
+ *
+ * Verifies that the frontend source exposes the complete set of acceptance
+ * workflows required for the MVP release: register management, configuration,
+ * risk management (create/edit/review/delete), and role-based UI gating.
+ *
+ * Static checks guard against accidental removal of key integration points
+ * (e.g. a configuration tab disappearing, a review confirmation being dropped).
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
@@ -5,6 +16,7 @@ import { test } from "node:test";
 test("frontend exposes the required MVP acceptance workflows", async () => {
   const registersPage = await readFile(new URL("../src/pages/RegistersPage.tsx", import.meta.url), "utf8");
   const registerDetailPage = await readFile(new URL("../src/pages/RegisterDetailPage.tsx", import.meta.url), "utf8");
+  const registerPermissionsPanel = await readFile(new URL("../src/features/registers/RegisterPermissionsPanel.tsx", import.meta.url), "utf8");
   const configurationPanel = await readFile(new URL("../src/features/configuration/RegisterConfigurationPanel.tsx", import.meta.url), "utf8");
   const fieldConfig = await readFile(new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url), "utf8");
   const fieldTable = await readFile(new URL("../src/features/configuration/CustomFieldTable.tsx", import.meta.url), "utf8");
@@ -17,7 +29,7 @@ test("frontend exposes the required MVP acceptance workflows", async () => {
 
   assert.match(registerDetailPage, /value="configuration"/);
   assert.match(registerDetailPage, /value="permissions"/);
-  assert.match(registerDetailPage, /REGISTER_VIEWER/);
+  assert.match(registerPermissionsPanel, /REGISTER_VIEWER/);
   assert.match(registerDetailPage, /canManage \? <Tabs\.Tab value="configuration">/);
 
   assert.match(configurationPanel, /FieldConfigTab/);
