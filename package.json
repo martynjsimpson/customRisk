@@ -28,7 +28,10 @@
     "db:migrate": "npm --workspace @custom-risk/backend run prisma:deploy",
     "db:setup": "npm run db:migrate && npm run seed:admin",
     "seed:admin": "npm --workspace @custom-risk/backend run prisma:seed",
-    "smoke-test": "sh scripts/smoke-test.sh"
+    "smoke-test": "sh scripts/smoke-test.sh",
+    "e2e": "playwright test",
+    "e2e:seed": "npx tsx e2e/fixtures/seed.ts",
+    "e2e:teardown": "npx tsx e2e/fixtures/teardown.ts"
   },
   "overrides": {
     "react": "^19.2.0",
@@ -36,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.0",
     "eslint": "^10.5.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",

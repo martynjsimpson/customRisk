@@ -84,3 +84,19 @@ Rejected because Vitest integrates naturally with Vite and the existing frontend
 - Runtime tests will modestly increase test execution time and maintenance cost, but provide materially better protection against interaction regressions.
 - AI-assisted and human implementation workflows must treat runtime behavioral coverage as a normal part of frontend bug fixes where user-visible behavior is involved.
 - Future architecture and workflow documentation must describe both frontend test layers consistently.
+
+---
+
+## Amendment — Layer 3 E2E Test Layer (2026-06-21)
+
+**ADR-0011** formally adds Layer 3 (Playwright E2E browser automation) to the test strategy. This supersedes the note in §4.2 above that deferred E2E to the future.
+
+The complete three-layer strategy as of v1.24.0:
+
+| Layer | Tooling | Scope |
+|---|---|---|
+| 1 — Static source assertions | `node --test` (`.test.mjs`) | Source structure, route exposure, package invariants |
+| 2 — Runtime component behavior | Vitest + jsdom + Testing Library (`.behavior.test.tsx`) | Component interaction, mutation success, cache invalidation |
+| 3 — E2E browser automation | Playwright (Chromium) | Full-stack flows: login, role access, cross-page workflows |
+
+See `docs/decisions/ADR-0011-e2e-test-layer.md` for the full decision record covering directory structure, authentication strategy, fixture approach, and CI gating policy.
