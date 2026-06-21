@@ -3,21 +3,14 @@ import { fileURLToPath } from "node:url";
 
 import cors from "cors";
 import express from "express";
-import type { Logger } from "pino";
 
 import { getCorsAllowedOrigins } from "./config/env.js";
-import { logger as defaultLogger } from "./config/logger.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { requestContextMiddleware, requestMetricsMiddleware } from "./middleware/observability.js";
 import { createApiRouter } from "./routes/index.js";
 
-export interface CreateAppOptions {
-  logger?: Logger;
-}
-
-export function createApp(options: CreateAppOptions = {}) {
+export function createApp() {
   const app = express();
-  const appLogger = options.logger ?? defaultLogger;
   const allowedOrigins = getCorsAllowedOrigins();
 
   if (process.env.NODE_ENV === "production" && allowedOrigins.includes("*")) {
@@ -55,7 +48,7 @@ export function createApp(options: CreateAppOptions = {}) {
   }
 
   app.use(notFoundHandler());
-  app.use(errorHandler(appLogger));
+  app.use(errorHandler());
 
   return app;
 }

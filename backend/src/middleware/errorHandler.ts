@@ -1,5 +1,4 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
-import type { Logger } from "pino";
 
 import { ApiError } from "../errors/apiError.js";
 import { logger } from "../config/logger.js";
@@ -24,7 +23,7 @@ export function notFoundHandler(): RequestHandler {
   };
 }
 
-export function errorHandler(logger: Logger): ErrorRequestHandler {
+export function errorHandler(): ErrorRequestHandler {
   return (error, request, response, next) => {
     if (response.headersSent) {
       next(error);
