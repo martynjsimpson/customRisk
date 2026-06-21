@@ -5,5 +5,8 @@ import { getObservabilityBindings } from "../observability/requestContext.js";
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? (process.env.NODE_ENV === "test" ? "silent" : "info"),
   base: undefined,
-  mixin: () => getObservabilityBindings()
+  mixin: () => getObservabilityBindings(),
+  ...(process.env.NODE_ENV === "development"
+    ? { transport: { target: "pino-pretty", options: { colorize: true } } }
+    : {})
 });
