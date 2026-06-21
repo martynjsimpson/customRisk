@@ -160,7 +160,7 @@ export function ResponseActionsPanel({
                         <Table.Td>
                           <Group gap="xs" wrap="nowrap">
                             <Button
-                              variant="subtle"
+                              variant="light"
                               size="xs"
                               onClick={() => openEdit(action)}
                             >
@@ -168,7 +168,7 @@ export function ResponseActionsPanel({
                             </Button>
                             {canDelete ? (
                               <Button
-                                variant="subtle"
+                                variant="light"
                                 color="red"
                                 size="xs"
                                 onClick={() => handleDelete(action)}

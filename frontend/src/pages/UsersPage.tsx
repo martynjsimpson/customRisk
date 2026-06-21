@@ -119,11 +119,11 @@ export function UsersPage() {
                 </Table.Td>
                 <Table.Td>
                   <Group gap="xs" justify="flex-end" wrap="nowrap">
-                    <Button variant="subtle" size="xs" onClick={() => startEdit(user)}>Edit</Button>
+                    <Button variant="light" size="xs" onClick={() => startEdit(user)}>Edit</Button>
                     {user.isActive ? (
-                      <Button variant="subtle" size="xs" color="red" onClick={() => deactivateMutation.mutate(user.id)}>Deactivate</Button>
+                      <Button variant="light" size="xs" color="red" onClick={() => deactivateMutation.mutate(user.id)}>Deactivate</Button>
                     ) : (
-                      <Button variant="subtle" size="xs" onClick={() => activateMutation.mutate(user.id)}>Activate</Button>
+                      <Button variant="light" size="xs" onClick={() => activateMutation.mutate(user.id)}>Activate</Button>
                     )}
                   </Group>
                 </Table.Td>

@@ -438,7 +438,7 @@ export function MyRisksPage() {
                   <Group justify="flex-end" gap="xs" wrap="nowrap">
                     {risk.reviewStatus !== "NOT_REQUIRED" ? (
                       <Button
-                        variant="subtle"
+                        variant="light"
                         size="xs"
                         onClick={() => openReview(risk.id)}
                       >
@@ -446,7 +446,7 @@ export function MyRisksPage() {
                       </Button>
                     ) : null}
                     <Button
-                      variant="subtle"
+                      variant="light"
                       size="xs"
                       onClick={() => openEdit(risk.id)}
                     >
@@ -454,7 +454,7 @@ export function MyRisksPage() {
                     </Button>
                     {isSystemAdmin ? (
                       <Button
-                        variant="subtle"
+                        variant="light"
                         color="red"
                         size="xs"
                         onClick={() => openDelete(risk.id)}

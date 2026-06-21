@@ -321,7 +321,7 @@ export function ProfilePage() {
                         <Table.Td>
                           {key.status === "active" ? (
                             <Button
-                              variant="subtle"
+                              variant="light"
                               size="xs"
                               color="red"
                               loading={
