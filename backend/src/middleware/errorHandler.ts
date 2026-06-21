@@ -1,7 +1,8 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
+import type { Logger } from "pino";
 
 import { ApiError } from "../errors/apiError.js";
-import { logger } from "../config/logger.js";
+import { logger as defaultLogger } from "../config/logger.js";
 import { sendError } from "../utils/apiResponse.js";
 
 function isJsonParseError(error: unknown): error is SyntaxError & { type: string } {
@@ -18,12 +19,12 @@ function getSafeRouteLabel(request: Parameters<RequestHandler>[0]) {
 
 export function notFoundHandler(): RequestHandler {
   return (request, response) => {
-    logger.debug({ method: request.method, path: request.path }, "Route not found");
+    defaultLogger.debug({ method: request.method, path: request.path }, "Route not found");
     sendError(response, 404, "NOT_FOUND", "Route not found", undefined, request.requestId);
   };
 }
 
-export function errorHandler(): ErrorRequestHandler {
+export function errorHandler(logger: Pick<Logger, "info" | "error"> = defaultLogger): ErrorRequestHandler {
   return (error, request, response, next) => {
     if (response.headersSent) {
       next(error);
