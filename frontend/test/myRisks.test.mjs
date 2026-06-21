@@ -3,11 +3,22 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 /**
- * BUG-005 — Hide Review button on /my-risks when reviews are not required
+ * MyRisksPage — static assertion tests
  *
- * The Review button must only render when the risk's review status is not
- * "NOT_REQUIRED". These tests assert the conditional guard is present in
- * the source and cannot regress to an unconditional render.
+ * Covers three work items:
+ *
+ * BUG-005 — Hide Review button when reviews are not required.
+ *   The Review button must only render when reviewStatus !== "NOT_REQUIRED".
+ *   These assertions guard against an unconditional render regression.
+ *
+ * UI-005 — Search and filter bar on /my-risks.
+ *   Filter state must be stored in URL search params and forwarded to the API.
+ *   The filter bar must include text search, state, risk level, and register inputs,
+ *   plus a Reset button that clears all filters.
+ *
+ * UI-006 — Export CSV button on /my-risks.
+ *   An Export CSV button must pass the active filter state to exportMyRisks.
+ *   Export errors must be surfaced to the user.
  */
 
 test("BUG-005: Review button is conditional on reviewStatus !== NOT_REQUIRED", async () => {

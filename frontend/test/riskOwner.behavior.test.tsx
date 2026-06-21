@@ -1,3 +1,14 @@
+/**
+ * RiskFormModal — risk owner field behavioural tests (PM2-02)
+ *
+ * Covers the email-only owner field mode introduced in PM2-02:
+ * 1. Owner field accepts a free-text email address.
+ * 2. Saving with a valid email succeeds and calls updateRisk with the address.
+ * 3. Saving with an invalid email shows a validation error.
+ *
+ * The static source check in frontend/test/permissions.test.mjs confirms the
+ * ownership guard is wired at source level; these tests assert the runtime form behaviour.
+ */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";

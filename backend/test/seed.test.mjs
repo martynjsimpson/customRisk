@@ -25,7 +25,7 @@ test("seed script bootstraps a System Admin from environment variables", async (
   assert.match(seed, /state:\s*"CLOSED"/);
   assert.match(seed, /nextReviewDaysFromNow:\s*-14/);
   assert.match(seed, /nextReviewDaysFromNow:\s*20/);
-  assert.match(seed, /16 representative risks/);
+  assert.match(seed, /19 representative risks/);
   assert.match(seed, /riskLevelDefaultColors/);
   assert.match(seed, /responseStrategyDefaults = \["Accept", "Mitigate", "Transfer", "Avoid"\]/);
   assert.doesNotMatch(seed, /replace_with_local_dev_password/);
