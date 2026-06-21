@@ -33,7 +33,7 @@ import {
   type ApiKeyCreated
 } from "../api/apiKeys.api";
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
-import { useAuth } from "../auth/session";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import { PREFERENCES_QUERY_KEY } from "../hooks/usePreferences";
 
@@ -51,7 +51,7 @@ function getPasswordStrength(password: string): { score: number; label: string; 
 }
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user } = useCurrentUser();
   const queryClient = useQueryClient();
   const flags = useFeatureFlags();
   const { colorScheme, setColorScheme } = useMantineColorScheme();
@@ -321,7 +321,7 @@ export function ProfilePage() {
                         <Table.Td>
                           {key.status === "active" ? (
                             <Button
-                              variant="light"
+                              variant="subtle"
                               size="xs"
                               color="red"
                               loading={
