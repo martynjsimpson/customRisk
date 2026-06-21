@@ -10,14 +10,57 @@ on:
 permissions:
   contents: read
   packages: write
+  actions: read
 
 jobs:
+  check-ci-status:
+    name: Check CI status
+    runs-on: ubuntu-latest
+    outputs:
+      should-publish: ${{ steps.check.outputs.should-publish }}
+    steps:
+      - name: Determine if CI passed (or was skipped due to prior success)
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # For manual triggers, always proceed
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "should-publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Check if the triggering CI workflow succeeded
+          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ]; then
+            echo "should-publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # If CI was skipped, it means the commit already passed CI on another ref.
+          # Proceed with publishing if that's the case.
+          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+          REPO="${{ github.repository }}"
+
+          SUCCESSFUL_RUNS=$(gh api \
+            "/repos/$REPO/actions/workflows/ci.yml/runs" \
+            -f "head_sha=$COMMIT_SHA" \
+            -f "status=completed" \
+            -f "conclusion=success" \
+            --jq ".workflow_runs | length")
+
+          if [ "$SUCCESSFUL_RUNS" -gt "0" ]; then
+            echo "Commit $COMMIT_SHA has passed CI on another ref, proceeding with publish"
+            echo "should-publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Commit $COMMIT_SHA has not passed CI, skipping publish"
+            echo "should-publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
   publish:
     name: Publish Main Image
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+    needs: check-ci-status
+    if: needs.check-ci-status.outputs.should-publish == 'true'
 
     steps:
       - name: Resolve image parameters

@@ -1,0 +1,77 @@
+name: Publish Branch Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch name to build (e.g., bugfix/my-issue, feature/new-feature)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish Branch Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate branch name
+        id: branch-slug
+        run: |
+          BRANCH="${{ github.event.inputs.branch }}"
+          # Convert branch name to valid Docker tag segment
+          # Replace / with - and remove any invalid characters
+          SLUG=$(echo "$BRANCH" | sed 's|/|-|g' | sed 's/[^a-zA-Z0-9_.-]//g' | tr '[:upper:]' '[:lower:]')
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "Branch: $BRANCH → Tag slug: $SLUG"
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Resolve image parameters
+        id: params
+        run: |
+          SHA_FULL=$(git rev-parse HEAD)
+          SHA_SHORT=$(echo "$SHA_FULL" | cut -c1-7)
+          echo "sha_full=$SHA_FULL" >> "$GITHUB_OUTPUT"
+          echo "sha_short=$SHA_SHORT" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.params.outputs.image }}
+          tags: |
+            type=raw,value=branch-${{ steps.branch-slug.outputs.slug }}-${{ steps.params.outputs.sha_short }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.params.outputs.sha_full }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
