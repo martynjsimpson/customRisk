@@ -135,7 +135,7 @@ jobs:
   # If the real jobs ran successfully, these also succeed.
   # If the real jobs were skipped (commit already passed CI), these also succeed.
   quality:
-    name: quality
+    name: Quality Gates
     runs-on: ubuntu-latest
     needs: [check-previous-run, quality-gates]
     if: always()
@@ -154,7 +154,7 @@ jobs:
           exit 1
 
   docker:
-    name: docker
+    name: Docker Build
     runs-on: ubuntu-latest
     needs: [check-previous-run, docker-build]
     if: always()
