@@ -1,3 +1,11 @@
+/**
+ * Express app integration tests.
+ *
+ * Spins up the real Express app via createApp() and verifies core middleware
+ * behaviour: CORS headers, health endpoint, and error handler responses for
+ * unknown routes and validation failures.
+ */
+
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";

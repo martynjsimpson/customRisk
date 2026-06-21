@@ -1,3 +1,12 @@
+/**
+ * Risk scoring and ID formatting unit tests.
+ *
+ * Covers calculateRiskScore (matrix lookup), calculateNextReviewDate
+ * (interval arithmetic), formatRiskId (prefix and zero-padding), and
+ * the updateRiskSchema validator. These functions are pure or near-pure
+ * and tested without a database connection.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

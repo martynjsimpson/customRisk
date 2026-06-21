@@ -1,3 +1,12 @@
+/**
+ * Database seed script tests.
+ *
+ * Static assertions that verify the seed script reads admin credentials from
+ * environment variables, applies password policy validation before creating
+ * the System Admin user, and sets the expected initial field values
+ * (isSystemAdmin, isActive, failedLoginAttempts).
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

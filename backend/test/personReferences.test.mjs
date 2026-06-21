@@ -1,3 +1,11 @@
+/**
+ * Person reference service unit tests.
+ *
+ * Covers isValidEmail (format validation), formatPersonDisplay (linked user
+ * vs free-text fallback display), and static assertions confirming that the
+ * person picker field type is correctly wired in routes and the Prisma schema.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

@@ -8,14 +8,11 @@ import type { AuthenticatedActor } from "../types/express.js";
 import { calculateNextReviewDate } from "./scoring.service.js";
 import { recordAuditEvent } from "./audit.service.js";
 import type { CreateRiskReviewBody } from "../validators/risks.schemas.js";
+import { toDateOnlyString } from "../utils/formatters.js";
 
 const RISK_REVIEW_HISTORY_CAP = 100;
 
 type ReviewClient = typeof prisma | Prisma.TransactionClient;
-
-function toDateOnlyString(date: Date | null) {
-  return date ? date.toISOString().slice(0, 10) : null;
-}
 
 function hiddenNotFound() {
   return new ApiError(404, "NOT_FOUND", "Risk not found");

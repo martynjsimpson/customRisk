@@ -1,6 +1,7 @@
 import { Prisma, type AuditValueType } from "@prisma/client";
 
 import { auditActions } from "../audit/auditActions.js";
+import { toDateOnlyString, decimalToNumber } from "../utils/formatters.js";
 import { buildRiskDeleteSnapshot } from "../audit/snapshotBuilder.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
@@ -30,10 +31,6 @@ import { evaluateFormula, FormulaEvaluationError, type FormulaContext } from "./
 import { isFieldVisibleToRole, isFieldVisibleToResponseActionOwner } from "./registerConfig.service.js";
 
 type RiskClient = typeof prisma | Prisma.TransactionClient;
-
-function toDateOnlyString(date: Date | null) {
-  return date ? date.toISOString().slice(0, 10) : null;
-}
 
 function decimalOrNull(d: Prisma.Decimal | null): number | null {
   return d ? new Prisma.Decimal(d).toNumber() : null;
@@ -99,9 +96,6 @@ export async function evaluateAndStoreCalculatedFields(
   }
 }
 
-function decimalToNumber(value: Prisma.Decimal.Value) {
-  return new Prisma.Decimal(value).toNumber();
-}
 export { getRiskReviewStatus, isRiskOverdue } from "./reviewStatus.service.js";
 
 function buildRiskOrderBy(query: ListRisksQuery): Prisma.RiskOrderByWithRelationInput[] {

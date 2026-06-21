@@ -1,3 +1,11 @@
+/**
+ * Custom field type migration tests.
+ *
+ * Verifies the allowed type-transition matrix in customFields.service.ts —
+ * which field types can be safely migrated to which other types without data
+ * loss — and the end-to-end calculated field evaluation path (BUG-049).
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

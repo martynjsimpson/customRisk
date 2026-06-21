@@ -1,3 +1,11 @@
+/**
+ * MVP acceptance tests.
+ *
+ * Verifies that all core route groups (register, configuration, matrix, risk,
+ * review, viewer, and closed-risk scenarios) are wired correctly by inspecting
+ * route definitions, validators, and service source files at a static level.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

@@ -5,6 +5,7 @@ import { prisma } from "../db/prisma.js";
 import { ApiError, type FieldWarning } from "../errors/apiError.js";
 import type { RiskCustomFieldValueBody } from "../validators/risks.schemas.js";
 import { resolvePersonInput, upsertPersonReference } from "./personReference.service.js";
+import { toDateOnlyString } from "../utils/formatters.js";
 
 export type CustomFieldClient = typeof prisma | Prisma.TransactionClient;
 
@@ -34,9 +35,6 @@ export interface ValidatedCustomFieldResult {
   warnings: FieldWarning[];
 }
 
-function toDateOnlyString(date: Date | null) {
-  return date ? date.toISOString().slice(0, 10) : null;
-}
 
 function countProvidedValues(value: RiskCustomFieldValueBody) {
   return [

@@ -1,3 +1,12 @@
+/**
+ * User service unit tests.
+ *
+ * Covers auditActionForUserActiveChange (correct audit action names for
+ * activation and deactivation), deepMergeObjects (user preference merging),
+ * and static route assertions confirming user management endpoints are
+ * gated by System Admin permission.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

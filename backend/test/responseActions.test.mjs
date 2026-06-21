@@ -1,3 +1,11 @@
+/**
+ * Response action schema, route, and service tests.
+ *
+ * Verifies that the Prisma schema defines the required ResponseAction enums
+ * and model fields, that routes are correctly gated by risk-edit permission,
+ * and that the service enforces ownership rules for response action owners.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

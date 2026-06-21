@@ -1,3 +1,11 @@
+/**
+ * Custom field frontend integration tests (PM5-10).
+ *
+ * Static assertions that verify the FieldConfigTab frontend component exposes
+ * the required delete flow — including usage check, System Admin guard, and
+ * force-confirmation step — as specified in PM5-10.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

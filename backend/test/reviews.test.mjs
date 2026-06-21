@@ -1,3 +1,12 @@
+/**
+ * Risk review route, schema, and service tests.
+ *
+ * Verifies that review routes are mounted before risk detail routes (ordering
+ * matters for Express matching), that the create review schema validates
+ * correctly, and that the service updates nextReviewDate and emits the
+ * correct audit event on review creation.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

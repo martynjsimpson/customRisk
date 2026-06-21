@@ -1,3 +1,13 @@
+/**
+ * Permission model tests.
+ *
+ * Static assertions verifying that the registerAccess and riskAccess
+ * permission helpers implement the full permission model: system admin
+ * bypass, register role checks (ADMIN/VIEWER), ownership derivation, and
+ * viewer export flag. Covers all permission layers defined in the permission
+ * model architecture document.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
