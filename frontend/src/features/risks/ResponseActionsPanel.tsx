@@ -79,9 +79,14 @@ export function ResponseActionsPanel({
     mutationFn: (action: ResponseAction) =>
       deleteResponseAction(registerId, riskId, action.id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["registers", registerId, "risks", riskId, "actions"],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["registers", registerId, "risks", riskId, "actions"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["audit", "risk", registerId, riskId],
+        }),
+      ]);
     },
   });
 

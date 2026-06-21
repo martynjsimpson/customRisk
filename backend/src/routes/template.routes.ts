@@ -85,42 +85,52 @@ export function createTemplateRouter() {
 }
 
 /**
- * Register-scoped template sub-router — mounted under /registers/:registerId.
- * Uses mergeParams: true so that :registerId is available.
+ * Register-scoped template sub-router — mounted under /registers/:registerId/templates.
+ * Uses mergeParams: true so that :registerId is available from the parent route.
  */
 export function createRegisterTemplateSubRouter() {
   const router = Router({ mergeParams: true });
 
-  // POST /:registerId/templates/from-register  — System Admin only
+  // POST /from-register  — System Admin only
   router.post(
-    "/:registerId/templates/from-register",
+    "/from-register",
     requireSystemAdmin,
     validateRequest({ params: registerIdParamsSchema, body: createTemplateBodySchema }),
     asyncRoute(createTemplateFromRegisterController)
   );
 
-  // POST /:registerId/registers/from-template — System Admin only
-  router.post(
-    "/from-template",
-    requireSystemAdmin,
-    validateRequest({ body: createRegisterFromTemplateBodySchema }),
-    asyncRoute(createRegisterFromTemplateController)
-  );
-
-  // GET  /:registerId/templates/compare/:templateVersionId — Register Management
+  // GET  /compare/:templateVersionId — Register Management
   router.get(
-    "/:registerId/templates/compare/:templateVersionId",
+    "/compare/:templateVersionId",
     validateRequest({ params: compareParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(compareRegisterToTemplateController)
   );
 
-  // POST /:registerId/templates/apply/:templateVersionId — Register Management
+  // POST /apply/:templateVersionId — Register Management
   router.post(
-    "/:registerId/templates/apply/:templateVersionId",
+    "/apply/:templateVersionId",
     validateRequest({ params: compareParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(applyTemplateUpdateToDraftController)
+  );
+
+  return router;
+}
+
+/**
+ * Register creation from template sub-router — mounted under /registers/from-template.
+ * Gated by the draftConfig feature flag alongside the other template routes.
+ */
+export function createRegisterFromTemplateSubRouter() {
+  const router = Router({ mergeParams: true });
+
+  // POST /from-template — System Admin only
+  router.post(
+    "/",
+    requireSystemAdmin,
+    validateRequest({ body: createRegisterFromTemplateBodySchema }),
+    asyncRoute(createRegisterFromTemplateController)
   );
 
   return router;

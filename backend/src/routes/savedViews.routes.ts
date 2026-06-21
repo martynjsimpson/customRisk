@@ -20,28 +20,28 @@ export function createSavedViewsSubRouter() {
   const router = Router({ mergeParams: true });
 
   router.get(
-    "/:registerId/saved-views",
+    "/",
     validateRequest({ params: savedViewRegisterParamsSchema }),
     requireRegisterAccess(),
     asyncRoute(listSavedViewsController)
   );
 
   router.post(
-    "/:registerId/saved-views",
+    "/",
     validateRequest({ params: savedViewRegisterParamsSchema, body: createSavedViewSchema }),
     requireRegisterAccess(),
     asyncRoute(createSavedViewController)
   );
 
   router.patch(
-    "/:registerId/saved-views/:viewId",
+    "/:viewId",
     validateRequest({ params: savedViewIdParamsSchema, body: updateSavedViewSchema }),
     requireRegisterAccess(),
     asyncRoute(updateSavedViewController)
   );
 
   router.delete(
-    "/:registerId/saved-views/:viewId",
+    "/:viewId",
     validateRequest({ params: savedViewIdParamsSchema }),
     requireRegisterAccess(),
     asyncRoute(deleteSavedViewController)

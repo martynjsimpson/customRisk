@@ -25,8 +25,14 @@ export function DeleteRiskModal({ registerId, riskId, opened, onClose, onSuccess
     }
   });
 
+  function handleClose() {
+    deleteMutation.reset();
+    setDeletionReason("");
+    onClose();
+  }
+
   return (
-    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title="Delete risk">
+    <Modal opened={opened && Boolean(riskId)} onClose={handleClose} title="Delete risk">
       <Stack>
         <Alert color="red">This permanently deletes the risk after writing an audit snapshot.</Alert>
         <ApiErrorAlert error={deleteMutation.error} fallback="Unable to delete risk" />
@@ -36,7 +42,7 @@ export function DeleteRiskModal({ registerId, riskId, opened, onClose, onSuccess
           onChange={(event) => setDeletionReason(event.currentTarget.value)}
         />
         <Group justify="flex-end">
-          <Button variant="subtle" onClick={onClose}>Cancel</Button>
+          <Button variant="subtle" onClick={handleClose}>Cancel</Button>
           <Button color="red" loading={deleteMutation.isPending} onClick={() => deleteMutation.mutate()}>
             Delete
           </Button>

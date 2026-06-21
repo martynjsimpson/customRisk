@@ -74,6 +74,34 @@ Demo data is idempotent — re-running with `SEED_DEMO_DATA=true` updates record
 
 For a clean production environment with no sample data, leave `SEED_DEMO_DATA` unset.
 
+### Feature flags
+
+Custom Risk includes optional beta and experimental features that can be enabled via environment variables. All feature flags default to `false` and are disabled by default.
+
+To enable a feature, set its environment variable to `true` in `.env`:
+
+```
+FEATURE_USER_PREFERENCES=true
+FEATURE_SAML_AUTH=true
+```
+
+Available feature flags:
+
+| Flag | Description |
+|---|---|
+| `FEATURE_USER_PREFERENCES` | User profile and preference settings |
+| `FEATURE_SAML_AUTH` | SAML 2.0 authentication |
+| `FEATURE_DRAFT_CONFIG` | Draft configuration states for registers and fields |
+| `FEATURE_CHILD_ACTIONS` | Child risk actions and sub-action tracking |
+| `FEATURE_NOTIFICATIONS` | Email and system notifications |
+| `FEATURE_CSV_IMPORT` | Bulk import risks from CSV files |
+| `FEATURE_ATTACHMENTS` | File attachments on risks and actions |
+| `FEATURE_API_KEYS` | API key authentication and management |
+| `FEATURE_WEBHOOKS` | Webhook event delivery |
+| `FEATURE_SAVED_VIEWS` | Saved filter and view configurations |
+
+Features are enabled immediately on container restart — no migration or additional configuration is required.
+
 ### Database migrations
 
 Migrations run automatically on every container start before the server accepts requests. There is no separate migration step required after an upgrade.
@@ -96,6 +124,26 @@ The compose file defaults to the `latest` release image. To pin to a specific ve
 ```sh
 CUSTOMRISK_VERSION=1.0.0
 ```
+
+### Testing development branches
+
+To test a specific development branch in a production-like environment without merging to main, trigger the on-demand branch image builder from the GitHub Actions page:
+
+1. Go to **Actions** → **Publish Branch Image** → **Run workflow**
+2. Enter the branch name (e.g., `bugfix/my-issue` or `feature/new-feature`)
+3. Trigger the workflow
+
+The workflow publishes an image with the tag `branch-<branch-slug>-<commit-sha-short>` (e.g., `branch-bugfix-my-issue-a1b2c3d`).
+
+To use the branch image in your deployment, set `CUSTOMRISK_VERSION` in `.env`:
+
+```sh
+CUSTOMRISK_VERSION=branch-bugfix-my-issue-a1b2c3d
+docker compose pull
+docker compose up -d
+```
+
+Branch images use the same Dockerfile and entrypoint as release images, so they behave identically in a production-like Docker Compose setup. The branch image tag naming convention (`branch-*`) makes it easy to distinguish development images from release versions.
 
 ### External database
 

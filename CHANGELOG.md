@@ -15,6 +15,32 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-06-21
+
+### Added
+
+- **On-demand branch Docker publishing (MAINT-007)**
+  - A new `branch-image` GitHub Actions workflow can be triggered manually from any branch to build and publish a Docker package to GHCR. Branch images are tagged `branch-<slug>-<sha>` so they are clearly distinct from release packages. The README documents how to trigger the build and how to target the resulting image in a production Docker Compose setup. This enables iterative production-environment testing of fixes without merging to main.
+
+### Changed
+
+- **Reduced duplicate CI runs (MAINT-009)**
+  - CI no longer re-runs the same checks when an identical commit SHA has already passed on another ref. A concurrency group on commit SHA also cancels redundant simultaneous runs. Required branch protection checks are still satisfied on all paths.
+
+- **Feature flags now work in production Docker deployments (BUG-055)**
+  - `FEATURE_*` environment variables were not forwarded into the Docker container, so `.env` flag values had no effect in production. All ten feature flags are now passed through in both `docker-compose.yml` and `docker-compose.release.yml`, defaulting to `false`. The `.env.deploy.example` template and README production setup section now document all available flags so operators can discover and enable them.
+
+### Fixed
+
+- **Modal error state cleared on close (BUG-053)**
+  - All modals that can display an error now reset their error state when closed. Reopening any modal — risk add/edit, response action add/edit, review, configuration modals, and API key creation — always starts clean with no stale error from a previous session.
+
+- **Audit table refreshes after response action mutations (BUG-052)**
+  - Adding, editing, or soft-deleting a response action in the View Risk modal now immediately updates the audit table without requiring the modal to be closed and reopened.
+
+- **App degrades cleanly when feature flags are disabled (BUG-054)**
+  - Flag-gated routes and components now handle their flag being `false` without crashing or showing broken UI. The `childActions` flag correctly hides the Response Actions configuration fieldset and the child records panel when disabled, even when a register was previously configured in child records mode. Flag-gated backend endpoints return 404 rather than a 500 error when their flag is off.
+
 ## [1.20.0] - 2026-06-21
 
 ### Added

@@ -11,6 +11,7 @@ import { CORE_RISK_FIELDS } from "./coreRiskFields";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge/RiskLevelBadge";
 import { ReviewStatusBadge } from "../../components/ReviewStatusBadge/ReviewStatusBadge";
 import { ResponseActionsPanel } from "./ResponseActionsPanel";
+import { useFeatureFlags } from "../../hooks/useFeatureFlags";
 
 function coreDetailValue(risk: RiskDetail, fieldId: (typeof CORE_RISK_FIELDS)[number]["id"]): ReactNode {
   switch (fieldId) {
@@ -103,9 +104,14 @@ export function RiskDetailModal({
   onRequestReview,
   onRequestDelete
 }: RiskDetailModalProps) {
+  const flags = useFeatureFlags();
   const isResponseActionOwner = effectiveRole === "RESPONSE_ACTION_OWNER";
   // Derive the response action mode from formConfig (updated by backend per ADR §4.3).
-  const responseActionMode = formConfig.register.responseActionMode ?? "SIMPLE";
+  // When the childActions feature flag is disabled, force SIMPLE mode so that the
+  // ResponseActionsPanel is never rendered even if the register record still holds
+  // a stale CHILD_RECORDS value.
+  const responseActionMode =
+    flags.childActions ? (formConfig.register.responseActionMode ?? "SIMPLE") : "SIMPLE";
 
   const activeCustomFields = formConfig.customFields.filter((field) => field.isActive);
   // reviewStatusPosition is 0-based. null means "append after all other rows".

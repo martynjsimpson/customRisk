@@ -1,130 +1,168 @@
 # Active Release
 
 Status: ready-for-release
-Version: v1.20.0
+Version: v1.21.0
 
 ## Release goal
 
-Produce a set of investigation and scoping documents that unblock future delivery work, alongside one small bug fix. By the end of this release: coding standards exist for engineers to apply during review; an i18n architecture assessment is available; a comprehensive manual permission test plan exists; a Playwright evaluation spike document scopes the future E2E implementation; and the missing response actions help content is surfaced in the in-app help page.
+Fix production deployment reliability: establish on-demand branch publishing so production fixes can be tested iteratively, then fix and harden the feature flag pipeline and modal error state. By the end of this release: branch Docker packages can be published on demand from any branch; feature flags work correctly in production Docker deployments; the app degrades cleanly when flags are disabled; modal errors clear on close; and the audit table in the View Risk modal refreshes after response action mutations.
 
 ## Selected work items
 
-### BUG-051 — Surface response actions help content within the risks help section
-Source: REQ-067
-Capability: help-content
-Status: done
-done_in: v1.20.0
-
-**Problem:** `frontend/public/help/en/response-actions.md` was written as part of v1.19.0 but was never wired into the in-app help page. Users cannot discover response action documentation from the help UI.
-
-**Acceptance criteria:**
-- The response actions help content from `frontend/public/help/en/response-actions.md` is reachable from within the risks section of the in-app help page.
-- Response actions content is not a standalone tab — it is a subsection of the risks help article, appearing in a logical position after core risk management content.
-- The developer may merge the file into the risks help article or keep it as a separate file that is included/referenced — whichever is cleaner — as long as the content is reachable from the risks section.
-- No regression to other help content or help page navigation.
-
----
-
-### MAINT-010 — Establish coding standards for frontend, backend, and test code
-Source: REQ-069
+### MAINT-007 — Add on-demand branch package publishing via GitHub Actions manual trigger
+Source: REQ-062
 Capability: build-toolchain
+Suggested agents: devops-engineer
 Status: done
-done_in: v1.20.0
+done_in: v1.21.0
 
-**Problem:** No agreed coding standards exist for the project. Engineers and reviewers have no shared reference for when to refactor, how to structure components and services, or how to write and maintain tests.
+**Problem:** There is no way to publish a Docker package for a specific branch without going through a full PR and merge to main. Developers cannot test production-environment issues iteratively without landing code.
 
 **Acceptance criteria:**
-- A coding standards document is created at `docs/engineering/coding-standards.md` (new directory).
-- Standards cover backend concerns: DRY, consistency, service layer patterns, separation of concerns, error handling, and when to refactor rather than extend.
-- Standards cover frontend concerns: component reuse, avoiding duplicate UI patterns, when shared components or hooks are appropriate, and state management consistency.
-- Standards cover test writing: when tests are required, what level of test is appropriate, naming and structure conventions, fixture usage, avoiding brittle assertions, and regression coverage expectations.
-- Clear refactoring triggers are included for both frontend and backend — concrete signals that indicate code should be refactored rather than extended in place.
-- The document is practical enough to reference during a code review.
+- A GitHub Actions workflow can be triggered manually (workflow_dispatch) for a specified branch, building and publishing a Docker package using the same process as the main release build.
+- The on-demand workflow does not trigger automatically on push or PR — manual invocation only.
+- Published branch packages are clearly distinguishable from release packages by tag naming convention.
+- The root README.md is updated to document how to trigger the on-demand build and how to target the resulting branch package in a production Docker Compose setup.
+- No change to the existing automatic release workflow behaviour.
+
+**Note for Release Manager:** The devops-engineer should implement this first — it is a prerequisite for iterative production testing of BUG-055 and BUG-054. The branch package tag naming convention is a devops decision to make in-release.
 
 ---
 
-### SPIKE-005 — Spike: internationalisation architecture assessment
-Source: REQ-068
-Capability: architecture
-Status: done
-done_in: v1.20.0
-
-**Problem:** No i18n architecture assessment exists. If multi-language support becomes a requirement, the team has no agreed approach for how to add it across the frontend, backend, help content, validation messages, and configuration labels.
-
-**Acceptance criteria:**
-- A spike document exists at `docs/spikes/SPIKE-005.md` covering: frontend string externalisation approach (i18n library recommendation, translation file structure, locale selection); backend-generated text (error messages, audit summaries); help content locale management (relationship to the existing `frontend/public/help/en/` structure); validation message localisation; and user-visible configuration labels.
-- The document covers date, number, and currency formatting and recommends a consistent approach across frontend and backend.
-- The document identifies the areas of the app requiring the most refactoring and recommends a sequencing that allows incremental progress.
-- The document flags any third-party library recommendations and assesses their fit with the existing Vite/React/Node/Mantine stack.
-- No implementation work is started as part of this spike.
-
----
-
-### QA-001 — Write manual permission test plan covering all role and content-type permutations
-Source: REQ-056
+### MAINT-009 — Reduce duplicate CI runs across branch, PR, and post-merge workflows
+Source: REQ-065
 Capability: build-toolchain
+Suggested agents: devops-engineer
 Status: done
-done_in: v1.20.0
+done_in: v1.21.0
 
-**Problem:** No comprehensive permission test plan exists. There is no authoritative reference document describing what each role can and cannot do across every entity type — making it difficult to verify permission correctness manually or to scope automated permission testing.
+**Problem:** CI runs the same checks multiple times — on the release branch, again when a PR is created with no new changes, and again after merge to main. This slows releases without adding confidence.
 
 **Acceptance criteria:**
-- A document exists at `docs/engineering/permission-test-plan.md` covering every role in the system — System Admin, Register Admin, Register Editor, Register Viewer, Risk Owner, Risk Response Owner — against every permission-gated action and entity type.
-- Each test case specifies: the role or persona, the entity/action being tested, and the expected outcome (allowed or denied).
-- The plan covers at minimum: register CRUD, risk CRUD, custom field visibility, response action CRUD and ownership, review actions, configuration and permissions tab access, export controls, audit log access, user management, template management, and API key management.
-- The document is structured as a pass/fail checklist executable by a human tester without needing code access.
-- The document is reviewed against the PRD permission model (§5, §12) to confirm no gaps.
+- CI does not re-run identical checks on a PR if the branch has already passed CI with the same commit SHA.
+- Post-merge CI does not repeat checks already passed pre-merge unless new code was introduced by the merge itself.
+- All required status checks for branch protection and release confidence are still satisfied after the change.
+- Release velocity is measurably improved — fewer redundant CI minutes per release.
+
+**Note for Release Manager:** Can be worked alongside MAINT-007 — both touch GitHub Actions workflow config and the devops-engineer is already in that area.
 
 ---
 
-### SPIKE-003 — Spike: evaluate Playwright for browser-based permission testing
-Source: REQ-057
+### BUG-055 — Fix production feature flags — .env values have no effect in Docker deployment
+Source: REQ-063
 Capability: build-toolchain
+Suggested agents: principal-architect, devops-engineer, backend-developer, frontend-developer
 Status: done
-done_in: v1.20.0
-Depends on: QA-001
+done_in: v1.21.0
 
-**Problem:** Current static and Vitest/jsdom tests do not fully exercise real login sessions, routing, backend authorisation, and browser-rendered permission states together. Before committing to Playwright (or any alternative), the architecture and implementation approach should be evaluated and documented.
+**Problem:** Feature flags set in .env have no effect in the production Docker Compose setup. Operators have no reliable way to control feature flags in a deployed instance.
 
 **Acceptance criteria:**
-- A spike document exists at `docs/spikes/SPIKE-003.md` covering: whether to adopt Playwright vs. alternatives (Cypress, etc.) and the rationale; the proposed three-layer test model (static, Vitest/jsdom runtime, Playwright E2E) and its relationship to ADR-0008; the permission fixture design — named users, named registers, named risks and actions, explicit cross-user access edges — and how it would be seeded without coupling to `seed.ts`; the proposed CI integration approach including how Playwright tests would be gated separately from unit/integration tests; and a scoped implementation plan with sequencing for a follow-on release.
-- The document explicitly references QA-001 as the source of truth for the permission matrix the future suite will automate.
-- ADR-0008 is assessed in the document but not updated in this release — any update is deferred to the implementation release.
-- No Playwright tests are written in this release.
+- Feature flag values set in .env take effect in a production Docker Compose deployment following the documented README setup.
+- Both backend-read flags (env vars consumed at runtime by Node) and frontend-read flags (Vite env vars baked at build time) are confirmed to work correctly, or the architectural split between them is explicitly documented.
+- If a runtime config mechanism is required for frontend flags, the PA designs and agrees the approach before the frontend developer implements it.
+- The root README.md production setup section is updated to accurately describe how to configure feature flags in a production deployment.
+- No regression to local development flag behaviour.
+
+**Decision:** If frontend flags require a runtime config mechanism (due to Vite build-time baking), the approach is the PA's architectural call — implement whatever the PA approves. No PM input needed.
+
+---
+
+### BUG-054 — Harden app behaviour across feature flag combinations
+Source: REQ-060
+Capability: build-toolchain
+Suggested agents: frontend-developer, backend-developer, test-engineer
+Depends on: BUG-055 (validate flag combinations only once flags work in production)
+Status: done
+done_in: v1.21.0
+
+**Problem:** The app may crash or behave incorrectly when certain feature flags are disabled. /registers/<registerId> is specifically suspected. Feature-flagged code paths on both frontend and backend need to be reviewed and hardened.
+
+**Acceptance criteria:**
+- All feature-flagged routes and components degrade cleanly when their flag is disabled — no crashes, unhandled errors, or broken UI.
+- /registers/<registerId> is verified to load correctly under all supported flag combinations.
+- Flag-gated backend endpoints return appropriate responses (e.g. 404 or 403) rather than 500 errors when their flag is off.
+- Flag-gated frontend components hide cleanly or show an appropriate fallback when their flag is disabled.
+- Test coverage exists for at least the key disabled-flag scenarios, particularly /registers/<registerId> and any other routes identified during the review.
+
+---
+
+### BUG-053 — Clear modal error state on close across all modals
+Source: REQ-059
+Capability: register-ui
+Suggested agents: frontend-developer, test-engineer
+Status: done
+done_in: v1.21.0
+
+**Problem:** Error state is not cleared when modals are closed. Reopening any affected modal shows the previous error until a successful action clears it.
+
+**Acceptance criteria:**
+- All modals in the app reset their error state when closed — reopening always starts clean with no prior error visible.
+- The fix covers every modal that can display an error: risk add/edit, response action add/edit, review, config modals, API key creation, and any others identified during the sweep.
+- No regression to error display behaviour during an active modal session — errors must still appear correctly within a single open.
+- Frontend tests cover the close-then-reopen scenario for at least the highest-traffic modals.
+
+---
+
+### BUG-052 — Refresh audit table in View Risk modal after response action mutations
+Source: REQ-058
+Capability: child-actions
+Suggested agents: frontend-developer, test-engineer
+Status: done
+done_in: v1.21.0
+
+**Problem:** When a response action is added, edited, or soft-deleted in child record mode, the audit table in the View Risk modal does not update. The new audit entry only appears after closing and reopening the modal.
+
+**Acceptance criteria:**
+- The audit table in the View Risk modal refreshes automatically after a response action is added, edited, or soft-deleted — without requiring the modal to be closed and reopened.
+- No regression to response action CRUD behaviour, the audit table display, or other View Risk modal functionality.
+- Frontend tests cover the mutation-then-refresh scenario.
 
 ---
 
 ## Required agents
 
-- **principal-architect** — MAINT-010 (coding standards document), SPIKE-005 (i18n architecture assessment), SPIKE-003 (Playwright evaluation spike document). PA may work on MAINT-010 and SPIKE-005 in parallel. SPIKE-003 must start after QA-001 is complete.
-- **test-engineer** — QA-001 (manual permission test plan). Can begin immediately with no dependencies.
-- **frontend-developer** — BUG-051 (surface response actions help). Small independent change; can be done at any point in the release.
+- **devops-engineer** — MAINT-007 (on-demand branch publishing) and MAINT-009 (reduce duplicate CI runs). Both touch GitHub Actions workflow config and can be worked in parallel. MAINT-007 should be completed first — it unblocks production testing for the flag work.
+- **principal-architect** — BUG-055 (diagnose the flag pipeline break; design any runtime config approach needed for frontend flags before implementation begins).
+- **backend-developer** — BUG-055 (backend flag pipeline fix), BUG-054 (backend flag-gated endpoint hardening).
+- **frontend-developer** — BUG-055 (frontend flag fix, if needed after PA design), BUG-054 (frontend flag-gated component hardening), BUG-053 (modal error state sweep), BUG-052 (audit table refresh).
+- **test-engineer** — BUG-054 (disabled-flag test coverage), BUG-053 (modal close-then-reopen tests), BUG-052 (mutation-then-refresh test).
 
-**Sequencing:** test-engineer and frontend-developer can begin immediately. PA begins MAINT-010 and SPIKE-005 immediately in parallel. SPIKE-003 starts after QA-001 is delivered — PA reviews QA-001 before producing the Playwright spike document.
+**Sequencing:** devops-engineer begins immediately with MAINT-007. PA begins BUG-055 diagnosis in parallel. Backend and frontend developers begin BUG-055 implementation once PA has confirmed the approach. BUG-054 begins once BUG-055 is complete and production packages can be built via MAINT-007. BUG-053 and BUG-052 are frontend-only and can run in parallel with BUG-055/054 at any point.
 
 ## Decisions
 
-No open decisions. All scoping questions were resolved during refinement.
+No open product or UX decisions.
 
-**Decision:** SPIKE-003 scope → evaluation and spike document only. No Playwright implementation in this release. Implementation is scoped in a follow-on release using the spike document as input.
+**Decision:** Branch package tag naming convention for MAINT-007 → devops-engineer to define in-release; must be clearly distinct from release tags to avoid confusion.
 
-**Decision:** Response actions help → fold into risks help section as a subsection, not a standalone tab.
-
-**Decision:** Coding standards → output at `docs/engineering/` (new directory created as part of MAINT-010).
-
-**Decision:** Permission test plan → output at `docs/engineering/permission-test-plan.md`.
+**Decision:** Frontend flag runtime config (BUG-055) → if Vite build-time baking prevents .env flags from working at runtime, the PA designs the runtime config mechanism before the frontend developer implements it. No PM input required.
 
 ## Test / sign-off
 
-- [x] BUG-051: Help page verified — response actions content reachable from risks section, no regression to other help tabs
-- [x] MAINT-010: Coding standards document reviewed by PM and confirmed fit for purpose before MAINT-011/012/013 audits begin
-- [x] SPIKE-005: i18n spike document reviewed and accepted
-- [x] QA-001: Permission test plan reviewed against PRD §5 and §12 for completeness
-- [x] SPIKE-003: Playwright spike document reviewed and accepted; confirms no implementation starts until a follow-on release is approved
+- [x] MAINT-007: On-demand workflow triggered manually from a branch; branch package published and distinguishable from release tags; README updated.
+- [x] MAINT-009: CI no longer re-runs identical checks on a PR when branch has already passed; post-merge CI confirmed not to repeat pre-merge checks; branch protection rules still satisfied.
+- [x] BUG-055: Feature flags set in .env confirmed to take effect in a production Docker Compose deployment; README production setup section updated.
+- [x] BUG-054: /registers/<registerId> verified clean under all supported flag combinations; flag-gated endpoints and components degrade safely when flags are disabled.
+- [x] BUG-053: All modals confirmed to start clean on reopen with no stale error state.
+- [x] BUG-052: Audit table confirmed to refresh after response action add, edit, and soft-delete without closing the modal.
 
 ## Blockers
 
-None.
+None — all work items complete and signed off by Test Engineer.
+
+**Verification feedback [1]:** BUG-054 — /registers/<registerId> fails with "Not found" when flags disabled.
+**Investigation:** Flag-gated sub-routers were mounted at `"/"` causing `requireFeature` to intercept all requests. Fixed by mounting each sub-router at its specific path prefix. 425 tests pass.
+**Ruling:** in scope — fixed.
+**Human confirmed:** resolved ✓
+
+**Verification feedback [2]:** MAINT-007 — on-demand workflow not visible in GitHub Actions UI.
+**Investigation:** Expected — workflow_dispatch workflows only appear in the UI on the default branch. Will appear after merge to main.
+**Ruling:** deferred (not a defect).
+**Human confirmed:** resolved ✓
+
+**Verification feedback [2]:** MAINT-007 — on-demand workflow does not appear in GitHub Actions UI yet. User correctly identifies this is likely because workflow_dispatch workflows only appear on the default branch. Not confirmed as a defect — noting for investigation.
+**Status:** investigating
 
 ---
 

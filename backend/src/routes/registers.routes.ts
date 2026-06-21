@@ -37,7 +37,7 @@ import { createConfigVersionSubRouter } from "./configVersion.routes.js";
 import { createConfigurationSubRouter } from "./configuration.routes.js";
 import { createRisksSubRouter } from "./risks.routes.js";
 import { createSavedViewsSubRouter } from "./savedViews.routes.js";
-import { createRegisterTemplateSubRouter } from "./template.routes.js";
+import { createRegisterFromTemplateSubRouter, createRegisterTemplateSubRouter } from "./template.routes.js";
 
 export function createRegistersRouter() {
   const router = Router();
@@ -51,11 +51,12 @@ export function createRegistersRouter() {
   router.delete("/:registerId/permissions/:permissionId", validateRequest({ params: registerPermissionParamsSchema }), requireRegisterManagement(), asyncRoute(removeRegisterPermissionController));
 
   router.use("/", createRisksSubRouter());
-  router.use("/", requireFeature("savedViews"), createSavedViewsSubRouter());
+  router.use("/:registerId/saved-views", requireFeature("savedViews"), createSavedViewsSubRouter());
   router.use("/", createConfigurationSubRouter());
-  router.use("/", requireFeature("draftConfig"), createConfigVersionSubRouter());
-  router.use("/", requireFeature("draftConfig"), createConfigExportImportSubRouter());
-  router.use("/", requireFeature("draftConfig"), createRegisterTemplateSubRouter());
+  router.use("/:registerId/config-versions", requireFeature("draftConfig"), createConfigVersionSubRouter());
+  router.use("/:registerId/config-versions", requireFeature("draftConfig"), createConfigExportImportSubRouter());
+  router.use("/:registerId/templates", requireFeature("draftConfig"), createRegisterTemplateSubRouter());
+  router.use("/from-template", requireFeature("draftConfig"), createRegisterFromTemplateSubRouter());
 
   router.get("/:registerId/summary", validateRequest({ params: registerIdParamsSchema }), requireRegisterAccess(), asyncRoute(getRegisterSummaryController));
   router.get("/:registerId/audit/export", validateRequest({ params: registerIdParamsSchema, query: auditQuerySchema }), requireRegisterManagement(), asyncRoute(exportRegisterAuditController));

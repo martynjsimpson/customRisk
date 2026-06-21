@@ -25,6 +25,10 @@ vi.mock("../src/components/ApiErrorAlert", () => ({
   getApiErrorWarnings: () => []
 }));
 
+vi.mock("../src/hooks/useFeatureFlags", () => ({
+  useFeatureFlags: () => ({ childActions: false })
+}));
+
 // ---------------------------------------------------------------------------
 // Test data
 // ---------------------------------------------------------------------------

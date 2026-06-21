@@ -223,21 +223,23 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
             </Fieldset>
           </Stack>
         </Fieldset>
-        <Fieldset legend="Response Actions">
-          <Stack>
-            <Switch
-              label="Child Records mode"
-              description="When enabled, response actions are managed as individual records linked to each risk. When disabled, each risk has a single free-text response action field."
-              checked={settingsForm.values.responseActionMode === "CHILD_RECORDS"}
-              onChange={(event) => handleResponseActionModeChange(event.currentTarget.checked)}
-              disabled={!canManage || settingsLocked}
-            />
-            <ApiErrorAlert
-              error={updateDraftResponseActionModeMutation.error ?? updateDirectResponseActionModeMutation.error}
-              fallback="Unable to save Response Actions mode"
-            />
-          </Stack>
-        </Fieldset>
+        {flags.childActions ? (
+          <Fieldset legend="Response Actions">
+            <Stack>
+              <Switch
+                label="Child Records mode"
+                description="When enabled, response actions are managed as individual records linked to each risk. When disabled, each risk has a single free-text response action field."
+                checked={settingsForm.values.responseActionMode === "CHILD_RECORDS"}
+                onChange={(event) => handleResponseActionModeChange(event.currentTarget.checked)}
+                disabled={!canManage || settingsLocked}
+              />
+              <ApiErrorAlert
+                error={updateDraftResponseActionModeMutation.error ?? updateDirectResponseActionModeMutation.error}
+                fallback="Unable to save Response Actions mode"
+              />
+            </Stack>
+          </Fieldset>
+        ) : null}
 
         {canManage && !settingsLocked && !draftConfigMode ? (
           <Button type="submit" loading={updateSettingsMutation.isPending}>
@@ -262,7 +264,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
 
       <Modal
         opened={deleteConfirmOpen}
-        onClose={() => { closeDeleteConfirm(); setDeleteNameInput(""); }}
+        onClose={() => { deleteMutation.reset(); closeDeleteConfirm(); setDeleteNameInput(""); }}
         title="Delete register"
         size="sm"
         centered

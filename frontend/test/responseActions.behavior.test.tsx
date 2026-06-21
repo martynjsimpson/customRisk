@@ -63,6 +63,10 @@ vi.mock("../src/features/audit/AuditEventTable", () => ({
   AuditEventTable: () => null,
 }));
 
+vi.mock("../src/hooks/useFeatureFlags", () => ({
+  useFeatureFlags: () => ({ childActions: true }),
+}));
+
 vi.mock("../src/components/PersonPicker", () => ({
   PersonPicker: ({
     label,
@@ -666,6 +670,119 @@ describe("RiskDetailModal — CHILD_RECORDS mode", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Risk Response Action")).toBeTruthy();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BUG-052 — Audit table refresh after response action mutations
+// ---------------------------------------------------------------------------
+
+describe("BUG-052 — audit query invalidated after response action mutations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("invalidates the audit query after a response action is created via ResponseActionModal", async () => {
+    const newAction = makeAction({ id: "action-new", response: "New response" });
+    createResponseActionMock.mockResolvedValue(newAction);
+
+    const { ResponseActionModal } = await import(
+      "../src/features/risks/ResponseActionModal"
+    );
+
+    // Spy on QueryClient.invalidateQueries via a real QueryClient instance
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const user = userEvent.setup();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider>
+          <ResponseActionModal
+            registerId="reg-1"
+            riskId="risk-1"
+            opened={true}
+            action={null}
+            canChangeOwner={false}
+            canDelete={false}
+            onClose={vi.fn()}
+          />
+        </MantineProvider>
+      </QueryClientProvider>
+    );
+
+    const textarea = screen.getByRole("textbox", { name: /response/i });
+    await user.type(textarea, "New response text");
+    await user.click(screen.getByRole("button", { name: /^add$/i }));
+
+    await waitFor(() => {
+      expect(createResponseActionMock).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      const auditInvalidated = invalidateSpy.mock.calls.some(
+        (call) =>
+          JSON.stringify((call[0] as { queryKey?: unknown })?.queryKey) ===
+          JSON.stringify(["audit", "risk", "reg-1", "risk-1"])
+      );
+      expect(auditInvalidated).toBe(true);
+    });
+  });
+
+  it("invalidates the audit query after a response action is deleted via ResponseActionsPanel", async () => {
+    listResponseActionsMock.mockResolvedValue([
+      makeAction({ id: "action-del", response: "Delete me" }),
+    ]);
+    deleteResponseActionMock.mockResolvedValue(undefined);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    const { ResponseActionsPanel } = await import(
+      "../src/features/risks/ResponseActionsPanel"
+    );
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const user = userEvent.setup();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider>
+          <ResponseActionsPanel
+            registerId="reg-1"
+            riskId="risk-1"
+            canCreate={true}
+            canChangeOwner={true}
+            canDelete={true}
+            filterToUserId={null}
+          />
+        </MantineProvider>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Delete me")).toBeTruthy();
+    });
+
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
+
+    await waitFor(() => {
+      expect(deleteResponseActionMock).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      const auditInvalidated = invalidateSpy.mock.calls.some(
+        (call) =>
+          JSON.stringify((call[0] as { queryKey?: unknown })?.queryKey) ===
+          JSON.stringify(["audit", "risk", "reg-1", "risk-1"])
+      );
+      expect(auditInvalidated).toBe(true);
     });
   });
 });

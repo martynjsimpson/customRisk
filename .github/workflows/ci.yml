@@ -10,10 +10,51 @@ on:
 
 permissions:
   contents: read
+  actions: read
+
+concurrency:
+  group: ci-${{ github.sha }}
+  cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Quality Gates
+  check-previous-run:
+    name: Check for previous CI run
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+      - name: Check if this commit has already passed CI
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # If this is a manual trigger (workflow_dispatch), always run
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          COMMIT_SHA="${{ github.sha }}"
+          REPO="${{ github.repository }}"
+
+          # Look for successful CI runs of this commit on any ref (excluding this run).
+          # Default to "0" if the API call fails so we fall through to running CI.
+          SUCCESSFUL_RUNS=$(gh api \
+            "/repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$COMMIT_SHA&status=success" \
+            --jq ".workflow_runs | length" 2>/dev/null || echo "0")
+
+          if [ "$SUCCESSFUL_RUNS" -gt "0" ]; then
+            echo "Previous successful CI run found for commit $COMMIT_SHA"
+            echo "should-run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "No previous successful CI run found, will run CI"
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  quality-gates:
+    name: Quality gates (internal)
+    needs: check-previous-run
+    if: needs.check-previous-run.outputs.should-run == 'true'
     runs-on: ubuntu-latest
 
     services:
@@ -67,10 +108,11 @@ jobs:
       - name: Build (shared, backend, frontend in parallel)
         run: npm run build
 
-  docker:
-    name: Docker Build
+  docker-build:
+    name: Docker build (internal)
     runs-on: ubuntu-latest
-    needs: quality
+    needs: [check-previous-run, quality-gates]
+    if: needs.check-previous-run.outputs.should-run == 'true'
 
     steps:
       - name: Check out repository
@@ -88,3 +130,44 @@ jobs:
           tags: customrisk:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Pass-through jobs that satisfy branch protection required checks.
+  # If the real jobs ran successfully, these also succeed.
+  # If the real jobs were skipped (commit already passed CI), these also succeed.
+  quality:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: [check-previous-run, quality-gates]
+    if: always()
+    steps:
+      - name: Check if quality gates passed or were skipped
+        run: |
+          if [ "${{ needs.check-previous-run.outputs.should-run }}" == "false" ]; then
+            echo "CI was skipped because commit already passed on another ref"
+            exit 0
+          fi
+          if [ "${{ needs.quality-gates.result }}" == "success" ]; then
+            echo "Quality gates passed"
+            exit 0
+          fi
+          echo "Quality gates failed"
+          exit 1
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [check-previous-run, docker-build]
+    if: always()
+    steps:
+      - name: Check if docker build passed or was skipped
+        run: |
+          if [ "${{ needs.check-previous-run.outputs.should-run }}" == "false" ]; then
+            echo "CI was skipped because commit already passed on another ref"
+            exit 0
+          fi
+          if [ "${{ needs.docker-build.result }}" == "success" ]; then
+            echo "Docker build passed"
+            exit 0
+          fi
+          echo "Docker build failed"
+          exit 1

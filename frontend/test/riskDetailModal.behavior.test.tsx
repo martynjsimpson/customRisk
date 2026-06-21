@@ -52,6 +52,10 @@ vi.mock("../src/features/audit/AuditEventTable", () => ({
   )
 }));
 
+vi.mock("../src/hooks/useFeatureFlags", () => ({
+  useFeatureFlags: () => ({ childActions: true })
+}));
+
 // ---------------------------------------------------------------------------
 // Test data helpers
 // ---------------------------------------------------------------------------

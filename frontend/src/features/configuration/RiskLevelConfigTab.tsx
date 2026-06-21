@@ -251,7 +251,11 @@ export function RiskLevelConfigTab({ registerId, draftConfigMode }: RiskLevelCon
 
       <Modal
         opened={riskLevelModalOpen}
-        onClose={() => setRiskLevelModalOpen(false)}
+        onClose={() => {
+          createRiskLevelMutation.reset();
+          updateRiskLevelMutation.reset();
+          setRiskLevelModalOpen(false);
+        }}
         title={editingRiskLevel ? "Edit risk level" : "Add risk level"}
       >
         <form

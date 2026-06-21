@@ -11,14 +11,14 @@ export function createConfigExportImportSubRouter() {
   const router = Router({ mergeParams: true });
 
   router.get(
-    "/:registerId/config-versions/export",
+    "/export",
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(exportRegisterConfigController)
   );
 
   router.post(
-    "/:registerId/config-versions/import",
+    "/import",
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(importRegisterConfigController)
