@@ -39,7 +39,7 @@ interface ConfigVersionBannerProps {
   canManage: boolean;
 }
 
-function ImpactEntryDetail({ entry, registerId }: { entry: ImpactEntry; registerId: string }) {
+function ImpactEntryDetail({ entry, registerId, onClose }: { entry: ImpactEntry; registerId: string; onClose: () => void }) {
   if (entry.code === "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS") {
     const offendingRisks = (
       entry.meta as { offendingRisks?: { riskId: string; displayRiskId: string; title: string }[] } | undefined
@@ -55,6 +55,7 @@ function ImpactEntryDetail({ entry, registerId }: { entry: ImpactEntry; register
                   component={Link}
                   to={`/registers/${registerId}?riskId=${risk.riskId}`}
                   size="sm"
+                  onClick={onClose}
                 >
                   {risk.displayRiskId}
                 </Anchor>
@@ -87,11 +88,11 @@ function ImpactAnalysisModal({
   publishError: unknown;
   registerId: string;
 }) {
-  const structuredBlockers = (result?.entries ?? []).filter((e) => e.type === "BLOCKER");
-  const structuredWarnings = (result?.entries ?? []).filter((e) => e.type === "WARNING");
+  const structuredBlockers = (result?.impactEntries ?? []).filter((e) => e.type === "BLOCKER");
+  const structuredWarnings = (result?.impactEntries ?? []).filter((e) => e.type === "WARNING");
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Impact Analysis">
+    <Modal opened={opened} onClose={onClose} title="Impact Analysis" transitionProps={{ duration: 0 }}>
       {result ? (
         <Stack>
           <div>
@@ -112,7 +113,7 @@ function ImpactAnalysisModal({
               <Text size="sm" fw={500}>Total affected: {result.affectedRisks.total}</Text>
             </Stack>
           </div>
-          {result.warnings.length > 0 ? (
+          {result.warnings.length > 0 && structuredWarnings.length === 0 ? (
             <Alert color="yellow" title="Warnings">
               <List size="sm">
                 {result.warnings.map((w, i) => (
@@ -125,12 +126,12 @@ function ImpactAnalysisModal({
             <Alert color="yellow" title="Warnings">
               <Stack gap="xs">
                 {structuredWarnings.map((entry, i) => (
-                  <ImpactEntryDetail key={i} entry={entry} registerId={registerId} />
+                  <ImpactEntryDetail key={i} entry={entry} registerId={registerId} onClose={onClose} />
                 ))}
               </Stack>
             </Alert>
           ) : null}
-          {result.blockers.length > 0 ? (
+          {result.blockers.length > 0 && structuredBlockers.length === 0 ? (
             <Alert color="red" title="Blockers">
               <List size="sm">
                 {result.blockers.map((b, i) => (
@@ -143,7 +144,7 @@ function ImpactAnalysisModal({
             <Alert color="red" title="Blockers">
               <Stack gap="xs">
                 {structuredBlockers.map((entry, i) => (
-                  <ImpactEntryDetail key={i} entry={entry} registerId={registerId} />
+                  <ImpactEntryDetail key={i} entry={entry} registerId={registerId} onClose={onClose} />
                 ))}
               </Stack>
             </Alert>
@@ -312,7 +313,6 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
   const { isSystemAdmin } = usePermissions();
 
   const [impactModalOpen, { open: openImpactModal, close: closeImpactModal }] = useDisclosure(false);
-  const [publishConfirmOpen, { open: openPublishConfirm, close: closePublishConfirm }] = useDisclosure(false);
   const [discardConfirmOpen, { open: openDiscardConfirm, close: closeDiscardConfirm }] = useDisclosure(false);
   const [importModalOpen, { open: openImportModal, close: closeImportModal }] = useDisclosure(false);
   const [templateModalOpen, { open: openTemplateModal, close: closeTemplateModal }] = useDisclosure(false);
@@ -357,7 +357,6 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
   const publishDraftMutation = useMutation({
     mutationFn: () => publishDraft(registerId),
     onSuccess: async () => {
-      closePublishConfirm();
       closeImpactModal();
       await invalidateAfterMutation();
       notifications.show({ message: "Configuration published successfully.", color: "green" });
@@ -387,18 +386,11 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
           <Group mt="xs" wrap="wrap">
             <Button
               size="xs"
-              variant="outline"
               onClick={() => {
                 setImpactResult(null);
                 analyseImpactMutation.mutate();
               }}
               loading={analyseImpactMutation.isPending}
-            >
-              Run Impact Analysis
-            </Button>
-            <Button
-              size="xs"
-              onClick={openPublishConfirm}
             >
               Publish
             </Button>
@@ -471,22 +463,6 @@ export function ConfigVersionBanner({ registerId, canManage }: ConfigVersionBann
         publishError={publishDraftMutation.error}
         registerId={registerId}
       />
-
-      <Modal size="sm" opened={publishConfirmOpen} onClose={closePublishConfirm} title="Publish draft" centered>
-        <Stack>
-          <Text>Publishing will make all draft changes live and visible to all users of this register. This cannot be undone.</Text>
-          <ApiErrorAlert error={publishDraftMutation.error} fallback="Unable to publish draft" />
-          <Group justify="flex-end" mt="xs">
-            <Button variant="subtle" onClick={closePublishConfirm}>Cancel</Button>
-            <Button
-              onClick={() => publishDraftMutation.mutate()}
-              loading={publishDraftMutation.isPending}
-            >
-              Publish
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
 
       <Modal size="sm" opened={discardConfirmOpen} onClose={closeDiscardConfirm} title="Discard draft" centered>
         <Stack>

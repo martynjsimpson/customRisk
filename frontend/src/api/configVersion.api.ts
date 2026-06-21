@@ -37,7 +37,7 @@ export interface ImpactAnalysisResult {
   };
   warnings: string[];
   blockers: string[];
-  entries?: ImpactEntry[];
+  impactEntries?: ImpactEntry[];
   canPublish: boolean;
 }
 
