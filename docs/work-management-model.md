@@ -35,6 +35,9 @@ docs/work/
   requests.md
   backlog.yml
   active-release.md
+
+docs/spikes/
+  [ITEM-ID].md   ← one file per spike work item, produced by the assigned agent
 ```
 
 ### `requests.md`
@@ -113,7 +116,7 @@ A typical work item should include:
 - ID
 - source request, if any
 - title
-- type: feature, bug, chore, audit, docs, security, refactor
+- type: feature, bug, chore, audit, docs, security, refactor, spike
 - capability or area
 - status
 - priority
@@ -130,6 +133,26 @@ A typical work item should include:
 Existing legacy ticket IDs such as `PM11-01` can be preserved as work item IDs where useful.
 
 New work does not need to use the old PM numbering scheme unless there is a reason to maintain continuity.
+
+---
+
+## Spike work items
+
+A spike is investigation-only work. It produces knowledge, not shippable code.
+
+Use `type: spike` in `backlog.yml` when:
+- The correct implementation approach is unknown and needs to be researched before a feature can be estimated or built
+- A cross-cutting concern (schema shape, permission model, integration pattern) needs to be explored and documented before work items can be written
+
+**Output:** The assigned agent produces a document at `docs/spikes/[ITEM-ID].md`. This file must contain at minimum:
+- `## Findings` — what was discovered
+- `## Recommendations` — proposed next steps, work items to create, or decisions to make
+
+**"Done" for a spike** means the document exists and contains both sections. No code is shipped.
+
+**After a spike:** The Product Manager reviews the document at the start of the next planning session and creates follow-on requests and/or backlog items as needed.
+
+**Test Engineer role on spikes:** No test coverage is expected. The TE performs only a minimal check — that `docs/spikes/[ITEM-ID].md` exists and contains Findings and Recommendations sections.
 
 ---
 

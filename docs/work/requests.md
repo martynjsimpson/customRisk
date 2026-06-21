@@ -16,6 +16,186 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-073
+Request ID: REQ-073
+Title: Refresh seed scripts
+Type: maintenance
+Status: inbox
+Priority: medium
+Summary: Update the seeding scripts to take into consideration features released since they were last updated. The user believes the seed files may not have been meaningfully updated since around v1.6.0, but the Product Manager should confirm the exact baseline by checking git history for when the seed files were last modified and comparing that against the changelog for features added or changed since then. The refreshed seed data should exercise current product capabilities rather than only older MVP-era flows.
+Notes: PM should identify which seed script files are in scope, determine their last meaningful update from git history, then review `CHANGELOG` entries after that point to decide what should be added. Candidate areas may include newer register configuration, custom fields, scoring, permissions, saved views, response actions, reviews, audit coverage, and any other shipped features not represented in seeded data.
+Source: human request (direct)
+
+### REQ-072
+Request ID: REQ-072
+Title: Audit test coding standards
+Type: maintenance
+Status: inbox
+Priority: medium
+Summary: Have the Test Engineer assess all test code under their control against the test writing standards established by REQ-069. The assessment should identify areas that violate or drift from the standards, including missing regression coverage, brittle assertions, inconsistent naming or structure, weak fixture usage, inappropriate test levels, and test-specific maintainability concerns. The output should produce actionable follow-up recommendations rather than broad commentary. At the determination of the Release Manager - small items can be actioned within the release this work is completed in, larger items the Release Manager should log them in active-release.md under a section "## Deferred items for PM" to be picked up by the Product Manager.
+Notes: This should be scheduled after or alongside REQ-069 so the Test Engineer has an agreed standard to assess against. Findings should distinguish quick fixes from larger test refactoring or coverage expansion work.
+Source: human request (direct)
+
+### REQ-071
+Request ID: REQ-071
+Title: Audit backend coding standards
+Type: maintenance
+Status: inbox
+Priority: medium
+Summary: Have the Backend Engineer assess all backend code under their control against the coding standards established by REQ-069. The assessment should identify areas that violate or drift from the standards, including duplication, inconsistent service patterns, weak separation of concerns, insufficient refactoring, error handling gaps, and backend-specific maintainability concerns. The output should produce actionable follow-up recommendations rather than broad commentary. At the determination of the Release Manager - small items can be actioned within the release this work is completed in, larger items the Release Manager should log them in active-release.md under a section "## Deferred items for PM" to be picked up by the Product Manager.
+Notes: This should be scheduled after or alongside REQ-069 so the Backend Engineer has an agreed standard to assess against. Findings should distinguish quick fixes from larger refactoring work.
+Source: human request (direct)
+
+### REQ-070
+Request ID: REQ-070
+Title: Audit frontend coding standards
+Type: maintenance
+Status: inbox
+Priority: medium
+Summary: Have the Frontend Engineer assess all frontend code under their control against the coding standards established by REQ-069. The assessment should identify areas that violate or drift from the standards, including duplication, weak component reuse, inconsistent patterns, insufficient refactoring, and frontend-specific maintainability concerns. The output should produce actionable follow-up recommendations rather than broad commentary. At the determination of the Release Manager - small items can be actioned within the release this work is completed in, larger items the Release Manager should log them in active-release.md under a section "## Deferred items for PM" to be picked up by the Product Manager.
+Notes: This should be scheduled after or alongside REQ-069 so the Frontend Engineer has an agreed standard to assess against. Findings should distinguish quick fixes from larger refactoring work.
+Source: human request (direct)
+
+### REQ-069
+Request ID: REQ-069
+Title: Establish coding standards
+Type: maintenance
+Status: inbox
+Priority: medium
+Summary: Have the Principal Architect establish coding standards for both the frontend and backend code, and standards for writing and maintaining tests. The standards should cover commonly expected engineering rules such as DRY, consistency, maintainability, testability, and when code should be refactored rather than extended in place. The guidance should also include frontend-specific expectations such as component reuse, avoiding duplicate UI patterns, and deciding when shared components or hooks are appropriate.
+Notes: The output should be practical guidance that engineers and reviewers can apply during implementation and code review, including clear refactoring triggers for frontend and backend code. Test writing standards should cover when tests are required, what level of test is appropriate, naming and structure conventions, fixture usage, avoiding brittle assertions, and expectations for regression coverage.
+Source: human request (direct)
+
+### REQ-068
+Request ID: REQ-068
+Title: Spike internationalisation architecture
+Type: feature
+Status: inbox
+Priority: low
+Summary: Have the Principal Architect conduct a spike on internationalisation for customRisk. The spike should assess what architectural changes are needed to support multiple languages across the frontend, backend-generated text, help content, validation messages, emails or notifications if applicable, and any user-visible configuration labels. The output should recommend a practical implementation approach and identify the likely sequencing, risks, and areas of the app that need refactoring.
+Notes: Include terminology, locale selection, translation file structure, formatting for dates/numbers/currency, and how internationalised help documentation should be managed.
+Source: human request (direct)
+
+### REQ-067
+Request ID: REQ-067
+Title: Surface response actions help
+Type: bug
+Status: inbox
+Priority: medium
+Summary: Documentation was written to `frontend/public/help/en/response-actions.md`, but it was never added to the in-app help page, so users cannot discover it from the help UI. The help page structure should be reviewed to decide where response action documentation belongs. It may not warrant a completely separate tab and may be better folded into the existing risks help content.
+Notes: Check the help page navigation and content loading for `response-actions.md`. Consider whether response actions are conceptually part of risk management documentation rather than a standalone help category.
+Source: human request (direct)
+
+### REQ-066
+Request ID: REQ-066
+Title: Investigate draft config application
+Type: bug
+Status: inbox
+Priority: high
+Summary: Investigate with the Principal Architect how draft register configurations are applied across the app. The observed behaviour is that each config change sends a patch to `/draft`, which makes sense, but then a patch to `<registerId>` appears to send all settings currently on the page. This may be an incorrect pattern because the server-side draft could be overridden by local page state, undermining the point of storing the draft server-side. At the discretion of the Release Manager if they feel the changes are manageable, they may be delivered in this release, if not the Release Manager should log them in active-release.md under a section "## Deferred items for PM" to be picked up by the Product Manager.
+Notes: The Principal Architect should carefully check all register configuration pages, including fields, scoring, and other config sections, to confirm whether draft state or local state is the true source of truth. The user can provide a HAR file to the Product Manager during triage if needed.
+Source: human request (direct)
+
+### REQ-065
+Request ID: REQ-065
+Title: Reduce duplicate release CI
+Type: improvement
+Status: inbox
+Priority: medium
+Summary: Investigate whether the release workflow can avoid executing the same CI checks multiple times when the same branch state has already passed. CI currently runs continuously on the release branch, then appears to run again when a PR is created even if there have been no changes since the branch CI passed, and may run again after the branch is merged to main. This repetition slows down releases and should be reviewed for opportunities to reuse, skip, or gate checks safely.
+Notes: The investigation should preserve release confidence while reducing redundant work. Consider GitHub Actions trigger configuration, required status checks, branch protection expectations, merge queue behaviour if relevant, and whether check results can be structured so PRs and post-merge workflows do not repeat identical work unnecessarily.
+Source: human request (direct)
+
+### REQ-064
+Request ID: REQ-064
+Title: Spike production editions model
+Type: feature
+Status: inbox
+Priority: medium
+Summary: Run an architecture spike with the Principal Architect on how customRisk should retain flexible feature flags for local development while using fixed production editions with defined feature sets. The spike should consider the short-term context of REQ-063, where production feature flags currently need a reliable management approach, and the longer-term context of REQ-042, where editions may need to be linked to a future organisation or tenant model. The output should recommend a production-safe model that avoids arbitrary per-deployment flag drift while preserving developer flexibility.
+Notes: Consider how editions are defined, where edition-to-feature mappings live, how production deployments select an edition, and how this might later attach to an `org`, tenant, or similar entity. The Principal Architect should explicitly cover migration from the current feature-flag approach to any proposed edition model.
+Source: human request (direct)
+
+### REQ-063
+Request ID: REQ-063
+Title: Fix production feature flags
+Type: bug
+Status: inbox
+Priority: high
+Summary: In the released build, when running production using the instructions from the root `README.md`, feature flags set in `.env` appear to have no effect. Users need a reliable way to manage feature flags in production deployments. The production configuration path should be reviewed so feature flag values are actually applied in the packaged/released app.
+Notes: This affects production deployments rather than local development. Verify the documented production setup from the root `README.md`, including how environment variables are passed into the Docker Compose containers and how frontend/backend feature flag values are read at runtime.
+Source: human request (direct)
+
+### REQ-062
+Request ID: REQ-062
+Title: On-demand branch package publishing
+Type: improvement
+Status: inbox
+Priority: high
+Summary: Add a way to manually trigger GitHub to publish a package for a specific branch so production-environment issues can be debugged and tested in a full production-style deployment before merging to main. This must not publish packages for every branch commit or pull request; it should run only on demand for specific testing. The on-demand path should use exactly the same build and packaging process as the normal main/tag release build, so branch test packages are representative of production.
+Notes: Update the root `README.md` to document how a user configures their production setup to target the resulting branch package. The current workaround is too slow: make a branch, wait for CI, open a PR, wait for CI, merge to main, wait for CI, tag and push, then wait for the production package build. This creates too much friction for debugging production-environment-specific issues.
+Source: human request (direct)
+
+### REQ-061
+Request ID: REQ-061
+Title: Improve production backend logging
+Type: improvement
+Status: inbox
+Priority: high
+Summary: Production deployments using the two-container Docker Compose setup do not emit enough useful log information to debug live issues. The existing observability helps only partially and is effectively a glorified HTTP log, so the app should generate additional structured and actionable logs, especially from the backend. Logging should be configurable through the `.env` file, such as a `LOG_LEVEL` setting that controls different verbosity levels.
+Notes: Include operational documentation in `docs/operations/observability.md` explaining how to debug a production-running instance using the improved logging. The documentation should cover relevant Docker Compose log commands, log levels, recommended production defaults, and when to temporarily increase verbosity for investigation.
+Source: human request (direct)
+
+### REQ-060
+Request ID: REQ-060
+Title: Stabilize feature flag combinations
+Type: bug
+Status: inbox
+Priority: high
+Summary: The app may fail when certain feature flags are turned off, with `/registers/<registerId>` called out as a suspected affected route. The code should be reviewed and hardened so routes and components behave safely across supported combinations of enabled and disabled feature flags. This should include checking that gated features degrade cleanly rather than leaving dependent UI, data loading, or routing paths in a broken state.
+Notes: Pay particular attention to `/registers/<registerId>` and other app areas that assume feature-flagged functionality is present. Testing should cover multiple feature flag combinations, especially disabled states.
+Source: human request (direct)
+
+### REQ-059
+Request ID: REQ-059
+Title: Modal errors persist across reopens — should reset on close
+Type: bug
+Status: inbox
+Priority: high
+Summary: Across many modals in the app, error states are not cleared when the modal is closed. Reopening the same modal shows the previous error until a successful action clears it. Closing a modal should reset all error state so the next opening starts clean.
+Notes: Appears to be a widespread issue affecting multiple modals rather than one specific case. Likely caused by error state living in a parent component or store that is not reset on modal unmount/close.
+Source: human request (direct)
+
+### REQ-058
+Request ID: REQ-058
+Title: Audit table doesn't refresh after adding risk response action
+Type: bug
+Status: inbox
+Priority: medium
+Summary: When adding a risk response action in child record mode, the Audit Table in the View Risk modal does not update in real-time. The new entry only appears after closing and reopening the modal. This is inconsistent with the expected live-refresh behaviour and forces an unnecessary extra step for the user.
+Notes: Reproduce by opening a risk in View Risk modal, switching to child record mode, adding a response action, then observing the Audit Table — the new audit entry is absent until the modal is closed and reopened.
+Source: human request (direct)
+
+### REQ-057
+Request ID: REQ-057
+Title: Evaluate ad-hoc browser-based permission testing tooling
+Type: feature
+Status: inbox
+Priority: low
+Summary: Following REQ-056 (manual permission test plan), investigate a repeatable way to test permission behaviour against a live running app in a real browser. The concrete problem is multi-user, state-dependent permission testing: e.g. User X can access Risk 1 but not Risk 2, User Y has the opposite access, and the UI must show or hide controls, values, tabs, actions, and rows accordingly. Current static tests and Vitest/jsdom component tests are useful but do not fully exercise real login sessions, routing, backend authorization, and browser-rendered permission states together.
+Notes: Current direction is to drop AI/browser-agent tooling from this request and evaluate Playwright as the likely primary option. Cypress may be considered as an alternative, but Playwright appears to fit the existing Vite/React/Node stack well and supports saved auth state per persona, API setup, traces/screenshots, and real browser assertions. The spike should focus less on tool novelty and more on whether a deterministic permission fixture can be created: named users, named registers, named risks/actions, and explicit cross-user access edges. Suggested shape: a test-only seed/fixture for permission scenarios; API-level authorization matrix tests for broad allowed/denied coverage; and a smaller Playwright UI suite that logs in as each persona and checks visible/hidden affordances such as Add/Edit/Review/Delete buttons, Configuration/Permissions tabs, export controls, and risk row visibility. ADR-0008 should be revisited because this would add a full browser E2E layer alongside the existing static and Vitest/jsdom runtime frontend layers.
+Source: human request (direct)
+
+### REQ-056
+Request ID: REQ-056
+Title: Manual test plan for permissions — all role/type permutations
+Type: feature
+Status: inbox
+Priority: medium
+Summary: Create a comprehensive manual test plan covering all permission permutations across all roles and content types in customRisk. The plan should be structured so a human tester can execute it step-by-step, covering every combination of role (e.g. Admin, Risk Manager, Viewer, etc.) and entity type (e.g. risks, registers, custom fields, scoring, users, etc.). Each test case should specify the role, the action, and the expected outcome (allowed or denied).
+Notes: Intended as a human-executable QA document, not an automated test suite. Should cover every role defined in the system against every type of permission-gated action, producing a pass/fail checklist. This may be superseded by REQ-057.
+Source: human request (direct)
+
 ### REQ-055
 Request ID: REQ-055
 Title: CALCULATED field value — no real-time preview in risk edit form

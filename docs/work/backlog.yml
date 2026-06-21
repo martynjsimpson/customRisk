@@ -299,7 +299,7 @@ items:
   capability: api-keys
   phase: 13
   status: deferred
-  priority: medium
+  priority: high
   confidence: medium
   summary: ADR-0009 and the current API key service both call out a remaining hardening gap around key-auth request enforcement
     and immediate deactivated-user invalidation; this is explicitly out of v1.9.0 unless release sign-off pulls it forward.
