@@ -1,3 +1,14 @@
+/**
+ * Person references — static assertion tests
+ *
+ * Verifies the person reference integration used for risk owner assignment:
+ *
+ * - persons.api.ts exports searchPersons and the PersonDisplay type.
+ * - PersonPicker consumes searchPersons and accepts an email string as its value.
+ * - RiskFormModal uses PersonPicker for the owner field when person references
+ *   are enabled, and the owner-related API fields are present in risks.api.ts.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

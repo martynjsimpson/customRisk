@@ -1,3 +1,12 @@
+/**
+ * Authentication unit tests.
+ *
+ * Covers password hashing and verification (bcrypt), password policy
+ * validation, JWT access token signing and verification, API key generation
+ * and hashing, and refresh token lifecycle. Uses cost factor 4 to keep
+ * tests fast.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

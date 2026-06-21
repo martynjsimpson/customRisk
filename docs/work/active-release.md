@@ -1,148 +1,155 @@
 # Active Release
 
 Status: ready-for-release
-Version: v1.23.0
+Version: v1.24.0
 
 ## Release goal
 
-Fix a data integrity bug on the admin homepage and complete the pending developer experience maintenance round. By the end of this release: the Admin summary widget correctly excludes soft-deleted registers; all three code layers (frontend, backend, test) have been assessed against the agreed coding standards with actionable findings actioned or deferred; and the seed data accurately represents current product capabilities including custom fields, child record response actions, configurable scoring formulas, and review history.
+Complete the maintenance debt surfaced by the v1.23.0 code audits and lay the foundation for browser-based E2E permission testing. By the end of this release: page components are extracted from the three oversized page files; shared backend utility functions are no longer duplicated across services; test files have opening block comments, stable selectors, and consistent describe structure; and the Playwright E2E infrastructure (ADR amendment, fixtures, auth helpers, CI job) is in place and ready for E2E-002 to write test cases against.
 
 ## Selected work items
 
-### BUG-057 — Fix Admin summary widget to exclude soft-deleted registers
-Source: REQ-074
-Capability: homepage
+### MAINT-016 — Extract feature components from large page files
+Source: REQ-078
+Capability: build-toolchain
+Suggested agents: frontend-developer, test-engineer
+Status: done
+done_in: v1.24.0
+
+**Problem:** RegisterDetailPage.tsx, UsersPage.tsx, and MyRisksPage.tsx each contain substantial inline logic and JSX (~80–300 lines) that should live in dedicated feature components. The page files should be thin composition layers.
+
+**Acceptance criteria:**
+- RegisterDetailPage.tsx, UsersPage.tsx, and MyRisksPage.tsx are each refactored so that logic and JSX are extracted into feature components in appropriately named feature directories.
+- The page files become thin composition layers.
+- No regression to existing behaviour, routing, or UI on any of the three pages.
+- Existing tests continue to pass; new tests added for any extracted components that expose testable logic.
+
+---
+
+### MAINT-017 — Extract shared utility functions to backend/src/utils/
+Source: REQ-079
+Capability: build-toolchain
 Suggested agents: backend-developer, test-engineer
 Status: done
-done_in: v1.23.0
+done_in: v1.24.0
 
-**Problem:** The Admin summary widget on the homepage includes soft-deleted registers in its per-register risk and overdue counts. The backend query powering the widget is missing a soft-delete filter.
+**Problem:** `toDateOnlyString` and `decimalToNumber` are duplicated across four service files (`risks.service.ts`, `reviews.service.ts`, `dashboard.service.ts`, `customFieldValues.service.ts`).
 
 **Acceptance criteria:**
-- The Admin summary widget does not include registers that have been soft-deleted.
-- The fix is applied at the backend query level.
-- No regression to the Admin summary widget display for active registers.
-- Test coverage added or updated for the soft-deleted register exclusion path.
+- `toDateOnlyString` is defined once in `backend/src/utils/` and imported by all four service files.
+- `decimalToNumber` is defined once in `backend/src/utils/` and imported by all four service files.
+- No duplicated copies of either function remain in service files.
+- All existing tests pass with no behaviour change.
+- Unit tests for the extracted utilities exist or are confirmed covered by existing service-level tests.
 
 ---
 
-### MAINT-011 — Audit frontend code against agreed coding standards
-Source: REQ-070
+### MAINT-019 — Add opening block comments to test files missing them
+Source: REQ-081
 Capability: build-toolchain
-Suggested agents: frontend-developer
+Suggested agents: backend-developer, frontend-developer, test-engineer
 Status: done
-done_in: v1.23.0
+done_in: v1.24.0
 
-**Problem:** Frontend code has not been assessed against the coding standards established in MAINT-010 (v1.20.0). Duplication, weak component reuse, and inconsistent patterns may have accumulated across the codebase.
+**Problem:** Approximately 38 test files (24 backend, 14 frontend static) are missing required opening block comments per the coding standard in `docs/engineering/coding-standards.md`.
 
 **Acceptance criteria:**
-- All frontend code under frontend/src/ is assessed against the standards from docs/engineering/coding-standards.md.
-- Findings are concrete and actionable — each finding names the file, the violation, and the recommended fix.
-- Quick fixes are addressed within this release at the Release Manager's discretion.
-- Larger items are logged in a **Deferred items for PM** section in active-release.md for the PM to pick up as new requests.
+- All backend test files under `backend/test/` have an opening block comment per the standard.
+- All frontend static test files under `frontend/test/` have an opening block comment per the standard.
+- No test behaviour or assertions are changed — comment additions only.
 
 ---
 
-### MAINT-012 — Audit backend code against agreed coding standards
-Source: REQ-071
-Capability: build-toolchain
-Suggested agents: backend-developer
-Status: done
-done_in: v1.23.0
-
-**Problem:** Backend code has not been assessed against the coding standards established in MAINT-010 (v1.20.0). Duplication, inconsistent service patterns, and error handling gaps may have accumulated.
-
-**Acceptance criteria:**
-- All backend code under backend/src/ is assessed against the standards from docs/engineering/coding-standards.md.
-- Findings are concrete and actionable — each finding names the file, the violation, and the recommended fix.
-- Quick fixes are addressed within this release at the Release Manager's discretion.
-- Larger items are logged in a **Deferred items for PM** section in active-release.md for the PM to pick up as new requests.
-
----
-
-### MAINT-013 — Audit test code against agreed coding standards
-Source: REQ-072
+### MAINT-020 — Restructure myRisks.test.mjs to use describe blocks
+Source: REQ-082
 Capability: build-toolchain
 Suggested agents: test-engineer
 Status: done
-done_in: v1.23.0
+done_in: v1.24.0
 
-**Problem:** Test code has not been assessed against the coding standards established in MAINT-010 (v1.20.0). Missing regression coverage, brittle assertions, and inconsistent naming may be present.
+**Problem:** 17 tests in `myRisks.test.mjs` are separated by inline comments rather than `describe` blocks, contrary to the coding standard.
 
 **Acceptance criteria:**
-- All test code under backend/test/ and frontend/test/ is assessed against the standards from docs/engineering/coding-standards.md.
-- Findings are concrete and actionable — each finding names the file, the violation, and the recommended fix.
-- Quick fixes are addressed within this release at the Release Manager's discretion.
-- Larger items are logged in a **Deferred items for PM** section in active-release.md for the PM to pick up as new requests.
+- All 17 tests are grouped into appropriate `describe` blocks instead of relying on inline comments for structure.
+- Test names within each `describe` block are meaningful in context with no duplication of the describe label.
+- All 17 tests continue to pass.
+- No test logic or assertions are changed — restructuring only.
 
 ---
 
-### MAINT-014 — Refresh seed scripts to cover features shipped since v1.7.0
-Source: REQ-073
+### MAINT-021 — Replace brittle querySelector selectors in three frontend test files
+Source: REQ-083
 Capability: build-toolchain
-Suggested agents: backend-developer
+Suggested agents: frontend-developer, test-engineer
 Status: done
-done_in: v1.23.0
+done_in: v1.24.0
 
-**Problem:** The seed data (backend/prisma/seed.ts) was last meaningfully updated before v1.7.0. It does not cover custom fields, child record response actions, configurable scoring formulas, or review history — all of which have shipped since.
+**Problem:** `passwordStrength.behavior.test.tsx`, `apiKeys.behavior.test.tsx`, and `riskDetailModal.behavior.test.tsx` use brittle DOM `querySelector` selectors. Fixing requires `aria-label` or `data-testid` attributes to be added to the relevant source components.
 
 **Acceptance criteria:**
-- At least one demo register is seeded with custom fields: a DROPDOWN field, a CALCULATED field referencing at least one numeric field, and at least one field with validationMode WARN. Field visibility (visibleToRoles) is demonstrated on at least one field.
-- Custom field values are seeded on demo risks so the fields are populated on first load.
-- One demo register is seeded in responseActionMode CHILD_RECORDS with at least three action records across its risks covering a mix of statuses, including at least one Risk Response Owner assignment.
-- One demo register (may be the same or different) is seeded with a custom scoring formula that differs from the default likelihood × impact.
-- At least two completed review records are seeded across demo risks.
-- The seed remains idempotent — re-running does not create duplicates or error on an already-seeded database.
-- The seed summary log line is updated to accurately describe the seeded data.
-- No regression to the existing seed structure — system admin creation, demo users, register permissions, and template seeding continue to work correctly.
+- All three test files no longer use `querySelector` — all selectors use `aria-label`, `data-testid`, or ARIA role queries.
+- The relevant source components have the required `aria-label` or `data-testid` attributes added.
+- All affected tests continue to pass with the new selectors.
+- Attributes added are consistent with the data-testid conventions that E2E-002 will rely on.
+
+---
+
+### E2E-001 — Set up Playwright E2E test infrastructure
+Source: REQ-075
+Capability: build-toolchain
+Suggested agents: principal-architect, test-engineer, devops-engineer
+Status: done
+done_in: v1.24.0
+
+**Problem:** No E2E test layer exists. Before test cases can be written (E2E-002), the infrastructure must be in place: an amended ADR, Playwright installed and configured, fixture seed/teardown scripts, per-role auth helpers, a CI job, and an operations doc.
+
+**Acceptance criteria:**
+- An amendment to ADR-0008 formally adds Layer 3 (Playwright) to the test strategy, documents the `e2e/` directory, and records the CI gating policy. Amendment reviewed before any other E2E-001 work begins.
+- Playwright is installed as a dev dependency with `playwright.config.ts` committed (base URL, test directory, reporter).
+- `e2e/fixtures/seed.ts` and `e2e/fixtures/teardown.ts` are implemented per SPIKE-003.md Section 4 — covering all named users, registers, risks, actions, and configuration flags. Seed is idempotent; teardown is clean.
+- `e2e/auth.setup.ts` is implemented using `storageState` — one cached session file per named role.
+- The e2e CI job is added to `ci.yml` gated on quality, Chromium-only, with artifact upload on failure. Passes with no test files present.
+- `e2e:seed` and `e2e:teardown` scripts are added to the root `package.json`.
+- `docs/operations/e2e-testing.md` covers prerequisites, env vars, running the suite locally, running a single test, viewing the HTML report, and how the CI job is triggered.
 
 ---
 
 ## Required agents
 
-- **backend-developer** — BUG-057 (fix Admin summary query), MAINT-012 (backend code audit), MAINT-014 (seed refresh). These three items can run in parallel.
-- **frontend-developer** — MAINT-011 (frontend code audit).
-- **test-engineer** — BUG-057 (add test coverage for soft-delete exclusion), MAINT-013 (test code audit). BUG-057 test coverage can be added once the backend fix is in.
+- **principal-architect** — E2E-001 Steps 1–2 (ADR-0008 amendment, Playwright install and config). Must complete the ADR amendment before test-engineer begins E2E-001 fixture work.
+- **backend-developer** — MAINT-017 (utility extraction), MAINT-019 (backend test block comments).
+- **frontend-developer** — MAINT-016 (page component extraction), MAINT-021 (add data-testid/aria-label to source components and update test selectors), MAINT-019 (frontend static test block comments).
+- **test-engineer** — MAINT-019 (any remaining test block comments), MAINT-020 (myRisks describe restructure), MAINT-021 (test selector updates — coordinate with frontend-developer), E2E-001 (fixture seed/teardown and auth setup — begins after PA's ADR amendment).
+- **devops-engineer** — E2E-001 (CI job in `ci.yml` — can work in parallel with test-engineer after PA's ADR amendment).
 
-**Sequencing:** All five work items can begin in parallel. BUG-057 test coverage waits for the backend fix to land. For the three audit items, quick fixes are actioned in-release; larger findings go to the Deferred items for PM section.
+**Sequencing:** MAINT-017, MAINT-019, MAINT-020, and MAINT-016 can all begin immediately in parallel. MAINT-021 requires frontend-developer to add attributes before test-engineer updates selectors — coordinate within the item. E2E-001: PA's ADR amendment is Step 1 and must land before test-engineer or devops-engineer begin their E2E-001 tasks.
 
 ## Decisions
 
 No open product or UX decisions. All items are implementation-ready.
 
-**Decision:** MAINT-014 register assignment — which demo register gets custom fields and which gets child record mode is a developer judgment call during implementation, not a PM decision. The backend developer should use whichever of the existing demo registers makes the best representative demo.
+**Decision (v1.24.0, in-session):** E2E-001 CI gating → E2E tests are NOT added to CI. They are run manually by the Test Engineer when changes relate to existing E2E coverage. The CI `e2e` job added by devops-engineer has been removed. ADR-0011 §2.5 updated to reflect this. The operations doc (`docs/operations/e2e-testing.md`) should document manual run instructions only.
 
-**Decision:** MAINT-011/012/013 audit scope — quick fixes are at the Release Manager's discretion. Anything requiring significant refactoring or new design is deferred to PM via the Deferred items for PM section, not fixed in-release.
+**Decision:** MAINT-016 extraction boundaries and feature directory naming → developer judgment call during implementation. The developer should identify natural component boundaries in each file before extracting.
+
+**Decision:** MAINT-019 block comment coverage → all three agent types (backend-developer, frontend-developer, test-engineer) should each handle the files within their domain during the same release to complete the sweep in one pass.
+
+**Decision:** MAINT-021 data-testid conventions → prefer `data-testid` over `aria-label` where the element has no meaningful ARIA role. Attributes must be consistent with E2E-002 naming conventions — frontend-developer should note any patterns established here in a comment or in the E2E-001 operations doc for E2E-002 to follow.
 
 ## Test / sign-off
 
-- [x] BUG-057: Admin summary widget does not show soft-deleted registers; test coverage added.
-- [x] MAINT-011: Frontend code audit complete; quick fixes applied; any larger items logged as deferred.
-- [x] MAINT-012: Backend code audit complete; quick fixes applied; any larger items logged as deferred.
-- [x] MAINT-013: Test code audit complete; quick fixes applied; any larger items logged as deferred.
-- [x] MAINT-014: Seed runs cleanly; seeded data demonstrates custom fields, child record actions, custom formula, and review history; seed is idempotent.
+- [x] MAINT-016: All three page files refactored; existing tests pass; static tests updated to point to feature component files.
+- [x] MAINT-017: Both utilities extracted to `backend/src/utils/formatters.ts`; no duplicates remain; 311 backend tests pass; 6 unit tests added for extracted functions.
+- [x] MAINT-019: 24 backend + 11 frontend static test files have opening block comments; no test behaviour changed.
+- [x] MAINT-020: `myRisks.test.mjs` restructured into 3 describe blocks; all 17 tests pass.
+- [x] MAINT-021: No `querySelector` in the three test files; `ProfilePage.tsx` and `RiskDetailModal.tsx` have data-testid attributes; all tests pass.
+- [x] E2E-001: ADR-0011 committed (new); ADR-0008 amended; Playwright installed; fixture seed/teardown and auth.setup.ts committed; operations doc committed. Note: E2E CI job not added — tests run manually by TE only (decision recorded in ADR-0011 §2.5 and active-release.md Decisions).
+
+Total: 311 backend + 122 frontend static + 107 frontend runtime = 540 tests passing. TypeScript typecheck clean.
 
 ## Blockers
 
 None.
-
----
-
-## Deferred items for PM
-
-- **Frontend page component extraction (MAINT-011):** `RegisterDetailPage.tsx`, `UsersPage.tsx`, and `MyRisksPage.tsx` each contain substantial logic and JSX that should be extracted into feature components. Deferred from v1.23.0 — each requires ~80–300 lines of extraction and potential new feature directories; not appropriate for an in-release quick fix.
-
-- **Backend utility deduplication (MAINT-012):** `toDateOnlyString` and `decimalToNumber` are duplicated across four service files (`risks.service.ts`, `reviews.service.ts`, `dashboard.service.ts`, `customFieldValues.service.ts`). Should be extracted to `backend/src/utils/`. Deferred from v1.23.0 — multi-file change across high-traffic services, warrants dedicated coverage.
-
-- **Backend service size (MAINT-012):** `risks.service.ts` (1,248 lines) and `configVersion.service.ts` (1,186 lines) carry multiple distinct responsibilities. Both warrant extraction into sub-services. Requires Principal Architect review. Deferred from v1.23.0.
-
-- **Test file block comments (MAINT-013):** ~38 test files (24 backend, 14 frontend static) are missing required opening block comments. Low risk, high volume — recommend a rolling backlog item to add them during upcoming releases.
-
-- **`describe` grouping in `myRisks.test.mjs` (MAINT-013):** 17 tests currently separated by inline comments rather than `describe` blocks. Deferred from v1.23.0 — restructuring requires intentional coordination around test name changes.
-
-- **`querySelector` in test files (MAINT-013):** `passwordStrength.behavior.test.tsx`, `apiKeys.behavior.test.tsx`, and `riskDetailModal.behavior.test.tsx` use brittle DOM selectors. Fixing requires `aria-label` or `data-testid` additions in source components — redirect to frontend developer. Deferred from v1.23.0.
-
-- **Frontend static test extension `.mjs` vs `.ts` (MAINT-013):** All 16 frontend static tests use `.test.mjs`; standard says `.test.ts`. Architectural decision — requires Principal Architect review before any rename. Deferred from v1.23.0.
 
 ---
 

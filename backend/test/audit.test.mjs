@@ -1,3 +1,11 @@
+/**
+ * Audit log schema and utility tests.
+ *
+ * Verifies the audit query schema, CSV export utilities, and static route
+ * assertions confirming the audit log endpoint is correctly gated and
+ * structured per the audit model specification.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

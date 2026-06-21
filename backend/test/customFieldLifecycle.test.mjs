@@ -1,3 +1,12 @@
+/**
+ * Custom field lifecycle tests.
+ *
+ * Verifies the full lifecycle of custom field management: that the destructive
+ * delete route requires System Admin, delegates through the controller to the
+ * service with a usage check, and emits the correct audit event. Also covers
+ * the CALCULATED field type wiring and formula storage.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

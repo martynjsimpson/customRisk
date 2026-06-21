@@ -245,8 +245,8 @@ describe("RiskDetailModal — reviewStatusPosition ordering", () => {
   }
 
   function getFieldOrder(...fieldNames: string[]): number[] {
-    // Find all th elements (field label cells) in the risk detail table
-    const thElements = document.querySelectorAll("table th");
+    // Find all field label cells in the risk detail table using the stable testid
+    const thElements = document.querySelectorAll("[data-testid='risk-detail-field-th']");
     const texts = Array.from(thElements).map((el) => el.textContent ?? "");
     return fieldNames.map((name) => texts.indexOf(name));
   }

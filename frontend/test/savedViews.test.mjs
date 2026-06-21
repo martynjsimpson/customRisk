@@ -1,3 +1,14 @@
+/**
+ * PM11-02 — Saved Views static assertion tests
+ *
+ * Verifies that the Saved Views feature is correctly wired at the source level:
+ *
+ * - savedViews.api.ts exports all four CRUD functions and uses the correct
+ *   register-scoped API paths.
+ * - SavedViewsPanel is present in the risk register UI and renders the correct
+ *   structure for listing, applying, and managing views.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

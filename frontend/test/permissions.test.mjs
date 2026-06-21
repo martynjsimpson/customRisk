@@ -1,3 +1,16 @@
+/**
+ * Role and permission gating — static assertion tests
+ *
+ * Verifies that key actions in the UI are correctly gated by role and ownership:
+ *
+ * - Risk table actions (Review, Edit, Delete) check the user's effective role
+ *   and ownership before rendering.
+ * - Register management actions (Configuration, Permissions, Audit tabs) are
+ *   hidden from non-admin users.
+ * - Create Register is restricted to System Admins.
+ * - CreateRegisterWizard supports initial Register Admin assignments.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

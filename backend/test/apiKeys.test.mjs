@@ -1,3 +1,11 @@
+/**
+ * API key schema and service tests (PM13-01).
+ *
+ * Verifies that the Prisma schema defines the ApiKey model with all required
+ * fields, and that the API key service and routes expose the expected
+ * create/revoke/list contract.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

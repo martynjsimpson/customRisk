@@ -1,10 +1,10 @@
 # Custom Risk — Technical Architecture
 
-**Version:** 1.1  
-**Date:** 2026-05-09  
+**Version:** 1.2  
+**Date:** 2026-06-21  
 **Status:** Active  
 **Applies to:** Current and future implementation  
-**Related ADR:** ADR-0001 — Technical Stack; ADR-0008 — Frontend Runtime Test Stack  
+**Related ADR:** ADR-0001 — Technical Stack; ADR-0008 — Frontend Runtime Test Stack (amended); ADR-0011 — E2E Test Layer  
 **Related documents:** Security Model v1.1, API Standards v1.0, Permission Model v1.1, Audit Model v1.1, Observability Notes
 
 ---
@@ -19,6 +19,7 @@ Decision reasoning is intentionally excluded from this document. Rationale and a
 
 - `ADR-0001-technical-stack.md`
 - `ADR-0008-frontend-runtime-test-stack.md`
+- `ADR-0011-e2e-test-layer.md`
 
 This file should be treated as the implementation source of truth for the architecture. Any future change to the technical stack should be recorded through a new or superseding ADR before this document is updated.
 
@@ -131,15 +132,19 @@ TypeScript must be used throughout both frontend and backend code.
 | Runtime frontend component tests | Vitest |
 | Browser-like test environment | jsdom |
 | UI interaction helpers | Testing Library (`@testing-library/react`, `@testing-library/user-event`) |
+| E2E browser automation | Playwright (Chromium) |
 
 #### 3.3.3 Frontend Testing Roles
 
-| Purpose | Tooling | Implementation Standard |
-|---|---|---|
-| Static source assertions | `node:test` with `.test.mjs` files | Use for low-cost guardrails that verify route exposure, feature wiring, package scripts, and source-level invariants. |
-| Runtime component behavior | Vitest + jsdom + Testing Library | Use for user-visible interaction flows such as modal entry, conditional button availability, mutation success, cache invalidation, and post-save UI refresh. |
+| Layer | Purpose | Tooling | Implementation Standard |
+|---|---|---|---|
+| 1 | Static source assertions | `node:test` with `.test.mjs` files | Use for low-cost guardrails that verify route exposure, feature wiring, package scripts, and source-level invariants. |
+| 2 | Runtime component behavior | Vitest + jsdom + Testing Library | Use for user-visible interaction flows such as modal entry, conditional button availability, mutation success, cache invalidation, and post-save UI refresh. |
+| 3 | E2E browser automation | Playwright (Chromium) | Use for full-stack cross-page workflows, role-based access verification, and scenarios that require a real network and real browser rendering. |
 
 Static source assertions are not sufficient on their own for interactive frontend flows. When a defect could survive while the source still references the expected hooks or API functions, a runtime behavioral test is required.
+
+E2E tests run against the full application stack (`http://localhost:5173`) and are configured via `playwright.config.ts` at the repository root. Authentication uses Playwright `storageState` for per-role cached sessions stored in `e2e/auth/.auth/`. Fixture seeding is handled by `e2e/fixtures/seed.ts` (idempotent) and `e2e/fixtures/teardown.ts` (destructive clean). In CI, the E2E job depends on the `quality` job and runs Chromium only; Playwright HTML report artifacts are uploaded on failure.
 
 #### 3.3.4 Frontend Libraries
 

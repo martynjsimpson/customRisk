@@ -1,3 +1,11 @@
+/**
+ * Formula evaluator unit tests.
+ *
+ * Covers arithmetic, field references, score/likelihood/impact variables,
+ * error handling for invalid expressions, and the validateFormula helper.
+ * These tests drive formulaEvaluator.service.ts directly without a database.
+ */
+
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

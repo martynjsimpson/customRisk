@@ -1,3 +1,11 @@
+/**
+ * Risk service and route tests.
+ *
+ * Covers risk list/detail/create/update routes (static wiring assertions),
+ * getRiskReviewStatus and isRiskOverdue business logic, list query schema
+ * parsing, and field-visibility rules from registerConfig.service.ts.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

@@ -1,3 +1,15 @@
+/**
+ * Auth / session management — static assertion tests
+ *
+ * Verifies the security properties of the authentication layer at source level:
+ *
+ * - Access tokens are stored only in memory (never in localStorage, sessionStorage,
+ *   or cookies), and the Axios client attaches them as Authorization headers.
+ * - The session bootstraps through a refresh call on load.
+ * - PM1-05: ProfilePage preference mutations update the React Query cache on
+ *   success so downstream consumers see the change without a refetch.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

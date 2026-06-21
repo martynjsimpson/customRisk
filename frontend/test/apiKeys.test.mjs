@@ -1,3 +1,18 @@
+/**
+ * PM13-01 — API Keys static assertion tests
+ *
+ * Covers the API Keys feature (PM13-01) at the source level:
+ *
+ * - apiKeys.api.ts exports the correct user-scoped and admin-scoped functions
+ *   and defines the expected interface shapes (ApiKey, AdminApiKey, ApiKeyCreated).
+ * - ApiKeysPage is the read-only admin audit view (no create button, Owner column present).
+ * - ProfilePage exposes the user-facing generate, reveal, copy, and revoke flow.
+ * - The apiKeys feature flag gates both the nav link and the profile section.
+ * - The /api-keys route is registered in the router.
+ * - UI-012: expiry date input uses type="date" for native date picker.
+ * - QOL-001: ProfilePage includes the password strength meter.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

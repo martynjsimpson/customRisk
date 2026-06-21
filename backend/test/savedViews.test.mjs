@@ -1,3 +1,11 @@
+/**
+ * Saved views schema and route tests (PM11-01).
+ *
+ * Verifies the Prisma schema defines the SavedView model with all required
+ * fields, and that saved-view CRUD routes are correctly mounted and gated
+ * by authentication.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

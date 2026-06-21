@@ -2654,7 +2654,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.23.0
   priority: medium
   confidence: high
   summary: The seed data (backend/prisma/seed.ts) was last meaningfully updated on
@@ -2744,11 +2745,11 @@ items:
   - README.md or docs/operations/ is updated to document the EDITION env var and the
     available editions.
   remaining:
-  - PM to define the canonical edition names and which of the 10 current flags each edition
-    enables before this item can move to ready. Current flags are userPreferences, samlAuth,
-    draftConfig, childActions, notifications, csvImport, attachments, apiKeys, webhooks,
-    savedViews.
-  - PA to implement editions.ts and update featureFlags.ts once edition definitions are agreed.
+  - PM to define which of the 10 current flags (userPreferences, samlAuth, draftConfig,
+    childActions, notifications, csvImport, attachments, apiKeys, webhooks, savedViews)
+    each edition enables. PM direction is three editions — "free", "professional", and
+    "enterprise" — but the flag-to-edition mapping is not yet defined.
+  - Once PM has defined the flag mapping, PA to implement editions.ts and update featureFlags.ts.
   - devops-engineer to update docker-compose.yml and .env.example.
   dependencies: []
   suggested_agents:
@@ -2777,7 +2778,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.23.0
   priority: medium
   confidence: medium
   summary: Test Engineer assesses all test code against the standards established in
@@ -2818,7 +2820,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.23.0
   priority: medium
   confidence: medium
   summary: Backend Developer assesses all backend code against the standards established
@@ -2856,7 +2859,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.23.0
   priority: medium
   confidence: medium
   summary: Frontend Developer assesses all frontend code against the standards established
@@ -3065,7 +3069,8 @@ items:
   type: bug
   capability: homepage
   phase: null
-  status: ready
+  status: done
+  done_in: v1.23.0
   priority: high
   confidence: high
   summary: The Admin summary widget on the homepage includes soft-deleted registers in
@@ -3464,3 +3469,271 @@ items:
     tests: []
     notes:
     - PM6-SCORING shipped in v1.17.0. This is a post-ship doc gap.
+- id: MAINT-016
+  source_request: REQ-078
+  title: Extract feature components from large page files
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: RegisterDetailPage.tsx, UsersPage.tsx, and MyRisksPage.tsx each contain substantial inline logic and JSX that
+    should be extracted into dedicated feature components in appropriately named feature directories. Deferred from v1.23.0
+    (MAINT-011 audit finding) as each requires ~80–300 lines of extraction and potential new feature directories — not
+    appropriate for an in-release quick fix.
+  acceptance:
+  - RegisterDetailPage.tsx logic and JSX is extracted into one or more feature components; the page file becomes a thin
+    composition layer.
+  - UsersPage.tsx logic and JSX is extracted into one or more feature components; the page file becomes a thin composition
+    layer.
+  - MyRisksPage.tsx logic and JSX is extracted into one or more feature components; the page file becomes a thin composition
+    layer.
+  - All extracted components are placed in feature directories consistent with the existing project structure.
+  - No regression to existing behaviour, routing, or UI on any of the three pages.
+  - Existing tests continue to pass; add new tests for any extracted components that expose testable logic.
+  remaining:
+  - Identify the natural extraction boundaries in each file before implementing.
+  - Agree the target feature directory structure for each extraction.
+  - Extract components one file at a time to keep the diff reviewable.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/pages/RegisterDetailPage.tsx
+    - frontend/src/pages/UsersPage.tsx
+    - frontend/src/pages/MyRisksPage.tsx
+    tests: []
+    notes:
+    - Deferred from v1.23.0 MAINT-011 audit. Sizes at time of deferral approximately 80–300 lines each.
+    - Extract one file at a time to keep PRs reviewable and reduce regression risk.
+- id: MAINT-017
+  source_request: REQ-079
+  title: Extract shared utility functions to backend/src/utils/
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: toDateOnlyString and decimalToNumber are duplicated across four backend service files — risks.service.ts,
+    reviews.service.ts, dashboard.service.ts, and customFieldValues.service.ts. Both should be extracted to a shared
+    backend/src/utils/ module and all four service files updated to import from there. Deferred from v1.23.0 (MAINT-012
+    audit finding) as a multi-file change across high-traffic services warranting dedicated coverage.
+  acceptance:
+  - toDateOnlyString is defined once in backend/src/utils/ and imported by all four service files that previously duplicated it.
+  - decimalToNumber is defined once in backend/src/utils/ and imported by all four service files that previously duplicated it.
+  - No duplicated copies of either function remain in service files.
+  - All existing tests continue to pass with no behaviour change.
+  - Unit tests for the extracted utilities exist in backend/test/ or are confirmed covered by existing service-level tests.
+  remaining:
+  - Confirm the canonical implementation of each function (all duplicates should be identical — verify before extracting).
+  - Create backend/src/utils/ if it does not already exist.
+  - Extract both functions and update all four service files.
+  - Run the full backend test suite to confirm no regression.
+  dependencies: []
+  suggested_agents:
+  - backend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/risks.service.ts
+    - backend/src/services/reviews.service.ts
+    - backend/src/services/dashboard.service.ts
+    - backend/src/services/customFieldValues.service.ts
+    tests:
+    - backend/test/risks.test.mjs
+    - backend/test/reviews.test.mjs
+    notes:
+    - Deferred from v1.23.0 MAINT-012 audit. Both functions are pure utilities with no side effects — extraction is low risk
+      once duplicates are confirmed identical.
+- id: MAINT-018
+  source_request: REQ-080
+  title: Break up risks.service.ts and configVersion.service.ts into sub-services
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: needs-refinement
+  priority: medium
+  confidence: medium
+  summary: risks.service.ts (1,248 lines) and configVersion.service.ts (1,186 lines) each carry multiple distinct
+    responsibilities that should be separated into sub-services. Requires Principal Architect review to define the correct
+    split boundaries before implementation begins. Deferred from v1.23.0 (MAINT-012 audit finding).
+  acceptance:
+  - The Principal Architect has reviewed both files and defined proposed sub-service boundaries, including what each
+    sub-service is responsible for and how they are composed.
+  - risks.service.ts is split into focused sub-services with single responsibilities; the original module re-exports or
+    delegates cleanly.
+  - configVersion.service.ts is split into focused sub-services with single responsibilities; the original module re-exports
+    or delegates cleanly.
+  - All callers (routes, other services, tests) continue to work without changes or with only import path updates.
+  - Existing test coverage passes with no behaviour change; new tests are added for any logic that gains its own surface area
+    through the split.
+  - Help content in frontend/public/help/en/ updated to reflect this change if any user-visible behaviour changes (not
+    expected for a refactor — include only if applicable).
+  remaining:
+  - PA to review risks.service.ts and configVersion.service.ts and define proposed split boundaries before implementation.
+  - Once PA has defined boundaries, move to status ready and assign backend-developer + test-engineer.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/risks.service.ts
+    - backend/src/services/configVersion.service.ts
+    tests:
+    - backend/test/risks.test.mjs
+    - backend/test/configVersion.test.mjs
+    notes:
+    - Deferred from v1.23.0 MAINT-012 audit. Line counts at deferral — risks.service.ts 1,248 lines; configVersion.service.ts
+      1,186 lines.
+    - PA must define split boundaries before implementation so the refactor does not introduce its own design debt.
+    - This is needs-refinement until the PA review is complete.
+- id: MAINT-019
+  source_request: REQ-081
+  title: Add opening block comments to test files missing them
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: Approximately 38 test files (24 backend, 14 frontend static) are missing required opening block comments per the
+    coding standard established in MAINT-010. Low risk, high volume. Recommended approach is to add them incrementally
+    during upcoming releases rather than in a single dedicated pass. Deferred from v1.23.0 (MAINT-013 audit finding).
+  acceptance:
+  - All backend test files under backend/test/ have an opening block comment per the standard in
+    docs/engineering/coding-standards.md.
+  - All frontend static test files under frontend/test/ have an opening block comment per the standard.
+  - No test behaviour or assertions are changed.
+  remaining:
+  - Identify the exact list of affected files at time of implementation (count may shift as new test files are added).
+  - Add block comments to each affected file — this can be done in batches across releases if scope is large.
+  dependencies:
+  - MAINT-010
+  suggested_agents:
+  - test-engineer
+  - backend-developer
+  - frontend-developer
+  evidence:
+    code:
+    - backend/test/
+    - frontend/test/
+    tests: []
+    notes:
+    - Deferred from v1.23.0 MAINT-013 audit. ~38 files affected at time of deferral.
+    - Can be batched across releases. Low risk — comment-only changes with no behaviour impact.
+- id: MAINT-020
+  source_request: REQ-082
+  title: Restructure myRisks.test.mjs to use describe blocks
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: 17 tests in myRisks.test.mjs are currently separated by inline comments rather than describe blocks, contrary
+    to the coding standard. Restructuring requires deliberate coordination because renaming tests changes test run output
+    and any CI reporting that references test names. Deferred from v1.23.0 (MAINT-013 audit finding).
+  acceptance:
+  - All 17 tests in myRisks.test.mjs are grouped into appropriate describe blocks instead of relying on inline comments
+    for structure.
+  - Test names within each describe block are updated to be meaningful in the context of their group (no duplication of
+    the describe label in the test name).
+  - All 17 tests continue to pass.
+  - No test logic or assertions are changed — restructuring only.
+  remaining:
+  - Review myRisks.test.mjs inline comment structure to define the describe block groupings before implementing.
+  - Confirm whether any CI reporting, test name snapshots, or external tooling references test names from this file.
+  dependencies: []
+  suggested_agents:
+  - test-engineer
+  evidence:
+    code:
+    - frontend/test/myRisks.test.mjs
+    tests: []
+    notes:
+    - Deferred from v1.23.0 MAINT-013 audit. 17 tests affected.
+    - Only restructuring — no logic changes. Check CI reports for test name dependencies before renaming.
+- id: MAINT-021
+  source_request: REQ-083
+  title: Replace brittle querySelector selectors in three frontend test files
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: passwordStrength.behavior.test.tsx, apiKeys.behavior.test.tsx, and riskDetailModal.behavior.test.tsx use
+    brittle DOM querySelector selectors. Fixing requires adding aria-label or data-testid attributes to the relevant
+    source components, making this a coordinated change between the frontend developer and the test engineer. Deferred
+    from v1.23.0 (MAINT-013 audit finding).
+  acceptance:
+  - passwordStrength.behavior.test.tsx no longer uses querySelector — all selectors use aria-label, data-testid, or ARIA
+    role queries.
+  - apiKeys.behavior.test.tsx no longer uses querySelector — all selectors use aria-label, data-testid, or ARIA role queries.
+  - riskDetailModal.behavior.test.tsx no longer uses querySelector — all selectors use aria-label, data-testid, or ARIA
+    role queries.
+  - The relevant source components (PasswordStrength, ApiKeysPage, RiskDetailModal or their subcomponents) have the
+    required aria-label or data-testid attributes added.
+  - All affected tests continue to pass with the new selectors.
+  remaining:
+  - Audit all three test files to identify every querySelector call and determine the target element for each.
+  - Add aria-label or data-testid attributes to the appropriate source components.
+  - Update the test selectors to use the stable attributes.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/pages/ApiKeysPage.tsx
+    - frontend/src/features/risks/RiskDetailModal.tsx
+    tests:
+    - frontend/test/passwordStrength.behavior.test.tsx
+    - frontend/test/apiKeys.behavior.test.tsx
+    - frontend/test/riskDetailModal.behavior.test.tsx
+    notes:
+    - Deferred from v1.23.0 MAINT-013 audit. Prefer data-testid where the element has no meaningful ARIA role or label.
+    - Note relationship to E2E-002 — that item also requires data-testid on permission-sensitive components. Coordinate
+      so attributes added here are consistent with what E2E-002 will need.
+- id: MAINT-022
+  source_request: REQ-084
+  title: Migrate frontend static test files from .test.mjs to .test.ts
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: needs-refinement
+  priority: low
+  confidence: medium
+  summary: All 16 frontend static test files use the .test.mjs extension; the coding standard says .test.ts. This is an
+    architectural decision — renaming may affect Vite/Vitest module resolution, tsconfig paths, and other toolchain config.
+    Requires Principal Architect review before any rename proceeds. Deferred from v1.23.0 (MAINT-013 audit finding).
+  acceptance:
+  - The Principal Architect has reviewed the toolchain impact of renaming .test.mjs to .test.ts and confirmed it is safe
+    or identified required config changes.
+  - All 16 frontend static test files are renamed from .test.mjs to .test.ts.
+  - vitest.config.ts (or equivalent) is updated if the file extension change requires it.
+  - All 16 tests continue to pass after the rename.
+  - No regression to the frontend build or CI pipeline.
+  remaining:
+  - PA to assess whether renaming .test.mjs to .test.ts requires toolchain config changes (Vitest include patterns,
+    tsconfig, Vite aliases) before proceeding.
+  - Once PA confirms the approach, move to status ready and assign test-engineer + devops-engineer if CI config changes
+    are needed.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - test-engineer
+  evidence:
+    code:
+    - frontend/test/
+    tests: []
+    notes:
+    - Deferred from v1.23.0 MAINT-013 audit. 16 files affected.
+    - ESM (.mjs) vs TypeScript (.ts) affects how Vitest resolves and transpiles the files. PA must confirm the rename
+      is safe before implementation.

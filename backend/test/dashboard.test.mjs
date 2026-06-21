@@ -1,3 +1,11 @@
+/**
+ * Dashboard route and service tests.
+ *
+ * Verifies that dashboard routes (my-work, my-risks, admin-summary) are
+ * mounted correctly under /api/v1/dashboard, require authentication, and
+ * delegate to the expected controller and service functions.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

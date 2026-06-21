@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../db/prisma.js";
+import { toDateOnlyString, decimalToNumber } from "../utils/formatters.js";
 import { ApiError } from "../errors/apiError.js";
 import type { AuthenticatedActor } from "../types/express.js";
 import type { MyRisksQuery } from "../validators/dashboard.schemas.js";
@@ -26,14 +27,6 @@ const dashboardRiskInclude = {
     }
   }
 } satisfies Prisma.RiskInclude;
-
-function toDateOnlyString(date: Date | null) {
-  return date ? date.toISOString().slice(0, 10) : null;
-}
-
-function decimalToNumber(value: Prisma.Decimal.Value) {
-  return new Prisma.Decimal(value).toNumber();
-}
 
 function mapDashboardRisk(
   risk: Prisma.RiskGetPayload<{ include: typeof dashboardRiskInclude }>

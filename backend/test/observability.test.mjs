@@ -1,3 +1,12 @@
+/**
+ * Observability middleware tests.
+ *
+ * Verifies that requestContextMiddleware attaches a request ID to each
+ * request, that the metrics registry tracks job durations via runObservedJob,
+ * and that getObservabilityContext exposes the correct request-scoped data
+ * across the middleware chain.
+ */
+
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";

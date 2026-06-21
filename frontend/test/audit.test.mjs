@@ -1,3 +1,19 @@
+/**
+ * Audit feature — static assertion tests
+ *
+ * Verifies the structure and correctness of the audit UI at the source level:
+ *
+ * - AuditEventTable renders server-provided action and summary fields without
+ *   hardcoded label overrides; the truncation regex places the ellipsis correctly
+ *   inside closing parentheses.
+ * - AuditEventDetail expands field changes and metadata.
+ * - AuditFilters provides all required filter inputs and covers all known audit
+ *   action codes, using the shared actionLabel formatter from auditFormatters.ts.
+ * - AuditLogPanel composes filters, table, pagination, and export correctly.
+ * - AuditPage and RegisterAuditPanel delegate to AuditLogPanel.
+ * - RiskDetailModal passes showIpAddress=false to AuditEventTable.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

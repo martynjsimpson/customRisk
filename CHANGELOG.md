@@ -15,6 +15,32 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-06-21
+
+### Added
+
+- **Playwright E2E test infrastructure in place (E2E-001)**
+  - Playwright is installed as a dev dependency with `playwright.config.ts` configured for Chromium, baseURL `http://localhost:5173`, and the `e2e/` test directory. An idempotent fixture seeder (`e2e/fixtures/seed.ts`) and matching teardown script (`e2e/fixtures/teardown.ts`) cover all named users, registers, risks, actions, and configuration flags required by E2E test cases. Per-role authentication state is cached via Playwright `storageState` (one session file per role). `e2e:seed` and `e2e:teardown` scripts are registered in root `package.json`. E2E tests are run manually by the test engineer — not in CI. ADR-0011 documents the decision and layer structure; `docs/operations/e2e-testing.md` covers local run instructions and the `data-testid` naming convention.
+
+### Changed
+
+- **Page files thinned — feature logic moved to dedicated components (MAINT-016)**
+  - `RegisterDetailPage.tsx`, `UsersPage.tsx`, and `MyRisksPage.tsx` were each carrying substantial inline JSX and logic. That logic has been extracted into `RegisterPermissionsPanel`, `UsersPanel`, and `MyRisksPanel` in `frontend/src/features/`. The page files are now thin composition layers. No change to routing, props, or observable UI behaviour.
+
+- **Shared backend utility functions deduplicated (MAINT-017)**
+  - `toDateOnlyString` and `decimalToNumber` were duplicated across four service files (`risks`, `reviews`, `dashboard`, `customFieldValues`). Both functions are now defined once in `backend/src/utils/formatters.ts` and imported by each service. Six unit tests added.
+
+- **Opening block comments added to all test files (MAINT-019)**
+  - The rolling item to add required opening block comments to test files is now complete. All 24 backend test files under `backend/test/` and all frontend static test files under `frontend/test/` have an opening block comment per the coding standard. No test behaviour changed.
+
+- **`myRisks.test.mjs` restructured with describe blocks (MAINT-020)**
+  - 17 tests previously separated by inline comments are now grouped into three `describe` blocks (`BUG-005`, `UI-005`, `UI-006`). No test logic or assertions changed.
+
+### Fixed
+
+- **Brittle `querySelector` selectors replaced in three test files (MAINT-021)**
+  - `passwordStrength.behavior.test.tsx`, `apiKeys.behavior.test.tsx`, and `riskDetailModal.behavior.test.tsx` used DOM `querySelector` calls that were fragile under component refactors. `data-testid` attributes have been added to the relevant elements in `ProfilePage.tsx` and `RiskDetailModal.tsx`; all three test files now use `getByTestId` or `data-testid` attribute selectors. Naming convention: kebab-case scoped to component and semantic role (e.g. `current-password-input`, `api-key-name-input`, `risk-detail-field-table`).
+
 ## [1.23.0] - 2026-06-21
 
 ### Fixed

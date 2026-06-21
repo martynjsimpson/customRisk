@@ -1,3 +1,11 @@
+/**
+ * Backend package.json quality script tests.
+ *
+ * Verifies that the backend package.json exposes the required scripts:
+ * typecheck, test, prisma:deploy, and prisma:seed. These scripts are
+ * required by CI and the deployment runbook.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

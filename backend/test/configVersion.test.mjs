@@ -1,3 +1,12 @@
+/**
+ * Config version (Phase 4 draft config) tests.
+ *
+ * Verifies that all Phase 4 route groups — config versions, config
+ * export/import, and register templates — are gated behind the
+ * requireFeature('draftConfig') middleware, and that recalculation
+ * endpoints and scoring formula validation are correctly wired.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

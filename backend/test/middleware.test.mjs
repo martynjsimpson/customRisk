@@ -1,3 +1,12 @@
+/**
+ * Middleware integration tests.
+ *
+ * Verifies the validateRequest middleware (Zod schema enforcement) and the
+ * errorHandler middleware (ApiError serialisation, status code mapping, and
+ * safe omission of stack traces from responses) by spinning up minimal
+ * Express apps.
+ */
+
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";

@@ -1,3 +1,11 @@
+/**
+ * Register management route and service tests.
+ *
+ * Verifies that register CRUD routes, permission-candidate endpoints, and
+ * register-level permission assignment are correctly wired through routes,
+ * controllers, and services per the permission model.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

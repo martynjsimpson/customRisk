@@ -214,6 +214,7 @@ export function ProfilePage() {
             <PasswordInput
               label="Current password"
               autoComplete="current-password"
+              data-testid="current-password-input"
               data-bwignore={null}
               data-lpignore={null}
               data-1p-ignore={null}
@@ -233,6 +234,7 @@ export function ProfilePage() {
                   <PasswordInput
                     label="New password"
                     autoComplete="new-password"
+                    data-testid="new-password-input"
                     data-bwignore={null}
                     data-lpignore={null}
                     data-1p-ignore={null}
@@ -256,6 +258,7 @@ export function ProfilePage() {
             <PasswordInput
               label="Confirm new password"
               autoComplete="new-password"
+              data-testid="confirm-password-input"
               data-bwignore={null}
               data-lpignore={null}
               data-1p-ignore={null}
@@ -352,7 +355,7 @@ export function ProfilePage() {
         <form onSubmit={generateForm.onSubmit(() => generateMutation.mutate())}>
           <Stack>
             <ApiErrorAlert error={generateMutation.error} fallback="Unable to create API key" />
-            <TextInput label="Name" required placeholder="e.g. CI pipeline" {...generateForm.getInputProps("name")} />
+            <TextInput label="Name" required placeholder="e.g. CI pipeline" data-testid="api-key-name-input" {...generateForm.getInputProps("name")} />
             <TextInput
               label="Expires at (optional)"
               type="date"

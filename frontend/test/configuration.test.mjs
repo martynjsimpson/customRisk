@@ -1,3 +1,15 @@
+/**
+ * Risk field configuration — static assertion tests
+ *
+ * Verifies that core risk fields are defined once in a shared constant
+ * (CORE_RISK_FIELDS) and that the configuration UI renders them correctly:
+ *
+ * - Core fields are exported from coreRiskFields.ts and consumed by
+ *   CustomFieldTable rather than being redefined per-component.
+ * - The configuration panel marks core fields as read-only and custom fields
+ *   as editable.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

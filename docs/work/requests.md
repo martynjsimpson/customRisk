@@ -16,13 +16,84 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-084
+Request ID: REQ-084
+Title: Migrate frontend static tests from .test.mjs to .test.ts
+Type: maintenance
+Status: refined
+Priority: low
+Summary: All 16 frontend static tests use .test.mjs extension; the coding standard says .test.ts. This is an architectural decision — requires Principal Architect review before any rename proceeds, as it may affect module resolution, toolchain config, or other tooling.
+Derived work items: MAINT-022
+Source: deferred from v1.23.0 (MAINT-013)
+
+### REQ-083
+Request ID: REQ-083
+Title: Fix brittle querySelector usage in three frontend test files
+Type: maintenance
+Status: refined
+Priority: medium
+Summary: passwordStrength.behavior.test.tsx, apiKeys.behavior.test.tsx, and riskDetailModal.behavior.test.tsx use brittle DOM selectors (querySelector). Fixing requires adding aria-label or data-testid attributes to the relevant source components, so this involves both the frontend developer and the test code.
+Derived work items: MAINT-021
+Source: deferred from v1.23.0 (MAINT-013)
+
+### REQ-082
+Request ID: REQ-082
+Title: Restructure myRisks.test.mjs to use describe blocks
+Type: maintenance
+Status: refined
+Priority: low
+Summary: 17 tests in myRisks.test.mjs are currently separated by inline comments rather than describe blocks, contrary to the coding standard. Restructuring requires intentional coordination as test name changes affect test run output and any CI reporting that references test names.
+Derived work items: MAINT-020
+Source: deferred from v1.23.0 (MAINT-013)
+
+### REQ-081
+Request ID: REQ-081
+Title: Add opening block comments to test files missing them
+Type: maintenance
+Status: refined
+Priority: low
+Summary: Approximately 38 test files (24 backend, 14 frontend static) are missing required opening block comments per the coding standard. Low risk, high volume — recommend adding them incrementally during upcoming releases rather than in a single dedicated pass.
+Derived work items: MAINT-019
+Source: deferred from v1.23.0 (MAINT-013)
+
+### REQ-080
+Request ID: REQ-080
+Title: Break up oversized backend service files
+Type: maintenance
+Status: refined
+Priority: medium
+Summary: risks.service.ts (1,248 lines) and configVersion.service.ts (1,186 lines) each carry multiple distinct responsibilities and warrant extraction into sub-services. Requires Principal Architect review before implementation to agree the correct split boundaries.
+Derived work items: MAINT-018
+Source: deferred from v1.23.0 (MAINT-012)
+
+### REQ-079
+Request ID: REQ-079
+Title: Extract duplicated utility functions to backend/src/utils/
+Type: maintenance
+Status: refined
+Priority: medium
+Summary: toDateOnlyString and decimalToNumber are duplicated across four service files (risks.service.ts, reviews.service.ts, dashboard.service.ts, customFieldValues.service.ts). Both should be extracted to a shared backend/src/utils/ module. Multi-file change across high-traffic services — warrants dedicated coverage and care.
+Derived work items: MAINT-017
+Source: deferred from v1.23.0 (MAINT-012)
+
+### REQ-078
+Request ID: REQ-078
+Title: Extract large page components into feature components
+Type: maintenance
+Status: refined
+Priority: medium
+Summary: RegisterDetailPage.tsx, UsersPage.tsx, and MyRisksPage.tsx each contain substantial logic and JSX (~80–300 lines each) that should be extracted into dedicated feature components. Each requires its own feature directory and careful extraction to avoid regressions.
+Derived work items: MAINT-016
+Source: deferred from v1.23.0 (MAINT-011)
+
 ### REQ-076
 Request ID: REQ-076
 Title: Implement production editions model for feature flag management
 Type: feature
 Status: needs-refinement
 Priority: medium
-Summary: Replace per-deployment arbitrary flag combinations with named, fixed editions (e.g. community, enterprise). Implementation is low-risk — adds editions.ts, updates featureFlags.ts, and logs the resolved edition at startup. Blocked on PM decision: which editions to define and which of the 10 current flags each edition enables.
+Summary: Replace per-deployment arbitrary flag combinations with named, fixed editions. PM direction: three editions — "free", "professional", and "enterprise". Implementation is low-risk once editions are defined — adds editions.ts, updates featureFlags.ts, and logs the resolved edition at startup. Blocked on PM decision: which of the 10 current flags each edition enables.
+Notes: PM has confirmed three editions (free, professional, enterprise) but the flag-to-edition mapping is not yet defined. Defer further refinement until PM is ready to define the mapping.
 Derived work items: MAINT-015
 Source: deferred from SPIKE-004
 
@@ -40,7 +111,8 @@ Source: deferred from SPIKE-003
 Request ID: REQ-074
 Title: Admin summary widget shows deleted registers
 Type: bug
-Status: refined
+Status: done
+Done in: v1.23.0
 Priority: high
 Summary: On the home page, the Admin summary widget (which shows all registers) is incorrectly including registers that have been marked as deleted. Deleted registers should be excluded from this view. This likely means the widget query is missing a filter on the deleted/soft-delete flag.
 Derived work items: BUG-057
@@ -50,7 +122,8 @@ Source: human request (direct)
 Request ID: REQ-073
 Title: Refresh seed scripts
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.23.0
 Priority: medium
 Summary: Seed data was last meaningfully updated 2026-05-18 (pre-v1.7.0). Gaps confirmed: no custom fields, no response action child records, no custom scoring formula, no completed reviews. Scoped refresh covers all four gaps.
 Derived work items: MAINT-014
@@ -60,7 +133,8 @@ Source: human request (direct)
 Request ID: REQ-072
 Title: Audit test coding standards
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.23.0
 Priority: medium
 Summary: Test Engineer assesses all test code against the standards from REQ-069/MAINT-010. Actionable findings; quick fixes in-release, larger items deferred to PM.
 Derived work items: MAINT-013
@@ -70,7 +144,8 @@ Source: human request (direct)
 Request ID: REQ-071
 Title: Audit backend coding standards
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.23.0
 Priority: medium
 Summary: Backend Developer assesses all backend code against the standards from REQ-069/MAINT-010. Actionable findings; quick fixes in-release, larger items deferred to PM.
 Derived work items: MAINT-012
@@ -80,7 +155,8 @@ Source: human request (direct)
 Request ID: REQ-070
 Title: Audit frontend coding standards
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.23.0
 Priority: medium
 Summary: Frontend Developer assesses all frontend code against the standards from REQ-069/MAINT-010. Actionable findings; quick fixes in-release, larger items deferred to PM.
 Derived work items: MAINT-011
