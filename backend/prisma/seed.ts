@@ -46,14 +46,27 @@ const demoRegisters = [
     description: "Demo register for information security and resilience acceptance testing.",
     riskIdPrefix: "ISEC",
     defaultReviewFrequencyMonths: 12,
-    allowViewerExport: true
+    allowViewerExport: true,
+    responseActionMode: "SIMPLE" as const,
+    scoringFormula: ""
   },
   {
     name: "Operational Risk Register",
     description: "Demo register covering supplier, process, staffing, and continuity risks.",
     riskIdPrefix: null,
     defaultReviewFrequencyMonths: 6,
-    allowViewerExport: false
+    allowViewerExport: false,
+    responseActionMode: "CHILD_RECORDS" as const,
+    scoringFormula: ""
+  },
+  {
+    name: "Project Risk Register",
+    description: "Demo register for project delivery risks with custom scoring and child-record response actions.",
+    riskIdPrefix: "PRJ",
+    defaultReviewFrequencyMonths: 3,
+    allowViewerExport: false,
+    responseActionMode: "CHILD_RECORDS" as const,
+    scoringFormula: "{likelihood} * {impact} * 2"
   }
 ] as const;
 
@@ -265,6 +278,45 @@ const demoRisks = [
     responseAction: "Confirm policy limits remain aligned to the current facilities exposure.",
     createdDaysAgo: 250,
     nextReviewDaysFromNow: 25
+  },
+  {
+    registerName: "Project Risk Register",
+    title: "Key delivery milestone at risk from scope changes",
+    description: "Late scope additions from stakeholders are threatening the agreed delivery date.",
+    state: "OPEN",
+    ownerEmail: "bob@example.com",
+    likelihoodName: "Likely",
+    impactName: "Major",
+    responseStrategyName: "Mitigate",
+    responseAction: "Implement change control freeze and escalate outstanding scope requests.",
+    createdDaysAgo: 30,
+    nextReviewDaysFromNow: 7
+  },
+  {
+    registerName: "Project Risk Register",
+    title: "Third-party integration not confirmed for go-live",
+    description: "A required third-party integration has not been signed off and may not be ready at go-live.",
+    state: "OPEN",
+    ownerEmail: "bob@example.com",
+    likelihoodName: "Possible",
+    impactName: "Severe",
+    responseStrategyName: "Mitigate",
+    responseAction: "Escalate to vendor account manager and agree a contingency fallback plan.",
+    createdDaysAgo: 45,
+    nextReviewDaysFromNow: 3
+  },
+  {
+    registerName: "Project Risk Register",
+    title: "Resource gap in testing phase",
+    description: "Planned test resources have been reallocated to another programme leaving a coverage gap.",
+    state: "OPEN",
+    ownerEmail: "bob@example.com",
+    likelihoodName: "Almost Certain",
+    impactName: "Moderate",
+    responseStrategyName: "Accept",
+    responseAction: "Document the reduced coverage, obtain sign-off from the project sponsor.",
+    createdDaysAgo: 10,
+    nextReviewDaysFromNow: 14
   }
 ] as const satisfies ReadonlyArray<{
   registerName: string;
@@ -503,6 +555,8 @@ async function upsertDemoRegisters(admin: { id: string; name: string; email: str
         riskIdZeroPaddingWidth: 4,
         defaultReviewFrequencyMonths: demoRegister.defaultReviewFrequencyMonths,
         allowViewerExport: demoRegister.allowViewerExport,
+        responseActionMode: demoRegister.responseActionMode,
+        scoringFormula: demoRegister.scoringFormula,
         createdByUserId: admin.id,
         updatedByUserId: admin.id
       },
@@ -513,6 +567,8 @@ async function upsertDemoRegisters(admin: { id: string; name: string; email: str
         riskIdZeroPaddingWidth: 4,
         defaultReviewFrequencyMonths: demoRegister.defaultReviewFrequencyMonths,
         allowViewerExport: demoRegister.allowViewerExport,
+        responseActionMode: demoRegister.responseActionMode,
+        scoringFormula: demoRegister.scoringFormula,
         updatedByUserId: admin.id
       }
     });
@@ -877,6 +933,308 @@ async function upsertDemoTemplates(admin: { id: string; name: string; email: str
   }
 }
 
+async function upsertIsecCustomFields(admin: { id: string }) {
+  const register = await prisma.register.findUniqueOrThrow({
+    where: { name: "Information Security Risk Register" },
+    select: { id: true }
+  });
+
+  // Numeric field: "Risk Exposure Score" — needed as CALCULATED dependency
+  const numberField = await prisma.customFieldDefinition.upsert({
+    where: { registerId_fieldName: { registerId: register.id, fieldName: "Risk Exposure Score" } },
+    create: {
+      registerId: register.id,
+      fieldName: "Risk Exposure Score",
+      fieldType: "NUMBER",
+      helpText: "Enter a numeric exposure estimate (0–100) for this risk.",
+      isRequired: false,
+      validationMode: "WARN",
+      displayOrder: 1,
+      visibleToRoles: ["REGISTER_ADMIN", "REGISTER_EDITOR"],
+      visibleToRiskResponseOwners: false,
+      createdByUserId: admin.id,
+      updatedByUserId: admin.id
+    },
+    update: {
+      helpText: "Enter a numeric exposure estimate (0–100) for this risk.",
+      validationMode: "WARN",
+      visibleToRoles: ["REGISTER_ADMIN", "REGISTER_EDITOR"],
+      visibleToRiskResponseOwners: false,
+      updatedByUserId: admin.id
+    },
+    select: { id: true }
+  });
+
+  // DROPDOWN field: "Control Effectiveness"
+  const dropdownField = await prisma.customFieldDefinition.upsert({
+    where: { registerId_fieldName: { registerId: register.id, fieldName: "Control Effectiveness" } },
+    create: {
+      registerId: register.id,
+      fieldName: "Control Effectiveness",
+      fieldType: "DROPDOWN",
+      helpText: "Rate the effectiveness of controls in place for this risk.",
+      isRequired: false,
+      validationMode: "ALLOW",
+      displayOrder: 2,
+      visibleToRoles: [],
+      visibleToRiskResponseOwners: true,
+      createdByUserId: admin.id,
+      updatedByUserId: admin.id
+    },
+    update: {
+      helpText: "Rate the effectiveness of controls in place for this risk.",
+      updatedByUserId: admin.id
+    },
+    select: { id: true }
+  });
+
+  const dropdownOptions = ["Strong", "Adequate", "Weak", "None"] as const;
+  const optionRecords: Array<{ label: string; id: string }> = [];
+  for (let i = 0; i < dropdownOptions.length; i++) {
+    const label = dropdownOptions[i]!;
+    const opt = await prisma.customFieldOption.upsert({
+      where: { customFieldDefinitionId_label: { customFieldDefinitionId: dropdownField.id, label } },
+      create: { customFieldDefinitionId: dropdownField.id, label, displayOrder: i + 1 },
+      update: { displayOrder: i + 1 },
+      select: { id: true, label: true }
+    });
+    optionRecords.push(opt);
+  }
+
+  // CALCULATED field: "Weighted Exposure" = numberField * 1.5
+  await prisma.customFieldDefinition.upsert({
+    where: { registerId_fieldName: { registerId: register.id, fieldName: "Weighted Exposure" } },
+    create: {
+      registerId: register.id,
+      fieldName: "Weighted Exposure",
+      fieldType: "CALCULATED",
+      helpText: "Automatically calculated as Risk Exposure Score × 1.5.",
+      isRequired: false,
+      validationMode: "ALLOW",
+      displayOrder: 3,
+      formula: `{field:${numberField.id}} * 1.5`,
+      formulaDependencies: [numberField.id],
+      visibleToRoles: [],
+      visibleToRiskResponseOwners: true,
+      createdByUserId: admin.id,
+      updatedByUserId: admin.id
+    },
+    update: {
+      formula: `{field:${numberField.id}} * 1.5`,
+      formulaDependencies: [numberField.id],
+      updatedByUserId: admin.id
+    },
+    select: { id: true }
+  });
+
+  return { registerId: register.id, numberFieldId: numberField.id, dropdownField: dropdownField.id, optionRecords };
+}
+
+async function upsertIsecCustomFieldValues(
+  admin: { id: string },
+  fieldData: Awaited<ReturnType<typeof upsertIsecCustomFields>>
+) {
+  const { registerId, numberFieldId, dropdownField, optionRecords } = fieldData;
+
+  // Seed values on the first two OPEN ISEC risks
+  const risks = await prisma.risk.findMany({
+    where: { registerId, state: "OPEN" },
+    select: { id: true },
+    orderBy: { riskSequence: "asc" },
+    take: 2
+  });
+
+  const adequateOption = optionRecords.find((o) => o.label === "Adequate");
+  const weakOption = optionRecords.find((o) => o.label === "Weak");
+
+  for (let i = 0; i < risks.length; i++) {
+    const risk = risks[i];
+    if (!risk) continue;
+    const exposureScore = i === 0 ? 80 : 40;
+    const option = i === 0 ? adequateOption : weakOption;
+
+    await prisma.riskCustomFieldValue.upsert({
+      where: { riskId_customFieldDefinitionId: { riskId: risk.id, customFieldDefinitionId: numberFieldId } },
+      create: {
+        riskId: risk.id,
+        registerId,
+        customFieldDefinitionId: numberFieldId,
+        numberValue: new Prisma.Decimal(exposureScore)
+      },
+      update: { numberValue: new Prisma.Decimal(exposureScore) }
+    });
+
+    if (option) {
+      await prisma.riskCustomFieldValue.upsert({
+        where: { riskId_customFieldDefinitionId: { riskId: risk.id, customFieldDefinitionId: dropdownField } },
+        create: {
+          riskId: risk.id,
+          registerId,
+          customFieldDefinitionId: dropdownField,
+          dropdownOptionId: option.id
+        },
+        update: { dropdownOptionId: option.id }
+      });
+    }
+  }
+}
+
+async function upsertDemoReviews(admin: { id: string; name: string; email: string }) {
+  const register = await prisma.register.findUniqueOrThrow({
+    where: { name: "Information Security Risk Register" },
+    select: { id: true, defaultReviewFrequencyMonths: true, reviewAttestationText: true }
+  });
+
+  // Pick the first two OPEN risks in the ISEC register to review
+  const risks = await prisma.risk.findMany({
+    where: { registerId: register.id, state: "OPEN" },
+    select: { id: true, displayRiskId: true },
+    orderBy: { riskSequence: "asc" },
+    take: 2
+  });
+
+  const reviewDatesAgo = [90, 30]; // days ago
+
+  for (let i = 0; i < risks.length; i++) {
+    const risk = risks[i];
+    if (!risk) continue;
+    const daysAgo = reviewDatesAgo[i] ?? 30;
+    const reviewedAt = todayPlusDays(-daysAgo);
+    const calculatedNextReviewDate = todayPlusDays(-daysAgo + register.defaultReviewFrequencyMonths * 30);
+
+    const existing = await prisma.riskReview.findFirst({
+      where: { riskId: risk.id, reviewedByUserId: admin.id },
+      select: { id: true }
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.riskReview.create({
+        data: {
+          riskId: risk.id,
+          registerId: register.id,
+          reviewedByUserId: admin.id,
+          reviewedAt,
+          comment: i === 0
+            ? "Reviewed and confirmed details remain accurate. No changes required at this time."
+            : "Reviewed. Controls noted and next review date confirmed.",
+          attestationText: register.reviewAttestationText,
+          calculatedNextReviewDate
+        }
+      });
+
+      await tx.risk.update({
+        where: { id: risk.id },
+        data: {
+          lastReviewedAt: reviewedAt,
+          nextReviewDate: calculatedNextReviewDate,
+          systemUpdatedByUserId: admin.id
+        }
+      });
+
+      await tx.auditEvent.create({
+        data: {
+          actorUserId: admin.id,
+          actorDisplayName: admin.name,
+          actorEmail: admin.email,
+          action: "RISK_REVIEWED",
+          objectType: "RISK",
+          objectId: risk.id,
+          objectDisplayName: risk.displayRiskId,
+          scopeType: "RISK",
+          registerId: register.id,
+          riskId: risk.id,
+          displayRiskId: risk.displayRiskId,
+          summary: "Risk reviewed"
+        }
+      });
+    });
+  }
+}
+
+async function upsertOperationalChildRecordActions(admin: { id: string; name: string; email: string }, users: Map<string, { id: string; email: string; name: string }>) {
+  const register = await prisma.register.findUniqueOrThrow({
+    where: { name: "Operational Risk Register" },
+    select: { id: true }
+  });
+
+  const risks = await prisma.risk.findMany({
+    where: { registerId: register.id, state: "OPEN" },
+    select: { id: true, displayRiskId: true },
+    orderBy: { riskSequence: "asc" },
+    take: 3
+  });
+
+  const bob = users.get("bob@example.com");
+
+  const actionsSpec = [
+    {
+      response: "Contact supplier and obtain written confirmation of recovery-time commitments.",
+      status: "IN_PROGRESS" as const,
+      ownerUserId: bob?.id ?? null
+    },
+    {
+      response: "Schedule annual continuity exercise with supplier within next 60 days.",
+      status: "PLANNED" as const,
+      ownerUserId: null
+    },
+    {
+      response: "Confirm backup supplier onboarding is complete and documented.",
+      status: "IMPLEMENTED" as const,
+      ownerUserId: bob?.id ?? null
+    }
+  ];
+
+  for (let i = 0; i < risks.length; i++) {
+    const risk = risks[i];
+    const spec = actionsSpec[i];
+    if (!risk || !spec) continue;
+
+    const existing = await prisma.riskResponseAction.findFirst({
+      where: { riskId: risk.id },
+      select: { id: true }
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    const ownerPersonRef = spec.ownerUserId && bob
+      ? await prisma.personReference.upsert({
+          where: { email: bob.email.toLowerCase() },
+          create: { email: bob.email.toLowerCase(), userId: bob.id, displayName: bob.name, resolvedAt: new Date() },
+          update: { userId: bob.id, displayName: bob.name, resolvedAt: new Date() },
+          select: { id: true }
+        })
+      : null;
+
+    const action = await prisma.responseAction.create({
+      data: {
+        response: spec.response,
+        status: spec.status,
+        ownerUserId: spec.ownerUserId ?? undefined,
+        ownerPersonId: ownerPersonRef?.id ?? undefined,
+        createdByUserId: admin.id,
+        updatedByUserId: admin.id
+      },
+      select: { id: true }
+    });
+
+    await prisma.riskResponseAction.create({
+      data: {
+        riskId: risk.id,
+        registerId: register.id,
+        responseActionId: action.id,
+        displayOrder: 1,
+        createdByUserId: admin.id
+      }
+    });
+  }
+}
+
 async function main() {
   const email = optional("SEED_ADMIN_EMAIL", "admin@customrisk.local").trim().toLowerCase();
   const name = optional("SEED_ADMIN_NAME", "System Admin").trim();
@@ -932,8 +1290,19 @@ async function main() {
     await upsertDemoRegisters(admin, users);
     await upsertDemoRisks(admin, users);
     await upsertDemoTemplates(admin);
+    const isecFieldData = await upsertIsecCustomFields(admin);
+    await upsertIsecCustomFieldValues(admin, isecFieldData);
+    await upsertDemoReviews(admin);
+    await upsertOperationalChildRecordActions(admin, users);
 
-    console.log("Demo data ready: 2 registers, 3 demo users, 16 representative risks, 2 register templates");
+    console.log(
+      "Demo data ready: 3 registers (incl. child-record and custom-formula registers), " +
+      "3 demo users, 19 representative risks, 2 register templates, " +
+      "3 custom fields on ISEC register (DROPDOWN, NUMBER with WARN, CALCULATED), " +
+      "custom field values seeded on 2 ISEC risks, " +
+      "2 completed reviews on ISEC risks, " +
+      "3 child-record response actions on Operational risks (mix of statuses, incl. Risk Response Owner)"
+    );
     if (!process.env.SEED_DEMO_USER_PASSWORD) {
       console.log("Demo users were created with random passwords; set SEED_DEMO_USER_PASSWORD to make them login-capable.");
     }
