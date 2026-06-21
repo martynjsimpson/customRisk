@@ -36,6 +36,7 @@ import type { RegisterRecord } from "../../api/registers.api";
 import { ApiErrorAlert, getApiErrorCode, getApiErrorWarnings } from "../../components/ApiErrorAlert";
 import { PersonPicker } from "../../components/PersonPicker";
 import { CORE_RISK_FIELDS, type CoreRiskFieldId } from "./coreRiskFields";
+import { useFeatureFlags } from "../../hooks/useFeatureFlags";
 
 interface RiskFormModalProps {
   register: RegisterRecord;
@@ -250,13 +251,15 @@ function renderCoreField({
   form,
   canManage,
   users,
-  formConfig
+  formConfig,
+  childActionsEnabled
 }: {
   fieldId: CoreRiskFieldId;
   form: any;
   canManage: boolean;
   users: Array<{ id: string; name: string; email: string }>;
   formConfig: RiskFormConfig;
+  childActionsEnabled: boolean;
 }) {
   switch (fieldId) {
     case "title":
@@ -328,8 +331,10 @@ function renderCoreField({
       );
     case "responseAction":
       // In child records mode the response action is managed as child records,
-      // not as a free-text field on the risk form.
-      if (formConfig.register.responseActionMode === "CHILD_RECORDS") {
+      // not as a free-text field on the risk form. Only suppress the text area
+      // when the childActions feature flag is enabled — if the flag is off, always
+      // show the text area regardless of the register's stored responseActionMode.
+      if (childActionsEnabled && formConfig.register.responseActionMode === "CHILD_RECORDS") {
         return null;
       }
       return <Textarea key={fieldId} label="Response action" minRows={2} {...form.getInputProps("responseAction")} />;
@@ -487,6 +492,7 @@ export function RiskFormModal({
   onClose,
   onSuccess
 }: RiskFormModalProps) {
+  const flags = useFeatureFlags();
   const [customValues, setCustomValues] = useState<Record<string, unknown>>({});
   const [pendingWarnings, setPendingWarnings] = useState<FieldWarning[]>([]);
   const defaultState = formConfig.register.defaultNewRiskState ?? "DRAFT";
@@ -705,7 +711,7 @@ export function RiskFormModal({
               <Stack>
                 {orderedRiskFormFields.map((field) =>
                   field.kind === "core" ? (
-                    renderCoreField({ fieldId: field.id, form, canManage, users: formConfig.users, formConfig })
+                    renderCoreField({ fieldId: field.id, form, canManage, users: formConfig.users, formConfig, childActionsEnabled: flags.childActions })
                   ) : (
                     <CustomFieldInput
                       key={field.id}

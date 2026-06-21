@@ -77,7 +77,7 @@ vi.mock("../src/hooks/usePermissions", () => ({
 }));
 
 vi.mock("../src/hooks/useFeatureFlags", () => ({
-  useFeatureFlags: () => ({ draftConfig: true }),
+  useFeatureFlags: () => ({ draftConfig: true, childActions: true }),
 }));
 
 vi.mock("../src/components/ApiErrorAlert", () => ({

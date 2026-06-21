@@ -63,6 +63,10 @@ vi.mock("../src/features/audit/AuditEventTable", () => ({
   AuditEventTable: () => null,
 }));
 
+vi.mock("../src/hooks/useFeatureFlags", () => ({
+  useFeatureFlags: () => ({ childActions: true }),
+}));
+
 vi.mock("../src/components/PersonPicker", () => ({
   PersonPicker: ({
     label,
