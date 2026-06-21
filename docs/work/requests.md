@@ -16,6 +16,36 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-076
+Request ID: REQ-076
+Title: Implement production editions model for feature flag management
+Type: feature
+Status: needs-refinement
+Priority: medium
+Summary: Replace per-deployment arbitrary flag combinations with named, fixed editions (e.g. community, enterprise). Implementation is low-risk — adds editions.ts, updates featureFlags.ts, and logs the resolved edition at startup. Blocked on PM decision: which editions to define and which of the 10 current flags each edition enables.
+Derived work items: MAINT-015
+Source: deferred from SPIKE-004
+
+### REQ-075
+Request ID: REQ-075
+Title: Implement Playwright E2E permission test suite
+Type: feature
+Status: refined
+Priority: medium
+Summary: Adopt Playwright as a third test layer (E2E) to cover real browser sessions, live backend authorisation, and cross-role permission isolation — gaps that Layers 1 and 2 cannot exercise. Implementation follows the 6-step plan in docs/spikes/SPIKE-003.md. Two work items: E2E-001 (infrastructure) and E2E-002 (core permission test suite).
+Derived work items: E2E-001, E2E-002
+Source: deferred from SPIKE-003
+
+### REQ-074
+Request ID: REQ-074
+Title: Admin summary widget shows deleted registers
+Type: bug
+Status: refined
+Priority: high
+Summary: On the home page, the Admin summary widget (which shows all registers) is incorrectly including registers that have been marked as deleted. Deleted registers should be excluded from this view. This likely means the widget query is missing a filter on the deleted/soft-delete flag.
+Derived work items: BUG-057
+Source: human request (direct)
+
 ### REQ-073
 Request ID: REQ-073
 Title: Refresh seed scripts
@@ -94,7 +124,8 @@ Source: human request (direct)
 Request ID: REQ-066
 Title: Investigate draft config application
 Type: bug
-Status: refined
+Status: done
+Done in: v1.22.0
 Priority: high
 Summary: Each config change sends a PATCH to /draft (correct) but then a PATCH to <registerId> appears to send all local page settings, potentially overriding the server-side draft. PA must audit all config pages and fix any paths that bypass the draft mechanism.
 Derived work items: BUG-056
@@ -114,7 +145,8 @@ Source: human request (direct)
 ### REQ-064
 Title: Spike production editions model
 Type: feature
-Status: refined
+Status: done
+Done in: v1.22.0
 Priority: medium
 Summary: PA spike on fixed production editions vs. per-deployment flag drift. Must address short-term BUG-055 context and long-term tenant model relationship. Output at docs/spikes/SPIKE-004.md.
 Derived work items: SPIKE-004
@@ -146,7 +178,8 @@ Source: human request (direct)
 Request ID: REQ-061
 Title: Improve production backend logging
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.22.0
 Priority: high
 Summary: Production deployments emit insufficient log information to debug live issues. PA defines the logging structure and approach first; backend then implements configurable structured logging (LOG_LEVEL in .env) and operational docs are written to docs/operations/observability.md.
 Derived work items: MAINT-008
@@ -821,6 +854,16 @@ Derived work items: QOL-001
 Source: human request (direct)
 
 ## Deferred requests
+
+### REQ-077
+Request ID: REQ-077
+Title: Implement internationalisation support
+Type: feature
+Status: deferred
+Priority: low
+Summary: Add multi-language support across the full product surface. Architecture assessed in docs/spikes/SPIKE-005.md. Recommended library: react-i18next. Five-phase approach: (1) string externalisation, (2) date/number formatting via Day.js, (3) help content locale namespacing, (4) Zod validation message localisation, (5) audit description schema change if required. Spike explicitly recommends not starting without a confirmed product need for multi-language support.
+Derived work items: I18N-001
+Source: deferred from SPIKE-005
 
 ### REQ-009
 Request ID: REQ-009  
