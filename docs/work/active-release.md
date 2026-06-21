@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.22.0
 
 ## Release goal
@@ -13,7 +13,8 @@ Improve production reliability and observability: fix the config draft integrity
 Source: REQ-066
 Capability: config-lifecycle-templates
 Suggested agents: principal-architect, backend-developer, frontend-developer, test-engineer
-Status: proposed
+Status: done
+done_in: v1.22.0
 
 **Problem:** Each config change correctly sends a PATCH to /draft, but a subsequent PATCH to `<registerId>` appears to send all settings currently on the local page, which would override the server-side draft with local page state and undermine the draft mechanism. Users may unknowingly lose draft changes or have their published config reflect stale local form state rather than intentional draft edits.
 
@@ -33,7 +34,8 @@ Status: proposed
 Source: REQ-061
 Capability: build-toolchain
 Suggested agents: principal-architect, backend-developer, devops-engineer
-Status: proposed
+Status: done
+done_in: v1.22.0
 
 **Problem:** Production deployments emit insufficient log information to diagnose live issues. There is no structured log format and no way to control verbosity without code changes.
 
@@ -53,7 +55,8 @@ Source: REQ-064
 Capability: architecture
 Suggested agents: principal-architect
 Depends on: BUG-055 (done in v1.21.0 — provides real-world context for the spike)
-Status: proposed
+Status: done
+done_in: v1.22.0
 
 **Problem:** Production deployments currently rely on arbitrary per-deployment `.env` flag values, creating drift and making flag behaviour unpredictable. A production editions model — fixed, named editions with defined feature sets — would give operators a clean, maintainable way to control features. The approach must also consider how editions might later attach to an org/tenant model.
 
@@ -89,9 +92,9 @@ No open product or UX decisions. All architectural decisions are PA calls in-rel
 
 ## Test / sign-off
 
-- [ ] BUG-056: PA audit complete and all identified incorrect PATCH paths fixed; publishing a draft produces the expected config state; tests cover the draft-only save path for each fixed section.
-- [ ] MAINT-008: Structured logging working in production Docker Compose with LOG_LEVEL controlling verbosity; docs/operations/observability.md created and accurate.
-- [ ] SPIKE-004: Scoping document exists at docs/spikes/SPIKE-004.md covering editions definition, deployment selection, local dev override, migration path, and tenant model consideration.
+- [x] BUG-056: PA audit complete and all identified incorrect PATCH paths fixed; publishing a draft produces the expected config state; tests cover the draft-only save path for each fixed section.
+- [x] MAINT-008: Structured logging working in production Docker Compose with LOG_LEVEL controlling verbosity; docs/operations/observability.md created and accurate.
+- [x] SPIKE-004: Scoping document exists at docs/spikes/SPIKE-004.md covering editions definition, deployment selection, local dev override, migration path, and tenant model consideration.
 
 ## Blockers
 
