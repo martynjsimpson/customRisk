@@ -151,6 +151,12 @@ No open product or UX decisions.
 
 None — all work items complete and signed off by Test Engineer.
 
+**Verification feedback [1]:** BUG-054 — /registers/<registerId> fails with "Not found" error when FEATURE_DRAFT_CONFIG=false, FEATURE_USER_PREFERENCES=false, FEATURE_CHILD_ACTIONS=false, FEATURE_SAVED_VIEWS=false, FEATURE_API_KEYS=false. Register detail page does not load under this all-flags-disabled combination.
+**Status:** investigating
+
+**Verification feedback [2]:** MAINT-007 — on-demand workflow does not appear in GitHub Actions UI yet. User correctly identifies this is likely because workflow_dispatch workflows only appear on the default branch. Not confirmed as a defect — noting for investigation.
+**Status:** investigating
+
 ---
 
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
