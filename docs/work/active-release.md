@@ -152,7 +152,14 @@ No open product or UX decisions.
 None — all work items complete and signed off by Test Engineer.
 
 **Verification feedback [1]:** BUG-054 — /registers/<registerId> fails with "Not found" error when FEATURE_DRAFT_CONFIG=false, FEATURE_USER_PREFERENCES=false, FEATURE_CHILD_ACTIONS=false, FEATURE_SAVED_VIEWS=false, FEATURE_API_KEYS=false. Register detail page does not load under this all-flags-disabled combination.
-**Status:** investigating
+**Investigation:** Root cause is in `backend/src/routes/registers.routes.ts`. Feature-flagged sub-routers are mounted via `router.use("/", requireFeature(...), subRouter)`. Because "/" matches all requests, `requireFeature` intercepts and returns 404 for every request when the flag is off — including `GET /:registerId` which is not flag-gated. The fix is to not use `requireFeature` as a `router.use("/", ...)` guard; instead the flag check must only gate paths that belong to each sub-router.
+**Ruling:** in scope — `GET /:registerId` is not flag-gated but is unreachable when any flag-gated sub-router fires first.
+**Fix:** Backend developer to restructure route mounting so `requireFeature` is applied only to the specific path prefixes belonging to each sub-router, not to "/".
+
+**Verification feedback [2]:** MAINT-007 — on-demand workflow does not appear in GitHub Actions UI yet.
+**Investigation:** Expected behaviour — GitHub only shows `workflow_dispatch` workflows in the Actions UI when the workflow file exists on the repository's default branch (main). The workflow is on `release/v1.21.0` and will appear after the PR is merged.
+**Ruling:** deferred (not a defect) — workflow will be testable after merge to main.
+**Fix:** none.
 
 **Verification feedback [2]:** MAINT-007 — on-demand workflow does not appear in GitHub Actions UI yet. User correctly identifies this is likely because workflow_dispatch workflows only appear on the default branch. Not confirmed as a defect — noting for investigation.
 **Status:** investigating
