@@ -114,6 +114,10 @@ A custom hook belongs in `frontend/src/hooks/` when it encapsulates logic that i
 
 Do not reach into `useAuth()` directly from feature components to read permissions — use `usePermissions()` instead.
 
+### Table Row Action Buttons
+
+Action buttons rendered inside table rows (e.g. Edit, Delete, View) must use `variant="light"` and `size="xs"`. Do not use `variant="subtle"` for these buttons.
+
 ### Avoiding Duplicate UI Patterns
 
 Before building a new modal, check whether the pattern used in `RiskFormModal` or `ResponseActionModal` already handles the create/edit/loading/error cycle. Prefer extending the existing pattern over introducing a new one.

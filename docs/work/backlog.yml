@@ -2391,7 +2391,9 @@ items:
   type: spike
   capability: architecture
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.22.0
   priority: medium
   confidence: low
   summary: Production deployments currently rely on arbitrary per-deployment .env flag
@@ -2534,6 +2536,118 @@ items:
       It should exist before Playwright implementation begins.
     - Roles to cover at minimum — System Admin, Register Admin, Register Editor,
       Register Viewer, Risk Owner, Risk Response Owner (new in v1.19.0).
+- id: E2E-001
+  source_request: REQ-075
+  title: Set up Playwright E2E test infrastructure
+  type: feature
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: Establish the Playwright E2E test layer as documented in docs/spikes/SPIKE-003.md
+    Steps 1–4. Covers ADR-0008 amendment, Playwright installation and baseline config,
+    E2E fixture seed and teardown scripts, and per-role authentication helpers using
+    storageState. No permission test cases are written in this item — this is purely
+    infrastructure and foundation for E2E-002.
+  acceptance:
+  - An amendment to ADR-0008 formally adds Layer 3 (Playwright) to the test strategy,
+    documents the e2e/ directory as the home for Playwright tests and fixtures, records
+    the CI gating policy (separate e2e job, needs quality, Chromium-only in CI), and notes
+    the decoupled fixture seeding approach. Amendment is reviewed before any implementation
+    proceeds.
+  - Playwright is installed as a dev dependency. playwright.config.ts is committed with
+    base URL, test directory, and reporter configuration.
+  - e2e/fixtures/seed.ts and e2e/fixtures/teardown.ts are implemented covering all named
+    users, registers, risks, actions, and configuration flags from the fixture design in
+    SPIKE-003.md Section 4. Seed is idempotent; teardown is clean.
+  - e2e/auth.setup.ts is implemented using storageState to log in once per named role and
+    cache the session. One storageState file is produced per role.
+  - The e2e CI job is added to ci.yml gated on quality, Chromium-only, with artifact upload
+    on failure. The job passes with no test files present.
+  - e2e:seed and e2e:teardown scripts are added to the root package.json.
+  - docs/operations/e2e-testing.md is created covering: prerequisites and environment setup
+    (required env vars including E2E_TEST_PASSWORD, how to obtain or set them locally);
+    how to run the seed and teardown scripts; how to run the full Playwright suite locally;
+    how to run a single test file or a specific test; how to view the Playwright HTML report
+    after a local run; and how the e2e CI job is triggered and where to find the report
+    artifact on failure.
+  remaining:
+  - PA to produce the ADR-0008 amendment as Step 1 before any other work begins.
+  - devops-engineer to implement the ci.yml e2e job per the structure in SPIKE-003.md Section 5.2.
+  - test-engineer to implement seed.ts, teardown.ts, and auth.setup.ts per SPIKE-003.md Sections 4.2–4.4.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - test-engineer
+  - devops-engineer
+  evidence:
+    code:
+    - docs/decisions/ADR-0008-frontend-runtime-test-stack.md
+    - .github/workflows/ci.yml
+    - backend/prisma/seed.ts
+    tests:
+    - backend/test/
+    - frontend/test/
+    docs:
+    - docs/spikes/SPIKE-003.md
+    - docs/engineering/permission-test-plan.md
+    notes:
+    - Full implementation plan in docs/spikes/SPIKE-003.md. ADR-0008 amendment must be
+      approved before Playwright is installed or any test is written (Step 1 per the spike).
+    - E2E fixtures must be decoupled from backend/prisma/seed.ts — separate seed and teardown
+      scripts under e2e/fixtures/.
+    - Named fixture users and data are specified in SPIKE-003.md Section 4.2 and 4.3.
+    - CI job structure is specified in SPIKE-003.md Section 5.2.
+- id: E2E-002
+  source_request: REQ-075
+  title: Implement core Playwright E2E permission test suite
+  type: feature
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: Write the core permission test suite in Playwright covering the high-priority
+    sections of docs/engineering/permission-test-plan.md (QA-001), and complete the selector
+    stability pass that adds data-testid attributes to permission-sensitive frontend
+    components. Follows Steps 5–6 of the implementation plan in docs/spikes/SPIKE-003.md.
+  acceptance:
+  - Playwright tests cover QA-001 Sections 19 (Unauthenticated Access), 1 (Register CRUD),
+    2 (Risk CRUD), 12 (System Audit), and 13 (User Management) at minimum.
+  - Tests use the cached storageState sessions from E2E-001 — no login repetition per test.
+  - All selectors in the test suite use data-testid attributes or ARIA roles, not CSS class
+    names or text strings.
+  - data-testid attributes are added to all frontend components involved in permission-sensitive
+    UI, coordinated between test-engineer and frontend-developer.
+  - Tests pass reliably in CI (Chromium) with no intermittent failures attributable to
+    missing explicit waits.
+  - Coverage of QA-001 Sections 3 (Response Action CRUD), 5 (Custom Field Visibility), and
+    9 (Export Controls) is included if scope allows; otherwise deferred to a follow-on item.
+  remaining:
+  - test-engineer to implement test files for QA-001 high-priority sections (19, 1, 2, 12, 13).
+  - frontend-developer to add data-testid attributes to relevant components as test-engineer
+    identifies the selector targets.
+  - Extend to medium-priority sections (3, 5, 9, 7, 8) if capacity permits.
+  dependencies:
+  - E2E-001
+  suggested_agents:
+  - test-engineer
+  - frontend-developer
+  evidence:
+    code:
+    - frontend/src/
+    tests: []
+    docs:
+    - docs/spikes/SPIKE-003.md
+    - docs/engineering/permission-test-plan.md
+    notes:
+    - QA-001 (permission-test-plan.md) is the authoritative source for what the suite automates.
+    - Priority order for test authoring per SPIKE-003.md Section 5 — high: 19, 1, 2, 12, 13;
+      medium: 3, 5, 9, 7, 8; lower: remaining sections.
+    - Selector stability pass (Step 6) must be completed before the suite is considered
+      production-quality. data-testid attributes preferred; ARIA roles acceptable where
+      data-testid is impractical.
 - id: MAINT-014
   source_request: REQ-073
   title: Refresh seed scripts to cover features shipped since v1.7.0
@@ -2600,6 +2714,63 @@ items:
     - responseActionMode lives on the register config; the developer should confirm
       whether it is set directly on the register or through a config version before
       implementing.
+- id: MAINT-015
+  source_request: REQ-076
+  title: Implement production editions model for feature flag management
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: needs-refinement
+  priority: medium
+  confidence: high
+  summary: Introduce a named editions layer on top of the existing feature flag mechanism.
+    Creates backend/src/config/editions.ts with Edition union type, editionFeatures mapping,
+    and resolveFeatureFlags function. Updates featureFlags.ts to call resolveFeatureFlags.
+    Logs the resolved edition and full flag set at startup. Fully backward-compatible —
+    deployments with no EDITION env var continue to work exactly as before. Blocked on PM
+    decision defining the canonical edition names and flag-to-edition mapping.
+  acceptance:
+  - backend/src/config/editions.ts is created with the Edition union type, editionFeatures
+    map, and resolveFeatureFlags function as described in docs/spikes/SPIKE-004.md Section 1.
+  - featureFlags.ts is updated to call resolveFeatureFlags, consuming the EDITION env var
+    and any FEATURE_* overrides.
+  - At startup, backend/src/server.ts logs the resolved edition name and full flag set at
+    info level.
+  - EDITION is added to .env.example with a comment explaining valid values, and to the
+    docker-compose.yml app service environment block defaulting to empty for backward
+    compatibility.
+  - No regression to existing deployments — a deployment with no EDITION env var behaves
+    exactly as before.
+  - README.md or docs/operations/ is updated to document the EDITION env var and the
+    available editions.
+  remaining:
+  - PM to define the canonical edition names and which of the 10 current flags each edition
+    enables before this item can move to ready. Current flags are userPreferences, samlAuth,
+    draftConfig, childActions, notifications, csvImport, attachments, apiKeys, webhooks,
+    savedViews.
+  - PA to implement editions.ts and update featureFlags.ts once edition definitions are agreed.
+  - devops-engineer to update docker-compose.yml and .env.example.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  - devops-engineer
+  evidence:
+    code:
+    - backend/src/config/featureFlags.ts
+    - backend/src/middleware/requireFeature.ts
+    - backend/src/server.ts
+    - docker-compose.yml
+    tests: []
+    docs:
+    - docs/spikes/SPIKE-004.md
+    notes:
+    - Full implementation design in docs/spikes/SPIKE-004.md Sections 1–4.
+    - Individual FEATURE_* env vars are never removed — they remain as per-flag escape
+      hatches for operators and local development. The editions model layers on top.
+    - Migration is non-breaking and incremental — see SPIKE-004.md Section 4 for the
+      three-phase migration plan.
+    - PM decision required on edition names and flag mapping before this can move to ready.
 - id: MAINT-013
   source_request: REQ-072
   title: Audit test code against agreed coding standards
@@ -2804,7 +2975,9 @@ items:
   type: improvement
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.22.0
   priority: high
   confidence: medium
   summary: Production deployments emit insufficient log information to debug live issues.
@@ -2886,13 +3059,52 @@ items:
       so branch packages are representative of production.
     - Related to REQ-065 (reduce duplicate CI) — both touch workflow config and can be
       addressed in the same release if scope permits.
+- id: BUG-057
+  source_request: REQ-074
+  title: Fix Admin summary widget to exclude soft-deleted registers
+  type: bug
+  capability: homepage
+  phase: null
+  status: ready
+  priority: high
+  confidence: high
+  summary: The Admin summary widget on the homepage includes soft-deleted registers in
+    its results. The backend query powering the widget is missing a filter to exclude
+    deleted registers, causing deleted registers to appear in the widget's per-register
+    risk and overdue counts.
+  acceptance:
+  - The Admin summary widget does not include registers that have been soft-deleted.
+  - The fix is applied at the backend query level — the endpoint powering the Admin
+    summary filters out deleted registers before returning counts.
+  - No regression to the Admin summary widget display for active registers.
+  - Test coverage added or updated for the soft-deleted register exclusion path.
+  remaining:
+  - Locate the Admin summary backend endpoint and confirm how register deletion is
+    modelled (soft-delete field vs. status field).
+  - Apply the appropriate filter to exclude deleted registers from the query.
+  - Add or update tests for the exclusion path.
+  dependencies: []
+  suggested_agents:
+  - backend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/homepage
+    tests: []
+    notes:
+    - The Admin summary widget frontend code is in frontend/src/features/homepage.
+      The fix is expected to be backend-only — the query filter, not the UI.
+    - Confirm the soft-delete model for registers before implementing (deletedAt field,
+      isDeleted flag, or a status value) to apply the correct filter.
 - id: BUG-056
   source_request: REQ-066
   title: Investigate and fix draft config application across register config pages
   type: bug
   capability: config-lifecycle-templates
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.22.0
   priority: high
   confidence: medium
   summary: Each config change correctly sends a PATCH to /draft, but a subsequent PATCH
@@ -3168,6 +3380,60 @@ items:
     notes:
     - Content was written to satisfy the v1.19.0 help acceptance criterion but was never
       wired into the help page navigation.
+- id: I18N-001
+  source_request: REQ-077
+  title: Implement internationalisation support
+  type: feature
+  capability: architecture
+  phase: null
+  status: deferred
+  priority: low
+  confidence: low
+  summary: Add multi-language support across the full product surface using react-i18next.
+    Architecture and sequencing fully assessed in docs/spikes/SPIKE-005.md. Five-phase
+    approach covering UI string externalisation, date/number formatting, help content locale
+    namespacing, Zod validation messages, and optionally audit description schema changes.
+    Deferred until a product decision confirms multi-language support is a real requirement.
+  acceptance:
+  - An ADR covering the i18n library choice (react-i18next), translation file structure,
+    locale selection mechanism, and audit description strategy is produced before implementation
+    begins.
+  - Phase 1 — react-i18next installed; all frontend strings extracted to locales/en/ namespace
+    files; useLocale() hook implemented backed by user preferences with fallback to
+    navigator.language then en.
+  - Phase 2 — All scattered toLocaleString() and toLocaleDateString() calls replaced with
+    formatDate/formatNumber utilities backed by Day.js and Intl.NumberFormat.
+  - Phase 3 — HelpPage resolves locale from user preferences; fallback to /en/ when a topic
+    does not exist in the requested locale.
+  - Phases 4 and 5 are separate work items to be scoped once Phases 1–3 are stable.
+  remaining:
+  - Product decision required confirming multi-language support is needed before any work begins.
+  - PA to produce an ADR before any code changes.
+  - Confirm translation workflow (professional translation, community, or machine translation)
+    before committing to Phase 1.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/
+    - frontend/public/help/en/
+    - backend/src/validators/
+    tests: []
+    docs:
+    - docs/spikes/SPIKE-005.md
+    notes:
+    - Full architecture assessment in docs/spikes/SPIKE-005.md.
+    - react-i18next requires an ADR before it can be added as a dependency.
+    - Day.js is already approved in the technical stack — no ADR needed for date formatting.
+    - Backend API error messages do not need localisation — frontend maps ApiErrorCode to
+      localised strings instead. No backend changes required for error messages.
+    - Audit description localisation (Phase 5) is a breaking schema change requiring a
+      Prisma migration — treat as a separate major release item if translated audit logs
+      are a confirmed requirement.
+    - Deferred pending product decision.
 - id: MAINT-006
   source_request: REQ-052
   title: Update help docs for configurable scoring formula feature

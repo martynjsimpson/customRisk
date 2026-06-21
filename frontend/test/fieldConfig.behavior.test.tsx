@@ -1,3 +1,15 @@
+/**
+ * FieldConfigTab — behavioural tests
+ *
+ * Covers the draft-mode lifecycle of the custom field configuration UI:
+ * 1. Draft-gating: edit/reorder/delete actions require an active draft.
+ * 2. Formula preservation: calculated-field formulas survive a save round-trip.
+ * 3. Draft delete: soft-delete of a newly created draft field is confirmed and
+ *    the field is removed from the list.
+ *
+ * Static source checks in backend/test/customFieldFrontend.test.mjs confirm the
+ * delete-flow wiring at the source level; these tests assert the runtime behaviour.
+ */
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";

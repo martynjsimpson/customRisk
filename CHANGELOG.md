@@ -15,6 +15,27 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-06-21
+
+### Fixed
+
+- **Admin summary widget now correctly excludes soft-deleted registers (BUG-057)**
+  - The Admin summary widget on the homepage was including soft-deleted registers in its per-register risk and overdue counts. The backend queries in the dashboard service now filter on `isActive: true` at all three points: register enumeration for system admins, per-register detail lookup, and the system-level total register count. Regression tests added.
+
+### Changed
+
+- **Frontend code standards — table row action button standard documented (MAINT-011)**
+  - An audit of `frontend/src/` against the coding standards confirmed `variant="light" size="xs"` as the correct style for table row action buttons. This standard is now explicitly documented in `docs/engineering/coding-standards.md`. Three larger page-component extraction items (RegisterDetailPage, UsersPage, MyRisksPage) were identified during the audit and deferred to the PM backlog.
+
+- **Backend code standards — formula validation extracted from controller (MAINT-012)**
+  - An audit of `backend/src/` identified one in-release fix: the `validateFormulaController` in `configVersion.controller.ts` contained a Prisma query and branching logic directly in the controller body, violating the no-business-logic-in-controllers standard. The logic was extracted to a new `validateScoringFormulaForRegister` function in `formulaEvaluator.service.ts`. Three larger items (utility deduplication, service size) were deferred to the PM backlog.
+
+- **Test code standards — stale seed count and missing block comments corrected (MAINT-013)**
+  - An audit of `backend/test/` and `frontend/test/` corrected a stale assertion in `seed.test.mjs` (count was `16`, seed now produces `19` risks) and added missing opening block comments to three frontend test files. Five larger items were deferred to the PM backlog, including a rolling item to add block comments to the remaining ~38 test files.
+
+- **Seed data refreshed to cover features shipped since v1.7.0 (MAINT-014)**
+  - The demo seed (`backend/prisma/seed.ts`) had not been updated since before v1.7.0 and did not reflect custom fields, child record response actions, configurable scoring formulas, or review history. The seed now demonstrates: custom fields on the Information Security register (DROPDOWN, CALCULATED, and NUMBER with WARN validation; field visibility scoped to admin/editor); child record response actions on the Operational Risk register with statuses spanning IN_PROGRESS, PLANNED, and IMPLEMENTED; a custom scoring formula (`likelihood × impact × 2`) on a new Project Risk register; two completed review records; and an updated seed summary log. The seed remains idempotent.
+
 ## [1.22.0] - 2026-06-21
 
 ### Added
