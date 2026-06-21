@@ -9,8 +9,7 @@ import {
   publishDraft,
   updateDraft
 } from "../services/configVersion.service.js";
-import { validateScoringFormula } from "../services/formulaEvaluator.service.js";
-import { prisma } from "../db/prisma.js";
+import { validateScoringFormulaForRegister } from "../services/formulaEvaluator.service.js";
 import { actorOrThrow } from "../utils/actorOrThrow.js";
 import { sendData } from "../utils/apiResponse.js";
 import type { RegisterIdParams } from "../validators/registers.schemas.js";
@@ -90,24 +89,5 @@ export async function validateFormulaController(
 ) {
   const { registerId } = request.params;
   const { formula } = request.body;
-
-  // Empty formula is always valid (means use default)
-  if (formula === "") {
-    sendData(response, { valid: true });
-    return;
-  }
-
-  // Fetch numeric custom field IDs for this register to validate field references
-  const numericFields = await prisma.customFieldDefinition.findMany({
-    where: {
-      registerId,
-      fieldType: { in: ["NUMBER", "CALCULATED"] },
-      isActive: true
-    },
-    select: { id: true }
-  });
-
-  const availableFieldKeys = numericFields.map((f) => f.id);
-  const result = validateScoringFormula(formula, availableFieldKeys);
-  sendData(response, result);
+  sendData(response, await validateScoringFormulaForRegister(registerId, formula));
 }

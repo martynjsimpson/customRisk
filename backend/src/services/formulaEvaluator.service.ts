@@ -279,6 +279,30 @@ export function validateScoringFormula(
   }
 }
 
+export async function validateScoringFormulaForRegister(
+  registerId: string,
+  formula: string
+): Promise<{ valid: boolean; error?: string }> {
+  if (formula === "") {
+    return { valid: true };
+  }
+
+  const { prisma } = await import("../db/prisma.js");
+  const numericFields = await prisma.customFieldDefinition.findMany({
+    where: {
+      registerId,
+      fieldType: { in: ["NUMBER", "CALCULATED"] },
+      isActive: true
+    },
+    select: { id: true }
+  });
+
+  return validateScoringFormula(
+    formula,
+    numericFields.map((f) => f.id)
+  );
+}
+
 export function validateFormula(formula: string): { valid: boolean; error?: string } {
   try {
     // Use a stub context with all referenced fields resolving to 0
