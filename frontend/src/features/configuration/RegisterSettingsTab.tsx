@@ -147,7 +147,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   });
 
   function handleFormBlur(event: FocusEvent<HTMLFormElement>) {
-    if (draftConfigMode && !event.currentTarget.contains(event.relatedTarget as Node)) {
+    if (!draftConfigMode && !event.currentTarget.contains(event.relatedTarget as Node)) {
       updateSettingsMutation.mutate();
     }
   }
