@@ -60,7 +60,8 @@ Source: human request (direct)
 Request ID: REQ-069
 Title: Establish coding standards
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.20.0
 Priority: medium
 Summary: PA writes practical coding standards for frontend, backend, and test code. Output is a document at docs/engineering/coding-standards.md usable during implementation and code review. Prerequisite for REQ-070/071/072.
 Derived work items: MAINT-010
@@ -70,7 +71,8 @@ Source: human request (direct)
 Request ID: REQ-068
 Title: Spike internationalisation architecture
 Type: feature
-Status: refined
+Status: done
+Done in: v1.20.0
 Priority: low
 Summary: PA spike covering frontend strings, backend text, help content, validation messages, and config labels. Output at docs/spikes/SPIKE-005.md. Low priority until a concrete second-language need arises.
 Derived work items: SPIKE-005
@@ -80,7 +82,8 @@ Source: human request (direct)
 Request ID: REQ-067
 Title: Surface response actions help
 Type: bug
-Status: refined
+Status: done
+Done in: v1.20.0
 Priority: medium
 Summary: Documentation was written to `frontend/public/help/en/response-actions.md`, but it was never added to the in-app help page, so users cannot discover it from the help UI. Decision: fold response actions content into the risks help section rather than adding a standalone tab.
 Notes: Content should appear as a subsection within the risks help article.
@@ -180,7 +183,8 @@ Source: human request (direct)
 Request ID: REQ-057
 Title: Evaluate ad-hoc browser-based permission testing tooling
 Type: feature
-Status: refined
+Status: done
+Done in: v1.20.0
 Priority: low
 Summary: Evaluate and implement Playwright for browser-based permission testing. PA to assess against ADR-0008 before implementation. QA-001 (manual plan) is the permission matrix the suite will automate.
 Derived work items: SPIKE-003
@@ -190,7 +194,8 @@ Source: human request (direct)
 Request ID: REQ-056
 Title: Manual test plan for permissions — all role/type permutations
 Type: feature
-Status: refined
+Status: done
+Done in: v1.20.0
 Priority: medium
 Summary: A human-executable permission test plan covering all roles and entity types. Also serves as the specification for SPIKE-003 (Playwright automation). Suggested location: docs/engineering/permission-test-plan.md.
 Derived work items: QA-001
@@ -283,10 +288,10 @@ Source: human request (direct)
 Request ID: REQ-048
 Title: Investigate bulk-batch job queue architecture
 Type: maintenance
-Status: needs-refinement
+Status: deferred
 Priority: medium
 Summary: As the risk register grows, operations that require recalculating all risks (e.g. changing the scoring formula) will become too slow to execute synchronously via a single API call. A job queue architecture should be investigated to handle bulk-batch operations asynchronously. This becomes especially important if/when the app moves to multi-tenant, where a bulk operation for one customer must not block others.
-Notes: Key concerns to address in the investigation: FIFO ordering and tenant isolation (customer A's bulk job must not block customer B); resumability (if a job fails partway through, it should know where to resume); visibility (customer admins should be able to see the status of their own queued jobs; super admins should have a system-wide queue view); and identifying which other operations beyond score recalculation may benefit from the same pattern (e.g. CSV import, bulk status changes). Related to REQ-042 (multi-tenant spike) and REQ-043 (encryption spike). Deferred — no work item until multi-tenant spike clarifies the architecture context.
+Notes: Key concerns to address in the investigation: FIFO ordering and tenant isolation (customer A's bulk job must not block customer B); resumability (if a job fails partway through, it should know where to resume); visibility (customer admins should be able to see the status of their own queued jobs; super admins should have a system-wide queue view); and identifying which other operations beyond score recalculation may benefit from the same pattern (e.g. CSV import, bulk status changes). Deferred until SPIKE-001 (multi-tenant architecture spike) produces an output — the tenant model must be resolved before a job queue architecture can be designed without risk of rework.
 Source: human request (direct)
 
 ### REQ-047

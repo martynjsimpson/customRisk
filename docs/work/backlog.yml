@@ -2017,7 +2017,7 @@ items:
   type: spike
   capability: architecture
   phase: null
-  status: needs-refinement
+  status: deferred
   priority: low
   confidence: low
   summary: Scoping exercise to determine what it would take to offer customRisk as a commercially hosted SaaS product. Key
@@ -2025,18 +2025,18 @@ items:
     infrastructure changes, and super-admin/platform-manager controls for tenant management. No implementation work should
     start before the spike is complete and scoped into deliverable items.
   acceptance:
-  - A scoping document exists that covers the tenant model, data isolation strategy, auth changes, infrastructure requirements,
-    and super-admin tooling.
+  - A scoping document exists at docs/spikes/SPIKE-001.md covering the tenant model, data isolation strategy, auth changes,
+    infrastructure requirements, and super-admin tooling.
   - The document includes a BYOK/encryption consideration (see SPIKE-002) and notes the relationship between the two spikes.
   - Deliverable implementation work items are derived from the spike output before any coding starts.
   remaining:
-  - Determine the format and owner for the spike output (ADR, scoping doc, or product doc).
+  - Pull to ready only when there is explicit commercial or deployment pressure to host customRisk as SaaS.
+  - PA owns the spike output — document at docs/spikes/SPIKE-001.md following the existing spike convention.
   - Coordinate with SPIKE-002 (encryption) as the two are closely related.
   - No implementation work until spike output is reviewed and decomposed into work items.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Principal Architect
+  - principal-architect
   evidence:
     code: []
     tests: []
@@ -2052,26 +2052,28 @@ items:
   type: spike
   capability: architecture
   phase: null
-  status: needs-refinement
+  status: deferred
   priority: medium
   confidence: low
   summary: Scoping exercise to determine the right approach to encryption of data at rest, covering PII and other sensitive
     fields at minimum, with full database encryption as a consideration. Key areas include which fields/tables warrant encryption,
     key management strategy (including BYOK), and the performance and complexity trade-offs of field-level vs. full database
-    encryption. Closely related to SPIKE-001 (SaaS multi-tenant) as a key security requirement for any hosted offering.
+    encryption. Relevant to both single-tenant self-hosted deployments (compliance requirements) and any future hosted SaaS
+    offering (SPIKE-001).
   acceptance:
-  - A scoping document exists covering encryption scope (fields vs. full DB), key management approach, BYOK feasibility, and
-    performance/complexity trade-offs.
-  - The document notes the relationship to SPIKE-001 and flags any dependencies on the tenant model.
+  - A scoping document exists at docs/spikes/SPIKE-002.md covering encryption scope (fields vs. full DB), key management
+    approach, BYOK feasibility, and performance/complexity trade-offs.
+  - The document notes the relationship to SPIKE-001 and flags any dependencies on the tenant model without being gated by it.
   - Deliverable implementation work items are derived from the spike output before any coding starts.
   remaining:
-  - Determine the format and owner for the spike output.
-  - Coordinate with SPIKE-001 as the two spikes are closely related.
+  - Pull to ready when a concrete need arises — compliance requirement, customer ask, or when SPIKE-001 makes hosted SaaS
+    a near-term goal.
+  - PA owns the spike output — document at docs/spikes/SPIKE-002.md following the existing spike convention.
+  - Not formally dependent on SPIKE-001; can be activated independently.
   - No implementation work until spike output is reviewed and decomposed into work items.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Principal Architect
+  - principal-architect
   evidence:
     code: []
     tests: []
@@ -2342,7 +2344,8 @@ items:
   type: spike
   capability: architecture
   phase: null
-  status: ready
+  status: done
+  done_in: v1.20.0
   priority: low
   confidence: low
   summary: Assess what architectural changes are needed to support multiple languages
@@ -2438,7 +2441,8 @@ items:
   type: spike
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.20.0
   priority: low
   confidence: medium
   summary: Current static and Vitest/jsdom tests do not fully exercise real login sessions,
@@ -2489,7 +2493,8 @@ items:
   type: feature
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.20.0
   priority: medium
   confidence: high
   summary: No comprehensive permission test plan exists. A human-executable document
@@ -2717,7 +2722,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.20.0
   priority: medium
   confidence: high
   summary: Principal Architect writes practical coding standards covering frontend,
@@ -3124,7 +3130,8 @@ items:
   type: bug
   capability: help-content
   phase: null
-  status: ready
+  status: done
+  done_in: v1.20.0
   priority: medium
   confidence: high
   summary: response-actions.md was written as part of v1.19.0 but was never linked from
