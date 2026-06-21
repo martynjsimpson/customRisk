@@ -1,3 +1,11 @@
+/**
+ * Frontend package configuration — static assertion tests
+ *
+ * Verifies that the frontend package.json exposes the required quality scripts:
+ * typecheck, test (which combines test:static and test:runtime), and that each
+ * script uses the correct tool (tsc --noEmit, node --test, vitest run).
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

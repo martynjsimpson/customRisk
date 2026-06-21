@@ -1,3 +1,21 @@
+/**
+ * Config version / draft config — static assertion tests
+ *
+ * Verifies the draft configuration lifecycle and template features at source level:
+ *
+ * - configVersion.api.ts and templates.api.ts export all required functions.
+ * - ConfigVersionBanner renders draft vs. published actions, always routes publish
+ *   through impact analysis, and invalidates the risks query after lifecycle mutations.
+ * - FieldConfigTab, MatrixConfigTab, ScoringValueConfigTab, and RiskLevelConfigTab
+ *   unlock only when a draft exists and write through updateDraftConfig.
+ * - RegisterSettingsTab auto-saves on blur in draft mode, hides the Save button,
+ *   and unlocks fields when a draft is in progress.
+ * - TemplatesPage and Templates nav link are gated to System Admins with the
+ *   draftConfig flag enabled.
+ * - Draft and export snapshots preserve validationMode and
+ *   customFieldValidationEnabled through publish.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

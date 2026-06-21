@@ -1,3 +1,18 @@
+/**
+ * Register management — static assertion tests
+ *
+ * Verifies that the register management UI is correctly structured:
+ *
+ * - The permissions UI uses register-scoped candidate lists (not the global
+ *   users list) via listRegisterPermissionCandidates.
+ * - CreateRegisterWizard is a multi-step flow with conditional reviews step,
+ *   supports initial Register Admin assignments, and uses wizardMode for
+ *   the matrix step.
+ * - RegistersPage tables expose Open risks and Overdue counts as deep links
+ *   to pre-filtered views.
+ * - RegistersPage Create register button is gated to System Admins.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";

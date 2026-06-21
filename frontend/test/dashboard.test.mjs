@@ -1,3 +1,15 @@
+/**
+ * Dashboard / navigation — static assertion tests
+ *
+ * Verifies that the routes, nav links, and API client functions required for
+ * the dashboard, My Risks (/my-risks), and Audit (/audit) surfaces are all
+ * present in the frontend source:
+ *
+ * - Routes are registered in the router.
+ * - Nav links appear in MainLayout.
+ * - dashboard.api.ts and audit.api.ts export the correct API paths.
+ */
+
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
