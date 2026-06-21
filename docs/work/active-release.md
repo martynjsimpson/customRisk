@@ -1,168 +1,101 @@
 # Active Release
 
-Status: ready-for-release
-Version: v1.21.0
+Status: in-progress
+Version: v1.22.0
 
 ## Release goal
 
-Fix production deployment reliability: establish on-demand branch publishing so production fixes can be tested iteratively, then fix and harden the feature flag pipeline and modal error state. By the end of this release: branch Docker packages can be published on demand from any branch; feature flags work correctly in production Docker deployments; the app degrades cleanly when flags are disabled; modal errors clear on close; and the audit table in the View Risk modal refreshes after response action mutations.
+Improve production reliability and observability: fix the config draft integrity bug, add structured production logging, and complete the PA spike on the production editions model. By the end of this release: register config changes are stored exclusively through the draft mechanism with no silent overrides; production deployments emit structured, level-controlled logs with operational documentation; and a scoping document for a production editions model exists to guide long-term flag management strategy.
 
 ## Selected work items
 
-### MAINT-007 — Add on-demand branch package publishing via GitHub Actions manual trigger
-Source: REQ-062
+### BUG-056 — Investigate and fix draft config application across register config pages
+Source: REQ-066
+Capability: config-lifecycle-templates
+Suggested agents: principal-architect, backend-developer, frontend-developer, test-engineer
+Status: proposed
+
+**Problem:** Each config change correctly sends a PATCH to /draft, but a subsequent PATCH to `<registerId>` appears to send all settings currently on the local page, which would override the server-side draft with local page state and undermine the draft mechanism. Users may unknowingly lose draft changes or have their published config reflect stale local form state rather than intentional draft edits.
+
+**Acceptance criteria:**
+- The Principal Architect has audited all register configuration pages — fields, scoring, and all other config sub-pages — and confirmed which are correctly using draft state vs. incorrectly using local page state.
+- Any config page that overwrites the server-side draft with local page state is fixed so changes are stored in the draft and not applied via a direct register PATCH.
+- Publishing a draft produces the expected config state regardless of which config pages were used during editing.
+- No regression to draft creation, editing, or publish flows.
+- If the fix scope is larger than a single release can safely contain, the Release Manager logs remaining items under a Deferred items for PM section in active-release.md.
+- Tests cover the draft-only save path for each fixed config section.
+
+**Note for Release Manager:** PA audits first — confirm which pages are using the wrong PATCH target before any backend or frontend work begins. The audit output defines the fix list. Backend and frontend developers work in parallel once the audit is complete. Test Engineer adds coverage after fixes are in.
+
+---
+
+### MAINT-008 — Improve production backend logging with configurable log levels and operational docs
+Source: REQ-061
 Capability: build-toolchain
-Suggested agents: devops-engineer
-Status: done
-done_in: v1.21.0
+Suggested agents: principal-architect, backend-developer, devops-engineer
+Status: proposed
 
-**Problem:** There is no way to publish a Docker package for a specific branch without going through a full PR and merge to main. Developers cannot test production-environment issues iteratively without landing code.
+**Problem:** Production deployments emit insufficient log information to diagnose live issues. There is no structured log format and no way to control verbosity without code changes.
 
 **Acceptance criteria:**
-- A GitHub Actions workflow can be triggered manually (workflow_dispatch) for a specified branch, building and publishing a Docker package using the same process as the main release build.
-- The on-demand workflow does not trigger automatically on push or PR — manual invocation only.
-- Published branch packages are clearly distinguishable from release packages by tag naming convention.
-- The root README.md is updated to document how to trigger the on-demand build and how to target the resulting branch package in a production Docker Compose setup.
-- No change to the existing automatic release workflow behaviour.
+- The Principal Architect defines the logging approach — structure, correlation strategy, verbosity levels, and how logs flow across the two Docker containers — before implementation begins.
+- Backend logging is structured and actionable, going beyond a basic HTTP access log.
+- A `LOG_LEVEL` environment variable in `.env` controls logging verbosity (e.g. error, warn, info, debug), with a recommended default for production.
+- `docs/operations/observability.md` is created or updated to cover relevant Docker Compose log commands, log levels, recommended production defaults, and when to temporarily increase verbosity for investigation.
+- No regression to existing backend behaviour or local development logging.
 
-**Note for Release Manager:** The devops-engineer should implement this first — it is a prerequisite for iterative production testing of BUG-055 and BUG-054. The branch package tag naming convention is a devops decision to make in-release.
+**Note for Release Manager:** PA goes first — backend developer cannot begin implementation until the logging structure and approach are agreed. Devops engineer writes or reviews the observability.md operational documentation.
 
 ---
 
-### MAINT-009 — Reduce duplicate CI runs across branch, PR, and post-merge workflows
-Source: REQ-065
-Capability: build-toolchain
-Suggested agents: devops-engineer
-Status: done
-done_in: v1.21.0
+### SPIKE-004 — Spike: production editions model for feature flag management
+Source: REQ-064
+Capability: architecture
+Suggested agents: principal-architect
+Depends on: BUG-055 (done in v1.21.0 — provides real-world context for the spike)
+Status: proposed
 
-**Problem:** CI runs the same checks multiple times — on the release branch, again when a PR is created with no new changes, and again after merge to main. This slows releases without adding confidence.
-
-**Acceptance criteria:**
-- CI does not re-run identical checks on a PR if the branch has already passed CI with the same commit SHA.
-- Post-merge CI does not repeat checks already passed pre-merge unless new code was introduced by the merge itself.
-- All required status checks for branch protection and release confidence are still satisfied after the change.
-- Release velocity is measurably improved — fewer redundant CI minutes per release.
-
-**Note for Release Manager:** Can be worked alongside MAINT-007 — both touch GitHub Actions workflow config and the devops-engineer is already in that area.
-
----
-
-### BUG-055 — Fix production feature flags — .env values have no effect in Docker deployment
-Source: REQ-063
-Capability: build-toolchain
-Suggested agents: principal-architect, devops-engineer, backend-developer, frontend-developer
-Status: done
-done_in: v1.21.0
-
-**Problem:** Feature flags set in .env have no effect in the production Docker Compose setup. Operators have no reliable way to control feature flags in a deployed instance.
+**Problem:** Production deployments currently rely on arbitrary per-deployment `.env` flag values, creating drift and making flag behaviour unpredictable. A production editions model — fixed, named editions with defined feature sets — would give operators a clean, maintainable way to control features. The approach must also consider how editions might later attach to an org/tenant model.
 
 **Acceptance criteria:**
-- Feature flag values set in .env take effect in a production Docker Compose deployment following the documented README setup.
-- Both backend-read flags (env vars consumed at runtime by Node) and frontend-read flags (Vite env vars baked at build time) are confirmed to work correctly, or the architectural split between them is explicitly documented.
-- If a runtime config mechanism is required for frontend flags, the PA designs and agrees the approach before the frontend developer implements it.
-- The root README.md production setup section is updated to accurately describe how to configure feature flags in a production deployment.
-- No regression to local development flag behaviour.
+- A scoping document exists at `docs/spikes/SPIKE-004.md` covering: how editions are defined and where the edition-to-feature mapping lives; how a production deployment selects an edition (e.g. a single `EDITION` env var); how local development retains per-flag flexibility; and how the current featureFlags.ts approach migrates to the editions model.
+- The document explicitly addresses the BUG-055 context (now resolved in v1.21.0) — clarifying whether the editions model would have prevented the issue and how it changes the long-term flag management picture.
+- The document notes how an edition might later be attached to an org, tenant, or subscription entity (REQ-042/SPIKE-001), so the design does not foreclose that path.
+- No implementation work starts in this release — output is the scoping document only.
 
-**Decision:** If frontend flags require a runtime config mechanism (due to Vite build-time baking), the approach is the PA's architectural call — implement whatever the PA approves. No PM input needed.
-
----
-
-### BUG-054 — Harden app behaviour across feature flag combinations
-Source: REQ-060
-Capability: build-toolchain
-Suggested agents: frontend-developer, backend-developer, test-engineer
-Depends on: BUG-055 (validate flag combinations only once flags work in production)
-Status: done
-done_in: v1.21.0
-
-**Problem:** The app may crash or behave incorrectly when certain feature flags are disabled. /registers/<registerId> is specifically suspected. Feature-flagged code paths on both frontend and backend need to be reviewed and hardened.
-
-**Acceptance criteria:**
-- All feature-flagged routes and components degrade cleanly when their flag is disabled — no crashes, unhandled errors, or broken UI.
-- /registers/<registerId> is verified to load correctly under all supported flag combinations.
-- Flag-gated backend endpoints return appropriate responses (e.g. 404 or 403) rather than 500 errors when their flag is off.
-- Flag-gated frontend components hide cleanly or show an appropriate fallback when their flag is disabled.
-- Test coverage exists for at least the key disabled-flag scenarios, particularly /registers/<registerId> and any other routes identified during the review.
-
----
-
-### BUG-053 — Clear modal error state on close across all modals
-Source: REQ-059
-Capability: register-ui
-Suggested agents: frontend-developer, test-engineer
-Status: done
-done_in: v1.21.0
-
-**Problem:** Error state is not cleared when modals are closed. Reopening any affected modal shows the previous error until a successful action clears it.
-
-**Acceptance criteria:**
-- All modals in the app reset their error state when closed — reopening always starts clean with no prior error visible.
-- The fix covers every modal that can display an error: risk add/edit, response action add/edit, review, config modals, API key creation, and any others identified during the sweep.
-- No regression to error display behaviour during an active modal session — errors must still appear correctly within a single open.
-- Frontend tests cover the close-then-reopen scenario for at least the highest-traffic modals.
-
----
-
-### BUG-052 — Refresh audit table in View Risk modal after response action mutations
-Source: REQ-058
-Capability: child-actions
-Suggested agents: frontend-developer, test-engineer
-Status: done
-done_in: v1.21.0
-
-**Problem:** When a response action is added, edited, or soft-deleted in child record mode, the audit table in the View Risk modal does not update. The new audit entry only appears after closing and reopening the modal.
-
-**Acceptance criteria:**
-- The audit table in the View Risk modal refreshes automatically after a response action is added, edited, or soft-deleted — without requiring the modal to be closed and reopened.
-- No regression to response action CRUD behaviour, the audit table display, or other View Risk modal functionality.
-- Frontend tests cover the mutation-then-refresh scenario.
+**Note for Release Manager:** PA-only work item. No other agents required. Output document at `docs/spikes/SPIKE-004.md` following the existing spike convention.
 
 ---
 
 ## Required agents
 
-- **devops-engineer** — MAINT-007 (on-demand branch publishing) and MAINT-009 (reduce duplicate CI runs). Both touch GitHub Actions workflow config and can be worked in parallel. MAINT-007 should be completed first — it unblocks production testing for the flag work.
-- **principal-architect** — BUG-055 (diagnose the flag pipeline break; design any runtime config approach needed for frontend flags before implementation begins).
-- **backend-developer** — BUG-055 (backend flag pipeline fix), BUG-054 (backend flag-gated endpoint hardening).
-- **frontend-developer** — BUG-055 (frontend flag fix, if needed after PA design), BUG-054 (frontend flag-gated component hardening), BUG-053 (modal error state sweep), BUG-052 (audit table refresh).
-- **test-engineer** — BUG-054 (disabled-flag test coverage), BUG-053 (modal close-then-reopen tests), BUG-052 (mutation-then-refresh test).
+- **principal-architect** — BUG-056 (audit all config pages and confirm incorrect paths), MAINT-008 (define logging structure and verbosity model), SPIKE-004 (produce the editions model scoping document). PA work on all three items can begin in parallel.
+- **backend-developer** — BUG-056 (fix incorrect register-level PATCH paths once PA audit is complete), MAINT-008 (implement structured logging once PA has confirmed the approach).
+- **frontend-developer** — BUG-056 (fix incorrect config page save handlers once PA audit identifies them).
+- **test-engineer** — BUG-056 (add/update tests for the draft-only save path on each fixed config section).
+- **devops-engineer** — MAINT-008 (write or review docs/operations/observability.md).
 
-**Sequencing:** devops-engineer begins immediately with MAINT-007. PA begins BUG-055 diagnosis in parallel. Backend and frontend developers begin BUG-055 implementation once PA has confirmed the approach. BUG-054 begins once BUG-055 is complete and production packages can be built via MAINT-007. BUG-053 and BUG-052 are frontend-only and can run in parallel with BUG-055/054 at any point.
+**Sequencing:** PA begins BUG-056 audit, MAINT-008 logging design, and SPIKE-004 document in parallel. Backend and frontend developers begin BUG-056 fixes once the PA audit output is available. Backend developer begins MAINT-008 implementation once PA confirms the logging approach. Test Engineer picks up BUG-056 coverage after fixes are in. Devops engineer writes observability.md once the logging approach is agreed.
 
 ## Decisions
 
-No open product or UX decisions.
+No open product or UX decisions. All architectural decisions are PA calls in-release.
 
-**Decision:** Branch package tag naming convention for MAINT-007 → devops-engineer to define in-release; must be clearly distinct from release tags to avoid confusion.
+**Decision:** BUG-056 fix scope → PA audits all config pages and fixes what can be safely fixed in this release; anything too large to contain is deferred via the Deferred items for PM section.
 
-**Decision:** Frontend flag runtime config (BUG-055) → if Vite build-time baking prevents .env flags from working at runtime, the PA designs the runtime config mechanism before the frontend developer implements it. No PM input required.
+**Decision:** MAINT-008 logging library and structure → PA's architectural call in-release; no PM input required.
+
+**Decision:** SPIKE-004 scope → spike document only; no implementation work in this release regardless of what the PA recommends.
 
 ## Test / sign-off
 
-- [x] MAINT-007: On-demand workflow triggered manually from a branch; branch package published and distinguishable from release tags; README updated.
-- [x] MAINT-009: CI no longer re-runs identical checks on a PR when branch has already passed; post-merge CI confirmed not to repeat pre-merge checks; branch protection rules still satisfied.
-- [x] BUG-055: Feature flags set in .env confirmed to take effect in a production Docker Compose deployment; README production setup section updated.
-- [x] BUG-054: /registers/<registerId> verified clean under all supported flag combinations; flag-gated endpoints and components degrade safely when flags are disabled.
-- [x] BUG-053: All modals confirmed to start clean on reopen with no stale error state.
-- [x] BUG-052: Audit table confirmed to refresh after response action add, edit, and soft-delete without closing the modal.
+- [ ] BUG-056: PA audit complete and all identified incorrect PATCH paths fixed; publishing a draft produces the expected config state; tests cover the draft-only save path for each fixed section.
+- [ ] MAINT-008: Structured logging working in production Docker Compose with LOG_LEVEL controlling verbosity; docs/operations/observability.md created and accurate.
+- [ ] SPIKE-004: Scoping document exists at docs/spikes/SPIKE-004.md covering editions definition, deployment selection, local dev override, migration path, and tenant model consideration.
 
 ## Blockers
 
-None — all work items complete and signed off by Test Engineer.
-
-**Verification feedback [1]:** BUG-054 — /registers/<registerId> fails with "Not found" when flags disabled.
-**Investigation:** Flag-gated sub-routers were mounted at `"/"` causing `requireFeature` to intercept all requests. Fixed by mounting each sub-router at its specific path prefix. 425 tests pass.
-**Ruling:** in scope — fixed.
-**Human confirmed:** resolved ✓
-
-**Verification feedback [2]:** MAINT-007 — on-demand workflow not visible in GitHub Actions UI.
-**Investigation:** Expected — workflow_dispatch workflows only appear in the UI on the default branch. Will appear after merge to main.
-**Ruling:** deferred (not a defect).
-**Human confirmed:** resolved ✓
-
-**Verification feedback [2]:** MAINT-007 — on-demand workflow does not appear in GitHub Actions UI yet. User correctly identifies this is likely because workflow_dispatch workflows only appear on the default branch. Not confirmed as a defect — noting for investigation.
-**Status:** investigating
+None.
 
 ---
 

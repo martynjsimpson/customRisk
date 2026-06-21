@@ -2763,7 +2763,8 @@ items:
   type: improvement
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.21.0
   priority: medium
   confidence: medium
   summary: CI currently runs the same checks multiple times — on the release branch, again
@@ -2848,7 +2849,8 @@ items:
   type: improvement
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.21.0
   priority: high
   confidence: high
   summary: There is no way to publish a Docker package for a specific branch without going
@@ -2944,7 +2946,8 @@ items:
   type: bug
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.21.0
   priority: high
   confidence: medium
   summary: Feature flags set in .env have no effect when running the production Docker
@@ -2999,7 +3002,8 @@ items:
   type: bug
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.21.0
   priority: high
   confidence: medium
   summary: The app may crash or behave incorrectly when certain feature flags are disabled.
@@ -3046,7 +3050,8 @@ items:
   type: bug
   capability: register-ui
   phase: null
-  status: ready
+  status: done
+  done_in: v1.21.0
   priority: high
   confidence: high
   summary: Error state is not cleared when modals are closed. Reopening any affected modal
@@ -3090,7 +3095,8 @@ items:
   type: bug
   capability: child-actions
   phase: null
-  status: ready
+  status: done
+  done_in: v1.21.0
   priority: medium
   confidence: high
   summary: When a response action is added, edited, or soft-deleted in child record mode,

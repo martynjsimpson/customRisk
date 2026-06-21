@@ -104,7 +104,8 @@ Source: human request (direct)
 Request ID: REQ-065
 Title: Reduce duplicate release CI
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.21.0
 Priority: medium
 Summary: CI runs the same checks multiple times across branch, PR, and post-merge workflows. Investigate and tighten GitHub Actions trigger config to eliminate redundant runs without compromising release confidence.
 Derived work items: MAINT-009
@@ -123,7 +124,8 @@ Source: human request (direct)
 Request ID: REQ-063
 Title: Fix production feature flags
 Type: bug
-Status: refined
+Status: done
+Done in: v1.21.0
 Priority: high
 Summary: Feature flags set in `.env` have no effect in the production Docker Compose deployment. The full env var pipeline needs to be investigated and fixed, with README.md updated to document the correct approach.
 Derived work items: BUG-055
@@ -133,7 +135,8 @@ Source: human request (direct)
 Request ID: REQ-062
 Title: On-demand branch package publishing
 Type: improvement
-Status: refined
+Status: done
+Done in: v1.21.0
 Priority: high
 Summary: Add a manually triggered GitHub Actions workflow to publish a Docker package for a specific branch, using the same build process as a release build. README updated with trigger instructions and production targeting guidance.
 Derived work items: MAINT-007
@@ -153,7 +156,8 @@ Source: human request (direct)
 Request ID: REQ-060
 Title: Stabilize feature flag combinations
 Type: bug
-Status: refined
+Status: done
+Done in: v1.21.0
 Priority: high
 Summary: The app may fail when certain feature flags are turned off, with `/registers/<registerId>` called out as a suspected affected route. Fix is a systematic review and hardening of all feature-flagged paths on both frontend and backend.
 Derived work items: BUG-054
@@ -163,7 +167,8 @@ Source: human request (direct)
 Request ID: REQ-059
 Title: Modal errors persist across reopens — should reset on close
 Type: bug
-Status: refined
+Status: done
+Done in: v1.21.0
 Priority: high
 Summary: Across many modals in the app, error states are not cleared when the modal is closed. Reopening the same modal shows the previous error until a successful action clears it. Fix is a sweep of all modals to apply a consistent error-reset pattern on close.
 Derived work items: BUG-053
@@ -173,7 +178,8 @@ Source: human request (direct)
 Request ID: REQ-058
 Title: Audit table doesn't refresh after adding risk response action
 Type: bug
-Status: refined
+Status: done
+Done in: v1.21.0
 Priority: medium
 Summary: When adding a risk response action in child record mode, the Audit Table in the View Risk modal does not update in real-time. The new entry only appears after closing and reopening the modal.
 Derived work items: BUG-052
