@@ -24,7 +24,7 @@ export function notFoundHandler(): RequestHandler {
   };
 }
 
-export function errorHandler(logger: Pick<Logger, "info" | "error"> = defaultLogger): ErrorRequestHandler {
+export function errorHandler(logger: Pick<Logger, "error"> = defaultLogger): ErrorRequestHandler {
   return (error, request, response, next) => {
     if (response.headersSent) {
       next(error);
@@ -42,7 +42,7 @@ export function errorHandler(logger: Pick<Logger, "info" | "error"> = defaultLog
       if (error.statusCode >= 500) {
         logger.error({ error, method: request.method, route: getSafeRouteLabel(request) }, "API error");
       } else {
-        logger.info({ code: error.code, statusCode: error.statusCode, method: request.method, route: getSafeRouteLabel(request) }, "Client error response");
+        defaultLogger.info({ code: error.code, statusCode: error.statusCode, method: request.method, route: getSafeRouteLabel(request) }, "Client error response");
       }
       sendError(response, error.statusCode, error.code, error.message, error.fields, request.requestId, error.warnings);
       return;
