@@ -18,9 +18,11 @@ test("all Phase 4 route groups are gated by requireFeature('draftConfig')", asyn
 test("config version routes all enforce requireRegisterManagement", async () => {
   const configVersionRoutes = await readFile(new URL("../src/routes/configVersion.routes.ts", import.meta.url), "utf8");
 
-  assert.match(configVersionRoutes, /config-versions\/status/);
-  assert.match(configVersionRoutes, /config-versions\/draft\/impact/);
-  assert.match(configVersionRoutes, /config-versions\/draft\/publish/);
+  // After BUG-054, the /:registerId/config-versions prefix is stripped from the sub-router.
+  // Paths are relative and inherited from the mount point in registers.routes.ts.
+  assert.match(configVersionRoutes, /\/status/);
+  assert.match(configVersionRoutes, /\/draft\/impact/);
+  assert.match(configVersionRoutes, /\/draft\/publish/);
 
   // Every exposed route requires management access — count occurrences
   const managementCount = (configVersionRoutes.match(/requireRegisterManagement\(\)/g) ?? []).length;
@@ -33,13 +35,17 @@ test("global template routes require System Admin; register-scoped compare and a
   // Global routes (list, get, create, patch, deactivate, publish version) are System Admin only
   assert.match(templateRoutes, /requireSystemAdmin/);
 
-  // Register-scoped create-from-register and create-template-from-register are also System Admin
-  assert.match(templateRoutes, /templates\/from-register/);
-  assert.match(templateRoutes, /from-template/);
+  // Register-scoped create-from-register is System Admin; after BUG-054 the prefix is
+  // stripped from the sub-router, so the path in template.routes.ts is just /from-register.
+  assert.match(templateRoutes, /\/from-register/);
 
-  // Compare and apply are register management
-  assert.match(templateRoutes, /templates\/compare\/:templateVersionId/);
-  assert.match(templateRoutes, /templates\/apply\/:templateVersionId/);
+  // createRegisterFromTemplateSubRouter is exported and mounted at /from-template in
+  // registers.routes.ts; the sub-router itself uses "/" so no /from-template literal here.
+  assert.match(templateRoutes, /createRegisterFromTemplateSubRouter/);
+
+  // Compare and apply paths are now relative (prefix stripped after BUG-054)
+  assert.match(templateRoutes, /\/compare\/:templateVersionId/);
+  assert.match(templateRoutes, /\/apply\/:templateVersionId/);
   assert.match(templateRoutes, /requireRegisterManagement\(\)/);
 });
 

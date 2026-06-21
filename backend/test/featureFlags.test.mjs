@@ -227,6 +227,111 @@ test("requireFeature is case-insensitive — 'False' disables the flag", async (
 // Verify response shape contains no stack trace under any flag state
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Registers router: non-flagged routes must not be blocked by a disabled flag
+//
+// This covers the bug where router.use("/", requireFeature(...), subRouter)
+// intercepted ALL requests in the registers router — not just those belonging
+// to the sub-router — causing GET /:registerId and other unflagged routes to
+// receive a 404 when a flag was disabled.
+//
+// The fix mounts each flagged sub-router at its specific path prefix so that
+// requireFeature only fires for requests that belong to that sub-router.
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a minimal app that mirrors the fixed registers router pattern:
+ *
+ *   router.use("/:registerId/saved-views", requireFeature("savedViews"), savedViewsSubRouter)
+ *   router.get("/:registerId", mainHandler)
+ *
+ * When savedViews is disabled, GET /:registerId must still reach mainHandler.
+ */
+function makeRegistersLikeApp(flagKey, mountPath) {
+  const app = express();
+
+  const flaggedSubRouter = express.Router({ mergeParams: true });
+  flaggedSubRouter.get("/", (_req, res) => res.json({ subRouter: true }));
+
+  app.use(mountPath, requireFeature(flagKey), flaggedSubRouter);
+  app.get("/:registerId", (_req, res) => res.json({ register: true }));
+  app.use(errorHandler({ error: () => {} }));
+
+  return app;
+}
+
+test("registers router: GET /:registerId is reachable when savedViews flag is disabled", async () => {
+  const saved = process.env.FEATURE_SAVED_VIEWS;
+  try {
+    process.env.FEATURE_SAVED_VIEWS = "false";
+    const app = makeRegistersLikeApp("savedViews", "/:registerId/saved-views");
+    await withServer(app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/some-uuid`);
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.register, true);
+    });
+  } finally {
+    if (saved === undefined) delete process.env.FEATURE_SAVED_VIEWS;
+    else process.env.FEATURE_SAVED_VIEWS = saved;
+  }
+});
+
+test("registers router: GET /:registerId/saved-views returns 404 when savedViews flag is disabled", async () => {
+  const saved = process.env.FEATURE_SAVED_VIEWS;
+  try {
+    process.env.FEATURE_SAVED_VIEWS = "false";
+    const app = makeRegistersLikeApp("savedViews", "/:registerId/saved-views");
+    await withServer(app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/some-uuid/saved-views`);
+      assert.equal(res.status, 404);
+      const body = await res.json();
+      assert.equal(body.error.code, "NOT_FOUND");
+    });
+  } finally {
+    if (saved === undefined) delete process.env.FEATURE_SAVED_VIEWS;
+    else process.env.FEATURE_SAVED_VIEWS = saved;
+  }
+});
+
+test("registers router: GET /:registerId is reachable when draftConfig flag is disabled", async () => {
+  const saved = process.env.FEATURE_DRAFT_CONFIG;
+  try {
+    process.env.FEATURE_DRAFT_CONFIG = "false";
+    const app = makeRegistersLikeApp("draftConfig", "/:registerId/config-versions");
+    await withServer(app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/some-uuid`);
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.register, true);
+    });
+  } finally {
+    if (saved === undefined) delete process.env.FEATURE_DRAFT_CONFIG;
+    else process.env.FEATURE_DRAFT_CONFIG = saved;
+  }
+});
+
+test("registers router: GET /:registerId/config-versions returns 404 when draftConfig flag is disabled", async () => {
+  const saved = process.env.FEATURE_DRAFT_CONFIG;
+  try {
+    process.env.FEATURE_DRAFT_CONFIG = "false";
+    const app = makeRegistersLikeApp("draftConfig", "/:registerId/config-versions");
+    await withServer(app, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/some-uuid/config-versions`);
+      assert.equal(res.status, 404);
+      const body = await res.json();
+      assert.equal(body.error.code, "NOT_FOUND");
+    });
+  } finally {
+    if (saved === undefined) delete process.env.FEATURE_DRAFT_CONFIG;
+    else process.env.FEATURE_DRAFT_CONFIG = saved;
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Verify response shape contains no stack trace under any flag state
+// ---------------------------------------------------------------------------
+
 test("disabled-flag response body contains only error.code and error.message — no stack trace", async () => {
   const saved = process.env.FEATURE_NOTIFICATIONS;
   try {

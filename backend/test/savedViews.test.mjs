@@ -99,10 +99,12 @@ test("savedViews routes expose GET list, POST create, PATCH update, DELETE — a
     "utf8"
   );
 
-  assert.match(routes, /router\.get\(\s*"\/:registerId\/saved-views"/);
-  assert.match(routes, /router\.post\(\s*"\/:registerId\/saved-views"/);
-  assert.match(routes, /router\.patch\(\s*"\/:registerId\/saved-views\/:viewId"/);
-  assert.match(routes, /router\.delete\(\s*"\/:registerId\/saved-views\/:viewId"/);
+  // After BUG-054, prefix is stripped from the sub-router — paths are now relative
+  // and inherited from the mount point in registers.routes.ts.
+  assert.match(routes, /router\.get\(\s*"\/"/);
+  assert.match(routes, /router\.post\(\s*"\/"/);
+  assert.match(routes, /router\.patch\(\s*"\/:viewId"/);
+  assert.match(routes, /router\.delete\(\s*"\/:viewId"/);
 });
 
 test("savedViews routes are mounted under /registers with savedViews feature flag", async () => {

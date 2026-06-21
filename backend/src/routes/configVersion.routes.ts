@@ -23,56 +23,56 @@ export function createConfigVersionSubRouter() {
   const router = Router({ mergeParams: true });
 
   router.get(
-    "/:registerId/config-versions/status",
+    "/status",
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(getConfigVersionStatusController)
   );
 
   router.get(
-    "/:registerId/config-versions",
+    "/",
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(listConfigVersionsController)
   );
 
   router.post(
-    "/:registerId/config-versions/draft",
+    "/draft",
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(createDraftController)
   );
 
   router.patch(
-    "/:registerId/config-versions/draft",
+    "/draft",
     validateRequest({ params: registerIdParamsSchema, body: updateDraftBodySchema }),
     requireRegisterManagement(),
     asyncRoute(updateDraftController)
   );
 
   router.delete(
-    "/:registerId/config-versions/draft",
+    "/draft",
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(discardDraftController)
   );
 
   router.post(
-    "/:registerId/config-versions/draft/impact",
+    "/draft/impact",
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(analyseImpactController)
   );
 
   router.post(
-    "/:registerId/config-versions/draft/publish",
+    "/draft/publish",
     validateRequest({ params: registerIdParamsSchema }),
     requireRegisterManagement(),
     asyncRoute(publishDraftController)
   );
 
   router.post(
-    "/:registerId/config-versions/validate-formula",
+    "/validate-formula",
     validateRequest({ params: registerIdParamsSchema, body: validateFormulaBodySchema }),
     requireRegisterManagement(),
     asyncRoute(validateFormulaController)
