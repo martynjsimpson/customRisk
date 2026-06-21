@@ -179,6 +179,8 @@ export async function login(email: string, password: string): Promise<SessionRes
 
   const session = await issueSession(user);
 
+  logger.info({ userId: user.id, email: user.email }, "User login succeeded");
+
   await prisma.user.update({
     where: { id: user.id },
     data: {
@@ -274,6 +276,8 @@ export async function logout(userId: string, refreshToken?: string) {
   if (refreshToken) {
     await revokeRefreshToken(userId, refreshToken);
   }
+
+  logger.info({ userId }, "User session revoked");
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

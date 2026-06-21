@@ -15,6 +15,21 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-06-21
+
+### Added
+
+- **Structured production logging with configurable verbosity (MAINT-008)**
+  - The backend now emits structured JSON logs to stdout, covering HTTP requests, auth events, client errors, and significant config mutations. A `LOG_LEVEL` environment variable controls verbosity (`error`, `warn`, `info`, `debug`); the recommended production default is `error`. In local development, logs are pretty-printed automatically. `docker-compose.yml` forwards `LOG_LEVEL` from the operator's `.env`. A new `docs/operations/observability.md` guide documents log tailing commands, log level guidance, and how to temporarily elevate verbosity during incident investigation.
+
+- **Production editions model scoping document (SPIKE-004)**
+  - A scoping document at `docs/spikes/SPIKE-004.md` explores a named-editions model for managing feature flags in production. It covers how editions are defined, how a deployment selects one via a single `EDITION` env var, how local development retains per-flag flexibility, and how the current `featureFlags.ts` approach migrates. The document also addresses how editions would affect the BUG-055 class of issue and how an edition could later attach to an org or tenant entity. No implementation work is included — this is the basis for follow-on backlog items.
+
+### Fixed
+
+- **Register settings form no longer auto-saves on blur in draft config mode (BUG-056)**
+  - The PA audit confirmed that draft config snapshot content (fields, scoring, risk levels, matrix, formula) is correctly routed exclusively through the draft endpoint on all config pages. The one issue found: the register settings form (name, description, riskIdPrefix, etc.) was firing a direct `PATCH` to the register record on every focus-leave event, even during a draft editing session. This caused premature, unintended saves of intermediate form state. The blur handler is now guarded so it only fires when draft config mode is inactive; in draft mode, settings are saved explicitly.
+
 ## [1.21.0] - 2026-06-21
 
 ### Added

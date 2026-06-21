@@ -1,6 +1,7 @@
 import { ConfigVersionStatus } from "@prisma/client";
 
 import { auditActions } from "../audit/auditActions.js";
+import { logger } from "../config/logger.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type {
@@ -374,6 +375,7 @@ export async function discardDraft(
   actorName: string,
   actorEmail: string
 ) {
+  logger.debug({ registerId, userId: actorId }, "Discarding draft config");
   const register = await findRegisterWithVersions(registerId);
 
   if (!register.draftConfigVersionId) {
@@ -780,6 +782,7 @@ export async function publishDraft(
   actorName: string,
   actorEmail: string
 ) {
+  logger.debug({ registerId, userId: actorId }, "Publishing draft config");
   const register = await findRegisterWithVersions(registerId);
 
   if (!register.draftConfigVersionId) {

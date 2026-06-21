@@ -42,7 +42,7 @@ async function waitForDatabase(databaseUrl: string, timeoutMs = 30_000) {
   throw new Error("Database was not reachable before startup timeout");
 }
 
-const app = createApp({ logger });
+const app = createApp();
 
 try {
   validateRuntimeEnvironment();

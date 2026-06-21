@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { auditActions } from "../audit/auditActions.js";
+import { logger } from "../config/logger.js";
 import { prisma } from "../db/prisma.js";
 import { ApiError } from "../errors/apiError.js";
 import type { RegisterConfigSnapshot } from "../types/configSnapshot.js";
@@ -439,6 +440,7 @@ export async function applyTemplateUpdateToDraft(
   actorName: string,
   actorEmail: string
 ) {
+  logger.debug({ registerId, userId: actorId }, "Applying template to draft config");
   const [register, templateVersion] = await Promise.all([
     prisma.register.findUnique({
       where: { id: registerId },
