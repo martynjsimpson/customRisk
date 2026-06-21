@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.20.0
 
 ## Release goal
@@ -12,7 +12,8 @@ Produce a set of investigation and scoping documents that unblock future deliver
 ### BUG-051 — Surface response actions help content within the risks help section
 Source: REQ-067
 Capability: help-content
-Status: proposed
+Status: done
+done_in: v1.20.0
 
 **Problem:** `frontend/public/help/en/response-actions.md` was written as part of v1.19.0 but was never wired into the in-app help page. Users cannot discover response action documentation from the help UI.
 
@@ -27,7 +28,8 @@ Status: proposed
 ### MAINT-010 — Establish coding standards for frontend, backend, and test code
 Source: REQ-069
 Capability: build-toolchain
-Status: proposed
+Status: done
+done_in: v1.20.0
 
 **Problem:** No agreed coding standards exist for the project. Engineers and reviewers have no shared reference for when to refactor, how to structure components and services, or how to write and maintain tests.
 
@@ -44,7 +46,8 @@ Status: proposed
 ### SPIKE-005 — Spike: internationalisation architecture assessment
 Source: REQ-068
 Capability: architecture
-Status: proposed
+Status: done
+done_in: v1.20.0
 
 **Problem:** No i18n architecture assessment exists. If multi-language support becomes a requirement, the team has no agreed approach for how to add it across the frontend, backend, help content, validation messages, and configuration labels.
 
@@ -60,7 +63,8 @@ Status: proposed
 ### QA-001 — Write manual permission test plan covering all role and content-type permutations
 Source: REQ-056
 Capability: build-toolchain
-Status: proposed
+Status: done
+done_in: v1.20.0
 
 **Problem:** No comprehensive permission test plan exists. There is no authoritative reference document describing what each role can and cannot do across every entity type — making it difficult to verify permission correctness manually or to scope automated permission testing.
 
@@ -76,7 +80,8 @@ Status: proposed
 ### SPIKE-003 — Spike: evaluate Playwright for browser-based permission testing
 Source: REQ-057
 Capability: build-toolchain
-Status: proposed
+Status: done
+done_in: v1.20.0
 Depends on: QA-001
 
 **Problem:** Current static and Vitest/jsdom tests do not fully exercise real login sessions, routing, backend authorisation, and browser-rendered permission states together. Before committing to Playwright (or any alternative), the architecture and implementation approach should be evaluated and documented.
@@ -111,11 +116,11 @@ No open decisions. All scoping questions were resolved during refinement.
 
 ## Test / sign-off
 
-- [ ] BUG-051: Help page verified — response actions content reachable from risks section, no regression to other help tabs
-- [ ] MAINT-010: Coding standards document reviewed by PM and confirmed fit for purpose before MAINT-011/012/013 audits begin
-- [ ] SPIKE-005: i18n spike document reviewed and accepted
-- [ ] QA-001: Permission test plan reviewed against PRD §5 and §12 for completeness
-- [ ] SPIKE-003: Playwright spike document reviewed and accepted; confirms no implementation starts until a follow-on release is approved
+- [x] BUG-051: Help page verified — response actions content reachable from risks section, no regression to other help tabs
+- [x] MAINT-010: Coding standards document reviewed by PM and confirmed fit for purpose before MAINT-011/012/013 audits begin
+- [x] SPIKE-005: i18n spike document reviewed and accepted
+- [x] QA-001: Permission test plan reviewed against PRD §5 and §12 for completeness
+- [x] SPIKE-003: Playwright spike document reviewed and accepted; confirms no implementation starts until a follow-on release is approved
 
 ## Blockers
 
