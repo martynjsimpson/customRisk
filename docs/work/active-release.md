@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.23.0
 
 ## Release goal
@@ -13,6 +13,8 @@ Fix a data integrity bug on the admin homepage and complete the pending develope
 Source: REQ-074
 Capability: homepage
 Suggested agents: backend-developer, test-engineer
+Status: done
+done_in: v1.23.0
 
 **Problem:** The Admin summary widget on the homepage includes soft-deleted registers in its per-register risk and overdue counts. The backend query powering the widget is missing a soft-delete filter.
 
@@ -28,6 +30,8 @@ Suggested agents: backend-developer, test-engineer
 Source: REQ-070
 Capability: build-toolchain
 Suggested agents: frontend-developer
+Status: done
+done_in: v1.23.0
 
 **Problem:** Frontend code has not been assessed against the coding standards established in MAINT-010 (v1.20.0). Duplication, weak component reuse, and inconsistent patterns may have accumulated across the codebase.
 
@@ -43,6 +47,8 @@ Suggested agents: frontend-developer
 Source: REQ-071
 Capability: build-toolchain
 Suggested agents: backend-developer
+Status: done
+done_in: v1.23.0
 
 **Problem:** Backend code has not been assessed against the coding standards established in MAINT-010 (v1.20.0). Duplication, inconsistent service patterns, and error handling gaps may have accumulated.
 
@@ -58,6 +64,8 @@ Suggested agents: backend-developer
 Source: REQ-072
 Capability: build-toolchain
 Suggested agents: test-engineer
+Status: done
+done_in: v1.23.0
 
 **Problem:** Test code has not been assessed against the coding standards established in MAINT-010 (v1.20.0). Missing regression coverage, brittle assertions, and inconsistent naming may be present.
 
@@ -73,6 +81,8 @@ Suggested agents: test-engineer
 Source: REQ-073
 Capability: build-toolchain
 Suggested agents: backend-developer
+Status: done
+done_in: v1.23.0
 
 **Problem:** The seed data (backend/prisma/seed.ts) was last meaningfully updated before v1.7.0. It does not cover custom fields, child record response actions, configurable scoring formulas, or review history — all of which have shipped since.
 
@@ -106,15 +116,33 @@ No open product or UX decisions. All items are implementation-ready.
 
 ## Test / sign-off
 
-- [ ] BUG-057: Admin summary widget does not show soft-deleted registers; test coverage added.
-- [ ] MAINT-011: Frontend code audit complete; quick fixes applied; any larger items logged as deferred.
-- [ ] MAINT-012: Backend code audit complete; quick fixes applied; any larger items logged as deferred.
-- [ ] MAINT-013: Test code audit complete; quick fixes applied; any larger items logged as deferred.
-- [ ] MAINT-014: Seed runs cleanly; seeded data demonstrates custom fields, child record actions, custom formula, and review history; seed is idempotent.
+- [x] BUG-057: Admin summary widget does not show soft-deleted registers; test coverage added.
+- [x] MAINT-011: Frontend code audit complete; quick fixes applied; any larger items logged as deferred.
+- [x] MAINT-012: Backend code audit complete; quick fixes applied; any larger items logged as deferred.
+- [x] MAINT-013: Test code audit complete; quick fixes applied; any larger items logged as deferred.
+- [x] MAINT-014: Seed runs cleanly; seeded data demonstrates custom fields, child record actions, custom formula, and review history; seed is idempotent.
 
 ## Blockers
 
 None.
+
+---
+
+## Deferred items for PM
+
+- **Frontend page component extraction (MAINT-011):** `RegisterDetailPage.tsx`, `UsersPage.tsx`, and `MyRisksPage.tsx` each contain substantial logic and JSX that should be extracted into feature components. Deferred from v1.23.0 — each requires ~80–300 lines of extraction and potential new feature directories; not appropriate for an in-release quick fix.
+
+- **Backend utility deduplication (MAINT-012):** `toDateOnlyString` and `decimalToNumber` are duplicated across four service files (`risks.service.ts`, `reviews.service.ts`, `dashboard.service.ts`, `customFieldValues.service.ts`). Should be extracted to `backend/src/utils/`. Deferred from v1.23.0 — multi-file change across high-traffic services, warrants dedicated coverage.
+
+- **Backend service size (MAINT-012):** `risks.service.ts` (1,248 lines) and `configVersion.service.ts` (1,186 lines) carry multiple distinct responsibilities. Both warrant extraction into sub-services. Requires Principal Architect review. Deferred from v1.23.0.
+
+- **Test file block comments (MAINT-013):** ~38 test files (24 backend, 14 frontend static) are missing required opening block comments. Low risk, high volume — recommend a rolling backlog item to add them during upcoming releases.
+
+- **`describe` grouping in `myRisks.test.mjs` (MAINT-013):** 17 tests currently separated by inline comments rather than `describe` blocks. Deferred from v1.23.0 — restructuring requires intentional coordination around test name changes.
+
+- **`querySelector` in test files (MAINT-013):** `passwordStrength.behavior.test.tsx`, `apiKeys.behavior.test.tsx`, and `riskDetailModal.behavior.test.tsx` use brittle DOM selectors. Fixing requires `aria-label` or `data-testid` additions in source components — redirect to frontend developer. Deferred from v1.23.0.
+
+- **Frontend static test extension `.mjs` vs `.ts` (MAINT-013):** All 16 frontend static tests use `.test.mjs`; standard says `.test.ts`. Architectural decision — requires Principal Architect review before any rename. Deferred from v1.23.0.
 
 ---
 
