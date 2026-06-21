@@ -240,12 +240,25 @@ test("responseActions service uses REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS impact c
   assert.match(source, /REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS/);
 });
 
-test("responseActions service migrateChildRecordsToSimple queries use r.is_active, not r.is_deleted", async () => {
-  // Regression: queries previously used r.is_deleted = false (wrong column); corrected to r.is_active = true
+test("responseActions service migrateChildRecordsToSimple queries use r.state <> 'CLOSED', not r.is_active or r.is_deleted", async () => {
+  // Regression: queries previously used r.is_deleted = false (wrong column); corrected to r.state <> 'CLOSED'
+  // (the risk table has a state RiskState column, not is_active or is_deleted boolean columns)
   const source = await readFile(new URL("../src/services/responseActions.service.ts", import.meta.url), "utf8");
 
-  assert.doesNotMatch(source, /r\.is_deleted/, "r.is_deleted is not a column on the risk table — must use r.is_active");
-  assert.match(source, /r\.is_active\s*=\s*true/, "migrateChildRecordsToSimple must filter on r.is_active = true");
+  assert.doesNotMatch(source, /r\.is_deleted/, "r.is_deleted is not a column on the risk table");
+  assert.doesNotMatch(source, /r\.is_active/, "r.is_active is not a column on the risk table");
+  assert.match(source, /r\.state\s*<>\s*'CLOSED'/, "migrateChildRecordsToSimple must filter active risks using r.state <> 'CLOSED'");
+});
+
+test("responseActions service migrateChildRecordsToSimple uses systemUpdatedAt and systemUpdatedByUserId on risk.update", async () => {
+  // Regression: tx.risk.update() previously used updatedAt/updatedByUserId (Prisma-managed fields);
+  // corrected to systemUpdatedAt/systemUpdatedByUserId (the application-managed audit columns on Risk).
+  const source = await readFile(new URL("../src/services/responseActions.service.ts", import.meta.url), "utf8");
+
+  assert.match(source, /systemUpdatedAt/, "migrateChildRecordsToSimple must set systemUpdatedAt on risk.update");
+  assert.match(source, /systemUpdatedByUserId/, "migrateChildRecordsToSimple must set systemUpdatedByUserId on risk.update");
+  // The old wrong field names must not appear in the migrate-back path
+  assert.doesNotMatch(source, /data:\s*\{[^}]*updatedAt:[^}]*\}/, "risk.update data must not use plain updatedAt");
 });
 
 // ---------------------------------------------------------------------------
@@ -271,12 +284,14 @@ test("configVersion service analyseImpact emits REVERT_MODE_WILL_MIGRATE code", 
   assert.match(source, /REVERT_MODE_WILL_MIGRATE/);
 });
 
-test("configVersion service analyseImpact feasibility query uses r.is_active, not r.is_deleted", async () => {
-  // Regression: query previously used r.is_deleted = false (wrong column); corrected to r.is_active = true
+test("configVersion service analyseImpact feasibility query uses r.state <> 'CLOSED', not r.is_active or r.is_deleted", async () => {
+  // Regression: query previously used r.is_deleted = false (wrong column); corrected to r.state <> 'CLOSED'
+  // (the risk table has a state RiskState column, not is_active or is_deleted boolean columns)
   const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
 
-  assert.doesNotMatch(source, /r\.is_deleted/, "r.is_deleted is not a column on the risk table — must use r.is_active");
-  assert.match(source, /r\.is_active\s*=\s*true/, "analyseImpact feasibility query must filter on r.is_active = true");
+  assert.doesNotMatch(source, /r\.is_deleted/, "r.is_deleted is not a column on the risk table");
+  assert.doesNotMatch(source, /r\.is_active/, "r.is_active is not a column on the risk table");
+  assert.match(source, /r\.state\s*<>\s*'CLOSED'/, "analyseImpact feasibility query must filter active risks using r.state <> 'CLOSED'");
 });
 
 test("registers service includes responseActionMode in registerSelect", async () => {

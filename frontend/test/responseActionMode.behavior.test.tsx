@@ -145,7 +145,7 @@ function makeRegisterConfig(responseActionMode: "SIMPLE" | "CHILD_RECORDS" = "SI
 function makeImpactResult(overrides: Partial<{
   blockers: string[];
   warnings: string[];
-  entries: Array<{ type: "BLOCKER" | "WARNING"; code: string; message: string; meta?: Record<string, unknown> }>;
+  impactEntries: Array<{ type: "BLOCKER" | "WARNING"; code: string; message: string; meta?: Record<string, unknown> }>;
   canPublish: boolean;
 }> = {}) {
   return {
@@ -158,7 +158,7 @@ function makeImpactResult(overrides: Partial<{
     },
     warnings: overrides.warnings ?? [],
     blockers: overrides.blockers ?? [],
-    entries: overrides.entries ?? [],
+    impactEntries: overrides.impactEntries ?? [],
     canPublish: overrides.canPublish ?? true,
   };
 }
@@ -272,8 +272,8 @@ describe("ConfigVersionBanner — structured ImpactEntry rendering", () => {
       </Wrapper>
     );
 
-    // Wait for draft banner to appear and click Run Impact Analysis
-    const runBtn = await screen.findByRole("button", { name: /run impact analysis/i });
+    // Wait for draft banner to appear and click Publish (which runs impact analysis first)
+    const runBtn = await screen.findByRole("button", { name: /^publish$/i });
     await user.click(runBtn);
 
     return user;
@@ -282,7 +282,7 @@ describe("ConfigVersionBanner — structured ImpactEntry rendering", () => {
   it("shows offending risk list for REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS", async () => {
     const result = makeImpactResult({
       canPublish: false,
-      entries: [
+      impactEntries: [
         {
           type: "BLOCKER",
           code: "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS",
@@ -314,7 +314,7 @@ describe("ConfigVersionBanner — structured ImpactEntry rendering", () => {
   it("shows warning message for REVERT_MODE_WILL_MIGRATE", async () => {
     const result = makeImpactResult({
       canPublish: true,
-      entries: [
+      impactEntries: [
         {
           type: "WARNING",
           code: "REVERT_MODE_WILL_MIGRATE",
@@ -335,7 +335,7 @@ describe("ConfigVersionBanner — structured ImpactEntry rendering", () => {
   it("Publish button is disabled when REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS is a blocker", async () => {
     const result = makeImpactResult({
       canPublish: false,
-      entries: [
+      impactEntries: [
         {
           type: "BLOCKER",
           code: "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS",
