@@ -78,9 +78,14 @@ export function ResponseActionModal({
   }, [opened, action, setValues]);
 
   const invalidateActions = () =>
-    queryClient.invalidateQueries({
-      queryKey: ["registers", registerId, "risks", riskId, "actions"],
-    });
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ["registers", registerId, "risks", riskId, "actions"],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["audit", "risk", registerId, riskId],
+      }),
+    ]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -108,6 +113,12 @@ export function ResponseActionModal({
     },
   });
 
+  function handleClose() {
+    saveMutation.reset();
+    deleteMutation.reset();
+    onClose();
+  }
+
   const handleDelete = () => {
     if (window.confirm("Delete this response action? This cannot be undone.")) {
       deleteMutation.mutate();
@@ -117,7 +128,7 @@ export function ResponseActionModal({
   return (
     <Modal
       opened={opened}
-      onClose={onClose}
+      onClose={handleClose}
       title={isEdit ? "Edit Response Action" : "Add Response Action"}
       size="lg"
       centered
@@ -168,7 +179,7 @@ export function ResponseActionModal({
               <Text />
             )}
             <Group gap="xs">
-              <Button variant="subtle" size="xs" onClick={onClose} type="button">
+              <Button variant="subtle" size="xs" onClick={handleClose} type="button">
                 Cancel
               </Button>
               <Button size="xs" type="submit" loading={saveMutation.isPending}>

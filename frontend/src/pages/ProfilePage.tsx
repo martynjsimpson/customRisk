@@ -110,6 +110,12 @@ export function ProfilePage() {
     openGenerate();
   };
 
+  const handleCloseGenerate = () => {
+    generateMutation.reset();
+    generateForm.reset();
+    closeGenerate();
+  };
+
   const formatDate = (iso: string | null) => {
     if (!iso) return "—";
     return new Date(iso).toLocaleDateString();
@@ -342,7 +348,7 @@ export function ProfilePage() {
       )}
 
       {/* Generate API key modal */}
-      <Modal opened={generateOpened} onClose={closeGenerate} title="Generate API Key">
+      <Modal opened={generateOpened} onClose={handleCloseGenerate} title="Generate API Key">
         <form onSubmit={generateForm.onSubmit(() => generateMutation.mutate())}>
           <Stack>
             <ApiErrorAlert error={generateMutation.error} fallback="Unable to create API key" />

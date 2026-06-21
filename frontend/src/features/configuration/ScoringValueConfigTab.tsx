@@ -261,7 +261,11 @@ export function ScoringValueConfigTab<TValue extends ScoringValueRecord>({
 
       <Modal
         opened={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          createValueMutation.reset();
+          updateValueMutation.reset();
+          setModalOpen(false);
+        }}
         title={editingValue ? labels.editModalTitle : labels.createModalTitle}
       >
         <form

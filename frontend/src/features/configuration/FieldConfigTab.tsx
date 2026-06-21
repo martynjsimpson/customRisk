@@ -425,6 +425,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         isSaving={createFieldMutation.isPending || updateFieldMutation.isPending}
         validationEnabled={configQuery.data?.register.customFieldValidationEnabled ?? false}
         onClose={() => {
+          createFieldMutation.reset();
+          updateFieldMutation.reset();
           setFieldModalOpen(false);
           setEditingField(null);
         }}
@@ -476,6 +478,9 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
         deactivateError={deactivateOptionMutation.error}
         isSaving={createOptionMutation.isPending || updateOptionMutation.isPending}
         onClose={() => {
+          createOptionMutation.reset();
+          updateOptionMutation.reset();
+          deactivateOptionMutation.reset();
           setOptionsModalOpen(false);
           setOptionEditorOpen(false);
           setSelectedField(null);
@@ -490,6 +495,8 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
           setOptionEditorOpen(true);
         }}
         onCloseEditor={() => {
+          createOptionMutation.reset();
+          updateOptionMutation.reset();
           setOptionEditorOpen(false);
           setEditingOption(null);
         }}

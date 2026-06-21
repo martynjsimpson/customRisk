@@ -262,7 +262,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
 
       <Modal
         opened={deleteConfirmOpen}
-        onClose={() => { closeDeleteConfirm(); setDeleteNameInput(""); }}
+        onClose={() => { deleteMutation.reset(); closeDeleteConfirm(); setDeleteNameInput(""); }}
         title="Delete register"
         size="sm"
         centered

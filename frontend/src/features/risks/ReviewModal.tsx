@@ -39,8 +39,15 @@ export function ReviewModal({
     }
   });
 
+  function handleClose() {
+    reviewMutation.reset();
+    setReviewConfirmed(false);
+    setReviewComment("");
+    onClose();
+  }
+
   return (
-    <Modal opened={opened && Boolean(riskId)} onClose={onClose} title="Review risk">
+    <Modal opened={opened && Boolean(riskId)} onClose={handleClose} title="Review risk">
       <Stack>
         <ApiErrorAlert error={reviewMutation.error} fallback="Unable to complete review" />
         <Alert>
@@ -53,7 +60,7 @@ export function ReviewModal({
           onChange={(event) => setReviewConfirmed(event.currentTarget.checked)}
         />
         <Group justify="flex-end">
-          <Button variant="subtle" onClick={onClose}>Cancel</Button>
+          <Button variant="subtle" onClick={handleClose}>Cancel</Button>
           <Button
             disabled={!reviewConfirmed}
             loading={reviewMutation.isPending}
