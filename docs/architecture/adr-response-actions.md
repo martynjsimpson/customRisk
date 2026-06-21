@@ -580,3 +580,577 @@ safer. Rejected.
 entities that can be reactivated (likelihood values, custom fields, etc.). Deleted actions should
 not be reactivated — soft delete with `isDeleted` is the more semantically correct choice for data
 records. Rejected.
+
+---
+
+## Amendment — Draft-gated `responseActionMode` toggle
+
+**Status:** Accepted  
+**Date:** 2026-06-20  
+**Amends:** §3.1, §3.3, §4.1, §5.2 of this ADR  
+**Trigger:** Verification of PM7-CORE revealed that the immediate PATCH-triggered mode switch
+bypasses the draft config system, which is inconsistent with all other register settings changes.
+The product owner requires `responseActionMode` to follow the same draft gate as every other setting.
+
+---
+
+### A.1 What changes at the conceptual level
+
+The original design triggered migration the instant the Register Admin sent
+`PATCH /registers/:registerId/settings` with `responseActionMode: "CHILD_RECORDS"`. This was a
+deliberate simplification: the draft config system did not exist at the time the original ADR was
+written.
+
+The amended design integrates `responseActionMode` fully into the draft config lifecycle:
+
+1. The intended mode value is stored in the draft config snapshot.
+2. Migration does not run at toggle time — it runs at publish time.
+3. The toggle is subject to the same `settingsLocked` gate as every other register setting.
+4. If the admin toggles SIMPLE → CHILD_RECORDS then back to SIMPLE before publishing, publish is a
+   no-op for this field.
+
+---
+
+### A.2 Where the pending value lives during draft
+
+`responseActionMode` is added to `ConfigSnapshotRegisterSettings` (in
+`backend/src/types/configSnapshot.ts`) as a new field:
+
+```ts
+responseActionMode: "SIMPLE" | "CHILD_RECORDS";
+```
+
+This is the correct location for two reasons:
+
+- All other register settings that participate in the draft cycle already live in
+  `snapshot.register` (the `ConfigSnapshotRegisterSettings` block). There is no existing
+  per-register staging field on `Register` itself, and introducing one would create a second
+  divergent pattern.
+- The snapshot already captures `scoringFormula` on `snapshot.register` even though it also lives
+  on the `Register` row (published separately at publish time). The `responseActionMode` field
+  follows the same pattern.
+
+A `pendingResponseActionMode` field on `Register` is explicitly rejected: it would require a
+schema migration for what is purely a snapshot concern, and it would create asymmetry where one
+setting has first-class staging but others do not.
+
+When `createDraft` runs, `buildSnapshotFromRelationalTables` must be extended to include the
+register's current live `responseActionMode` in the snapshot's `register` block. When an existing
+current config version is cloned into a new draft, the cloned snapshot will carry the value already
+if the snapshot was built after this amendment takes effect; for snapshots built before this
+amendment (which lack the field), the missing field should be treated as `"SIMPLE"` at read time
+via a normalize step.
+
+---
+
+### A.3 How the toggle interacts with the draft
+
+The existing `updateDraft` service function accepts a `patch.register` object and shallow-merges it
+into `snapshot.register`. No structural change to `updateDraft` is needed. The backend validator
+for `UpdateDraftBody` (in `backend/src/validators/configVersion.schemas.js`) must accept
+`responseActionMode: z.enum(["SIMPLE", "CHILD_RECORDS"]).optional()` within the `register` patch
+sub-object.
+
+The frontend's `RegisterSettingsTab` already saves all other register settings through
+`updateRegister` (the direct `PATCH /registers/:registerId` endpoint). However, `responseActionMode`
+in draft mode must save through the draft update path (`PATCH /registers/:registerId/config-versions/draft`
+with `{ register: { responseActionMode: "..." } }`), not through `updateRegister`, because the
+whole point is that the change must not take immediate effect.
+
+The simplest frontend approach: treat `responseActionMode` as a distinct form field in
+`RegisterSettingsTab` that is only included in the `updateDraft` patch (not in the `updateRegister`
+mutation). When `settingsLocked` is true (draft config mode is on but no draft exists), the toggle
+is disabled. When `draftConfigMode && hasDraft`, the toggle is enabled and its save writes to the
+draft. The existing `settingsLocked = draftConfigMode && !hasDraft` expression already provides this
+gate — the toggle just needs to participate in it.
+
+The draft snapshot value is the source of truth for the toggle's displayed state when in draft
+mode. The frontend should read `snapshot.register.responseActionMode` from the draft when a draft
+exists, and fall back to `register.responseActionMode` (the live value) when no draft exists.
+
+---
+
+### A.4 When migration runs — publish time hook
+
+`publishDraft` in `backend/src/services/configVersion.service.ts` is the correct and only location
+for the migration trigger. There is already a natural extension point: after all upsert sections
+complete and before the final `Register` row update, insert a mode-change check.
+
+The logic inside the `prisma.$transaction` block in `publishDraft`:
+
+```ts
+// --- Apply responseActionMode from snapshot (with migration if needed) ---
+const snapshotMode = (snapshot.register as { responseActionMode?: string }).responseActionMode ?? "SIMPLE";
+const currentMode  = (await tx.register.findUnique({
+  where: { id: registerId },
+  select: { responseActionMode: true }
+}))?.responseActionMode ?? "SIMPLE";
+
+if (snapshotMode === "CHILD_RECORDS" && currentMode === "SIMPLE") {
+  // Acquire row lock before migration to prevent concurrent publishes
+  await tx.$executeRaw`SELECT id FROM register WHERE id = ${registerId} FOR UPDATE`;
+  await migrateSimpleResponseActionsToChildRecords(registerId, actorId, tx);
+}
+// If snapshotMode === currentMode: no-op.
+// If snapshotMode === "SIMPLE" and currentMode === "CHILD_RECORDS": blocked (see §A.5).
+```
+
+The `migrateSimpleResponseActionsToChildRecords` function already exists in
+`backend/src/services/registers.service.ts` and is the correct implementation to reuse. The backend
+developer should move or export this function so that `configVersion.service.ts` can call it, or
+extract it into a shared module (e.g. `responseActions.service.ts`). Duplicating the function is
+not acceptable.
+
+The `Register.responseActionMode` column is then set inside the existing `tx.register.update` call
+at the bottom of `publishDraft`. The `responseActionMode` value from the snapshot must be added to
+that update's `data` block:
+
+```ts
+responseActionMode: snapshotMode as "SIMPLE" | "CHILD_RECORDS",
+```
+
+This update is unconditional: if the snapshot says `SIMPLE` and the live value is already `SIMPLE`,
+writing `SIMPLE` is a no-op at the database level.
+
+The `analyseImpact` function should be extended to emit a warning when
+`snapshot.register.responseActionMode === "CHILD_RECORDS"` and the live register is currently
+`SIMPLE`, so that the admin is informed that migration will run. The warning text should read:
+`"Publishing will migrate existing simple response action values to child action records."` This is
+a warning, not a blocker — `canPublish` is not affected.
+
+---
+
+### A.5 Can the toggle go CHILD_RECORDS → SIMPLE in draft?
+
+**Updated by Amendment B (2026-06-20). The unconditional block at publish time has been replaced
+with a conditional feasibility check. See Amendment B below for the full design.**
+
+Summary: free movement in draft remains correct (no data has changed). At publish time, a revert
+from `CHILD_RECORDS` to `SIMPLE` is permitted if every risk in the register has 0 or 1 non-deleted
+child action records. It is blocked if any risk has 2 or more.
+
+---
+
+### A.6 What changes to the existing code
+
+#### Schema — no migration required
+
+`Register.responseActionMode` already exists on the `Register` model in the Prisma schema. No
+schema change is needed. The pending value travels through the `ConfigVersion.snapshotJson` JSONB
+column, which is schemaless from Postgres's perspective. No new Prisma migration is required for
+this amendment.
+
+#### `backend/src/types/configSnapshot.ts`
+
+- Add `responseActionMode: "SIMPLE" | "CHILD_RECORDS"` to `ConfigSnapshotRegisterSettings`.
+
+#### `backend/src/services/configVersion.service.ts` — `buildSnapshotFromRelationalTables`
+
+- Add `responseActionMode: true` to the `prisma.register.findUnique` select block.
+- Include `responseActionMode: register.responseActionMode` in the returned `snapshot.register`
+  object.
+
+#### `backend/src/services/configVersion.service.ts` — `normalizeSnapshot`
+
+- Add `responseActionMode: snapshot.register.responseActionMode ?? "SIMPLE"` to the
+  `register` spread in `normalizeSnapshot`. This handles legacy snapshots that pre-date this field.
+
+#### `backend/src/services/configVersion.service.ts` — `analyseImpact`
+
+- Add a warning when `snapshotMode === "CHILD_RECORDS"` and live register mode is `"SIMPLE"`.
+- For `snapshotMode === "SIMPLE"` and live register mode `"CHILD_RECORDS"`: run the feasibility
+  check (Amendment B §B.2). If any risk has ≥ 2 non-deleted actions, emit a blocker. If feasible,
+  emit a warning (not a blocker) so the admin is informed the revert migration will run. See
+  Amendment B for the full logic and error shape.
+
+#### `backend/src/services/configVersion.service.ts` — `publishDraft`
+
+- Extract mode values (snapshot vs live) before the transaction's register update.
+- Call `migrateSimpleResponseActionsToChildRecords` conditionally as described in §A.4.
+- Call `migrateChildRecordsToSimple` conditionally when `snapshotMode === "SIMPLE"` and
+  `currentMode === "CHILD_RECORDS"` (Amendment B §B.3). This path is only reached if
+  `analyseImpact` confirmed feasibility — the guard inside the migration function should
+  re-verify and throw if violated (defence in depth).
+- Add `responseActionMode` to the `tx.register.update` data block (unconditional).
+
+#### `backend/src/validators/configVersion.schemas.ts` (or `.js`)
+
+- Add `responseActionMode: z.enum(["SIMPLE", "CHILD_RECORDS"]).optional()` to the `register`
+  sub-object of the `UpdateDraftBody` schema.
+
+#### `backend/src/services/registers.service.ts`
+
+- Export `migrateSimpleResponseActionsToChildRecords` (currently private) so it can be called from
+  `configVersion.service.ts`, OR move it to a shared location such as
+  `backend/src/services/responseActions.service.ts`. The backend developer should choose the
+  location that best fits the existing module structure; the key constraint is no duplication.
+- The `updateRegister` function's guard (400 for CHILD_RECORDS → SIMPLE) remains unchanged — it
+  applies to the direct settings PATCH path.
+- The `PATCH /registers/:registerId/settings` endpoint should continue to reject
+  `responseActionMode` when the register is in draft config mode and `settingsLocked` applies.
+  Currently the endpoint accepts `responseActionMode` directly. Consider whether the validator
+  or service layer should reject a direct `responseActionMode` change when a draft exists, to avoid
+  confusion. This is a product call; architecturally either location is acceptable.
+
+#### Frontend — `RegisterSettingsTab.tsx`
+
+- Remove the separate "Switch to Child Records mode" button and the `switchToChildRecordsMutation`
+  entirely.
+- Remove the `childRecordsConfirmOpen` modal.
+- Add `responseActionMode` as a form field in `settingsForm.initialValues`, seeded from
+  `registerQuery.data?.responseActionMode` (live value when no draft) or from the draft snapshot
+  value when a draft exists (the frontend must fetch and read the draft snapshot — or a simplified
+  draft-settings endpoint — to know the pending value).
+- Render a `Switch` or `SegmentedControl` for "Response Actions Mode" (Simple / Child Records)
+  in the Response Actions settings section. Gate it with `disabled={!canManage || settingsLocked}`.
+- When in draft config mode (`draftConfigMode && hasDraft`), saving this field must send it through
+  the draft update mutation (`updateDraft` API call with `{ register: { responseActionMode } }`),
+  not through `updateRegister`. The simplest implementation: if `draftConfigMode`, use a separate
+  `updateDraftMutation` for `responseActionMode` changes, or include it in the draft save alongside
+  other draft-eligible changes. The frontend developer should determine how to wire this given the
+  existing split between the direct-settings save and draft save flows.
+- When the live register is already in `CHILD_RECORDS` mode, the toggle should be rendered as
+  checked and disabled regardless of draft state (since reverting is not supported, there is no
+  point offering the toggle).
+- Remove the import of `switchResponseActionMode` from `responseActions.api` once the button is
+  gone.
+
+---
+
+### A.7 Audit event for mode change at publish time
+
+The existing `configPublished` audit event (emitted at the end of `publishDraft`) covers the
+publish as a whole. The migration-specific audit events (`responseActionMigrated` per action,
+defined in §3.6 of this ADR) still apply and should be emitted inside
+`migrateSimpleResponseActionsToChildRecords` exactly as originally specified.
+
+No new audit event type is needed for the mode change itself — `configPublished` with
+`metadataJson` is sufficient. The backend developer may optionally add `responseActionModeChanged:
+true` to the `metadataJson` of the `configPublished` event when the mode changes at publish time,
+to make the audit log more readable.
+
+---
+
+### A.8 Summary of original ADR sections superseded
+
+| Original section | Status |
+|---|---|
+| §3.1 — Migration trigger: immediate PATCH | **Superseded.** Migration now triggers at publish time only. |
+| §3.3 — Migration runs in `registers.service.ts` transaction | **Partially superseded.** The function remains there but is called from `publishDraft` in `configVersion.service.ts`. |
+| §3.4 — Concurrency lock in `updateRegister` | **Retained for the direct-PATCH path.** A parallel lock is added in `publishDraft` for the draft publish path. |
+| §4.1 — PATCH `/settings` triggers migration | **Superseded.** The PATCH endpoint no longer triggers migration; it remains valid for non-mode settings and for registers not in draft config mode. |
+| §5.2 — "Switch to Child Records mode" button | **Superseded.** Replaced by a toggle in the settings form subject to `settingsLocked`. |
+
+---
+
+## Amendment B — Conditional CHILD_RECORDS → SIMPLE revert
+
+**Status:** Accepted  
+**Date:** 2026-06-20  
+**Amends:** Amendment A §A.5, §A.6 (`analyseImpact`, `publishDraft`)  
+**Trigger:** Product owner requires that revert from `CHILD_RECORDS` to `SIMPLE` be permitted when
+the data loss can be reduced to a trivial copy — specifically when every risk in the register has
+at most one non-deleted child action record, making the revert lossless (the single action's text
+is written back into the legacy simple field).
+
+---
+
+### B.1 Principle
+
+The revert is a conditional migration, not an unconditional block. The condition is evaluated at
+two points:
+
+1. **`analyseImpact`** — before publish, to surface the outcome to the admin as either a blocker
+   or a warning.
+2. **`migrateChildRecordsToSimple`** — inside the publish transaction, as defence-in-depth (data
+   must not change between the impact check and the transaction commit).
+
+The guard in `updateRegister` (the direct `PATCH /registers/:registerId/settings` path) continues
+to block `CHILD_RECORDS → SIMPLE` unconditionally on the direct path. That path bypasses the
+draft cycle and therefore bypasses the feasibility check infrastructure. This restriction on the
+direct path is not relaxed by this amendment.
+
+---
+
+### B.2 Feasibility check
+
+#### What "feasible" means
+
+A revert is feasible if and only if every risk in the register (excluding deleted risks, i.e.
+`Risk.isDeleted = false`) has **0 or 1** non-deleted `ResponseAction` records linked to it via
+`RiskResponseAction`.
+
+A risk with 0 actions: no write needed to `Risk.responseAction`. The field retains its pre-mode-
+switch value (which was preserved intact per §3.2 of the original ADR).
+
+A risk with exactly 1 action: `ResponseAction.response` is written into `Risk.responseAction` for
+that risk.
+
+If any risk has ≥ 2 non-deleted actions the revert cannot proceed without data loss (the second
+and subsequent actions have no target field). This is a blocker.
+
+#### Query pattern
+
+```ts
+// Run outside the publish transaction, inside analyseImpact, before emitting impact entries.
+const actionCounts = await client.$queryRaw<{ risk_id: string; cnt: bigint }[]>`
+  SELECT rra.risk_id, COUNT(ra.id) AS cnt
+  FROM risk_response_action rra
+  JOIN response_action ra ON ra.id = rra.response_action_id
+  JOIN risk r ON r.id = rra.risk_id
+  WHERE rra.register_id = ${registerId}
+    AND ra.is_deleted   = false
+    AND r.is_deleted    = false
+  GROUP BY rra.risk_id
+  HAVING COUNT(ra.id) >= 2
+`;
+```
+
+If `actionCounts` is non-empty the revert is blocked. The query returns only the offending rows
+(`HAVING COUNT >= 2`) so the result set is bounded by the number of problematic risks, not the
+total risk count.
+
+#### `analyseImpact` impact entries
+
+When `snapshotMode === "SIMPLE"` and `currentMode === "CHILD_RECORDS"`:
+
+- Run the feasibility query above.
+- If `actionCounts.length > 0`:
+  - Collect `displayRiskId` and `title` for each offending `riskId` (a follow-up
+    `risk.findMany({ where: { id: { in: offendingIds } }, select: { displayRiskId, title } })` is
+    the correct approach — do not join in the raw query; keep the raw query minimal).
+  - Emit one **blocker** impact entry (type `"BLOCKER"` in the existing `analyseImpact` structure)
+    with code `REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS`. This prevents `canPublish` from returning
+    `true`.
+- If `actionCounts.length === 0`:
+  - Emit one **warning** impact entry with code `REVERT_MODE_WILL_MIGRATE`. Text:
+    `"Publishing will revert Response Action mode to Simple. Each risk's most recent action text
+    will be written back to the simple response field, and all child action records will be
+    soft-deleted."` This does not block publish.
+
+---
+
+### B.3 Error shape for the blocker
+
+The blocker must carry enough information for the frontend to show the admin exactly which risks
+to fix. The blocker impact entry follows the existing `analyseImpact` impact-entry shape, extended
+with a `meta` field:
+
+```ts
+{
+  type:    "BLOCKER",
+  code:    "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS",
+  message: "Cannot revert Response Action mode to Simple: the following risks have 2 or more active action records. Reduce each to a single action (or delete all actions) before publishing.",
+  meta: {
+    offendingRisks: [
+      { riskId: "uuid", displayRiskId: "R-001", title: "Risk title" },
+      ...
+    ]
+  }
+}
+```
+
+The `meta.offendingRisks` array is the authoritative error payload. The frontend should render it
+as a list of links or risk identifiers so the admin can navigate directly to each risk and resolve
+the conflict.
+
+If the existing `analyseImpact` return type does not currently include a `meta` field on impact
+entries, the backend developer must extend the `ImpactEntry` type (in
+`backend/src/types/configVersion.ts` or equivalent) to accept `meta?: Record<string, unknown>`.
+The frontend impact-display component must be extended to handle the `offendingRisks` list when
+`code === "REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS"`.
+
+---
+
+### B.4 Revert migration at publish time
+
+#### Function signature
+
+```ts
+async function migrateChildRecordsToSimple(
+  registerId: string,
+  actorId:    string,
+  tx:         Prisma.TransactionClient
+): Promise<void>
+```
+
+Locate this function alongside `migrateSimpleResponseActionsToChildRecords` — in whichever shared
+module the backend developer chose when exporting that function (per A.6).
+
+#### What the function does
+
+1. **Re-verify feasibility inside the transaction** (defence in depth):
+
+   ```ts
+   const blockers = await tx.$queryRaw<{ risk_id: string }[]>`
+     SELECT rra.risk_id
+     FROM risk_response_action rra
+     JOIN response_action ra ON ra.id = rra.response_action_id
+     JOIN risk r ON r.id = rra.risk_id
+     WHERE rra.register_id = ${registerId}
+       AND ra.is_deleted   = false
+       AND r.is_deleted    = false
+     GROUP BY rra.risk_id
+     HAVING COUNT(ra.id) >= 2
+   `;
+   if (blockers.length > 0) {
+     throw new ConflictError("REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS",
+       "One or more risks have multiple active action records; revert aborted.");
+   }
+   ```
+
+2. **Fetch risks with exactly 1 non-deleted action** and their action's `response` text:
+
+   ```ts
+   const singles = await tx.$queryRaw<{ risk_id: string; response: string; action_id: string }[]>`
+     SELECT rra.risk_id, ra.response, ra.id AS action_id
+     FROM risk_response_action rra
+     JOIN response_action ra ON ra.id = rra.response_action_id
+     JOIN risk r ON r.id = rra.risk_id
+     WHERE rra.register_id = ${registerId}
+       AND ra.is_deleted   = false
+       AND r.is_deleted    = false
+   `;
+   // At this point we know each risk_id appears exactly once (verified by step 1).
+   ```
+
+3. **Write `ResponseAction.response` back into `Risk.responseAction`** for each single-action risk:
+
+   ```ts
+   for (const row of singles) {
+     await tx.risk.update({
+       where: { id: row.risk_id },
+       data: {
+         responseAction:  row.response,
+         updatedAt:       new Date(),
+         updatedByUserId: actorId
+       }
+     });
+   }
+   ```
+
+   Risks with 0 actions are not touched — their `Risk.responseAction` value is already intact
+   from before the forward migration (per §3.2 of the original ADR, the field was never cleared).
+
+4. **Soft-delete all `ResponseAction` records for this register:**
+
+   ```ts
+   // Collect all non-deleted action IDs for this register.
+   const actionIds = await tx.riskResponseAction.findMany({
+     where: { registerId },
+     select: { responseActionId: true }
+   });
+   const ids = [...new Set(actionIds.map(r => r.responseActionId))];
+
+   await tx.responseAction.updateMany({
+     where: { id: { in: ids }, isDeleted: false },
+     data: {
+       isDeleted:       true,
+       deletedAt:       new Date(),
+       deletedByUserId: actorId
+     }
+   });
+   ```
+
+   The `RiskResponseAction` link rows are left as-is. They reference soft-deleted actions and are
+   therefore excluded from all active-record queries (which always filter `ra.isDeleted = false`).
+   No hard delete is performed; the link rows preserve the audit trail.
+
+5. **Emit audit events** (see §B.5).
+
+#### Transaction context
+
+This function is called from within the `prisma.$transaction` block in `publishDraft`, after the
+`migrateSimpleResponseActionsToChildRecords` branch and before the final `tx.register.update`.
+The row lock on `Register` (acquired at the top of the publish transaction per §A.4) prevents
+concurrent revert attempts on the same register.
+
+---
+
+### B.5 Audit events for the revert migration
+
+Two event types are emitted from within `migrateChildRecordsToSimple`:
+
+#### Per-action soft-delete event
+
+Emit one `RESPONSE_ACTION` / `responseActionDeleted` audit event per soft-deleted `ResponseAction`
+record, following the same structure used for user-initiated deletes (§4.4 of the original ADR):
+
+- `objectType`: `RESPONSE_ACTION`
+- `objectId`: the `ResponseAction.id`
+- `action`: `responseActionDeleted`
+- `scopeType`: `RISK`
+- `registerId`: the register's id
+- `riskId`: obtained from the `RiskResponseAction` link row
+- `actorId`: the publishing actor
+- `metadataJson`: `{ "reason": "mode_revert_to_simple" }`
+- `summary`: `"Response action soft-deleted during revert to Simple mode"`
+
+#### Per-risk write-back event
+
+Emit one `RISK` / `riskUpdated` audit event per risk whose `responseAction` field was written
+(i.e. for each risk in `singles`):
+
+- `objectType`: `RISK`
+- `objectId`: the `Risk.id`
+- `action`: `riskUpdated`
+- `scopeType`: `RISK`
+- `registerId`: the register's id
+- `riskId`: the `Risk.id`
+- `actorId`: the publishing actor
+- `metadataJson`: `{ "fields": ["responseAction"], "reason": "mode_revert_to_simple" }`
+- `summary`: `"Response action text written back to simple field during revert to Simple mode"`
+
+Risks with 0 actions (not in `singles`) do not generate a `riskUpdated` event — no field was
+written.
+
+The existing `configPublished` audit event (emitted at the end of `publishDraft`) covers the
+publish as a whole and does not need a new variant for the revert case. The backend developer may
+optionally add `responseActionModeReverted: true` to its `metadataJson` for readability, consistent
+with the analogous suggestion in §A.7 for the forward migration.
+
+---
+
+### B.6 Frontend changes for the revert path
+
+#### Settings toggle behaviour
+
+Per Amendment A §A.6, the toggle is disabled and stuck at `CHILD_RECORDS` when the live register
+is already in that mode. This rule is relaxed: once the revert path exists, the toggle should be
+enabled when a draft exists and the live mode is `CHILD_RECORDS`. The existing `settingsLocked`
+gate (disabled when no draft) continues to apply.
+
+The frontend developer must remove the "always disabled when live = CHILD_RECORDS" rule from the
+toggle's `disabled` expression and replace it with: `disabled={!canManage || settingsLocked}` —
+i.e. the same gate as all other draft-eligible settings.
+
+#### Impact display for the blocker
+
+The impact display component (wherever `analyseImpact` results are rendered before the publish
+confirmation) must handle the `REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS` blocker code:
+
+- Render the standard blocker message.
+- Below it, render a list of offending risks from `meta.offendingRisks`, showing `displayRiskId`
+  and `title` for each entry. Each item should link to the risk detail page so the admin can
+  navigate directly.
+
+The frontend developer should treat `meta` as optional and unknown until the `code` is
+`REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS`, at which point it can be cast to
+`{ offendingRisks: { riskId: string; displayRiskId: string; title: string }[] }`.
+
+#### Impact display for the revert warning
+
+When `code === "REVERT_MODE_WILL_MIGRATE"` (the feasible-revert warning), render it as a standard
+warning in the impact list with the message text from §B.2. No special list rendering is needed.
+
+---
+
+### B.7 Summary of sections superseded or updated by this amendment
+
+| Section | Status |
+|---|---|
+| Amendment A §A.5 — unconditional block at publish time | **Superseded.** Replaced by conditional feasibility check (§B.2). |
+| Amendment A §A.6 `analyseImpact` — add blocker for CHILD_RECORDS → SIMPLE | **Updated.** Blocker is now conditional on feasibility query result (§B.2). A warning replaces it when feasible. |
+| Amendment A §A.6 `publishDraft` — no revert path | **Updated.** `publishDraft` now calls `migrateChildRecordsToSimple` when `snapshotMode = SIMPLE` and `currentMode = CHILD_RECORDS`. |
+| Amendment A §A.6 Frontend — toggle always disabled when live = CHILD_RECORDS | **Updated.** Toggle is enabled in draft mode (§B.6). |
+| Original ADR §3.5 — revert not supported | **Partially superseded.** Revert is now supported through the draft publish path under the feasibility condition. The direct `PATCH /settings` path continues to block unconditionally. |
