@@ -15,6 +15,27 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-06-21
+
+### Added
+
+- **Coding standards document (MAINT-010)**
+  - A new `docs/engineering/coding-standards.md` establishes agreed standards for backend, frontend, and test code. Covers the four-layer backend architecture, error handling conventions, Zod validation patterns, frontend component and hook discipline, TanStack Query and form state patterns, and test writing expectations including when each test level is appropriate and how to avoid brittle assertions. Includes concrete refactoring triggers for both frontend and backend so engineers and reviewers have a shared reference.
+
+- **Manual permission test plan (QA-001)**
+  - A new `docs/engineering/permission-test-plan.md` is a comprehensive pass/fail checklist covering all six roles (System Admin, Register Admin, Register Editor, Register Viewer, Risk Owner, Risk Response Owner) against every permission-gated entity and action in the system — register and risk CRUD, response action CRUD and ownership, review actions, configuration and permissions tabs, export controls, audit log access, user and template management, and API key management. Executable by a human tester without code access; verified against the PRD permission model (§5, §12).
+
+- **i18n architecture assessment spike (SPIKE-005)**
+  - A new `docs/spikes/SPIKE-005.md` assesses the work required to add multi-language support. Covers frontend string externalisation (recommends react-i18next with namespace-based JSON files), backend-generated text (error messages localised on the frontend only; audit descriptions flagged as a deferred architectural concern), help content locale management, validation message localisation via zod-i18n-map, and date/number/currency formatting (recommends centralising behind shared utilities using Day.js and Intl.NumberFormat). Identifies the highest-effort areas and proposes a five-phase incremental sequencing.
+
+- **Playwright evaluation spike (SPIKE-003)**
+  - A new `docs/spikes/SPIKE-003.md` evaluates adopting Playwright for browser-based permission testing. Recommends Playwright over Cypress for its TypeScript-native authoring and built-in multi-role session serialisation. Defines a three-layer test model extending ADR-0008, a fixture design with named users and explicit cross-user access edges seeded independently of the development seed script, a CI integration approach that gates E2E tests separately from the unit/integration quality gate, and a six-step implementation plan for a follow-on release. References the new permission test plan (QA-001) as the source of truth for the permission matrix the future suite will automate.
+
+### Fixed
+
+- **Response actions help content now reachable from the in-app help page (BUG-051)**
+  - The response actions help article written in v1.19.0 was not wired into the help UI. It now appears as a "Response Actions" section within the Managing Risks help tab, accessible from the existing accordion navigation. No standalone tab was added.
+
 ## [1.19.0] - 2026-06-21
 
 ### Added
