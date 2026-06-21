@@ -134,7 +134,7 @@ items:
   legacy_ids:
   - PM2-05
   title: Close the remaining person-assignment admin and audit gaps
-  type: improvement
+  type: spike
   capability: person-identity
   phase: 2
   status: needs-audit
@@ -585,7 +585,9 @@ items:
   type: feature
   capability: child-actions
   phase: 7
-  status: in-active-release
+  status: done
+  done_in:
+  - v1.19.0
   priority: high
   confidence: medium
   summary: Response actions still behave like simple risk fields in the live product, so first-class action records are the
@@ -2012,7 +2014,7 @@ items:
 - id: SPIKE-001
   source_request: REQ-042
   title: Spike — SaaS multi-tenant architecture for hosted offering
-  type: feature
+  type: spike
   capability: architecture
   phase: null
   status: needs-refinement
@@ -2047,7 +2049,7 @@ items:
 - id: SPIKE-002
   source_request: REQ-043
   title: Spike — encryption of client data at rest
-  type: security
+  type: spike
   capability: architecture
   phase: null
   status: needs-refinement
@@ -2334,6 +2336,825 @@ items:
       same rendering approach but with a different colour.
     - Mantine colour tokens (e.g. yellow.6) should be used so the indicator adapts to theme and dark mode correctly.
 
+- id: SPIKE-005
+  source_request: REQ-068
+  title: Spike — internationalisation architecture assessment
+  type: spike
+  capability: architecture
+  phase: null
+  status: ready
+  priority: low
+  confidence: low
+  summary: Assess what architectural changes are needed to support multiple languages
+    across the full product surface — frontend UI strings, backend-generated text,
+    help content, validation messages, and user-visible configuration labels. Output
+    is a scoping document with a recommended approach, sequencing, risks, and areas
+    of the app requiring refactoring before i18n can be added.
+  acceptance:
+  - A scoping document exists covering: frontend string externalisation approach (i18n
+    library, translation file structure, locale selection); backend-generated text
+    (error messages, audit summaries, email/notification strings if applicable);
+    help content locale management (relationship to the existing Markdown file
+    structure under frontend/public/help/en/); validation message localisation;
+    and user-visible configuration labels (likelihood/impact names, field labels, etc.).
+  - The document covers formatting concerns — dates, numbers, and currency — and
+    recommends a consistent approach across frontend and backend.
+  - The document identifies which areas of the app require the most refactoring and
+    recommends a sequencing that allows incremental progress without a big-bang rewrite.
+  - The document flags any third-party library recommendations and assesses their
+    fit with the existing Vite/React/Node/Mantine stack.
+  - No implementation work starts before the spike output is reviewed and accepted.
+  remaining:
+  - PA to produce the scoping document (suggested location docs/spikes/SPIKE-005.md).
+  - Review against the existing help content structure (frontend/public/help/en/)
+    which already uses a locale-path convention.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  evidence:
+    code:
+    - frontend/src/
+    - frontend/public/help/en/
+    - backend/src/
+    tests: []
+    notes:
+    - Help content already uses a locale-path convention (help/en/) which partially
+      anticipates i18n — the spike should build on this rather than ignore it.
+    - Low priority until there is a concrete commercial or user need for a second language.
+    - Output document at docs/spikes/SPIKE-005.md following the existing spike convention.
+- id: SPIKE-004
+  source_request: REQ-064
+  title: Spike — production editions model for feature flag management
+  type: spike
+  capability: architecture
+  phase: null
+  status: ready
+  priority: medium
+  confidence: low
+  summary: Production deployments currently rely on arbitrary per-deployment .env flag
+    values, which creates drift and makes flag behaviour unpredictable (see BUG-055).
+    The Principal Architect should design a production editions model — fixed, named
+    editions with defined feature sets — while preserving per-developer flag flexibility
+    in local development. The spike must also consider how editions might attach to a
+    future org/tenant model (REQ-042).
+  acceptance:
+  - A scoping document exists covering: how editions are defined and where the
+    edition-to-feature mapping lives; how a production deployment selects an edition
+    (e.g. a single EDITION env var rather than N individual flag vars); how local
+    development retains the ability to override individual flags; and how the current
+    flag-per-env-var approach migrates to the editions model.
+  - The document explicitly addresses the short-term context — BUG-055 (flags broken
+    in Docker production) — and clarifies whether the editions model is the right
+    long-term fix or whether BUG-055 needs a separate immediate fix.
+  - The document notes how an edition might later be attached to an org, tenant, or
+    subscription entity (REQ-042), so the design does not foreclose that path.
+  - No implementation work starts before the spike output is reviewed and accepted.
+  remaining:
+  - PA to produce the scoping document (suggested location docs/spikes/SPIKE-004.md).
+  - Explicitly cover migration from the current featureFlags.ts approach.
+  - Confirm whether BUG-055 should be fixed independently before the editions model
+    lands, or whether the editions model is itself the fix.
+  dependencies:
+  - BUG-055
+  suggested_agents:
+  - principal-architect
+  - devops-engineer
+  evidence:
+    code:
+    - backend/src/config/featureFlags.ts
+    - frontend/src/hooks/useFeatureFlags.ts
+    - docker-compose.yml
+    tests: []
+    notes:
+    - Short-term context is BUG-055 (production flags have no effect in Docker). The
+      spike should clarify whether the editions model replaces or supplements the
+      immediate BUG-055 fix.
+    - Long-term context is REQ-042 (SaaS multi-tenant spike) where editions may need
+      to be attached to a tenant or organisation entity.
+    - Output document at docs/spikes/SPIKE-004.md following the existing spike convention.
+- id: SPIKE-003
+  source_request: REQ-057
+  title: Spike — evaluate Playwright for browser-based permission testing
+  type: spike
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: low
+  confidence: medium
+  summary: Current static and Vitest/jsdom tests do not fully exercise real login sessions,
+    routing, backend authorisation, and browser-rendered permission states together.
+    The Principal Architect should evaluate Playwright as a browser-based E2E layer
+    and produce a spike document covering the proposed architecture, fixture design,
+    CI integration approach, and an implementation plan. No implementation in this
+    release — the spike document becomes the input for scoping the implementation.
+  acceptance:
+  - A spike document exists at docs/spikes/SPIKE-003.md covering: whether to adopt
+    Playwright (vs. Cypress or alternatives) and the rationale; the proposed
+    three-layer test model (static, Vitest/jsdom runtime, Playwright E2E) and how
+    it relates to ADR-0008; the permission fixture design — named users, named
+    registers, named risks and actions, explicit cross-user access edges — and how
+    it would be seeded without coupling to seed.ts; the proposed CI integration
+    approach including how Playwright tests would be gated separately from unit and
+    integration tests; and a scoped implementation plan with sequencing for a
+    follow-on release.
+  - The document explicitly references QA-001 (manual permission test plan) as the
+    source of truth for the permission matrix the future suite will automate.
+  - ADR-0008 is assessed but not updated in this release — any update to ADR-0008
+    is deferred to the implementation release.
+  - No Playwright tests are written in this release.
+  remaining:
+  - PA to produce the spike document at docs/spikes/SPIKE-003.md.
+  - PA to assess Playwright against the existing stack (Vite/React/Node/Vitest) and
+    confirm it is the right choice before recommending adoption.
+  dependencies:
+  - QA-001
+  suggested_agents:
+  - principal-architect
+  evidence:
+    code:
+    - backend/test/
+    - frontend/test/
+    docs:
+    - docs/decisions/ADR-0008-api-key-scope-and-saved-views.md
+    notes:
+    - ADR-0008 currently documents the two-layer frontend test model. The spike should
+      assess whether a third Playwright layer is the right addition — but ADR-0008
+      is not updated until implementation is approved.
+    - Cypress was considered but Playwright appears to fit the existing stack better.
+      PA to confirm or challenge this in the spike document.
+    - Implementation follows in a separate release once the spike document is reviewed.
+- id: QA-001
+  source_request: REQ-056
+  title: Write manual permission test plan covering all role and content-type permutations
+  type: feature
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: No comprehensive permission test plan exists. A human-executable document
+    covering every combination of role and permission-gated entity type is needed both
+    as a QA reference and as the specification from which a future Playwright suite
+    (SPIKE-003) can be built.
+  acceptance:
+  - A document exists (suggested location docs/engineering/permission-test-plan.md)
+    covering every role defined in the system — System Admin, Register Admin, Register
+    Editor, Register Viewer, Risk Owner, Risk Response Owner — against every
+    permission-gated action and entity type.
+  - Each test case specifies: the role or persona, the entity/action being tested, and
+    the expected outcome (allowed or denied).
+  - The plan covers at minimum: register CRUD, risk CRUD, custom field visibility,
+    response action CRUD and ownership, review actions, configuration and permissions
+    tab access, export controls, audit log access, user management, template management,
+    and API key management.
+  - The document is structured as a pass/fail checklist executable by a human tester
+    without needing code access.
+  - The plan is acknowledged as the authoritative permission matrix for SPIKE-003
+    (Playwright automation).
+  remaining:
+  - Confirm the full list of roles currently in the system before writing the plan.
+  - Structure the document by entity type with a row per role and action combination.
+  - Review against the PRD permission model (§5, §12) to ensure no gaps.
+  dependencies: []
+  suggested_agents:
+  - test-engineer
+  - product-manager
+  evidence:
+    code:
+    - backend/src/permissions/
+    docs:
+    - docs/product/prd.md
+    notes:
+    - This document is the specification that SPIKE-003 (Playwright) will automate.
+      It should exist before Playwright implementation begins.
+    - Roles to cover at minimum — System Admin, Register Admin, Register Editor,
+      Register Viewer, Risk Owner, Risk Response Owner (new in v1.19.0).
+- id: MAINT-014
+  source_request: REQ-073
+  title: Refresh seed scripts to cover features shipped since v1.7.0
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: The seed data (backend/prisma/seed.ts) was last meaningfully updated on
+    2026-05-18 (commit dd65cbc), predating v1.7.0. It covers basic users, registers,
+    risks with simple response action text, and templates — but none of the custom
+    field, response action child records, configurable scoring formula, or review
+    history capabilities shipped since then. The seed should be updated to exercise
+    current product capabilities so a fresh deployment is genuinely representative.
+  acceptance:
+  - At least one demo register is seeded with custom fields covering: a DROPDOWN field,
+    a CALCULATED field (referencing at least one numeric field), and at least one field
+    with validationMode WARN. Field visibility (visibleToRoles) should be demonstrated
+    on at least one field.
+  - Custom field values are seeded on demo risks in that register so the fields are
+    populated on first load, not empty.
+  - One demo register is seeded in responseActionMode CHILD_RECORDS with at least three
+    action records across its risks, covering a mix of statuses (e.g. Planned, In
+    Progress, Implemented) and including at least one Risk Response Owner assignment.
+  - One demo register (may be the same or different) is seeded with a custom scoring
+    formula that differs from the default likelihood × impact, demonstrating the
+    configurable formula feature.
+  - At least two completed review records are seeded across the demo risks so the
+    Review History tab in the View Risk modal is not always empty on a fresh deployment.
+  - The seed remains idempotent — re-running it does not create duplicates or error on
+    an already-seeded database.
+  - The seed summary log line (currently "2 registers, 3 demo users, 16 representative
+    risks, 2 register templates") is updated to accurately describe the seeded data.
+  - No regression to the existing seed structure — system admin creation, demo users,
+    register permissions, and template seeding continue to work correctly.
+  remaining:
+  - Decide whether to add custom fields to the existing Information Security register,
+    the Operational register, or both — and which register gets child record mode.
+  - Implement custom field seeding (field definitions + values on risks).
+  - Implement response action child record seeding (mode set on register config +
+    action records linked to risks).
+  - Implement custom scoring formula seeding on one register.
+  - Implement completed review record seeding.
+  - Update the seed summary log line.
+  - Verify idempotency by running the seed twice against a live database.
+  dependencies: []
+  suggested_agents:
+  - backend-developer
+  evidence:
+    code:
+    - backend/prisma/seed.ts
+    - backend/prisma/schema.prisma
+    tests:
+    - backend/test/seed.test.mjs
+    notes:
+    - Last meaningful seed update was commit dd65cbc (2026-05-18), predating v1.7.0.
+      Subsequent commits (78f9191, f74e5a2, both 2026-06-08) were infrastructure
+      fixes only — PrismaPg adapter and ownerPersonId alignment.
+    - Gaps confirmed by reading seed.ts directly — no custom fields, no action records,
+      no custom formula, no review records are created anywhere in the seed.
+    - The seed already has an ensureRegisterConfiguration function and an upsertDemoRisks
+      function — custom field seeding should follow the same idempotent upsert pattern.
+    - responseActionMode lives on the register config; the developer should confirm
+      whether it is set directly on the register or through a config version before
+      implementing.
+- id: MAINT-013
+  source_request: REQ-072
+  title: Audit test code against agreed coding standards
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: Test Engineer assesses all test code against the standards established in
+    MAINT-010. Output is actionable recommendations distinguishing quick fixes (actioned
+    in the same release) from larger refactoring or coverage expansion work (deferred
+    to PM via active-release.md).
+  acceptance:
+  - All test code is assessed against the agreed standards from MAINT-010.
+  - Findings are concrete and actionable — not broad commentary. Each finding names the
+    file, the violation, and the recommended fix.
+  - Quick fixes are addressed within the same release at the Release Manager's discretion.
+  - Larger items are logged in active-release.md under a Deferred items for PM section
+    for the PM to pick up as new requests.
+  - Assessment covers missing regression coverage, brittle assertions, inconsistent
+    naming or structure, weak fixture usage, inappropriate test levels, and
+    test-specific maintainability concerns.
+  remaining:
+  - Depends on MAINT-010 being complete so standards are available to assess against.
+  - Test Engineer to systematically review all test files under backend/test/ and
+    frontend/test/.
+  dependencies:
+  - MAINT-010
+  suggested_agents:
+  - test-engineer
+  evidence:
+    code:
+    - backend/test/
+    - frontend/test/
+    tests: []
+    notes:
+    - Run after or alongside MAINT-010 so the Test Engineer has agreed standards to
+      assess against.
+    - Findings should distinguish quick fixes from larger test refactoring or coverage
+      expansion work.
+- id: MAINT-012
+  source_request: REQ-071
+  title: Audit backend code against agreed coding standards
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: Backend Developer assesses all backend code against the standards established
+    in MAINT-010. Output is actionable recommendations distinguishing quick fixes
+    (actioned in the same release) from larger refactoring work (deferred to PM via
+    active-release.md).
+  acceptance:
+  - All backend code is assessed against the agreed standards from MAINT-010.
+  - Findings are concrete and actionable — not broad commentary. Each finding names the
+    file, the violation, and the recommended fix.
+  - Quick fixes are addressed within the same release at the Release Manager's discretion.
+  - Larger items are logged in active-release.md under a Deferred items for PM section
+    for the PM to pick up as new requests.
+  - Assessment covers duplication, inconsistent service patterns, weak separation of
+    concerns, insufficient refactoring, error handling gaps, and backend-specific
+    maintainability concerns.
+  remaining:
+  - Depends on MAINT-010 being complete so standards are available to assess against.
+  - Backend Developer to systematically review all code under backend/src/.
+  dependencies:
+  - MAINT-010
+  suggested_agents:
+  - backend-developer
+  evidence:
+    code:
+    - backend/src/
+    tests: []
+    notes:
+    - Run after or alongside MAINT-010 so the Backend Developer has agreed standards to
+      assess against.
+    - Findings should distinguish quick fixes from larger refactoring work.
+- id: MAINT-011
+  source_request: REQ-070
+  title: Audit frontend code against agreed coding standards
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: Frontend Developer assesses all frontend code against the standards established
+    in MAINT-010. Output is actionable recommendations distinguishing quick fixes
+    (actioned in the same release) from larger refactoring work (deferred to PM via
+    active-release.md).
+  acceptance:
+  - All frontend code is assessed against the agreed standards from MAINT-010.
+  - Findings are concrete and actionable — not broad commentary. Each finding names the
+    file, the violation, and the recommended fix.
+  - Quick fixes are addressed within the same release at the Release Manager's discretion.
+  - Larger items are logged in active-release.md under a Deferred items for PM section
+    for the PM to pick up as new requests.
+  - Assessment covers duplication, weak component reuse, inconsistent patterns,
+    insufficient refactoring, and frontend-specific maintainability concerns.
+  remaining:
+  - Depends on MAINT-010 being complete so standards are available to assess against.
+  - Frontend Developer to systematically review all code under frontend/src/.
+  dependencies:
+  - MAINT-010
+  suggested_agents:
+  - frontend-developer
+  evidence:
+    code:
+    - frontend/src/
+    tests: []
+    notes:
+    - Run after or alongside MAINT-010 so the Frontend Developer has agreed standards
+      to assess against.
+    - Findings should distinguish quick fixes from larger refactoring work.
+- id: MAINT-010
+  source_request: REQ-069
+  title: Establish coding standards for frontend, backend, and test code
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: Principal Architect writes practical coding standards covering frontend,
+    backend, and test code. Output is a document in docs/engineering/ that engineers
+    and reviewers can apply during implementation and code review, including clear
+    refactoring triggers.
+  acceptance:
+  - A coding standards document is created at docs/engineering/coding-standards.md (or
+    equivalent under docs/engineering/).
+  - Standards cover backend concerns — DRY, consistency, service layer patterns,
+    separation of concerns, error handling, and when to refactor rather than extend.
+  - Standards cover frontend concerns — component reuse, avoiding duplicate UI patterns,
+    when shared components or hooks are appropriate, and state management consistency.
+  - Standards cover test writing — when tests are required, what level of test is
+    appropriate (unit/integration/e2e), naming and structure conventions, fixture usage,
+    avoiding brittle assertions, and expectations for regression coverage.
+  - Standards include clear refactoring triggers for both frontend and backend — concrete
+    signals that indicate code should be refactored rather than extended in place.
+  - The document is practical enough to reference during a code review, not just aspirational.
+  remaining:
+  - PA to draft the standards document under docs/engineering/.
+  - PM to review and confirm the document is sufficient before MAINT-011/012/013 begin.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  evidence:
+    code: []
+    tests: []
+    notes:
+    - MAINT-011, MAINT-012, and MAINT-013 depend on this item and can run in parallel
+      once it is complete.
+    - Output location — docs/engineering/ — is a new directory; PA should create it as
+      part of this work item.
+- id: MAINT-009
+  source_request: REQ-065
+  title: Reduce duplicate CI runs across branch, PR, and post-merge workflows
+  type: improvement
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: CI currently runs the same checks multiple times — on the release branch, again
+    when a PR is created even with no new changes, and again after merge to main. This
+    repetition slows releases without adding confidence. The GitHub Actions trigger
+    configuration should be investigated and tightened to eliminate redundant runs while
+    preserving release safety.
+  acceptance:
+  - CI does not re-run identical checks on a PR if the branch has already passed CI with
+    the same commit SHA.
+  - Post-merge CI does not repeat checks already passed pre-merge unless new code was
+    introduced by the merge itself.
+  - All required status checks for branch protection and release confidence are still
+    satisfied after the change.
+  - Release velocity is measurably improved — fewer redundant CI minutes per release.
+  remaining:
+  - Audit current GitHub Actions workflow triggers (push, pull_request, merge) and
+    identify where redundant runs occur.
+  - Evaluate options — workflow_run conditions, concurrency groups, required-check
+    reuse, merge queue behaviour, or skip-duplicate-steps tooling.
+  - Implement the highest-value reduction and confirm branch protection rules still pass.
+  dependencies: []
+  suggested_agents:
+  - devops-engineer
+  evidence:
+    code:
+    - .github/workflows
+    tests: []
+    notes:
+    - Preserve release confidence as the primary constraint — do not skip checks in a
+      way that could let a broken commit reach main undetected.
+    - Related to REQ-062 (on-demand branch publishing) — both touch CI/CD workflow config
+      and can be addressed in the same release if scope permits.
+- id: MAINT-008
+  source_request: REQ-061
+  title: Improve production backend logging with configurable log levels and operational docs
+  type: improvement
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: high
+  confidence: medium
+  summary: Production deployments emit insufficient log information to debug live issues.
+    The Principal Architect should first define the logging structure, verbosity levels,
+    and approach for the two-container Docker setup. The backend developer then implements
+    structured logging with a LOG_LEVEL env var, and operational documentation is written
+    to docs/operations/observability.md.
+  acceptance:
+  - The Principal Architect defines the logging approach — structure, correlation strategy,
+    verbosity levels, and how logs flow across the two Docker containers — before
+    implementation begins.
+  - Backend logging is structured and actionable, going beyond a basic HTTP access log.
+  - A LOG_LEVEL environment variable in .env controls logging verbosity (e.g. error,
+    warn, info, debug), with a recommended default for production.
+  - docs/operations/observability.md is created or updated to cover relevant Docker
+    Compose log commands, log levels, recommended production defaults, and when to
+    temporarily increase verbosity for investigation.
+  - No regression to existing backend behaviour or local development logging.
+  remaining:
+  - PA to define logging structure, verbosity model, and any cross-container correlation
+    approach before backend implementation starts.
+  - Implement structured logging in the backend using the PA-approved approach.
+  - Write or update docs/operations/observability.md.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  - devops-engineer
+  evidence:
+    code:
+    - backend/src/config/featureFlags.ts
+    - docker-compose.yml
+    tests:
+    - backend/test/observability.test.mjs
+    notes:
+    - PA goes first. Backend cannot begin implementation until the logging structure and
+      approach are agreed.
+    - Existing observability.test.mjs may inform what is already instrumented.
+- id: MAINT-007
+  source_request: REQ-062
+  title: Add on-demand branch package publishing via GitHub Actions manual trigger
+  type: improvement
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: high
+  confidence: high
+  summary: There is no way to publish a Docker package for a specific branch without going
+    through a full PR and merge cycle. A manually triggered GitHub Actions workflow should
+    allow publishing a branch package on demand, using exactly the same build and packaging
+    process as a main/tag release, so production-environment issues can be debugged before
+    merging.
+  acceptance:
+  - A GitHub Actions workflow can be triggered manually (workflow_dispatch) for a specified
+    branch to build and publish a Docker package using the same process as the main release
+    build.
+  - The on-demand workflow does not trigger automatically on push or PR — it runs only
+    when explicitly invoked.
+  - The published branch package is clearly distinguishable from a release package (e.g.
+    by tag naming convention) to avoid confusion.
+  - The root README.md is updated to document how to trigger the on-demand build and how
+    to configure a production Docker Compose setup to target the resulting branch package.
+  - No change to the existing automatic release workflow behaviour.
+  remaining:
+  - Define the branch package tag naming convention to avoid collision with release tags.
+  - Implement the workflow_dispatch workflow reusing the existing build and package steps.
+  - Update README.md with trigger instructions and production targeting guidance.
+  dependencies: []
+  suggested_agents:
+  - devops-engineer
+  evidence:
+    code:
+    - .github/workflows
+    - README.md
+    tests: []
+    notes:
+    - Must use exactly the same build and packaging process as the main/tag release build
+      so branch packages are representative of production.
+    - Related to REQ-065 (reduce duplicate CI) — both touch workflow config and can be
+      addressed in the same release if scope permits.
+- id: BUG-056
+  source_request: REQ-066
+  title: Investigate and fix draft config application across register config pages
+  type: bug
+  capability: config-lifecycle-templates
+  phase: null
+  status: ready
+  priority: high
+  confidence: medium
+  summary: Each config change correctly sends a PATCH to /draft, but a subsequent PATCH
+    to <registerId> appears to send all settings currently on the page, which would
+    override the server-side draft with local page state and undermine the draft
+    mechanism. The Principal Architect must audit all register config pages to confirm
+    whether draft state or local state is the true source of truth, then fix any incorrect
+    paths.
+  acceptance:
+  - The Principal Architect has audited all register configuration pages — fields, scoring,
+    and all other config sections — and confirmed which are correctly using draft state
+    vs. incorrectly using local page state.
+  - Any config page that overwrites the server-side draft with local page state is fixed
+    so changes are stored in the draft and not applied via a direct register PATCH.
+  - Publishing a draft produces the expected config state regardless of which config
+    pages were used during editing.
+  - If the fix scope is larger than a single release can safely contain, the Release
+    Manager logs remaining items under a Deferred items for PM section in active-release.md.
+  - No regression to draft creation, editing, or publish flows.
+  remaining:
+  - PA to audit all register config page save handlers to confirm the PATCH target and
+    payload for each.
+  - Confirm whether the register-level PATCH is a legitimate parallel save path or an
+    incorrect override of the draft.
+  - Fix all config pages found to be bypassing or overwriting the draft.
+  - Add or update tests to cover the draft-only save path for each config section.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/pages/RegisterConfigPage.tsx
+    - backend/src/services/configVersion.service.ts
+    - backend/src/routes/registers.routes.ts
+    tests:
+    - backend/test/configVersion.test.mjs
+    - frontend/test/configuration.test.mjs
+    notes:
+    - Observed pattern — config change sends PATCH /draft (correct) then PATCH /<registerId>
+      with all page settings (suspect). If confirmed, the second PATCH overrides the
+      server-side draft with whatever state is currently in the local form.
+    - PA should check fields config page, scoring config page, and any other sub-pages
+      under register configuration.
+    - User offered to provide a HAR file if needed during investigation.
+- id: BUG-055
+  source_request: REQ-063
+  title: Fix production feature flags — .env values have no effect in Docker deployment
+  type: bug
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: high
+  confidence: medium
+  summary: Feature flags set in .env have no effect when running the production Docker
+    Compose setup as documented in the root README.md. Operators have no reliable way
+    to control feature flags in a deployed instance. The full env var pipeline from
+    Docker Compose through to backend process and frontend bundle needs to be investigated
+    and fixed.
+  acceptance:
+  - Feature flag values set in .env take effect in a production Docker Compose deployment
+    following the documented setup in the root README.md.
+  - Both backend-read flags (env vars consumed at runtime by the Node process) and
+    frontend-read flags (Vite env vars baked into the bundle at build time) are confirmed
+    to work correctly, or the architectural split between them is explicitly documented.
+  - If a runtime config mechanism is required for frontend flags (because Vite bakes
+    values at build time), the approach is designed and agreed with the Principal Architect
+    before implementation.
+  - The root README.md production setup section is updated to accurately describe how to
+    configure feature flags in a production deployment.
+  - No regression to local development flag behaviour.
+  remaining:
+  - Trace the full env var pipeline for both frontend and backend flags in the Docker
+    Compose setup — confirm where values are passed in, where they are read, and where
+    the break occurs.
+  - Identify whether the frontend flag issue is a Vite build-time baking problem requiring
+    a runtime config approach (PA input needed if so).
+  - Fix the pipeline and update README.md.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - devops-engineer
+  - backend-developer
+  - frontend-developer
+  evidence:
+    code:
+    - backend/src/config/featureFlags.ts
+    - frontend/src/hooks/useFeatureFlags.ts
+    - docker-compose.yml
+    - README.md
+    tests: []
+    notes:
+    - Vite bakes VITE_* env vars into the frontend bundle at build time, not at runtime.
+      A runtime config mechanism (e.g. a config endpoint or injected window object) may
+      be required for frontend flags to be configurable post-build.
+    - PA should be consulted if the fix requires a new runtime config pattern — this
+      could touch the architecture of how flags are consumed across the app.
+    - Related to REQ-064 (production editions model), which addresses long-term flag
+      management strategy. Fix this bug first; let the editions spike inform the
+      longer-term shape.
+- id: BUG-054
+  source_request: REQ-060
+  title: Harden app behaviour across feature flag combinations
+  type: bug
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: high
+  confidence: medium
+  summary: The app may crash or behave incorrectly when certain feature flags are disabled.
+    The /registers/<registerId> route is specifically suspected. All feature-flagged code
+    paths on both frontend and backend need to be reviewed and hardened so disabled flags
+    produce a clean degraded state rather than broken routes, failed renders, or unhandled
+    errors.
+  acceptance:
+  - All feature-flagged routes and components degrade cleanly when their flag is disabled —
+    no crashes, unhandled errors, or broken UI.
+  - /registers/<registerId> is verified to load correctly under all supported flag
+    combinations.
+  - Flag-gated backend endpoints return appropriate responses (e.g. 404 or 403) rather
+    than 500 errors when their flag is off.
+  - Flag-gated frontend components either hide cleanly or show an appropriate fallback
+    when their flag is disabled.
+  - Test coverage exists for at least the key disabled-flag scenarios, particularly around
+    /registers/<registerId> and any other routes identified during the review.
+  remaining:
+  - Audit all feature-flagged code paths on both frontend and backend to identify where
+    disabled-flag states are unhandled or unsafe.
+  - Prioritise /registers/<registerId> and any routes/components that depend on flags
+    that may be off in a default production deployment.
+  - Fix each unsafe path and add test coverage for the disabled state.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - backend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/config/featureFlags.ts
+    - frontend/src/hooks/useFeatureFlags.ts
+    - frontend/src/pages/RegisterPage.tsx
+    tests:
+    - frontend/test/risks.test.mjs
+    notes:
+    - /registers/<registerId> is explicitly called out as a suspected affected route.
+    - Pay particular attention to features that are disabled by default in production
+      but enabled in development — these are the most likely to have untested disabled states.
+- id: BUG-053
+  source_request: REQ-059
+  title: Clear modal error state on close across all modals
+  type: bug
+  capability: register-ui
+  phase: null
+  status: ready
+  priority: high
+  confidence: high
+  summary: Error state is not cleared when modals are closed. Reopening any affected modal
+    shows the previous error until a successful action clears it. Root cause is likely
+    error state living in a parent component or store that is not reset on modal
+    unmount/close. Fix requires a sweep of all modals to identify and correct each case.
+  acceptance:
+  - All modals in the app reset their error state when closed, so reopening always starts
+    clean with no prior error visible.
+  - The fix covers every modal that can display an error — risk add/edit, response action
+    add/edit, review, config modals, API key creation, and any others identified during
+    the sweep.
+  - No regression to error display behaviour during an active modal session (errors must
+    still appear correctly when they occur within a single open).
+  - Frontend tests cover the close-then-reopen scenario for at least the highest-traffic
+    modals to prevent regression.
+  remaining:
+  - Audit all modals in the app to identify where error state is stored and whether it is
+    reset on close/unmount.
+  - Apply a consistent reset pattern (e.g. clear on onClose callback, or reset on
+    unmount via useEffect) across all affected modals.
+  - Add or update tests for the close-then-reopen error-clear path on key modals.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskFormModal.tsx
+    - frontend/src/features/risks/ResponseActionModal.tsx
+    - frontend/src/features/risks/ReviewModal.tsx
+    - frontend/src/pages/ApiKeysPage.tsx
+    tests:
+    - frontend/test/risks.test.mjs
+    notes:
+    - Reported as widespread — affects multiple modals rather than one specific case.
+    - Likely a single shared pattern fix once the root cause is confirmed.
+- id: BUG-052
+  source_request: REQ-058
+  title: Refresh audit table in View Risk modal after response action mutations
+  type: bug
+  capability: child-actions
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: When a response action is added, edited, or soft-deleted in child record mode,
+    the audit table in the View Risk modal does not update. The new audit entry only
+    appears after closing and reopening the modal. The audit table should refresh
+    automatically whenever a response action mutation completes.
+  acceptance:
+  - The audit table in the View Risk modal refreshes automatically after a response action
+    is added, without requiring the modal to be closed and reopened.
+  - The audit table refreshes automatically after a response action is edited.
+  - The audit table refreshes automatically after a response action is soft-deleted.
+  - No regression to response action CRUD behaviour, the audit table display, or other
+    sections of the View Risk modal.
+  remaining:
+  - Identify how the audit table is fetched and what triggers a refetch — confirm whether
+    it is driven by a query key, an event, or a manual refresh call.
+  - Wire a refetch trigger to the response action add/edit/delete success callbacks.
+  - Add or update frontend tests to cover the audit table refresh after each mutation type.
+  dependencies:
+  - PM7-CORE
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/risks/RiskDetailModal.tsx
+    - frontend/src/features/risks/ResponseActionModal.tsx
+    tests:
+    - frontend/test/risks.test.mjs
+    notes:
+    - Reproduce by opening a risk in View Risk modal in child record mode, adding a
+      response action, then observing the audit table — new entry absent until modal
+      is closed and reopened.
+- id: BUG-051
+  source_request: REQ-067
+  title: Surface response actions help content within the risks help section
+  type: bug
+  capability: help-content
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: response-actions.md was written as part of v1.19.0 but was never linked from
+    the in-app help page. The content should be integrated into the risks help section
+    rather than exposed as a standalone tab.
+  acceptance:
+  - The response actions help content from frontend/public/help/en/response-actions.md
+    is reachable from within the risks section of the in-app help page.
+  - Response actions content is not a standalone tab — it is a subsection of the risks
+    help article, appearing in a logical position after core risk management content.
+  - The developer may merge the file into the risks help article or keep it as a separate
+    file that is included/referenced — whichever is cleaner — as long as the content is
+    reachable from the risks section.
+  - No regression to other help content or help page navigation.
+  remaining:
+  - Review response-actions.md content and decide the best integration point within the
+    risks help article.
+  - Update the help page component or content loader to surface this content within the
+    risks section.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  evidence:
+    code:
+    - frontend/public/help/en/response-actions.md
+    - frontend/public/help/en/
+    tests: []
+    notes:
+    - Content was written to satisfy the v1.19.0 help acceptance criterion but was never
+      wired into the help page navigation.
 - id: MAINT-006
   source_request: REQ-052
   title: Update help docs for configurable scoring formula feature
