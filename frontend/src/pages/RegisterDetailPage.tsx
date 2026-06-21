@@ -13,7 +13,8 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 
 import {
   addRegisterPermission,
@@ -30,6 +31,14 @@ import { usePermissions } from "../hooks/usePermissions";
 
 export function RegisterDetailPage() {
   const { registerId = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState("risks");
+
+  useEffect(() => {
+    if (searchParams.get("riskId")) {
+      setActiveTab("risks");
+    }
+  }, [searchParams]);
   const queryClient = useQueryClient();
   const { isSystemAdmin } = usePermissions();
   const registerQuery = useQuery({
@@ -88,7 +97,7 @@ export function RegisterDetailPage() {
       </Group>
       {registerQuery.isLoading ? <Loader /> : null}
       <ApiErrorAlert error={registerQuery.error} fallback="Unable to load register" />
-      <Tabs defaultValue="risks">
+      <Tabs value={activeTab} onChange={(v) => setActiveTab(v ?? "risks")}>
         <Tabs.List>
           <Tabs.Tab value="risks">Risks</Tabs.Tab>
           {canManage ? <Tabs.Tab value="configuration">Configuration</Tabs.Tab> : null}
