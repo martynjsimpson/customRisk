@@ -37,13 +37,11 @@ jobs:
           COMMIT_SHA="${{ github.sha }}"
           REPO="${{ github.repository }}"
 
-          # Look for successful CI runs of this commit on any branch (excluding this run)
+          # Look for successful CI runs of this commit on any ref (excluding this run).
+          # Default to "0" if the API call fails so we fall through to running CI.
           SUCCESSFUL_RUNS=$(gh api \
-            "/repos/$REPO/actions/workflows/ci.yml/runs" \
-            -f "head_sha=$COMMIT_SHA" \
-            -f "status=completed" \
-            -f "conclusion=success" \
-            --jq ".workflow_runs | length")
+            "/repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$COMMIT_SHA&status=success" \
+            --jq ".workflow_runs | length" 2>/dev/null || echo "0")
 
           if [ "$SUCCESSFUL_RUNS" -gt "0" ]; then
             echo "Previous successful CI run found for commit $COMMIT_SHA"
