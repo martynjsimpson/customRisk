@@ -24,8 +24,8 @@ Version levels:
 
 ### Changed
 
-- **Frontend code standards — table row action button variants normalised (MAINT-011)**
-  - An audit of `frontend/src/` against the agreed coding standards found that table row action buttons across six pages and two feature panels were using `variant="light"` instead of the standard `variant="subtle" size="xs"`. All instances corrected to match the canonical pattern. Three larger page-component extraction items (RegisterDetailPage, UsersPage, MyRisksPage) were identified and deferred to the PM backlog.
+- **Frontend code standards — table row action button standard documented (MAINT-011)**
+  - An audit of `frontend/src/` against the coding standards confirmed `variant="light" size="xs"` as the correct style for table row action buttons. This standard is now explicitly documented in `docs/engineering/coding-standards.md`. Three larger page-component extraction items (RegisterDetailPage, UsersPage, MyRisksPage) were identified during the audit and deferred to the PM backlog.
 
 - **Backend code standards — formula validation extracted from controller (MAINT-012)**
   - An audit of `backend/src/` identified one in-release fix: the `validateFormulaController` in `configVersion.controller.ts` contained a Prisma query and branching logic directly in the controller body, violating the no-business-logic-in-controllers standard. The logic was extracted to a new `validateScoringFormulaForRegister` function in `formulaEvaluator.service.ts`. Three larger items (utility deduplication, service size) were deferred to the PM backlog.
