@@ -68,27 +68,25 @@ docker compose logs app | jq '{message, duration}'
 
 The `LOG_LEVEL` environment variable controls which log messages appear. Valid values:
 
-- **`error`** — only fatal and error-level messages. Minimal noise; use only when severely constrained on log volume.
-- **`warn`** — errors and warnings. Recommended only for very stable production systems where issues are rare.
-- **`info`** — errors, warnings, and informational messages (HTTP request completion, auth events, startup/shutdown, client validation errors). **Recommended for production.**
-- **`debug`** — all messages including service-level mutations, 404s, and verbose operational detail. Disabled by default in production to reduce noise; enable only during incident investigation.
+- **`error`** — only fatal and error-level messages. Minimal noise. **Recommended for production.**
+- **`warn`** — errors and warnings.
+- **`info`** — errors, warnings, and informational messages (HTTP request completion, auth events, startup/shutdown, client validation errors). Use when you want ongoing operational visibility.
+- **`debug`** — all messages including service-level mutations, 404s, and verbose operational detail. Enable only during incident investigation.
 
 ### Recommended Production Default
 
-Set `LOG_LEVEL=info` in your deployment's `.env` file. This balances operational visibility with signal-to-noise ratio:
+Set `LOG_LEVEL=error` in your deployment's `.env` file. This keeps log volume low in stable production environments:
 
-- Captures HTTP request lifecycle (method, route, duration, status)
-- Records authentication events (login, logout, token revocation)
-- Logs application startup and shutdown
-- Includes all errors and validation failures
-- Omits debug-level noise (per-query details, 404 discovery, verbose framework chatter)
+- Captures fatal errors and unhandled exceptions
+- Omits routine HTTP request chatter, auth events, and debug noise
+- Upgrade to `info` temporarily if you need operational visibility during a deployment or investigation
 
 ### Setting LOG_LEVEL
 
 #### In `.env`
 
 ```bash
-LOG_LEVEL=info
+LOG_LEVEL=error
 ```
 
 Then start the application normally:
@@ -120,7 +118,7 @@ LOG_LEVEL=debug docker compose up -d
 Then revert:
 
 ```bash
-LOG_LEVEL=info docker compose up -d
+LOG_LEVEL=error docker compose up -d
 ```
 
 Future work may support dynamic log level adjustment without restart via an endpoint or signal handler.
