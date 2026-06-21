@@ -83,7 +83,7 @@ export async function migrateChildRecordsToSimple(
     JOIN risk r ON r.id = rra.risk_id
     WHERE rra.register_id = ${registerId}
       AND ra.is_deleted   = false
-      AND r.is_active     = true
+      AND r.state        <> 'CLOSED'
     GROUP BY rra.risk_id
     HAVING COUNT(ra.id) >= 2
   `;
@@ -104,7 +104,7 @@ export async function migrateChildRecordsToSimple(
     JOIN risk r ON r.id = rra.risk_id
     WHERE rra.register_id = ${registerId}
       AND ra.is_deleted   = false
-      AND r.is_active     = true
+      AND r.state        <> 'CLOSED'
   `;
 
   // 3. Write ResponseAction.response back into Risk.responseAction for each single-action risk
@@ -113,8 +113,8 @@ export async function migrateChildRecordsToSimple(
       where: { id: row.risk_id },
       data: {
         responseAction: row.response,
-        updatedAt: new Date(),
-        updatedByUserId: actorId
+        systemUpdatedAt: new Date(),
+        systemUpdatedByUserId: actorId
       }
     });
 

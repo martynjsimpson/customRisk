@@ -658,6 +658,18 @@ export async function analyseImpact(
       code: "MODE_WILL_MIGRATE_TO_CHILD_RECORDS",
       message: msg
     });
+    // Risks with a non-empty simple responseAction field will have a child record created
+    const risksWithSimpleAction = await prisma.risk.findMany({
+      where: {
+        registerId,
+        state: { not: "CLOSED" },
+        responseAction: { not: null }
+      },
+      select: { id: true }
+    });
+    for (const r of risksWithSimpleAction) {
+      affectedRiskIds.add(r.id);
+    }
   } else if (snapshotMode === "SIMPLE" && currentMode === "CHILD_RECORDS") {
     // Feasibility check: any risk with >= 2 non-deleted actions blocks the revert
     const actionCounts = await prisma.$queryRaw<{ risk_id: string; cnt: bigint }[]>`
@@ -667,7 +679,7 @@ export async function analyseImpact(
       JOIN risk r ON r.id = rra.risk_id
       WHERE rra.register_id = ${registerId}
         AND ra.is_deleted   = false
-        AND r.is_active     = true
+        AND r.state        <> 'CLOSED'
       GROUP BY rra.risk_id
       HAVING COUNT(ra.id) >= 2
     `;
@@ -694,6 +706,9 @@ export async function analyseImpact(
           }))
         }
       });
+      for (const riskId of offendingRiskIds) {
+        affectedRiskIds.add(riskId);
+      }
     } else {
       const revertMsg =
         "Publishing will revert Response Action mode to Simple. Each risk's most recent action text will be written back to the simple response field, and all child action records will be soft-deleted.";
@@ -703,6 +718,21 @@ export async function analyseImpact(
         code: "REVERT_MODE_WILL_MIGRATE",
         message: revertMsg
       });
+      // Risks with >= 1 active action will have their action migrated back to the simple field
+      const migratingCounts = await prisma.$queryRaw<{ risk_id: string }[]>`
+        SELECT rra.risk_id
+        FROM risk_response_action rra
+        JOIN response_action ra ON ra.id = rra.response_action_id
+        JOIN risk r ON r.id = rra.risk_id
+        WHERE rra.register_id = ${registerId}
+          AND ra.is_deleted   = false
+          AND r.state        <> 'CLOSED'
+        GROUP BY rra.risk_id
+        HAVING COUNT(ra.id) >= 1
+      `;
+      for (const row of migratingCounts) {
+        affectedRiskIds.add(row.risk_id);
+      }
     }
   }
   } // end snapshotMode !== undefined
