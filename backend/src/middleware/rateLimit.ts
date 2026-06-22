@@ -1,11 +1,13 @@
 import rateLimit from "express-rate-limit";
 
-import { getRateLimitMaxLogin, getRateLimitWindowMs } from "../config/env.js";
+import { getNodeEnv, getRateLimitMaxLogin, getRateLimitWindowMs } from "../config/env.js";
 import { sendError } from "../utils/apiResponse.js";
+
+const isDevelopment = getNodeEnv() === "development";
 
 export const loginRateLimit = rateLimit({
   windowMs: getRateLimitWindowMs(),
-  max: getRateLimitMaxLogin(),
+  max: isDevelopment ? 1000 : getRateLimitMaxLogin(),
   standardHeaders: true,
   legacyHeaders: false,
   handler: (request, response) => {
@@ -15,7 +17,7 @@ export const loginRateLimit = rateLimit({
 
 export const refreshRateLimit = rateLimit({
   windowMs: getRateLimitWindowMs(),
-  max: 20,
+  max: isDevelopment ? 1000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (request, response) => {
