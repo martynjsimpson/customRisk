@@ -55,7 +55,7 @@ for (const { role, email } of ROLES) {
     // Fill in credentials and submit
     await page.getByLabel("Email").fill(email);
     await page.getByRole("textbox", { name: "Password" }).fill(E2E_PASSWORD!);
-    await page.getByRole("button", { name: /sign in/i }).click();
+    await page.getByRole("button", { name: /log in/i }).click();
 
     // Wait for a successful redirect away from the login page, confirming
     // the session cookie has been issued and the application is ready
