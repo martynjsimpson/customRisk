@@ -1,6 +1,6 @@
 {
   "name": "custom-risk",
-  "version": "1.24.0",
+  "version": "1.25.0",
   "private": true,
   "description": "Custom Risk MVP monorepo.",
   "workspaces": [
@@ -30,7 +30,7 @@
     "seed:admin": "npm --workspace @custom-risk/backend run prisma:seed",
     "smoke-test": "sh scripts/smoke-test.sh",
     "e2e": "playwright test",
-    "e2e:seed": "npx tsx e2e/fixtures/seed.ts",
+    "e2e:seed": "npx tsx --env-file=.env e2e/fixtures/seed.ts",
     "e2e:teardown": "npx tsx e2e/fixtures/teardown.ts"
   },
   "overrides": {
@@ -40,6 +40,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.0",
+    "dotenv": "^17.4.2",
     "eslint": "^10.5.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",

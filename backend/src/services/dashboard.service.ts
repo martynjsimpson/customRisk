@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "../db/prisma.js";
 import { toDateOnlyString, decimalToNumber } from "../utils/formatters.js";

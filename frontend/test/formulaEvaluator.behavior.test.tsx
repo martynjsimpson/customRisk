@@ -5,10 +5,10 @@
  */
 
 import { MantineProvider } from "@mantine/core";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type * as MantineCore from "@mantine/core";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { evaluateFormula, FormulaEvaluationError } from "../src/utils/formulaEvaluator";
 
@@ -144,7 +144,7 @@ describe("evaluateFormula — functions", () => {
 // on it. In jsdom the ResizeObserver polyfill doesn't prevent direct DOM manipulation from
 // erroring. We patch the specific method that fails so the component mounts cleanly.
 vi.mock("@mantine/core", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@mantine/core")>();
+  const actual = await importOriginal<typeof MantineCore>();
   return {
     ...actual,
     Textarea: (props: React.ComponentProps<typeof actual.Textarea>) =>

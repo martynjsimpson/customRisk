@@ -8,7 +8,7 @@
 
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
@@ -70,25 +70,6 @@ vi.mock("../src/components/PersonPicker", () => ({
 // Test helpers
 // ---------------------------------------------------------------------------
 
-function makeAction() {
-  return {
-    id: "action-1",
-    response: "Do something",
-    status: "PLANNED" as const,
-    owner: {
-      personId: null,
-      userId: "user-1",
-      email: "alice@example.com",
-      displayName: "Alice",
-    },
-    isDeleted: false,
-    createdAt: new Date().toISOString(),
-    createdBy: { id: "user-1", name: "Alice", email: "alice@example.com" },
-    updatedAt: new Date().toISOString(),
-    updatedBy: { id: "user-1", name: "Alice", email: "alice@example.com" },
-  };
-}
-
 function makeRegister() {
   return {
     reviewsEnabled: true,
@@ -124,8 +105,7 @@ describe("ResponseActionModal — BUG-053: error clears on close", () => {
     );
 
     const user = userEvent.setup();
-    let isOpen = true;
-    const onClose = vi.fn(() => { isOpen = false; });
+    const onClose = vi.fn();
 
     const { rerender } = render(
       <Wrapper>

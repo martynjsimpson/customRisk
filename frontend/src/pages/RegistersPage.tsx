@@ -48,7 +48,7 @@ export function RegistersPage() {
             {(registersQuery.data?.data ?? []).map((register) => (
               <Table.Tr key={register.id}>
                 <Table.Td>
-                  <Anchor component={Link} to={`/registers/${register.id}`} fw={600}>
+                  <Anchor component={Link} to={`/registers/${register.id}`} fw={600} data-testid="register-row-link" data-register-name={register.name}>
                     {register.name}
                   </Anchor>
                 </Table.Td>

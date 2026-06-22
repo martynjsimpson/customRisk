@@ -22,6 +22,7 @@
 
 import path from "node:path";
 import { test as setup } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
 if (!E2E_PASSWORD) {
@@ -45,23 +46,45 @@ const ROLES = [
   { role: "no-access",       email: "no-access@test.local"       },
 ] as const;
 
+/**
+ * Attempt to log in, retrying once after a 65s wait if the login form shows
+ * a "Too many authentication attempts" error (rate-limit window is 60s).
+ */
+async function loginWithRetry(
+  page: Page,
+  email: string,
+  password: string,
+) {
+  const RATE_LIMIT_TEXT = "Too many authentication attempts";
+
+  async function attemptLogin() {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(email);
+    await page.getByRole("textbox", { name: "Password" }).fill(password);
+    await page.getByRole("button", { name: /log in/i }).click();
+  }
+
+  await attemptLogin();
+
+  // If the rate-limit error appears, wait for the window to expire and retry
+  const errorLocator = page.getByText(RATE_LIMIT_TEXT);
+  const rateLimited = await errorLocator.isVisible({ timeout: 2_000 }).catch(() => false);
+  if (rateLimited) {
+    // Wait 65s for the 60s rate-limit window to reset, then try once more
+    await page.waitForTimeout(65_000);
+    await attemptLogin();
+  }
+
+  await page.waitForURL((url) => !url.pathname.includes("/login"), {
+    timeout: 10_000,
+  });
+}
+
 for (const { role, email } of ROLES) {
   setup(`authenticate as ${role}`, async ({ page }) => {
     const storageStatePath = path.join(AUTH_DIR, `${role}.json`);
 
-    // Navigate to the login page
-    await page.goto("/login");
-
-    // Fill in credentials and submit
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password").fill(E2E_PASSWORD!);
-    await page.getByRole("button", { name: /sign in/i }).click();
-
-    // Wait for a successful redirect away from the login page, confirming
-    // the session cookie has been issued and the application is ready
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 10_000,
-    });
+    await loginWithRetry(page, email, E2E_PASSWORD!);
 
     // Save the browser storage state (cookies + localStorage) for this role
     await page.context().storageState({ path: storageStatePath });

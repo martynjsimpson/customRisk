@@ -15,6 +15,36 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-06-22
+
+### Added
+
+- **Core Playwright E2E permission test suite (E2E-002)**
+  - 69 Playwright tests across 8 QA-001 sections: Unauthenticated Access (19), Register CRUD (1), Risk CRUD (2), System Audit (12), User Management (13), Response Action CRUD (3), Custom Field Visibility (5), and Export Controls (9). Tests use cached per-role `storageState` sessions from E2E-001 — no login repetition per test. All selectors use `data-testid` attributes or ARIA roles. `data-testid` attributes added to `RegistersPage`, `RiskRegisterPanel`, and `ResponseActionsPanel` to support selector targets.
+
+### Fixed
+
+- **Login rate limiter relaxed in development mode**
+  - The login rate limiter (default 10 requests per 60s window) was blocking Playwright E2E auth setup, which logs in 6 users sequentially from the same localhost IP. In development mode the limit is now 1000 requests per window; production behaviour is unchanged.
+
+- **E2E auth setup and test suite corrections**
+  - Auth setup refactored with a `loginWithRetry` helper that handles the rate-limit edge case gracefully. Test 2.17 corrected: Risk Owners do not see risks they don't own at all (not just the Edit button), so the assertion was updated to verify the row count is zero. Unused `makeStatusNoDraft` function removed from `responseActionMode.behavior.test.tsx`.
+
+- **Backend seed and E2E seed script failures**
+  - `npm run prisma:seed` was failing with a null constraint violation on `CustomFieldDefinition` upserts — `formulaDependencies` (non-nullable array, no DB default) was missing from two `create` blocks. Added `formulaDependencies: []` to both.
+  - `npm run e2e:seed` was failing with a `PrismaClientInitializationError` — Prisma 7.x now throws at construction when `DATABASE_URL` is not resolved. Updated the `e2e:seed` script to pass `--env-file=.env` and updated `e2e/fixtures/seed.ts` to use the driver adapter pattern consistent with the backend. Also corrected multiple schema field mismatches in the E2E seed (invalid `value`, `minScore`, `maxScore`, `createdByUserId`/`updatedByUserId` on models that don't have them; missing `visibleToRoles`, `formulaDependencies`, `numericValue`, and `responseStrategyId`).
+
+- **10 CI lint warnings resolved (MAINT-023)**
+  - Removed unused imports and variables from `modalErrorClear.behavior.test.tsx`, `formulaEvaluator.behavior.test.tsx`, `RiskFormModal.tsx`, and `RegisterPermissionsPanel.tsx`. Fixed a forbidden dynamic `import()` type annotation in `formulaEvaluator.behavior.test.tsx`. Switched `dashboard.service.ts` to `import type` for its Prisma import. CI quality gate now passes with zero warnings.
+
+### Documentation
+
+- **PA design findings: sub-service boundaries for risks.service.ts and configVersion.service.ts (MAINT-024)**
+  - Principal Architect has defined concrete split boundaries for both oversized service files. `risks.service.ts` splits into `RiskQueryService`, `RiskMutationService`, and `RisksCalculatedFieldsService`. `configVersion.service.ts` splits into `configVersion.draft.service.ts` and `configVersion.publish.service.ts` with a shared internal module. Findings recorded in `docs/work/active-release.md`; MAINT-018 can now move to `ready`.
+
+- **PA assessment: .test.mjs → .test.ts toolchain compatibility (MAINT-025)**
+  - Confirmed the rename of 16 frontend static test files requires two changes to `frontend/package.json`: update the `test:static` glob and add `tsx` as a dev dependency with `--import tsx/esm`. No changes to `vitest.config.ts`, `tsconfig.json`, or `vite.config.ts`. Findings recorded in `docs/work/active-release.md`; MAINT-022 can now move to `ready`.
+
 ## [1.24.0] - 2026-06-21
 
 ### Added
