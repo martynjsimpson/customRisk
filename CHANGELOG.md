@@ -24,6 +24,12 @@ Version levels:
 
 ### Fixed
 
+- **Login rate limiter relaxed in development mode**
+  - The login rate limiter (default 10 requests per 60s window) was blocking Playwright E2E auth setup, which logs in 6 users sequentially from the same localhost IP. In development mode the limit is now 1000 requests per window; production behaviour is unchanged.
+
+- **E2E auth setup and test suite corrections**
+  - Auth setup refactored with a `loginWithRetry` helper that handles the rate-limit edge case gracefully. Test 2.17 corrected: Risk Owners do not see risks they don't own at all (not just the Edit button), so the assertion was updated to verify the row count is zero. Unused `makeStatusNoDraft` function removed from `responseActionMode.behavior.test.tsx`.
+
 - **Backend seed and E2E seed script failures**
   - `npm run prisma:seed` was failing with a null constraint violation on `CustomFieldDefinition` upserts — `formulaDependencies` (non-nullable array, no DB default) was missing from two `create` blocks. Added `formulaDependencies: []` to both.
   - `npm run e2e:seed` was failing with a `PrismaClientInitializationError` — Prisma 7.x now throws at construction when `DATABASE_URL` is not resolved. Updated the `e2e:seed` script to pass `--env-file=.env` and updated `e2e/fixtures/seed.ts` to use the driver adapter pattern consistent with the backend. Also corrected multiple schema field mismatches in the E2E seed (invalid `value`, `minScore`, `maxScore`, `createdByUserId`/`updatedByUserId` on models that don't have them; missing `visibleToRoles`, `formulaDependencies`, `numericValue`, and `responseStrategyId`).
