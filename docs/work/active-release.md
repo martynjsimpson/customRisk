@@ -153,6 +153,16 @@ None — all items completed.
 
 ---
 
+## Verification feedback
+
+**Verification feedback [1]:** `npm run e2e:seed` fails with `PrismaClientInitializationError` — "PrismaClient needs to be constructed with a non-empty, valid PrismaClientOptions" at `e2e/fixtures/seed.ts:20`.
+**Status:** investigating
+
+**Verification feedback [2]:** `npm run prisma:seed` (backend seed) fails with a null constraint violation on `prisma.customFieldDefinition.upsert()` at `backend/prisma/seed.ts:943`. User states this must be fixed in this release.
+**Status:** investigating
+
+---
+
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
 
 ---
