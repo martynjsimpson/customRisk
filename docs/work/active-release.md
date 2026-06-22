@@ -171,6 +171,85 @@ None — all items completed.
 
 ---
 
+## PA Advisory: Rate Limiter in Development Mode
+
+**Context:** Playwright E2E auth setup performs 6 sequential logins (one per user fixture). The login rate limiter uses a default window of 60 seconds and a default max of 10 attempts per IP. Under normal conditions this is not a problem, but Playwright workers share the same loopback IP (`127.0.0.1`) and the rate limiter is IP-scoped via `express-rate-limit`'s default `keyGenerator`, so all 6 logins count against the same bucket. The threshold is tight enough that repeated CI runs or re-runs within a 60-second window will trigger a 429.
+
+---
+
+### Where the rate limiter lives
+
+- **Middleware:** `backend/src/middleware/rateLimit.ts` — lines 6–14 (`loginRateLimit`), lines 16–24 (`refreshRateLimit`).
+- **Applied at:** `backend/src/routes/auth.routes.ts` line 19 — `router.post("/login", loginRateLimit, ...)`.
+- **Configuration:** `backend/src/config/env.ts` lines 37–43. Two env vars control behaviour:
+  - `RATE_LIMIT_WINDOW_MS` — defaults to `60000` (60 seconds).
+  - `RATE_LIMIT_MAX_LOGIN` — defaults to `10`.
+- The limiter is per-IP (express-rate-limit default `keyGenerator` uses `req.ip`).
+
+---
+
+### How dev/prod is currently distinguished
+
+The backend already has a clean, centralised function for this: `getNodeEnv()` at `backend/src/config/env.ts` line 52. It returns `"development"` for any `NODE_ENV` value other than `"production"`, including the absent case. This is already used across the codebase for cookie `secure` flags, Prisma client caching, and CORS wildcard checks. The nav-bar label that shows `[DEVELOPMENT v1.25.0]` is driven by the same `NODE_ENV` distinction via `getNodeEnv()` surfaced through the `/api/v1/auth/me` response (`appEnvironment` field in `auth.service.ts` line 320).
+
+---
+
+### Recommended approach
+
+**Use a much higher limit in development mode, not a full bypass.**
+
+The cleanest change is in `backend/src/middleware/rateLimit.ts`. Import `getNodeEnv` and apply a development-safe ceiling:
+
+```typescript
+import rateLimit from "express-rate-limit";
+
+import { getNodeEnv, getRateLimitMaxLogin, getRateLimitWindowMs } from "../config/env.js";
+import { sendError } from "../utils/apiResponse.js";
+
+const isDevelopment = getNodeEnv() === "development";
+
+export const loginRateLimit = rateLimit({
+  windowMs: getRateLimitWindowMs(),
+  max: isDevelopment ? 1000 : getRateLimitMaxLogin(),
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (request, response) => {
+    sendError(response, 429, "RATE_LIMITED", "Too many authentication attempts", undefined, request.requestId);
+  }
+});
+
+export const refreshRateLimit = rateLimit({
+  windowMs: getRateLimitWindowMs(),
+  max: isDevelopment ? 1000 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (request, response) => {
+    sendError(response, 429, "RATE_LIMITED", "Too many refresh attempts", undefined, request.requestId);
+  }
+});
+```
+
+**Why this approach over the alternatives:**
+
+- **Skip entirely (`max: 0` or removing the middleware):** Discards the middleware entirely in dev, which means any future bug in the rate-limit logic would not be exercised locally. A high ceiling retains the middleware's code path.
+- **`X-E2E-Test` header bypass:** Requires the E2E config to inject a custom header on every login request, couples the test harness to the backend implementation, and the header would need to be explicitly blocked in production (another moving part). The `NODE_ENV` check is self-contained and adds nothing to the test layer.
+- **Env var override (`RATE_LIMIT_MAX_LOGIN=1000` in the E2E `.env`):** A legitimate alternative. It works today without any code change — just set `RATE_LIMIT_MAX_LOGIN=1000` in the `.env` used by Playwright. However it requires the value to be set correctly in every environment where E2E runs (local, CI), and if the variable is absent the default 10 applies. The code-level check is more robust: the correct behaviour for development is encoded in the binary, not in env configuration that can be forgotten.
+
+The recommended code change (1000 limit in development) is the lowest-risk, most self-documenting option.
+
+---
+
+### Risk assessment
+
+No security concern. The development mode backend is:
+- Never exposed publicly — it runs on `localhost:3000` and the Docker Compose setup does not publish the port externally.
+- Already protected by `NODE_ENV !== "production"` for cookie security (`secure: false`) and CORS wildcard protections (guarded at `app.ts` line 16). The rate limiter relaxation is consistent with these existing precedents.
+- The `getNodeEnv()` function defaults to `"development"` for any non-`"production"` value, which is the safe default for this kind of guard: if `NODE_ENV` is absent or misconfigured in production, the function would return `"development"` and the limit would be relaxed — but this would only occur if the deployment was already misconfigured, since `NODE_ENV=production` is a baseline requirement for production deployments (already enforced by the CORS wildcard check at `app.ts` line 16 which throws on startup).
+
+**Summary: implement the recommended change in `backend/src/middleware/rateLimit.ts`. One file, four lines changed.**
+
+---
+
 ## PA Spike Findings
 
 ### MAINT-024
