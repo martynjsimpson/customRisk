@@ -22,6 +22,7 @@
 
 import path from "node:path";
 import { test as setup } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
 if (!E2E_PASSWORD) {
@@ -50,7 +51,7 @@ const ROLES = [
  * a "Too many authentication attempts" error (rate-limit window is 60s).
  */
 async function loginWithRetry(
-  page: import("@playwright/test").Page,
+  page: Page,
   email: string,
   password: string,
 ) {

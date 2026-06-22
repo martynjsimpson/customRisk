@@ -23,6 +23,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // ---------------------------------------------------------------------------
 // Fixture user credentials
@@ -53,7 +54,7 @@ type Role = keyof typeof EMAILS;
  * Handles rate limiting: if the login form shows "Too many authentication
  * attempts", waits 65 s for the 60 s window to expire, then retries.
  */
-async function loginAs(page: import("@playwright/test").Page, role: Role) {
+async function loginAs(page: Page, role: Role) {
   const RATE_LIMIT_TEXT = "Too many authentication attempts";
 
   async function attempt() {
@@ -95,12 +96,12 @@ const ACTION_A_TEXT = "e2e-action-a";
 // Shared navigation helpers
 // ---------------------------------------------------------------------------
 
-async function navigateToRegisters(page: import("@playwright/test").Page) {
+async function navigateToRegisters(page: Page) {
   await page.goto("/registers");
   await page.waitForURL("/registers", { timeout: 10_000 });
 }
 
-async function navigateToRegisterA(page: import("@playwright/test").Page) {
+async function navigateToRegisterA(page: Page) {
   await navigateToRegisters(page);
   await page
     .locator(`[data-testid="register-row-link"][data-register-name="${REGISTER_A_NAME}"]`)
@@ -109,7 +110,7 @@ async function navigateToRegisterA(page: import("@playwright/test").Page) {
   await page.getByRole("tab", { name: "Risks" }).waitFor({ timeout: 10_000 });
 }
 
-async function openRiskXInRegisterA(page: import("@playwright/test").Page) {
+async function openRiskXInRegisterA(page: Page) {
   await navigateToRegisterA(page);
   await page
     .locator(`[data-testid="risk-row-link"][data-risk-title="${RISK_X_TITLE}"]`)
@@ -124,7 +125,7 @@ async function openRiskXInRegisterA(page: import("@playwright/test").Page) {
 }
 
 async function openRiskXResponseActionsPanel(
-  page: import("@playwright/test").Page,
+  page: Page,
 ) {
   await navigateToRegisterA(page);
   await page
