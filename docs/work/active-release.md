@@ -151,6 +151,10 @@ The `risk-detail-field-table` and `risk-detail-field-th` testids were added in M
 
 None — all items completed.
 
+## Deferred items for PM
+
+- **Playwright HTML report not reachable via localhost:** `npx playwright show-report` binds to `127.0.0.1:9323` but Firefox resolves `localhost` to IPv6 on macOS, causing "Unable to connect". Workaround: navigate to `127.0.0.1:9323`. A config fix (`host: '127.0.0.1'` or `--host 127.0.0.1` in the show-report invocation) would make this seamless — deferred from v1.25.0, not in scope for this release.
+
 ---
 
 ## Verification feedback
