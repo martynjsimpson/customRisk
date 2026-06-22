@@ -212,7 +212,9 @@ async function main() {
       fieldType: "TEXT",
       displayOrder: 100,
       isActive: true,
+      visibleToRoles: [],
       visibleToRiskResponseOwners: true,
+      formulaDependencies: [],
       createdByUserId: sysAdmin.id,
       updatedByUserId: sysAdmin.id,
     },
@@ -230,7 +232,9 @@ async function main() {
       fieldType: "TEXT",
       displayOrder: 110,
       isActive: true,
+      visibleToRoles: [],
       visibleToRiskResponseOwners: false,
+      formulaDependencies: [],
       createdByUserId: sysAdmin.id,
       updatedByUserId: sysAdmin.id,
     },
@@ -253,6 +257,20 @@ async function main() {
   // matrix values if none exist for Register A.
   // -------------------------------------------------------------------------
 
+  console.log("Seeding response strategy for Register A...");
+
+  const responseStrategy = await prisma.responseStrategy.upsert({
+    where: { registerId_name: { registerId: registerA.id, name: "Mitigate" } },
+    update: {},
+    create: {
+      registerId: registerA.id,
+      name: "Mitigate",
+      displayOrder: 1,
+    },
+  });
+
+  console.log(`  Response strategy — ${responseStrategy.id}`);
+
   console.log("Seeding scoring matrix for Register A...");
 
   const likelihood = await prisma.likelihoodValue.upsert({
@@ -261,10 +279,8 @@ async function main() {
     create: {
       registerId: registerA.id,
       name: "Medium",
-      value: 3,
+      numericValue: 3,
       displayOrder: 2,
-      createdByUserId: sysAdmin.id,
-      updatedByUserId: sysAdmin.id,
     },
   });
 
@@ -274,10 +290,8 @@ async function main() {
     create: {
       registerId: registerA.id,
       name: "Medium",
-      value: 3,
+      numericValue: 3,
       displayOrder: 2,
-      createdByUserId: sysAdmin.id,
-      updatedByUserId: sysAdmin.id,
     },
   });
 
@@ -287,12 +301,8 @@ async function main() {
     create: {
       registerId: registerA.id,
       name: "Medium",
-      minScore: 0,
-      maxScore: 100,
       color: "#f59e0b",
       displayOrder: 2,
-      createdByUserId: sysAdmin.id,
-      updatedByUserId: sysAdmin.id,
     },
   });
 
@@ -328,8 +338,9 @@ async function main() {
         impactValueId: impact.id,
         riskScore: 9,
         riskLevelId: riskLevel.id,
-        createdByUserId: sysAdmin.id,
-        updatedByUserId: sysAdmin.id,
+        responseStrategyId: responseStrategy.id,
+        systemCreatedByUserId: sysAdmin.id,
+        systemUpdatedByUserId: sysAdmin.id,
       },
     });
   } else {
@@ -338,7 +349,7 @@ async function main() {
       data: {
         ownerUserId: riskOwnerA.id,
         state: "OPEN",
-        updatedByUserId: sysAdmin.id,
+        systemUpdatedByUserId: sysAdmin.id,
       },
     });
   }
@@ -373,8 +384,9 @@ async function main() {
         impactValueId: impact.id,
         riskScore: 9,
         riskLevelId: riskLevel.id,
-        createdByUserId: sysAdmin.id,
-        updatedByUserId: sysAdmin.id,
+        responseStrategyId: responseStrategy.id,
+        systemCreatedByUserId: sysAdmin.id,
+        systemUpdatedByUserId: sysAdmin.id,
       },
     });
   } else {
@@ -383,7 +395,7 @@ async function main() {
       data: {
         ownerUserId: sysAdmin.id,
         state: "OPEN",
-        updatedByUserId: sysAdmin.id,
+        systemUpdatedByUserId: sysAdmin.id,
       },
     });
   }
