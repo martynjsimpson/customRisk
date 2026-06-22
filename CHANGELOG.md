@@ -26,7 +26,7 @@ Version levels:
 
 - **Backend seed and E2E seed script failures**
   - `npm run prisma:seed` was failing with a null constraint violation on `CustomFieldDefinition` upserts — `formulaDependencies` (non-nullable array, no DB default) was missing from two `create` blocks. Added `formulaDependencies: []` to both.
-  - `npm run e2e:seed` was failing with a `PrismaClientInitializationError` — Prisma 7.x now throws at construction when `DATABASE_URL` is not resolved. Updated the `e2e:seed` script to pass `--env-file=.env` and updated `e2e/fixtures/seed.ts` to use the driver adapter pattern consistent with the backend.
+  - `npm run e2e:seed` was failing with a `PrismaClientInitializationError` — Prisma 7.x now throws at construction when `DATABASE_URL` is not resolved. Updated the `e2e:seed` script to pass `--env-file=.env` and updated `e2e/fixtures/seed.ts` to use the driver adapter pattern consistent with the backend. Also corrected multiple schema field mismatches in the E2E seed (invalid `value`, `minScore`, `maxScore`, `createdByUserId`/`updatedByUserId` on models that don't have them; missing `visibleToRoles`, `formulaDependencies`, `numericValue`, and `responseStrategyId`).
 
 - **10 CI lint warnings resolved (MAINT-023)**
   - Removed unused imports and variables from `modalErrorClear.behavior.test.tsx`, `formulaEvaluator.behavior.test.tsx`, `RiskFormModal.tsx`, and `RegisterPermissionsPanel.tsx`. Fixed a forbidden dynamic `import()` type annotation in `formulaEvaluator.behavior.test.tsx`. Switched `dashboard.service.ts` to `import type` for its Prisma import. CI quality gate now passes with zero warnings.
