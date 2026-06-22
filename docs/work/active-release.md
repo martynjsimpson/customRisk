@@ -105,3 +105,109 @@ None.
 ---
 
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
+
+---
+
+## PA Spike Findings
+
+### MAINT-024
+
+**Files reviewed:** `backend/src/services/risks.service.ts` (1,248 lines) and `backend/src/services/configVersion.service.ts` (1,186 lines).
+
+---
+
+#### risks.service.ts — proposed sub-service split
+
+The file has three distinct responsibility clusters.
+
+**1. RiskQueryService** (read operations)
+
+Responsibilities: `listRisks`, `getRiskDetail`, `getRiskValidationSummary`. Also owns all the private query helpers: `buildRiskOrderBy`, `applyReviewFilters`, `applyValidationIssuesFilter`, `computeValidationStatus`, `mapRiskListItem`, `mapRiskListCustomFieldValue`, `mapCustomFieldValue`, `mapRiskDetail`, `buildMergedCustomFieldValues`, the `riskListInclude` constant, the `ValidationContext` type, and the `hasValueCondition`/`hasPopulatedValue` helpers.
+
+This cluster has no mutation side-effects and no audit writes. It is the largest slice by line count (~500 lines).
+
+**2. RiskMutationService** (write operations)
+
+Responsibilities: `createRisk`, `updateRisk`, `deleteRisk`. Also owns `assertCreateRiskAccess`, `buildRiskUpdateFieldChanges`, `buildRiskDeleteSnapshot` (currently imported from `audit/snapshotBuilder.js` — leave it there), and the `riskAuditSelect` constant used by the update/delete audit diff.
+
+This cluster is transaction-heavy and calls into `scoring.service`, `customFieldValues.service`, `personReference.service`, and `audit.service`.
+
+**3. RiskCalculatedFieldService** (formula evaluation orchestration)
+
+Responsibilities: `evaluateAndStoreCalculatedFields`. This is currently exported and imported by `configVersion.service.ts` — that cross-file dependency is the reason it must remain a separately importable unit. It can live in its own small file (`risks.calculatedFields.service.ts`) or be promoted into `formulaEvaluator.service.ts` where `evaluateFormula` already lives.
+
+The current re-export at line 99 (`export { getRiskReviewStatus, isRiskOverdue } from "./reviewStatus.service.js"`) is a convenience pass-through. Remove it during the split and have callers import directly from `reviewStatus.service.ts`.
+
+**Composition:** `RiskMutationService` calls `RiskCalculatedFieldService` (after writes) and calls `RiskQueryService.getRiskDetail` at the end of `updateRisk` to return the refreshed record. `RiskQueryService` has no dependencies on the other two.
+
+**Shared utilities to extract:** `auditValue` (the private helper that coerces values for audit field-change records) is used only inside `buildRiskUpdateFieldChanges`. Extract it alongside that function into `RiskMutationService`. The `decimalOrNull` helper is used in both `evaluateAndStoreCalculatedFields` and `mapRiskListCustomFieldValue`; move it to `backend/src/utils/formatters.ts` (which already exports `decimalToNumber`) so both new files can share it.
+
+---
+
+#### configVersion.service.ts — proposed sub-service split
+
+The file has two distinct responsibility clusters with a clear seam at ~line 435.
+
+**1. ConfigVersionDraftService** (lifecycle management)
+
+Responsibilities: `getConfigVersionStatus`, `createDraft`, `updateDraft`, `discardDraft`, `listConfigVersions`. Also owns the private helpers: `findRegisterWithVersions`, `getNextVersionNumber`, `normalizeSnapshot`, `normalizeCustomFieldValidationMode`, and `buildSnapshotFromRelationalTables`.
+
+This cluster manages the version row itself — creating, patching, discarding — and does no relational upserts against live config tables. It is largely self-contained and only depends on `audit.service`.
+
+**2. ConfigVersionPublishService** (impact analysis and publish)
+
+Responsibilities: `analyseImpact` and `publishDraft`. These two functions are tightly coupled: `publishDraft` calls `analyseImpact` at line 801 as a pre-flight check. They share the response-action-mode migration logic and the structural validation rules. Splitting them further would entangle the files without benefit.
+
+This cluster depends on `matrix.service`, `scoring.service`, `responseActions.service`, `risks.service` (for `evaluateAndStoreCalculatedFields`), and `formulaEvaluator.service`. It is the more complex slice and the one most likely to grow.
+
+**Composition:** `ConfigVersionPublishService` imports from `ConfigVersionDraftService` only to call `findRegisterWithVersions` (used at the top of both `analyseImpact` and `publishDraft`). Extract `findRegisterWithVersions` to a shared internal module (e.g. `configVersion.shared.ts`) that both files import, rather than creating a circular dependency.
+
+**Shared utilities to extract:** `normalizeSnapshot` and `normalizeCustomFieldValidationMode` are only used during draft reads and during `updateDraft` — keep them in `ConfigVersionDraftService`. `buildSnapshotFromRelationalTables` is only called from `createDraft` — keep it there too.
+
+---
+
+#### Implementation guidance for MAINT-018
+
+File names proposed:
+- `risks.query.service.ts`
+- `risks.mutation.service.ts`
+- `risks.calculatedFields.service.ts` (or merge into `formulaEvaluator.service.ts`)
+- `configVersion.draft.service.ts`
+- `configVersion.publish.service.ts`
+- `configVersion.shared.ts` (internal — not exported to route handlers)
+
+The existing `risks.service.ts` and `configVersion.service.ts` barrel files should be retained as thin re-export facades during the transition so that route handler imports do not need to change. Once the split is stable, the route handlers can be updated to import from the specific sub-service files and the barrels removed.
+
+The cross-file dependency where `configVersion.service.ts` imports `evaluateAndStoreCalculatedFields` from `risks.service.ts` must be preserved — route it through whichever file the calculated-field logic lands in.
+
+---
+
+### MAINT-025
+
+**Files reviewed:** `frontend/vite.config.ts`, `frontend/tsconfig.json`, `frontend/package.json` (test scripts).
+
+**Assessment: the rename is safe with no toolchain config changes required.**
+
+The `.test.mjs` files are run by `node --test` (the Node built-in test runner) via the `test:static` script in `package.json`:
+
+```
+"test:static": "find test -name '*.test.mjs' | sort | xargs node --test"
+```
+
+The `.behavior.test.tsx` files are run by Vitest via the `test:runtime` script. The vitest config (`vite.config.ts`) explicitly includes only `test/**/*.behavior.test.tsx` and does not glob for `.mjs` or `.test.ts`. There is no risk of Vitest accidentally picking up the static test files after the rename.
+
+After renaming `.test.mjs` to `.test.ts`:
+
+- The `test:static` script's `find` glob must change from `'*.test.mjs'` to `'*.test.ts'`. This is the **only required change** — one line in `frontend/package.json`. It is a script change, not a toolchain config change in the architectural sense, but it must be made for the tests to run.
+- `tsconfig.json` has `"include": ["src", "vite.config.ts"]` — the `test/` directory is excluded from TypeScript compilation. The renamed files will not be type-checked by `tsc --noEmit` (the `typecheck` script), which is correct: these are static assertion scripts that import no frontend source types.
+- The `.test.ts` extension will not be picked up by Vitest because the `include` pattern in `vite.config.ts` is `test/**/*.behavior.test.tsx` — no ambiguity.
+- Node's `--test` runner accepts `.ts` files when invoked via `node --test` directly only if a TypeScript loader is registered. The current invocation uses bare `node --test` with no `--import` or `--loader` flag, so `.ts` files would fail to execute as-is.
+
+**Revised conclusion:** the rename requires two changes, both in `frontend/package.json`:
+
+1. Change the `find` glob in `test:static` from `'*.test.mjs'` to `'*.test.ts'`.
+2. Add a TypeScript loader so Node can execute `.ts` files: either `--import tsx/esm` (if `tsx` is already a dev dependency) or `--import ts-node/esm`. Alternatively, keep the files as `.mjs` and only change the extension as part of a broader move to add a `tsx`/`ts-node` dev dependency.
+
+Check whether `tsx` is already listed in `frontend/package.json` devDependencies before deciding which loader to use. If it is present, `--import tsx/esm` is the zero-new-dependency path. If neither `tsx` nor `ts-node` is present, adding `tsx` as a dev dependency is the lightest lift (single package, no tsconfig changes needed).
+
+`tsx` is present in `backend/package.json` as a dev dependency (`^4.22.4`) but is not installed at the workspace root and is not in `frontend/package.json`. Adding `tsx` as a frontend dev dependency is therefore required. No tsconfig changes are needed alongside this — `tsx` works with the existing `tsconfig.json`.
