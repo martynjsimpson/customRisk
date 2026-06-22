@@ -30,7 +30,7 @@
     "seed:admin": "npm --workspace @custom-risk/backend run prisma:seed",
     "smoke-test": "sh scripts/smoke-test.sh",
     "e2e": "playwright test",
-    "e2e:seed": "npx tsx e2e/fixtures/seed.ts",
+    "e2e:seed": "npx tsx --env-file=.env e2e/fixtures/seed.ts",
     "e2e:teardown": "npx tsx e2e/fixtures/teardown.ts"
   },
   "overrides": {

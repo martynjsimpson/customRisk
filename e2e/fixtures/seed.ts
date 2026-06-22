@@ -16,8 +16,11 @@
 
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
-const prisma = new PrismaClient();
+const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: new PrismaPg(pgPool) });
 
 const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD;
 if (!E2E_PASSWORD) {
