@@ -19,7 +19,7 @@ import {
 import { useForm } from "@mantine/form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { evaluateFormula, FormulaEvaluationError } from "../../utils/formulaEvaluator";
+import { evaluateFormula } from "../../utils/formulaEvaluator";
 
 import {
   createRisk,
