@@ -16,6 +16,30 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-077
+Request ID: REQ-077
+Title: Fix 10 CI lint warnings in frontend and backend
+Type: maintenance
+Status: refined
+Priority: medium
+Summary: CI quality gates are reporting 10 warnings across several files. The majority are unused variable/import declarations in test files and source files, plus one forbidden `import()` type annotation and one missing `import type` usage in the backend. These should be cleaned up to keep the CI warning-free.
+Notes: Affected files and issues from the CI screenshot: frontend/test/modalErrorClear.behavior.test.tsx (unused: isOpen L127, makeAction L73, act L11); frontend/test/formulaEvaluator.behavior.test.tsx (forbidden import() type annotation L147, unused: beforeEach L11, QueryClientProvider L8, QueryClient L8); frontend/src/features/risks/RiskFormModal.tsx (unused: FormulaEvaluationError L22); frontend/src/features/registers/RegisterPermissionsPanel.tsx (unused: useQueryClient L13); backend/src/services/dashboard.service.ts (use `import type` L1).
+Derived work items: MAINT-023
+Source: human request (direct)
+
+### REQ-076
+Request ID: REQ-076
+Title: Implement production editions model for feature flag management
+Type: feature
+Status: deferred
+Priority: low
+Summary: Replace per-deployment arbitrary flag combinations with named, fixed editions. PM direction: three editions — "free", "professional", and "enterprise". Implementation is low-risk once editions are defined — adds editions.ts, updates featureFlags.ts, and logs the resolved edition at startup. Blocked on PM decision: which of the 10 current flags each edition enables.
+Notes: Deferred — not a near-term priority. Revisit if editions become commercially relevant.
+Derived work items: MAINT-015
+Source: deferred from SPIKE-004
+
+## Refined requests
+
 ### REQ-084
 Request ID: REQ-084
 Title: Migrate frontend static tests from .test.mjs to .test.ts
@@ -30,7 +54,8 @@ Source: deferred from v1.23.0 (MAINT-013)
 Request ID: REQ-083
 Title: Fix brittle querySelector usage in three frontend test files
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.24.0
 Priority: medium
 Summary: passwordStrength.behavior.test.tsx, apiKeys.behavior.test.tsx, and riskDetailModal.behavior.test.tsx use brittle DOM selectors (querySelector). Fixing requires adding aria-label or data-testid attributes to the relevant source components, so this involves both the frontend developer and the test code.
 Derived work items: MAINT-021
@@ -40,7 +65,8 @@ Source: deferred from v1.23.0 (MAINT-013)
 Request ID: REQ-082
 Title: Restructure myRisks.test.mjs to use describe blocks
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.24.0
 Priority: low
 Summary: 17 tests in myRisks.test.mjs are currently separated by inline comments rather than describe blocks, contrary to the coding standard. Restructuring requires intentional coordination as test name changes affect test run output and any CI reporting that references test names.
 Derived work items: MAINT-020
@@ -50,7 +76,8 @@ Source: deferred from v1.23.0 (MAINT-013)
 Request ID: REQ-081
 Title: Add opening block comments to test files missing them
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.24.0
 Priority: low
 Summary: Approximately 38 test files (24 backend, 14 frontend static) are missing required opening block comments per the coding standard. Low risk, high volume — recommend adding them incrementally during upcoming releases rather than in a single dedicated pass.
 Derived work items: MAINT-019
@@ -70,7 +97,8 @@ Source: deferred from v1.23.0 (MAINT-012)
 Request ID: REQ-079
 Title: Extract duplicated utility functions to backend/src/utils/
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.24.0
 Priority: medium
 Summary: toDateOnlyString and decimalToNumber are duplicated across four service files (risks.service.ts, reviews.service.ts, dashboard.service.ts, customFieldValues.service.ts). Both should be extracted to a shared backend/src/utils/ module. Multi-file change across high-traffic services — warrants dedicated coverage and care.
 Derived work items: MAINT-017
@@ -80,32 +108,160 @@ Source: deferred from v1.23.0 (MAINT-012)
 Request ID: REQ-078
 Title: Extract large page components into feature components
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.24.0
 Priority: medium
 Summary: RegisterDetailPage.tsx, UsersPage.tsx, and MyRisksPage.tsx each contain substantial logic and JSX (~80–300 lines each) that should be extracted into dedicated feature components. Each requires its own feature directory and careful extraction to avoid regressions.
 Derived work items: MAINT-016
 Source: deferred from v1.23.0 (MAINT-011)
 
-### REQ-076
-Request ID: REQ-076
-Title: Implement production editions model for feature flag management
-Type: feature
-Status: needs-refinement
-Priority: medium
-Summary: Replace per-deployment arbitrary flag combinations with named, fixed editions. PM direction: three editions — "free", "professional", and "enterprise". Implementation is low-risk once editions are defined — adds editions.ts, updates featureFlags.ts, and logs the resolved edition at startup. Blocked on PM decision: which of the 10 current flags each edition enables.
-Notes: PM has confirmed three editions (free, professional, enterprise) but the flag-to-edition mapping is not yet defined. Defer further refinement until PM is ready to define the mapping.
-Derived work items: MAINT-015
-Source: deferred from SPIKE-004
-
 ### REQ-075
 Request ID: REQ-075
 Title: Implement Playwright E2E permission test suite
 Type: feature
-Status: refined
+Status: partially-done
+Done in: v1.24.0 (E2E-001 — infrastructure)
 Priority: medium
 Summary: Adopt Playwright as a third test layer (E2E) to cover real browser sessions, live backend authorisation, and cross-role permission isolation — gaps that Layers 1 and 2 cannot exercise. Implementation follows the 6-step plan in docs/spikes/SPIKE-003.md. Two work items: E2E-001 (infrastructure) and E2E-002 (core permission test suite).
 Derived work items: E2E-001, E2E-002
 Source: deferred from SPIKE-003
+
+### REQ-043
+Request ID: REQ-043
+Title: Spike: encryption of client data at rest
+Type: feature
+Status: refined
+Priority: medium
+Summary: Investigate and scope encryption of data at rest, with a focus on PII and other sensitive fields — though full encryption of all client data should be considered. This is likely to be closely related to or absorbed into REQ-042 (SaaS multi-tenant spike) as a key security requirement for any hosted offering.
+Notes: Scoping should cover which fields/tables warrant encryption, key management strategy, and the performance and complexity trade-offs of field-level vs. full database encryption. The spike should also cover Bring Your Own Key (BYOK) — allowing clients to supply and manage their own encryption keys — so that tenants retain full control over their data and the platform operator cannot access it without the client's key.
+Derived work items: SPIKE-002
+Source: human request (direct)
+
+### REQ-042
+Request ID: REQ-042
+Title: Spike: SaaS multi-tenant architecture for COTS hosting
+Type: feature
+Status: refined
+Priority: low
+Summary: Explore what it would take to offer customRisk as a commercially hosted SaaS product. This is a large scoping exercise covering architecture decisions, required code changes, and data isolation strategy. Key areas to address include: self-serve sign-up and onboarding, an organisation/tenant model with full data isolation between tenants, authentication and authorisation changes, and any infrastructure or deployment changes needed to support multiple isolated customers on shared infrastructure.
+Notes: User flagged this as requiring a dedicated scoping exercise before any implementation work is planned. Treat as a spike/discovery item rather than a deliverable work item for now. The scoping should also cover "super admin" / platform manager controls — the tools the platform operator would need to manage tenants, investigate issues, and fix problems, while preserving customer data safety and privacy (e.g. impersonation with audit trail, tenant suspension, data access controls that prevent casual browsing of customer data).
+Derived work items: SPIKE-001
+Source: human request (direct)
+
+### REQ-021
+Request ID: REQ-021
+Title: Overhaul the homepage — it has not been updated since MVP
+Type: improvement
+Status: refined
+Priority: medium
+Summary: The homepage has not received meaningful attention since the initial MVP and needs a significant rework. The PM should assess what a post-MVP homepage should offer, potentially overlapping with or superseding any existing planned work in this area.
+Notes: User flagged this may conflict with already-planned work — check backlog for related items before scoping.
+Derived work items: UI-013
+Source: human request (direct)
+
+### REQ-008
+Request ID: REQ-008
+Title: Add attachments and evidence support so users can keep supporting files with risks, actions, and reviews
+Type: feature
+Status: refined
+Priority: medium
+Summary: Users need to upload, view, and manage supporting files with clear storage, permission, and audit controls.
+Notes: Storage architecture is decided in ADR-0006, but the product implementation is still open.
+Derived work items: PM12-CORE
+Source: migrated from old planning
+
+## Partially done
+
+### REQ-001
+Request ID: REQ-001
+Title: Finish saved views and reporting foundations so users can keep and reuse their working views
+Type: feature
+Status: partially-done
+Done in: v1.9.0
+Priority: high
+Summary: Users need reusable personal views, safer report/export behaviour, and a clearer reporting foundation instead of relying only on ad hoc table state.
+Notes: Personal saved views (filters, sort, column state) shipped in v1.9.0. Report builder, charts, shared views, scheduled reports, CSV import, and export polish remain open.
+Derived work items: PM11-01, PM10-CORE
+Source: migrated from old planning
+Evidence: `backend/src/services/savedViews.service.ts`, `frontend/src/features/risks/SavedViewsPanel.tsx`, `backend/test/savedViews.test.mjs`, `frontend/test/savedViews.behavior.test.tsx`
+
+### REQ-002
+Request ID: REQ-002
+Title: Let users and administrators manage API keys safely for integrations and offboarding
+Type: security
+Status: partially-done
+Done in: v1.9.0
+Priority: high
+Summary: The product needs safe API key creation, listing, revocation, and audit coverage without exposing secrets.
+Notes: User self-service and admin API key management shipped in v1.9.0 (PM13-01). Keys are inherit-user-permissions scoped. API key request authentication and deactivated-user enforcement remain deferred as PM13-03.
+Derived work items: PM13-01, PM13-03
+Source: migrated from old planning
+Evidence: `backend/src/services/apiKeys.service.ts`, `backend/src/routes/apiKeys.routes.ts`, `backend/src/routes/users.routes.ts`, `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `backend/test/apiKeys.test.mjs`
+
+### REQ-003
+Request ID: REQ-003
+Title: Support advanced custom field behaviour and safer validation rules
+Type: feature
+Status: partially-done
+Priority: high
+Summary: Register admins need stronger custom field behaviour, including validation modes, calculated behaviour, visibility rules, and safe lifecycle controls.
+Notes: Validation modes, multi-select fields, calculated fields, and field visibility controls are present in code, but full close-out evidence is still incomplete.
+Derived work items: PM5-CORE
+Source: migrated from old planning
+Evidence: `backend/src/services/customFields.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `frontend/src/features/configuration/CustomFieldModal.tsx`, `backend/test/formulaEvaluator.test.mjs`
+
+### REQ-004
+Request ID: REQ-004
+Title: Improve scoring and residual risk support for more advanced methodologies
+Type: feature
+Status: partially-done
+Done in: v1.17.0 (PM6-SCORING)
+Priority: high
+Summary: The platform needs configurable formulas, inherent and residual risk support, and related workflow behaviour to support more mature risk methods.
+Notes: Basic scoring, matrix behaviour, and calculated-field formula support exist. Configurable score formula engine (PM6-SCORING) shipped in v1.17.0. Inherent/residual mode (PM6-CORE) is deferred until after PM7-CORE (child actions). Residual suggestions (PM6-RESIDUAL-SUGGESTIONS) follow after both.
+Derived work items: PM6-SCORING, PM6-CORE, PM6-RESIDUAL-SUGGESTIONS
+Source: migrated from old planning
+Evidence: `backend/src/services/scoring.service.ts`, `backend/src/services/matrix.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `backend/test/riskScoring.test.mjs`
+
+### REQ-005
+Request ID: REQ-005
+Title: Add child actions and stronger review workflows so treatment work can be tracked properly
+Type: feature
+Status: partially-done
+Done in: v1.19.0 (PM7-CORE — child-record response actions)
+Priority: high
+Summary: Users need first-class response actions, richer review rules, and better ownership tracking instead of relying on a simple risk field.
+Notes: PM7-CORE (child-record response actions) shipped in v1.19.0. PM8-CORE (rule-driven review workflows) remains open and depends on PM7-CORE being stable.
+Derived work items: PM7-CORE, PM8-CORE
+Source: migrated from old planning
+
+### REQ-007
+Request ID: REQ-007
+Title: Add safer import, export, and data portability workflows
+Type: improvement
+Status: partially-done
+Done in: v1.9.0
+Priority: medium
+Summary: Operators need more complete data movement support, especially CSV import and more polished exports, without breaking permissions or auditability.
+Notes: Risk CSV export, audit CSV export, and config bundle import/export exist, but CSV import and the broader portability workflow still remain.
+Derived work items: PM10-CORE
+Source: migrated from old planning
+Evidence: `backend/src/services/export.service.ts`, `backend/src/services/audit.service.ts`, `backend/src/services/configExport.service.ts`, `backend/src/services/configImport.service.ts`
+
+### REQ-010
+Request ID: REQ-010
+Title: Improve person-assignment administration so unresolved owners and audit gaps are visible
+Type: improvement
+Status: partially-done
+Done in: v1.9.0
+Priority: medium
+Summary: Admins need a clean way to find unresolved person references and understand assignment changes without reopening already shipped person-reference work.
+Notes: Core person-reference support and a system-admin unresolved-person route exist, but there is still no clear evidence of a completed admin UI or fully closed assignment-audit coverage.
+Derived work items: PM2-05A
+Source: migrated from old planning
+Evidence: `backend/src/routes/persons.routes.ts`, `backend/src/services/personReference.service.ts`, `backend/test/personReferences.test.mjs`
+
+## Done
 
 ### REQ-074
 Request ID: REQ-074
@@ -219,6 +375,7 @@ Derived work items: MAINT-009
 Source: human request (direct)
 
 ### REQ-064
+Request ID: REQ-064
 Title: Spike production editions model
 Type: feature
 Status: done
@@ -399,16 +556,6 @@ Notes: User flagged this may be user error — needs a working example documente
 Derived work items: BUG-049
 Source: human request (direct)
 
-### REQ-048
-Request ID: REQ-048
-Title: Investigate bulk-batch job queue architecture
-Type: maintenance
-Status: deferred
-Priority: medium
-Summary: As the risk register grows, operations that require recalculating all risks (e.g. changing the scoring formula) will become too slow to execute synchronously via a single API call. A job queue architecture should be investigated to handle bulk-batch operations asynchronously. This becomes especially important if/when the app moves to multi-tenant, where a bulk operation for one customer must not block others.
-Notes: Key concerns to address in the investigation: FIFO ordering and tenant isolation (customer A's bulk job must not block customer B); resumability (if a job fails partway through, it should know where to resume); visibility (customer admins should be able to see the status of their own queued jobs; super admins should have a system-wide queue view); and identifying which other operations beyond score recalculation may benefit from the same pattern (e.g. CSV import, bulk status changes). Deferred until SPIKE-001 (multi-tenant architecture spike) produces an output — the tenant model must be resolved before a job queue architecture can be designed without risk of rework.
-Source: human request (direct)
-
 ### REQ-047
 Request ID: REQ-047
 Title: Apply rounded corners to left nav hover/active states
@@ -418,16 +565,6 @@ Done in: v1.14.0
 Priority: medium
 Summary: The app consistently uses rounded corners on buttons, frames, and other UI elements, but the hover and active highlight on the left-hand navigation does not follow this style. The nav hover and active states should be updated to use rounded corners to match the rest of the design language.
 Derived work items: UI-015
-Source: human request (direct)
-
-### REQ-046
-Request ID: REQ-046
-Title: Fix button styling on /templates screen
-Type: improvement
-Status: duplicate
-Priority: high
-Summary: The "Create Register", "Update Config", and "Deactivate" buttons on the /templates screen suffer from the same styling issues described in REQ-041 — they blend into the page background, look like links rather than buttons, and have inconsistent font sizing.
-Notes: Consolidated into UI-017 (derived from REQ-041). /templates is explicitly called out in UI-017's scope so it is not overlooked.
 Source: human request (direct)
 
 ### REQ-045
@@ -450,28 +587,6 @@ Done in: v1.14.0
 Priority: low
 Summary: In the audit log, API key prefixes are displayed as-is (e.g. `cr_live_27e6515b`), which could imply it is the full key. Since the prefix is only the beginning of the key, it should be rendered with a trailing ellipsis (e.g. `cr_live_27e6515b...`) to make clear that the value is truncated. This applies both to the description text and the prefix displayed in the affected field column.
 Derived work items: UI-016
-Source: human request (direct)
-
-### REQ-043
-Request ID: REQ-043
-Title: Spike: encryption of client data at rest
-Type: feature
-Status: refined
-Priority: medium
-Summary: Investigate and scope encryption of data at rest, with a focus on PII and other sensitive fields — though full encryption of all client data should be considered. This is likely to be closely related to or absorbed into REQ-042 (SaaS multi-tenant spike) as a key security requirement for any hosted offering.
-Notes: Scoping should cover which fields/tables warrant encryption, key management strategy, and the performance and complexity trade-offs of field-level vs. full database encryption. The spike should also cover Bring Your Own Key (BYOK) — allowing clients to supply and manage their own encryption keys — so that tenants retain full control over their data and the platform operator cannot access it without the client's key.
-Derived work items: SPIKE-002
-Source: human request (direct)
-
-### REQ-042
-Request ID: REQ-042
-Title: Spike: SaaS multi-tenant architecture for COTS hosting
-Type: feature
-Status: refined
-Priority: low
-Summary: Explore what it would take to offer customRisk as a commercially hosted SaaS product. This is a large scoping exercise covering architecture decisions, required code changes, and data isolation strategy. Key areas to address include: self-serve sign-up and onboarding, an organisation/tenant model with full data isolation between tenants, authentication and authorisation changes, and any infrastructure or deployment changes needed to support multiple isolated customers on shared infrastructure.
-Notes: User flagged this as requiring a dedicated scoping exercise before any implementation work is planned. Treat as a spike/discovery item rather than a deliverable work item for now. The scoping should also cover "super admin" / platform manager controls — the tools the platform operator would need to manage tenants, investigate issues, and fix problems, while preserving customer data safety and privacy (e.g. impersonation with audit trail, tenant suspension, data access controls that prevent casual browsing of customer data).
-Derived work items: SPIKE-001
 Source: human request (direct)
 
 ### REQ-041
@@ -518,8 +633,6 @@ Priority: medium
 Summary: The Review status row in the risk detail modal is not part of the register's field configuration, so admins cannot control its position relative to other fields the way they can for custom fields. It currently appears at a fixed position (end of table). The field configuration system should be extended to include Review as a configurable field so its display order can be set per register.
 Source: verification feedback (v1.12.0 release)
 Derived work items: UI-014
-
-## Refined requests
 
 ### REQ-037
 Request ID: REQ-037
@@ -708,17 +821,6 @@ Notes: Affects both the edit action and the risk ID link. The modal content itse
 Derived work items: UI-004
 Source: human request (direct)
 
-### REQ-021
-Request ID: REQ-021
-Title: Overhaul the homepage — it has not been updated since MVP
-Type: improvement
-Status: refined
-Priority: medium
-Summary: The homepage has not received meaningful attention since the initial MVP and needs a significant rework. The PM should assess what a post-MVP homepage should offer, potentially overlapping with or superseding any existing planned work in this area.
-Notes: User flagged this may conflict with already-planned work — check backlog for related items before scoping.
-Derived work items: UI-013
-Source: human request (direct)
-
 ### REQ-020
 Request ID: REQ-020
 Title: Add descriptive helper text under the title on all pages
@@ -777,133 +879,17 @@ Notes: Reference the date picker component used in the audit log search filter a
 Derived work items: UI-012
 Source: human request (direct)
 
-### REQ-011
-Request ID: REQ-011
-Title: Upgrade or align the project Node.js runtime
-Type: maintenance
-Status: done
-Done in: v1.16.0
-Priority: low
-Summary: Upgrade the project toolchain to Node 24 LTS (the current LTS line as of mid-2026) and tighten package.json engines.node to >=24. Covers .nvmrc, GitHub Actions CI, Dockerfile, and all workspace package.json files. The original request referenced Node 25 (not an LTS release); Node 24 LTS is the correct target. Principal Architect to confirm compatibility before devops-engineer executes.
-Notes: Node 24 became LTS in October 2025. PA confirmation required before proceeding. Derived work item MAINT-001 captures the scoped change.
-Derived work items: MAINT-001
-Source: human request
-
-### REQ-005
-Request ID: REQ-005  
-Title: Add child actions and stronger review workflows so treatment work can be tracked properly  
-Type: feature  
-Status: partially-done  
-Done in: v1.19.0 (PM7-CORE — child-record response actions)
-Priority: high  
-Summary: Users need first-class response actions, richer review rules, and better ownership tracking instead of relying on a simple risk field.  
-Notes: PM7-CORE (child-record response actions) shipped in v1.19.0. PM8-CORE (rule-driven review workflows) remains open and depends on PM7-CORE being stable.  
-Derived work items: PM7-CORE, PM8-CORE  
-Source: migrated from old planning
-
-### REQ-008
-Request ID: REQ-008  
-Title: Add attachments and evidence support so users can keep supporting files with risks, actions, and reviews  
-Type: feature  
-Status: refined  
-Priority: medium  
-Summary: Users need to upload, view, and manage supporting files with clear storage, permission, and audit controls.  
-Notes: Storage architecture is decided in ADR-0006, but the product implementation is still open.  
-Derived work items: PM12-CORE  
-Source: migrated from old planning
-
-## Partially done
-
-### REQ-001
-Request ID: REQ-001  
-Title: Finish saved views and reporting foundations so users can keep and reuse their working views  
-Type: feature  
-Status: partially-done  
-Done in: v1.9.0  
-Priority: high  
-Summary: Users need reusable personal views, safer report/export behaviour, and a clearer reporting foundation instead of relying only on ad hoc table state.  
-Notes: Personal saved views (filters, sort, column state) shipped in v1.9.0. Report builder, charts, shared views, scheduled reports, CSV import, and export polish remain open.  
-Derived work items: PM11-01, PM10-CORE  
-Source: migrated from old planning
-Evidence: `backend/src/services/savedViews.service.ts`, `frontend/src/features/risks/SavedViewsPanel.tsx`, `backend/test/savedViews.test.mjs`, `frontend/test/savedViews.behavior.test.tsx`
-
-### REQ-002
-Request ID: REQ-002  
-Title: Let users and administrators manage API keys safely for integrations and offboarding  
-Type: security  
-Status: partially-done  
-Done in: v1.9.0  
-Priority: high  
-Summary: The product needs safe API key creation, listing, revocation, and audit coverage without exposing secrets.  
-Notes: User self-service and admin API key management shipped in v1.9.0 (PM13-01). Keys are inherit-user-permissions scoped. API key request authentication and deactivated-user enforcement remain deferred as PM13-03.  
-Derived work items: PM13-01, PM13-03  
-Source: migrated from old planning
-Evidence: `backend/src/services/apiKeys.service.ts`, `backend/src/routes/apiKeys.routes.ts`, `backend/src/routes/users.routes.ts`, `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `backend/test/apiKeys.test.mjs`
-
-### REQ-003
-Request ID: REQ-003  
-Title: Support advanced custom field behaviour and safer validation rules  
-Type: feature  
-Status: partially-done  
-Priority: high  
-Summary: Register admins need stronger custom field behaviour, including validation modes, calculated behaviour, visibility rules, and safe lifecycle controls.  
-Notes: Validation modes, multi-select fields, calculated fields, and field visibility controls are present in code, but full close-out evidence is still incomplete.  
-Derived work items: PM5-CORE  
-Source: migrated from old planning
-Evidence: `backend/src/services/customFields.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `frontend/src/features/configuration/CustomFieldModal.tsx`, `backend/test/formulaEvaluator.test.mjs`
-
-### REQ-004
-Request ID: REQ-004  
-Title: Improve scoring and residual risk support for more advanced methodologies  
-Type: feature  
-Status: partially-done  
-Priority: high  
-Summary: The platform needs configurable formulas, inherent and residual risk support, and related workflow behaviour to support more mature risk methods.  
-Done in: v1.17.0 (PM6-SCORING)  
-Notes: Basic scoring, matrix behaviour, and calculated-field formula support exist. Configurable score formula engine (PM6-SCORING) shipped in v1.17.0. Inherent/residual mode (PM6-CORE) is deferred until after PM7-CORE (child actions). Residual suggestions (PM6-RESIDUAL-SUGGESTIONS) follow after both.
-Derived work items: PM6-SCORING, PM6-CORE, PM6-RESIDUAL-SUGGESTIONS  
-Source: migrated from old planning
-Evidence: `backend/src/services/scoring.service.ts`, `backend/src/services/matrix.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `backend/test/riskScoring.test.mjs`
-
-### REQ-007
-Request ID: REQ-007  
-Title: Add safer import, export, and data portability workflows  
-Type: improvement  
-Status: partially-done  
-Done in: v1.9.0  
-Priority: medium  
-Summary: Operators need more complete data movement support, especially CSV import and more polished exports, without breaking permissions or auditability.  
-Notes: Risk CSV export, audit CSV export, and config bundle import/export exist, but CSV import and the broader portability workflow still remain.  
-Derived work items: PM10-CORE  
-Source: migrated from old planning
-Evidence: `backend/src/services/export.service.ts`, `backend/src/services/audit.service.ts`, `backend/src/services/configExport.service.ts`, `backend/src/services/configImport.service.ts`
-
-### REQ-010
-Request ID: REQ-010  
-Title: Improve person-assignment administration so unresolved owners and audit gaps are visible  
-Type: improvement  
-Status: partially-done  
-Done in: v1.9.0  
-Priority: medium  
-Summary: Admins need a clean way to find unresolved person references and understand assignment changes without reopening already shipped person-reference work.  
-Notes: Core person-reference support and a system-admin unresolved-person route exist, but there is still no clear evidence of a completed admin UI or fully closed assignment-audit coverage.  
-Derived work items: PM2-05A  
-Source: migrated from old planning
-Evidence: `backend/src/routes/persons.routes.ts`, `backend/src/services/personReference.service.ts`, `backend/test/personReferences.test.mjs`
-
-## Done
-
-### REQ-013
-Request ID: REQ-013
-Title: Fix SavedViewsPanel crash on /registers — views.map is not a function
-Type: bug
+### REQ-015
+Request ID: REQ-015
+Title: Add a password strength meter to the change password form on /profile
+Type: improvement
 Status: done
 Done in: v1.10.0
-Priority: critical
-Summary: Navigating to /registers throws an unhandled application error in SavedViewsPanel.tsx at line 85. The component calls `.map()` on `views`, but `views` is not an array at that point (likely null, undefined, or a non-array API response shape). The register page is completely unusable when this crash occurs.
-Notes: Stack trace points to SavedViewsPanel@SavedViewsPanel.tsx:85. Root cause is almost certainly a missing array guard or an API response that does not return the expected array for saved views.
-Derived work items: BUG-002
-Source: human report (direct)
+Priority: low
+Summary: The change password form on /profile gives no feedback on password strength. A live strength meter below the new password field would help users choose stronger passwords without requiring server-side enforcement.
+Notes: Mantine docs include a password strength example using Progress and Popover — no new dependency needed. Advisory only by default.
+Derived work items: QOL-001
+Source: human request (direct)
 
 ### REQ-014
 Request ID: REQ-014
@@ -917,17 +903,29 @@ Notes: ProfilePage.tsx is the only file in the frontend that uses Mantine Card. 
 Derived work items: UI-001
 Source: human report (direct)
 
-### REQ-015
-Request ID: REQ-015
-Title: Add a password strength meter to the change password form on /profile
-Type: improvement
+### REQ-013
+Request ID: REQ-013
+Title: Fix SavedViewsPanel crash on /registers — views.map is not a function
+Type: bug
 Status: done
 Done in: v1.10.0
+Priority: critical
+Summary: Navigating to /registers throws an unhandled application error in SavedViewsPanel.tsx at line 85. The component calls `.map()` on `views`, but `views` is not an array at that point (likely null, undefined, or a non-array API response shape). The register page is completely unusable when this crash occurs.
+Notes: Stack trace points to SavedViewsPanel@SavedViewsPanel.tsx:85. Root cause is almost certainly a missing array guard or an API response that does not return the expected array for saved views.
+Derived work items: BUG-002
+Source: human report (direct)
+
+### REQ-011
+Request ID: REQ-011
+Title: Upgrade or align the project Node.js runtime
+Type: maintenance
+Status: done
+Done in: v1.16.0
 Priority: low
-Summary: The change password form on /profile gives no feedback on password strength. A live strength meter below the new password field would help users choose stronger passwords without requiring server-side enforcement.
-Notes: Mantine docs include a password strength example using Progress and Popover — no new dependency needed. Advisory only by default.
-Derived work items: QOL-001
-Source: human request (direct)
+Summary: Upgrade the project toolchain to Node 24 LTS (the current LTS line as of mid-2026) and tighten package.json engines.node to >=24. Covers .nvmrc, GitHub Actions CI, Dockerfile, and all workspace package.json files. The original request referenced Node 25 (not an LTS release); Node 24 LTS is the correct target. Principal Architect to confirm compatibility before devops-engineer executes.
+Notes: Node 24 became LTS in October 2025. PA confirmation required before proceeding. Derived work item MAINT-001 captures the scoped change.
+Derived work items: MAINT-001
+Source: human request
 
 ## Deferred requests
 
@@ -941,40 +939,57 @@ Summary: Add multi-language support across the full product surface. Architectur
 Derived work items: I18N-001
 Source: deferred from SPIKE-005
 
+### REQ-048
+Request ID: REQ-048
+Title: Investigate bulk-batch job queue architecture
+Type: maintenance
+Status: deferred
+Priority: medium
+Summary: As the risk register grows, operations that require recalculating all risks (e.g. changing the scoring formula) will become too slow to execute synchronously via a single API call. A job queue architecture should be investigated to handle bulk-batch operations asynchronously. This becomes especially important if/when the app moves to multi-tenant, where a bulk operation for one customer must not block others.
+Notes: Key concerns to address in the investigation: FIFO ordering and tenant isolation (customer A's bulk job must not block customer B); resumability (if a job fails partway through, it should know where to resume); visibility (customer admins should be able to see the status of their own queued jobs; super admins should have a system-wide queue view); and identifying which other operations beyond score recalculation may benefit from the same pattern (e.g. CSV import, bulk status changes). Deferred until SPIKE-001 (multi-tenant architecture spike) produces an output — the tenant model must be resolved before a job queue architecture can be designed without risk of rework.
+Source: human request (direct)
+
 ### REQ-009
-Request ID: REQ-009  
-Title: Add enterprise authentication options for organisations that need SSO and recovery flows  
-Type: feature  
-Status: deferred  
-Priority: medium  
-Summary: Enterprise auth remains important, but it is not the best first release candidate compared with already-started product work.  
-Notes: Bring this back forward when there is explicit commercial or deployment pressure.  
-Derived work items: PM3-CORE  
+Request ID: REQ-009
+Title: Add enterprise authentication options for organisations that need SSO and recovery flows
+Type: feature
+Status: deferred
+Priority: medium
+Summary: Enterprise auth remains important, but it is not the best first release candidate compared with already-started product work.
+Notes: Bring this back forward when there is explicit commercial or deployment pressure.
+Derived work items: PM3-CORE
 Source: migrated from old planning
 
 ### REQ-012
-Request ID: REQ-012  
-Title: Extend the template library beyond the shipped baseline with richer lifecycle, preview, and starter-content flows  
-Type: feature  
-Status: deferred  
-Priority: medium  
-Summary: The current template baseline is implemented, but broader template-library ideas such as richer lifecycle states, preview metadata, optional starter risks, and future local-template patterns are not yet planned for delivery.  
-Notes: This request exists so those post-baseline template ideas do not live only in `docs/product/feature-register-template-library.md` before that file is removed.  
-Derived work items: PM4-TEMPLATE-EXTENSIONS  
+Request ID: REQ-012
+Title: Extend the template library beyond the shipped baseline with richer lifecycle, preview, and starter-content flows
+Type: feature
+Status: deferred
+Priority: medium
+Summary: The current template baseline is implemented, but broader template-library ideas such as richer lifecycle states, preview metadata, optional starter risks, and future local-template patterns are not yet planned for delivery.
+Notes: This request exists so those post-baseline template ideas do not live only in `docs/product/feature-register-template-library.md` before that file is removed.
+Derived work items: PM4-TEMPLATE-EXTENSIONS
 Source: distilled from product extension doc
 
 ### REQ-006
-Request ID: REQ-006  
-Title: Add notifications and reminders so review and action follow-up does not rely on manual chasing  
-Type: feature  
-Status: deferred  
-Priority: medium  
-Summary: Notifications matter, but the action and review model should settle first to avoid rework.  
-Notes: Keep this refined, but do not pull it into the first release candidate yet.  
-Derived work items: PM9-CORE  
+Request ID: REQ-006
+Title: Add notifications and reminders so review and action follow-up does not rely on manual chasing
+Type: feature
+Status: deferred
+Priority: medium
+Summary: Notifications matter, but the action and review model should settle first to avoid rework.
+Notes: Keep this refined, but do not pull it into the first release candidate yet.
+Derived work items: PM9-CORE
 Source: migrated from old planning
-
 
 ## Rejected or duplicate requests
 
-None currently. The planning-model simplification intentionally replaces slices, batches, and active phase documents rather than preserving them as live operating objects.
+### REQ-046
+Request ID: REQ-046
+Title: Fix button styling on /templates screen
+Type: improvement
+Status: duplicate
+Priority: high
+Summary: The "Create Register", "Update Config", and "Deactivate" buttons on the /templates screen suffer from the same styling issues described in REQ-041 — they blend into the page background, look like links rather than buttons, and have inconsistent font sizing.
+Notes: Consolidated into UI-017 (derived from REQ-041). /templates is explicitly called out in UI-017's scope so it is not overlooked.
+Source: human request (direct)

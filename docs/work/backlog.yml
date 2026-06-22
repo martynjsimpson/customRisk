@@ -2542,7 +2542,8 @@ items:
   type: feature
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.24.0
   priority: medium
   confidence: high
   summary: Establish the Playwright E2E test layer as documented in docs/spikes/SPIKE-003.md
@@ -2721,8 +2722,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: needs-refinement
-  priority: medium
+  status: deferred
+  priority: low
   confidence: high
   summary: Introduce a named editions layer on top of the existing feature flag mechanism.
     Creates backend/src/config/editions.ts with Edition union type, editionFeatures mapping,
@@ -3475,7 +3476,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.24.0
   priority: medium
   confidence: high
   summary: RegisterDetailPage.tsx, UsersPage.tsx, and MyRisksPage.tsx each contain substantial inline logic and JSX that
@@ -3515,7 +3517,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.24.0
   priority: medium
   confidence: high
   summary: toDateOnlyString and decimalToNumber are duplicated across four backend service files — risks.service.ts,
@@ -3576,7 +3579,8 @@ items:
   remaining:
   - PA to review risks.service.ts and configVersion.service.ts and define proposed split boundaries before implementation.
   - Once PA has defined boundaries, move to status ready and assign backend-developer + test-engineer.
-  dependencies: []
+  dependencies:
+  - MAINT-024
   suggested_agents:
   - principal-architect
   - backend-developer
@@ -3599,7 +3603,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.24.0
   priority: low
   confidence: high
   summary: Approximately 38 test files (24 backend, 14 frontend static) are missing required opening block comments per the
@@ -3633,7 +3638,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.24.0
   priority: low
   confidence: high
   summary: 17 tests in myRisks.test.mjs are currently separated by inline comments rather than describe blocks, contrary
@@ -3665,7 +3671,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.24.0
   priority: medium
   confidence: high
   summary: passwordStrength.behavior.test.tsx, apiKeys.behavior.test.tsx, and riskDetailModal.behavior.test.tsx use
@@ -3701,6 +3708,124 @@ items:
     - Deferred from v1.23.0 MAINT-013 audit. Prefer data-testid where the element has no meaningful ARIA role or label.
     - Note relationship to E2E-002 — that item also requires data-testid on permission-sensitive components. Coordinate
       so attributes added here are consistent with what E2E-002 will need.
+- id: MAINT-023
+  source_request: REQ-077
+  title: Fix 10 CI lint warnings in frontend and backend
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: high
+  summary: CI quality gates are reporting 10 warnings across frontend and backend files.
+    All fixes are small isolated removals or import-style corrections — unused variables,
+    unused imports, one forbidden import() type annotation, and one missing `import type`.
+    All affected files are identified in the source request.
+  acceptance:
+  - All 10 lint warnings are resolved and CI passes with a clean warning-free quality gate.
+  - frontend/test/modalErrorClear.behavior.test.tsx — unused isOpen (L127), makeAction (L73), act (L11) removed.
+  - frontend/test/formulaEvaluator.behavior.test.tsx — forbidden import() type annotation fixed (L147); unused beforeEach (L11),
+    QueryClientProvider (L8), QueryClient (L8) removed.
+  - frontend/src/features/risks/RiskFormModal.tsx — unused FormulaEvaluationError import removed (L22).
+  - frontend/src/features/registers/RegisterPermissionsPanel.tsx — unused useQueryClient import removed (L13).
+  - backend/src/services/dashboard.service.ts — switched to `import type` (L1).
+  - No functional behaviour is changed — unused import/variable removals only.
+  remaining:
+  - Apply all fixes across the five identified files.
+  - Verify CI passes cleanly after the full set of changes is applied together.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - backend-developer
+  evidence:
+    code:
+    - frontend/test/modalErrorClear.behavior.test.tsx
+    - frontend/test/formulaEvaluator.behavior.test.tsx
+    - frontend/src/features/risks/RiskFormModal.tsx
+    - frontend/src/features/registers/RegisterPermissionsPanel.tsx
+    - backend/src/services/dashboard.service.ts
+    tests: []
+    notes:
+    - All fixes are isolated removals or import-style corrections. No logic changes expected.
+    - Line numbers are from the CI screenshot at time of request — confirm against current file state before applying.
+- id: MAINT-025
+  source_request: REQ-084
+  title: PA assessment — confirm .test.mjs to .test.ts toolchain compatibility
+  type: spike
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: Before MAINT-022 (rename 16 frontend static test files from .test.mjs to .test.ts)
+    can proceed, the Principal Architect must confirm whether the rename requires any
+    toolchain config changes — Vitest include patterns, tsconfig settings, Vite aliases,
+    or similar. Output is a short written assessment that either clears MAINT-022 to
+    proceed as-is, or specifies the config changes required alongside the rename.
+  acceptance:
+  - The PA has reviewed the Vitest and tsconfig configuration and confirmed whether
+    renaming .test.mjs to .test.ts is safe without config changes.
+  - If config changes are required, the PA has listed them explicitly so MAINT-022
+    can be updated and moved to ready.
+  - The assessment is recorded in a note on MAINT-022 or committed to a short doc
+    so the finding is not lost.
+  remaining:
+  - PA to review frontend/test/ file extensions and cross-reference with vitest.config.ts,
+    tsconfig.json, and any Vite alias config.
+  - PA to confirm or deny that the rename is safe and record the finding.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  evidence:
+    code:
+    - frontend/test/
+    - frontend/vitest.config.ts
+    tests: []
+    notes:
+    - Output of this item unblocks MAINT-022. Once PA confirms the approach, MAINT-022
+      moves to ready and can be pulled into a release.
+- id: MAINT-024
+  source_request: REQ-080
+  title: PA assessment — define sub-service boundaries for risks.service.ts and configVersion.service.ts
+  type: spike
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: medium
+  confidence: medium
+  summary: Before MAINT-018 (splitting risks.service.ts and configVersion.service.ts)
+    can proceed, the Principal Architect must review both files and define the proposed
+    sub-service boundaries — what each sub-service is responsible for and how they
+    are composed. Output is a written design that moves MAINT-018 from needs-refinement
+    to ready.
+  acceptance:
+  - The PA has reviewed risks.service.ts (1,248 lines) and proposed a concrete sub-service
+    split — named sub-services, clear responsibility boundaries, and the composition
+    approach.
+  - The PA has reviewed configVersion.service.ts (1,186 lines) and proposed a concrete
+    sub-service split on the same basis.
+  - The proposed boundaries are recorded as a note on MAINT-018 or in a short design
+    doc so the backend developer can implement without further design work.
+  - MAINT-018 is updated to ready with the PA's proposed boundaries captured in its
+    remaining/notes fields.
+  remaining:
+  - PA to read both service files and identify natural responsibility boundaries.
+  - PA to define the sub-service names, what each owns, and how callers (routes, other
+    services) interact with the split result.
+  - PA to update MAINT-018 with the findings so it can move to ready.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  evidence:
+    code:
+    - backend/src/services/risks.service.ts
+    - backend/src/services/configVersion.service.ts
+    tests:
+    - backend/test/risks.test.mjs
+    - backend/test/configVersion.test.mjs
+    notes:
+    - Output of this item unblocks MAINT-018. Line counts at time of creation —
+      risks.service.ts 1,248 lines; configVersion.service.ts 1,186 lines.
 - id: MAINT-022
   source_request: REQ-084
   title: Migrate frontend static test files from .test.mjs to .test.ts
@@ -3725,7 +3850,8 @@ items:
     tsconfig, Vite aliases) before proceeding.
   - Once PA confirms the approach, move to status ready and assign test-engineer + devops-engineer if CI config changes
     are needed.
-  dependencies: []
+  dependencies:
+  - MAINT-025
   suggested_agents:
   - principal-architect
   - test-engineer
