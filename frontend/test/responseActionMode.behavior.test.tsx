@@ -115,12 +115,6 @@ function makeStatusWithDraft() {
   };
 }
 
-function makeStatusNoDraft() {
-  return {
-    hasDraft: false,
-    currentVersion: { id: "v-1", versionNumber: 1 },
-  };
-}
 
 function makeRegisterConfig(responseActionMode: "SIMPLE" | "CHILD_RECORDS" = "SIMPLE") {
   return {

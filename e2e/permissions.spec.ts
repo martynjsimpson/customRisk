@@ -22,17 +22,62 @@
  * See: docs/decisions/ADR-0011-e2e-test-layer.md for test strategy.
  */
 
-import path from "node:path";
 import { test, expect } from "@playwright/test";
 
 // ---------------------------------------------------------------------------
-// Session paths
+// Fixture user credentials
 // ---------------------------------------------------------------------------
 
-const AUTH_DIR = path.join(__dirname, "auth", ".auth");
+const E2E_PASSWORD = process.env.E2E_TEST_PASSWORD ?? "";
 
-function sessionFor(role: string) {
-  return path.join(AUTH_DIR, `${role}.json`);
+const EMAILS = {
+  "sys-admin":       "sys-admin@test.local",
+  "reg-admin-a":     "reg-admin-a@test.local",
+  "reg-viewer-a":    "reg-viewer-a@test.local",
+  "risk-owner-a":    "risk-owner-a@test.local",
+  "response-owner-a": "response-owner-a@test.local",
+  "no-access":       "no-access@test.local",
+} as const;
+
+type Role = keyof typeof EMAILS;
+
+/**
+ * Log in as the given role on the supplied page.
+ *
+ * Called in beforeEach hooks instead of relying on storageState files.
+ * The app uses rotating refresh tokens — a token can only be used once.
+ * Reusing a saved storageState across tests within the same run triggers
+ * token-reuse detection and revokes the whole token family. Fresh login
+ * per test avoids this entirely.
+ *
+ * Handles rate limiting: if the login form shows "Too many authentication
+ * attempts", waits 65 s for the 60 s window to expire, then retries.
+ */
+async function loginAs(page: import("@playwright/test").Page, role: Role) {
+  const RATE_LIMIT_TEXT = "Too many authentication attempts";
+
+  async function attempt() {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(EMAILS[role]);
+    await page.getByRole("textbox", { name: "Password" }).fill(E2E_PASSWORD);
+    await page.getByRole("button", { name: /log in/i }).click();
+  }
+
+  await attempt();
+
+  // If the rate-limit error appears, wait for the window to reset and retry
+  const rateLimited = await page
+    .getByText(RATE_LIMIT_TEXT)
+    .isVisible({ timeout: 2_000 })
+    .catch(() => false);
+  if (rateLimited) {
+    await page.waitForTimeout(65_000);
+    await attempt();
+  }
+
+  await page.waitForURL((url) => !url.pathname.includes("/login"), {
+    timeout: 15_000,
+  });
 }
 
 // Fixture register names (seeded by e2e/fixtures/seed.ts)
@@ -115,24 +160,24 @@ test.describe("Section 19 — Unauthenticated Access", () => {
   });
 
   test("19.2 — GET /api/registers without session returns 401", async ({ request }) => {
-    const res = await request.get("/api/registers");
+    const res = await request.get("/api/v1/registers");
     expect(res.status()).toBe(401);
   });
 
   test("19.2 — GET /api/users without session returns 401", async ({ request }) => {
-    const res = await request.get("/api/users");
+    const res = await request.get("/api/v1/users");
     expect(res.status()).toBe(401);
   });
 
   test("19.2 — GET /api/audit without session returns 401", async ({ request }) => {
-    const res = await request.get("/api/audit");
+    const res = await request.get("/api/v1/audit");
     expect(res.status()).toBe(401);
   });
 
   test("19.3 — GET /api/registers with invalid Bearer token returns 401", async ({
     request,
   }) => {
-    const res = await request.get("/api/registers", {
+    const res = await request.get("/api/v1/registers", {
       headers: { Authorization: "Bearer not-a-valid-token" },
     });
     expect(res.status()).toBe(401);
@@ -144,7 +189,7 @@ test.describe("Section 19 — Unauthenticated Access", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Section 12 — System Admin sees /audit", () => {
-  test.use({ storageState: sessionFor("sys-admin") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "sys-admin"); });
 
   test("12.1 — System Admin can navigate to /audit and sees audit log heading", async ({
     page,
@@ -165,7 +210,7 @@ test.describe("Section 12 — System Admin sees /audit", () => {
 });
 
 test.describe("Section 12 — Register Admin cannot access /audit", () => {
-  test.use({ storageState: sessionFor("reg-admin-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-admin-a"); });
 
   test("12.3 — Register Admin does not see the Audit nav link", async ({ page }) => {
     await page.goto("/");
@@ -176,7 +221,7 @@ test.describe("Section 12 — Register Admin cannot access /audit", () => {
 });
 
 test.describe("Section 12 — Register Viewer cannot access /audit", () => {
-  test.use({ storageState: sessionFor("reg-viewer-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-viewer-a"); });
 
   test("12.4 — Register Viewer does not see the Audit nav link", async ({ page }) => {
     await page.goto("/");
@@ -187,7 +232,7 @@ test.describe("Section 12 — Register Viewer cannot access /audit", () => {
 });
 
 test.describe("Section 12 — Risk Owner cannot access /audit", () => {
-  test.use({ storageState: sessionFor("risk-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "risk-owner-a"); });
 
   test("12.5 — Risk Owner does not see the Audit nav link", async ({ page }) => {
     await page.goto("/");
@@ -202,7 +247,7 @@ test.describe("Section 12 — Risk Owner cannot access /audit", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Section 13 — System Admin manages users", () => {
-  test.use({ storageState: sessionFor("sys-admin") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "sys-admin"); });
 
   test("13.1 — System Admin can navigate to /users and sees the Users heading", async ({
     page,
@@ -230,7 +275,7 @@ test.describe("Section 13 — System Admin manages users", () => {
 });
 
 test.describe("Section 13 — Register Admin cannot manage users", () => {
-  test.use({ storageState: sessionFor("reg-admin-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-admin-a"); });
 
   test("13.7 — Register Admin does not see the Users nav link", async ({ page }) => {
     await page.goto("/");
@@ -245,13 +290,13 @@ test.describe("Section 13 — Register Admin cannot manage users", () => {
     // Load the session via page navigation, then use page.request which carries
     // the session cookies into the API call.
     await page.goto("/");
-    const res = await page.request.get("/api/users");
+    const res = await page.request.get("/api/v1/users");
     expect(res.status()).toBeGreaterThanOrEqual(400);
   });
 });
 
 test.describe("Section 13 — Register Viewer cannot manage users", () => {
-  test.use({ storageState: sessionFor("reg-viewer-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-viewer-a"); });
 
   test("13.9 — Register Viewer does not see the Users nav link", async ({ page }) => {
     await page.goto("/");
@@ -266,7 +311,7 @@ test.describe("Section 13 — Register Viewer cannot manage users", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Section 1 — System Admin register access", () => {
-  test.use({ storageState: sessionFor("sys-admin") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "sys-admin"); });
 
   test("1.1 — System Admin sees Register A and Register B in the list", async ({
     page,
@@ -304,7 +349,7 @@ test.describe("Section 1 — System Admin register access", () => {
 });
 
 test.describe("Section 1 — Register Admin access", () => {
-  test.use({ storageState: sessionFor("reg-admin-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-admin-a"); });
 
   test("1.5 — Register Admin sees Register A", async ({ page }) => {
     await navigateToRegisters(page);
@@ -355,7 +400,7 @@ test.describe("Section 1 — Register Admin access", () => {
 });
 
 test.describe("Section 1 — Register Viewer access", () => {
-  test.use({ storageState: sessionFor("reg-viewer-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-viewer-a"); });
 
   test("1.10 — Register Viewer sees Register A", async ({ page }) => {
     await navigateToRegisters(page);
@@ -386,7 +431,7 @@ test.describe("Section 1 — Register Viewer access", () => {
 });
 
 test.describe("Section 1 — Risk Owner register access", () => {
-  test.use({ storageState: sessionFor("risk-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "risk-owner-a"); });
 
   test("1.13 — Risk Owner sees Register A", async ({ page }) => {
     await navigateToRegisters(page);
@@ -408,7 +453,7 @@ test.describe("Section 1 — Risk Owner register access", () => {
 });
 
 test.describe("Section 1 — Risk Response Owner register access", () => {
-  test.use({ storageState: sessionFor("response-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "response-owner-a"); });
 
   test("1.15 — Risk Response Owner sees Register A", async ({ page }) => {
     await navigateToRegisters(page);
@@ -430,7 +475,7 @@ test.describe("Section 1 — Risk Response Owner register access", () => {
 });
 
 test.describe("Section 1 — No-access user sees no registers", () => {
-  test.use({ storageState: sessionFor("no-access") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "no-access"); });
 
   test("1.17 — No-access user sees no registers in the list", async ({ page }) => {
     await navigateToRegisters(page);
@@ -445,7 +490,7 @@ test.describe("Section 1 — No-access user sees no registers", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Section 2 — System Admin risk access", () => {
-  test.use({ storageState: sessionFor("sys-admin") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "sys-admin"); });
 
   test("2.1 — System Admin sees Risk X in Register A", async ({ page }) => {
     await navigateToRegisterA(page);
@@ -473,7 +518,7 @@ test.describe("Section 2 — System Admin risk access", () => {
 });
 
 test.describe("Section 2 — Register Admin risk access", () => {
-  test.use({ storageState: sessionFor("reg-admin-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-admin-a"); });
 
   test("2.6 — Register Admin sees risk list for Register A", async ({ page }) => {
     await navigateToRegisterA(page);
@@ -501,7 +546,7 @@ test.describe("Section 2 — Register Admin risk access", () => {
 });
 
 test.describe("Section 2 — Register Viewer risk access", () => {
-  test.use({ storageState: sessionFor("reg-viewer-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-viewer-a"); });
 
   test("2.10 — Register Viewer sees risk list (read-only)", async ({ page }) => {
     await navigateToRegisterA(page);
@@ -526,7 +571,7 @@ test.describe("Section 2 — Register Viewer risk access", () => {
 });
 
 test.describe("Section 2 — Risk Owner risk access", () => {
-  test.use({ storageState: sessionFor("risk-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "risk-owner-a"); });
 
   test("2.14 — Risk Owner sees at least Risk X in the list", async ({ page }) => {
     await navigateToRegisterA(page);
@@ -546,16 +591,17 @@ test.describe("Section 2 — Risk Owner risk access", () => {
     await expect(riskXRow.getByRole("button", { name: /^edit$/i })).toBeVisible();
   });
 
-  test("2.17 — Risk Owner does not see Edit button for Risk Y (risk they do not own)", async ({
+  test("2.17 — Risk Owner does not see Risk Y (risk they do not own) in the list", async ({
     page,
   }) => {
     await navigateToRegisterA(page);
-    const riskYRow = page.locator(
-      `[data-testid="risk-table-row"][data-risk-title="${RISK_Y_TITLE}"]`,
-    );
-    await riskYRow.waitFor({ timeout: 15_000 });
+    // Wait for the table to load by confirming Risk X (owned by this user) is present
+    await page
+      .locator(`[data-testid="risk-table-row"][data-risk-title="${RISK_X_TITLE}"]`)
+      .waitFor({ timeout: 15_000 });
+    // Risk Y (owned by a different user) must not appear — Risk Owners only see their own risks
     await expect(
-      riskYRow.getByRole("button", { name: /^edit$/i }),
+      page.locator(`[data-testid="risk-table-row"][data-risk-title="${RISK_Y_TITLE}"]`),
     ).toHaveCount(0);
   });
 
@@ -569,7 +615,7 @@ test.describe("Section 2 — Risk Owner risk access", () => {
 });
 
 test.describe("Section 2 — Risk Response Owner risk access", () => {
-  test.use({ storageState: sessionFor("response-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "response-owner-a"); });
 
   test("2.20 — Risk Response Owner can view Risk X (visible via linked action)", async ({
     page,
@@ -598,7 +644,7 @@ test.describe("Section 2 — Risk Response Owner risk access", () => {
 });
 
 test.describe("Section 2 — No-access user cannot see risks", () => {
-  test.use({ storageState: sessionFor("no-access") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "no-access"); });
 
   test("2.24 — No-access user sees no registers, cannot reach risks", async ({
     page,
@@ -617,7 +663,7 @@ test.describe("Section 2 — No-access user cannot see risks", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Section 3 — System Admin response action access", () => {
-  test.use({ storageState: sessionFor("sys-admin") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "sys-admin"); });
 
   test("3.1 — System Admin sees Action A in Risk X response actions panel", async ({
     page,
@@ -639,7 +685,7 @@ test.describe("Section 3 — System Admin response action access", () => {
 });
 
 test.describe("Section 3 — Register Admin response action access", () => {
-  test.use({ storageState: sessionFor("reg-admin-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-admin-a"); });
 
   test("3.5 — Register Admin sees response actions for Risk X", async ({ page }) => {
     await openRiskXResponseActionsPanel(page);
@@ -659,7 +705,7 @@ test.describe("Section 3 — Register Admin response action access", () => {
 });
 
 test.describe("Section 3 — Register Viewer response action access", () => {
-  test.use({ storageState: sessionFor("reg-viewer-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-viewer-a"); });
 
   test("3.9 — Register Viewer sees response actions (read-only)", async ({ page }) => {
     await openRiskXResponseActionsPanel(page);
@@ -683,7 +729,7 @@ test.describe("Section 3 — Register Viewer response action access", () => {
 });
 
 test.describe("Section 3 — Risk Owner response action access", () => {
-  test.use({ storageState: sessionFor("risk-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "risk-owner-a"); });
 
   test("3.13 — Risk Owner sees response actions for Risk X", async ({ page }) => {
     await openRiskXResponseActionsPanel(page);
@@ -705,7 +751,7 @@ test.describe("Section 3 — Risk Owner response action access", () => {
 });
 
 test.describe("Section 3 — Risk Response Owner response action access", () => {
-  test.use({ storageState: sessionFor("response-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "response-owner-a"); });
 
   test("3.18 — Risk Response Owner sees Action A in Risk X detail", async ({
     page,
@@ -737,7 +783,7 @@ test.describe("Section 3 — Risk Response Owner response action access", () => 
 // ---------------------------------------------------------------------------
 
 test.describe("Section 5 — Risk Response Owner custom field visibility", () => {
-  test.use({ storageState: sessionFor("response-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "response-owner-a"); });
 
   test("5.1 — Risk Response Owner sees F1 (visible to response owners)", async ({
     page,
@@ -763,7 +809,7 @@ test.describe("Section 5 — Risk Response Owner custom field visibility", () =>
 });
 
 test.describe("Section 5 — Register Viewer sees all non-admin custom fields", () => {
-  test.use({ storageState: sessionFor("reg-viewer-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-viewer-a"); });
 
   test("5.5 — Register Viewer sees F2 (restriction only applies to Response Owners)", async ({
     page,
@@ -778,7 +824,7 @@ test.describe("Section 5 — Register Viewer sees all non-admin custom fields", 
 });
 
 test.describe("Section 5 — Risk Owner sees all custom fields", () => {
-  test.use({ storageState: sessionFor("risk-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "risk-owner-a"); });
 
   test("5.6 — Risk Owner sees F2 (restriction does not apply to Risk Owners)", async ({
     page,
@@ -797,7 +843,7 @@ test.describe("Section 5 — Risk Owner sees all custom fields", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Section 9 — System Admin can export", () => {
-  test.use({ storageState: sessionFor("sys-admin") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "sys-admin"); });
 
   test("9.1 — System Admin sees Export CSV button in Register A", async ({ page }) => {
     await navigateToRegisterA(page);
@@ -809,7 +855,7 @@ test.describe("Section 9 — System Admin can export", () => {
 });
 
 test.describe("Section 9 — Register Admin can export", () => {
-  test.use({ storageState: sessionFor("reg-admin-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-admin-a"); });
 
   test("9.2 — Register Admin sees Export CSV button in Register A", async ({ page }) => {
     await navigateToRegisterA(page);
@@ -822,7 +868,7 @@ test.describe("Section 9 — Register Admin can export", () => {
 
 test.describe("Section 9 — Register Viewer cannot export (allowViewerExport = false)", () => {
   // Register A is seeded with allowViewerExport: false
-  test.use({ storageState: sessionFor("reg-viewer-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "reg-viewer-a"); });
 
   test("9.4 — Register Viewer does not see Export CSV button", async ({ page }) => {
     await navigateToRegisterA(page);
@@ -834,7 +880,7 @@ test.describe("Section 9 — Register Viewer cannot export (allowViewerExport = 
 });
 
 test.describe("Section 9 — Risk Owner cannot export", () => {
-  test.use({ storageState: sessionFor("risk-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "risk-owner-a"); });
 
   test("9.5 — Risk Owner does not see Export CSV button", async ({ page }) => {
     await navigateToRegisterA(page);
@@ -846,7 +892,7 @@ test.describe("Section 9 — Risk Owner cannot export", () => {
 });
 
 test.describe("Section 9 — Risk Response Owner cannot export", () => {
-  test.use({ storageState: sessionFor("response-owner-a") });
+  test.beforeEach(async ({ page }) => { await loginAs(page, "response-owner-a"); });
 
   test("9.6 — Risk Response Owner does not see Export CSV button", async ({ page }) => {
     await navigateToRegisterA(page);
