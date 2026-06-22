@@ -54,7 +54,7 @@ for (const { role, email } of ROLES) {
 
     // Fill in credentials and submit
     await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password").fill(E2E_PASSWORD!);
+    await page.getByRole("textbox", { name: "Password" }).fill(E2E_PASSWORD!);
     await page.getByRole("button", { name: /sign in/i }).click();
 
     // Wait for a successful redirect away from the login page, confirming
