@@ -156,14 +156,14 @@ None — all items completed.
 ## Verification feedback
 
 **Verification feedback [1]:** `npm run e2e:seed` fails with `PrismaClientInitializationError` — "PrismaClient needs to be constructed with a non-empty, valid PrismaClientOptions" at `e2e/fixtures/seed.ts:20`.
-**Investigation:** `DATABASE_URL` lives in the root `.env`. Prisma 7.x no longer silently falls back when the env var is not resolved at constructor time — it throws instead. `tsx` running from the root does not auto-load `.env`. Fix: pass `datasourceUrl: process.env.DATABASE_URL` to `new PrismaClient()`, with a dotenv load (or rely on the existing root `.env` being loaded). File: `e2e/fixtures/seed.ts`.
+**Investigation:** `DATABASE_URL` lives in the root `.env`. Prisma 7.x no longer silently falls back when the env var is not resolved at constructor time — it throws instead. `tsx` running from the root does not auto-load `.env`. File: `e2e/fixtures/seed.ts`.
 **Ruling:** in scope — E2E-002 acceptance criteria requires the seed script to work.
-**Fix:** test-engineer to update `e2e/fixtures/seed.ts` to load `.env` and pass `datasourceUrl` to the PrismaClient constructor.
+**Fix:** Updated `e2e:seed` script in root `package.json` to pass `--env-file=.env`; updated `e2e/fixtures/seed.ts` to use the driver adapter pattern matching the backend's Prisma instance. Committed in fix: seed script failures. ✓
 
 **Verification feedback [2]:** `npm run prisma:seed` (backend seed) fails with a null constraint violation on `prisma.customFieldDefinition.upsert()` at `backend/prisma/seed.ts:943`.
-**Investigation:** Pre-existing failure — `backend/prisma/seed.ts` was not touched in this release. A required NOT NULL field is missing from the `create` block of the `customFieldDefinition` upsert at line 943. File: `backend/prisma/seed.ts`.
+**Investigation:** Pre-existing failure — `backend/prisma/seed.ts` was not touched in this release. `formulaDependencies String[]` (non-nullable, no DB default) was missing from the `create` blocks of two upserts (lines 943 and 969). File: `backend/prisma/seed.ts`.
 **Ruling:** scope-expanded at user's explicit request.
-**Fix:** backend-developer to identify the missing required field and add it to the create block.
+**Fix:** Added `formulaDependencies: []` to both affected create blocks. Committed in fix: seed script failures. ✓
 
 ---
 
