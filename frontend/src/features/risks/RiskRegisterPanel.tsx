@@ -417,12 +417,12 @@ export function RiskRegisterPanel({ register }: RiskRegisterPanelProps) {
           </Table.Thead>
           <Table.Tbody>
             {(riskQuery.data?.data ?? []).map((risk) => (
-              <Table.Tr key={risk.id}>
+              <Table.Tr key={risk.id} data-testid="risk-table-row" data-risk-title={risk.title}>
                 {showRiskId ? (
                   <Table.Td>
                     <Group gap={6} align="center" wrap="nowrap">
                       <ValidationStatusDot status={risk.validationStatus} />
-                      <Anchor component={Link} to={`?riskId=${risk.id}`} fw={600} onClick={() => openDetail(risk.id)}>
+                      <Anchor component={Link} to={`?riskId=${risk.id}`} fw={600} onClick={() => openDetail(risk.id)} data-testid="risk-row-link" data-risk-title={risk.title}>
                         {risk.displayRiskId}
                       </Anchor>
                     </Group>

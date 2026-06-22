@@ -104,7 +104,7 @@ export function ResponseActionsPanel({
 
   return (
     <>
-      <Stack gap="xs">
+      <Stack gap="xs" data-testid="response-actions-panel">
         <Group justify="space-between" align="center">
           <Title order={4}>Risk Responses</Title>
           {canCreate ? (
@@ -140,7 +140,7 @@ export function ResponseActionsPanel({
                   </Table.Tr>
                 ) : (
                   visibleActions.map((action) => (
-                    <Table.Tr key={action.id}>
+                    <Table.Tr key={action.id} data-testid="response-action-row" data-action-text={action.response}>
                       <Table.Td>
                         <Text size="sm" lineClamp={2}>
                           {action.response}
