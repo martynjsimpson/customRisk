@@ -10,7 +10,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
-import { getRiskReviewStatus, isRiskOverdue } from "../src/services/risks.service.ts";
+// MAINT-018: getRiskReviewStatus and isRiskOverdue were never in risks.service.ts;
+// they live in reviewStatus.service.ts and are imported directly.
+import { getRiskReviewStatus, isRiskOverdue } from "../src/services/reviewStatus.service.ts";
 import { isFieldVisibleToRole } from "../src/services/registerConfig.service.ts";
 import { listRisksQuerySchema } from "../src/validators/risks.schemas.ts";
 
@@ -40,7 +42,8 @@ test("risk create route is mounted under register risk collection", async () => 
 });
 
 test("RISK_CREATED audit event includes display ID and title in summary and initial state in metadataJson", async () => {
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: risks.service.ts is now a facade; mutation logic lives in risks.mutation.service.ts.
+  const service = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   assert.match(service, /action: auditActions\.riskCreated/);
   assert.match(service, /summary: `Risk \$\{risk\.displayRiskId\} created: \$\{risk\.title\}`/);
@@ -55,7 +58,8 @@ test("RISK_CREATED audit event includes display ID and title in summary and init
 test("risk detail route uses risk view permission and controller", async () => {
   const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: query logic lives in risks.query.service.ts.
+  const service = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
 
   assert.match(routes, /"\/:registerId\/risks\/:riskId"/);
   assert.match(routes, /requireRiskView\(\)/);
@@ -67,7 +71,8 @@ test("risk detail route uses risk view permission and controller", async () => {
 test("risk update route uses risk edit permission and audited service", async () => {
   const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: mutation logic lives in risks.mutation.service.ts.
+  const service = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   assert.match(routes, /router\.patch\(\s*"\/:registerId\/risks\/:riskId"/);
   assert.match(routes, /requireRiskEdit\(\)/);
@@ -81,7 +86,8 @@ test("risk update route uses risk edit permission and audited service", async ()
 test("risk delete route requires system admin and writes snapshot", async () => {
   const routes = await readFile(new URL("../src/routes/risks.routes.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/risks.controller.ts", import.meta.url), "utf8");
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: delete logic lives in risks.mutation.service.ts.
+  const service = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   assert.match(routes, /router\.delete\(\s*"\/:registerId\/risks\/:riskId"/);
   assert.match(routes, /body: deleteRiskSchema/);
@@ -154,7 +160,10 @@ test("MULTI_SELECT custom field type is supported end-to-end", async () => {
   const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
   const riskSchema = await readFile(new URL("../src/validators/risks.schemas.ts", import.meta.url), "utf8");
   const cfValuesService = await readFile(new URL("../src/services/customFieldValues.service.ts", import.meta.url), "utf8");
-  const risksService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: multi-select query/mapping logic lives in risks.query.service.ts;
+  // multi-select write (multiSelectEntries) lives in risks.mutation.service.ts.
+  const risksQuery = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
+  const risksMutation = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   // DB: enum value and junction table
   assert.match(schema, /MULTI_SELECT/);
@@ -168,8 +177,8 @@ test("MULTI_SELECT custom field type is supported end-to-end", async () => {
   // Service: multi-select entries returned and created/deleted transactionally
   assert.match(cfValuesService, /multiSelectEntries/);
   assert.match(cfValuesService, /riskCustomFieldMultiSelectValue/);
-  assert.match(risksService, /multiSelectValues/);
-  assert.match(risksService, /multiSelectEntries/);
+  assert.match(risksQuery, /multiSelectValues/);
+  assert.match(risksMutation, /multiSelectEntries/);
 });
 
 test("CALCULATED custom field type enforces data model constraints", async () => {
@@ -224,7 +233,8 @@ test("field-level visibility: schema, validators, and service wiring", async () 
   const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
   const cfSchema = await readFile(new URL("../src/validators/customFields.schemas.ts", import.meta.url), "utf8");
   const registerConfigService = await readFile(new URL("../src/services/registerConfig.service.ts", import.meta.url), "utf8");
-  const risksService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: field-visibility filtering logic lives in risks.query.service.ts.
+  const risksService = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
   const controller = await readFile(new URL("../src/controllers/customFields.controller.ts", import.meta.url), "utf8");
 
   // DB: visible_to_roles column on custom_field_definition
@@ -285,7 +295,8 @@ test("risk overdue helper follows operational overdue rules", () => {
 });
 
 test("review filters and register counts use shared overdue rules", async () => {
-  const riskService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: query/overdue logic lives in risks.query.service.ts.
+  const riskService = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
   const registerService = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
   const reviewStatusService = await readFile(new URL("../src/services/reviewStatus.service.ts", import.meta.url), "utf8");
 

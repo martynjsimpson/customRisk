@@ -280,8 +280,14 @@ test("field configuration unlocks only when a draft exists and dropdown options 
 });
 
 test("draft config snapshots preserve custom field validation modes through publish", async () => {
-  const configVersionService = await readFile(
-    new URL("../../backend/src/services/configVersion.service.ts", import.meta.url),
+  // MAINT-018: configVersion.service.ts is now a facade; draft snapshot logic lives in
+  // configVersion.draft.service.ts and publish path lives in configVersion.publish.service.ts.
+  const configVersionDraftService = await readFile(
+    new URL("../../backend/src/services/configVersion.draft.service.ts", import.meta.url),
+    "utf8"
+  );
+  const configVersionPublishService = await readFile(
+    new URL("../../backend/src/services/configVersion.publish.service.ts", import.meta.url),
     "utf8"
   );
   const configSnapshotTypes = await readFile(
@@ -299,8 +305,8 @@ test("draft config snapshots preserve custom field validation modes through publ
 
   assert.match(configSnapshotTypes, /validationMode: "ALLOW" \| "WARN" \| "BLOCK"/);
   assert.match(configVersionSchemas, /validationMode: z\.enum\(validationModes\)/);
-  assert.match(configVersionService, /validationMode: f\.validationMode/);
-  assert.match(configVersionService, /validationMode: cf\.validationMode/);
+  assert.match(configVersionDraftService, /validationMode: f\.validationMode/);
+  assert.match(configVersionPublishService, /validationMode: cf\.validationMode/);
   assert.match(configExportService, /validationMode: field\.validationMode/);
 });
 
@@ -397,8 +403,14 @@ test("ImpactEntryDetail accepts and uses an onClose prop", async () => {
 });
 
 test("draft and export snapshots preserve the register-level custom field validation toggle", async () => {
-  const configVersionService = await readFile(
-    new URL("../../backend/src/services/configVersion.service.ts", import.meta.url),
+  // MAINT-018: configVersion.service.ts is now a facade; draft snapshot logic lives in
+  // configVersion.draft.service.ts and publish register update lives in configVersion.publish.service.ts.
+  const configVersionDraftService = await readFile(
+    new URL("../../backend/src/services/configVersion.draft.service.ts", import.meta.url),
+    "utf8"
+  );
+  const configVersionPublishService = await readFile(
+    new URL("../../backend/src/services/configVersion.publish.service.ts", import.meta.url),
     "utf8"
   );
   const configSnapshotTypes = await readFile(
@@ -417,6 +429,6 @@ test("draft and export snapshots preserve the register-level custom field valida
   assert.match(configSnapshotTypes, /customFieldValidationEnabled: boolean/);
   assert.match(configVersionSchemas, /customFieldValidationEnabled: z\.boolean\(\)\.optional\(\)/);
   assert.match(configExportImportSchemas, /customFieldValidationEnabled: z\.boolean\(\)/);
-  assert.match(configVersionService, /customFieldValidationEnabled: register\.customFieldValidationEnabled/);
-  assert.match(configVersionService, /customFieldValidationEnabled: regSettings\.customFieldValidationEnabled/);
+  assert.match(configVersionDraftService, /customFieldValidationEnabled: register\.customFieldValidationEnabled/);
+  assert.match(configVersionPublishService, /customFieldValidationEnabled: regSettings\.customFieldValidationEnabled/);
 });

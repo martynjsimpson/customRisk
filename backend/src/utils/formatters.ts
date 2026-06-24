@@ -13,3 +13,10 @@ export function toDateOnlyString(date: Date | null): string | null {
 export function decimalToNumber(value: Prisma.Decimal.Value): number {
   return new Prisma.Decimal(value).toNumber();
 }
+
+/**
+ * Converts a nullable Prisma Decimal value to a JavaScript number, or returns null.
+ */
+export function decimalOrNull(d: Prisma.Decimal | null): number | null {
+  return d ? new Prisma.Decimal(d).toNumber() : null;
+}

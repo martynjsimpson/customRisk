@@ -66,7 +66,8 @@ test("resolveRiskScoring reads scoringFormula from register and uses evaluateFor
 });
 
 test("resolveRiskScoring in risks.service passes riskId on update", async () => {
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: update logic lives in risks.mutation.service.ts.
+  const service = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   // updateRisk must pass riskId as the third argument to resolveRiskScoring
   assert.match(service, /resolveRiskScoring\(\s*\{[^}]*registerId[^}]*\},\s*tx,\s*riskId\s*\)/);

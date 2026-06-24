@@ -16,16 +16,25 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
-### REQ-077
-Request ID: REQ-077
-Title: Fix 10 CI lint warnings in frontend and backend
+### REQ-086
+Request ID: REQ-086
+Title: Bump actions/checkout from v6 to v7
 Type: maintenance
 Status: refined
-Priority: medium
-Summary: CI quality gates are reporting 10 warnings across several files. The majority are unused variable/import declarations in test files and source files, plus one forbidden `import()` type annotation and one missing `import type` usage in the backend. These should be cleaned up to keep the CI warning-free.
-Notes: Affected files and issues from the CI screenshot: frontend/test/modalErrorClear.behavior.test.tsx (unused: isOpen L127, makeAction L73, act L11); frontend/test/formulaEvaluator.behavior.test.tsx (forbidden import() type annotation L147, unused: beforeEach L11, QueryClientProvider L8, QueryClient L8); frontend/src/features/risks/RiskFormModal.tsx (unused: FormulaEvaluationError L22); frontend/src/features/registers/RegisterPermissionsPanel.tsx (unused: useQueryClient L13); backend/src/services/dashboard.service.ts (use `import type` L1).
-Derived work items: MAINT-023
+Priority: low
+Summary: The GitHub Actions workflow is using actions/checkout@v6. This should be bumped to v7 to stay current with the latest stable release.
+Derived work items: MAINT-027
 Source: human request (direct)
+
+### REQ-087
+Request ID: REQ-087
+Title: Fix Playwright show-report localhost binding on macOS
+Type: maintenance
+Status: inbox
+Priority: low
+Summary: npx playwright show-report binds to 127.0.0.1:9323 but Firefox on macOS resolves localhost to IPv6, causing "Unable to connect". Workaround is to navigate to 127.0.0.1:9323 directly. Fix is to add --host 127.0.0.1 to the show-report invocation in root package.json.
+Derived work items: MAINT-026
+Source: deferred from v1.25.0
 
 ### REQ-076
 Request ID: REQ-076
@@ -119,8 +128,8 @@ Source: deferred from v1.23.0 (MAINT-011)
 Request ID: REQ-075
 Title: Implement Playwright E2E permission test suite
 Type: feature
-Status: partially-done
-Done in: v1.24.0 (E2E-001 — infrastructure)
+Status: done
+Done in: v1.24.0 (E2E-001 — infrastructure), v1.25.0 (E2E-002 — core permission test suite)
 Priority: medium
 Summary: Adopt Playwright as a third test layer (E2E) to cover real browser sessions, live backend authorisation, and cross-role permission isolation — gaps that Layers 1 and 2 cannot exercise. Implementation follows the 6-step plan in docs/spikes/SPIKE-003.md. Two work items: E2E-001 (infrastructure) and E2E-002 (core permission test suite).
 Derived work items: E2E-001, E2E-002
@@ -262,6 +271,18 @@ Source: migrated from old planning
 Evidence: `backend/src/routes/persons.routes.ts`, `backend/src/services/personReference.service.ts`, `backend/test/personReferences.test.mjs`
 
 ## Done
+
+### REQ-085
+Request ID: REQ-085
+Title: Fix 10 CI lint warnings in frontend and backend
+Type: maintenance
+Status: done
+Done in: v1.25.0
+Priority: medium
+Summary: CI quality gates were reporting 10 warnings across several files — unused variable/import declarations in test files and source files, plus one forbidden import() type annotation and one missing import type usage in the backend.
+Notes: Affected files: frontend/test/modalErrorClear.behavior.test.tsx (unused: isOpen L127, makeAction L73, act L11); frontend/test/formulaEvaluator.behavior.test.tsx (forbidden import() type annotation L147, unused: beforeEach L11, QueryClientProvider L8, QueryClient L8); frontend/src/features/risks/RiskFormModal.tsx (unused: FormulaEvaluationError L22); frontend/src/features/registers/RegisterPermissionsPanel.tsx (unused: useQueryClient L13); backend/src/services/dashboard.service.ts (use import type L1). Note: originally logged as REQ-077 (ID collision with i18n request); renumbered to REQ-085.
+Derived work items: MAINT-023
+Source: human request (direct)
 
 ### REQ-074
 Request ID: REQ-074

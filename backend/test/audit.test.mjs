@@ -91,7 +91,8 @@ test("audit read service restricts event details and snapshots by scope", async 
 });
 
 test("hard-delete snapshot preserves required risk context before deletion", async () => {
-  const riskService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: delete logic lives in risks.mutation.service.ts (risks.service.ts is now a facade).
+  const riskService = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
   const snapshotBuilder = await readFile(new URL("../src/audit/snapshotBuilder.ts", import.meta.url), "utf8");
 
   assert.match(riskService, /buildRiskDeleteSnapshot\(risk, actor, input\.deletionReason\)/);
@@ -135,7 +136,8 @@ test("hard-delete snapshot preserves required risk context before deletion", asy
 test("key MVP mutating workflows write audit events and field changes where required", async () => {
   const users = await readFile(new URL("../src/services/users.service.ts", import.meta.url), "utf8");
   const registers = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
-  const risks = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: risks.service.ts is now a re-export facade; mutation logic lives in risks.mutation.service.ts.
+  const risks = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
   const reviews = await readFile(new URL("../src/services/reviews.service.ts", import.meta.url), "utf8");
   const customFields = [
     await readFile(new URL("../src/services/customFields.service.ts", import.meta.url), "utf8"),

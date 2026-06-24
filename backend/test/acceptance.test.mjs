@@ -51,7 +51,9 @@ test("MVP acceptance services enforce calculations, audit, read-only viewer acce
     await readFile(new URL("../src/services/riskLevels.service.ts", import.meta.url), "utf8"),
     await readFile(new URL("../src/services/matrix.service.ts", import.meta.url), "utf8")
   ].join("\n");
-  const risks = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: risks.service.ts is now a re-export facade; logic lives in split sub-services.
+  const risksQuery = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
+  const risksMutation = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
   const reviews = await readFile(new URL("../src/services/reviews.service.ts", import.meta.url), "utf8");
 
   assert.match(registers, /likelihoodDefaults/);
@@ -66,12 +68,12 @@ test("MVP acceptance services enforce calculations, audit, read-only viewer acce
   assert.match(scoring, /recalculateExistingRisks/);
   assert.match(scoring, /Risk level recalculated due to matrix update/);
 
-  assert.match(risks, /state: query\.includeClosed \? undefined : \{ not: "CLOSED" \}/);
-  assert.match(risks, /role === "NONE" \|\| role === "REGISTER_VIEWER"/);
-  assert.match(risks, /Only System Admins and Register Admins can create risks/);
-  assert.match(risks, /resolveRiskScoring/);
-  assert.match(risks, /calculateNextReviewDate/);
-  assert.match(risks, /auditActions\.riskCreated/);
+  assert.match(risksQuery, /state: query\.includeClosed \? undefined : \{ not: "CLOSED" \}/);
+  assert.match(risksMutation, /role === "NONE" \|\| role === "REGISTER_VIEWER"/);
+  assert.match(risksMutation, /Only System Admins and Register Admins can create risks/);
+  assert.match(risksMutation, /resolveRiskScoring/);
+  assert.match(risksMutation, /calculateNextReviewDate/);
+  assert.match(risksMutation, /auditActions\.riskCreated/);
 
   assert.match(reviews, /auditActions\.riskReviewed/);
   // Field-change detail is embedded in the RISK_REVIEWED event; no separate NEXT_REVIEW_DATE_UPDATED event

@@ -89,10 +89,13 @@ test("validateFormula rejects invalid formulas", () => {
 
 test("CALCULATED field evaluation is wired into risk create/update", async () => {
   const { readFile } = await import("node:fs/promises");
-  const risksService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: mutation logic lives in risks.mutation.service.ts; formula evaluation
+  // implementation lives in risks.calculatedFields.service.ts (which imports formulaEvaluator.service).
+  const risksMutation = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
+  const risksCalculatedFields = await readFile(new URL("../src/services/risks.calculatedFields.service.ts", import.meta.url), "utf8");
 
-  assert.match(risksService, /evaluateAndStoreCalculatedFields/);
-  assert.match(risksService, /formulaEvaluator\.service/);
+  assert.match(risksMutation, /evaluateAndStoreCalculatedFields/);
+  assert.match(risksCalculatedFields, /formulaEvaluator\.service/);
   // Called after multi-select entries on both create and update paths
-  assert.ok(risksService.match(/evaluateAndStoreCalculatedFields/g)?.length ?? 0 >= 2);
+  assert.ok(risksMutation.match(/evaluateAndStoreCalculatedFields/g)?.length ?? 0 >= 2);
 });

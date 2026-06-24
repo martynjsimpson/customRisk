@@ -15,7 +15,9 @@ import { test } from "node:test";
 test("permission helpers cover system, register, viewer, owner, and export access", async () => {
   const registerAccess = await readFile(new URL("../src/permissions/registerAccess.ts", import.meta.url), "utf8");
   const riskAccess = await readFile(new URL("../src/permissions/riskAccess.ts", import.meta.url), "utf8");
-  const riskService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: risks.service.ts is now a facade; logic split across sub-services.
+  const risksQuery = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
+  const risksMutation = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   assert.match(registerAccess, /actor\.isSystemAdmin/);
   assert.match(registerAccess, /REGISTER_ADMIN/);
@@ -31,11 +33,11 @@ test("permission helpers cover system, register, viewer, owner, and export acces
   const canEditRiskBody = riskAccess.match(/export async function canEditRisk[\s\S]*?export async function canDeleteRisk/)?.[0] ?? "";
   assert.doesNotMatch(canEditRiskBody, /REGISTER_VIEWER/);
 
-  assert.match(riskService, /if \(role === "RISK_OWNER"\) \{/);
-  assert.match(riskService, /ownerUserId: actor\.id/);
-  assert.match(riskService, /ownerPerson: \{ userId: actor\.id \}/);
-  assert.match(riskService, /Only System Admins and Register Admins can create risks/);
-  assert.match(riskService, /Risk Owners cannot edit Created Date/);
+  assert.match(risksQuery, /if \(role === "RISK_OWNER"\) \{/);
+  assert.match(risksQuery, /ownerUserId: actor\.id/);
+  assert.match(risksQuery, /ownerPerson: \{ userId: actor\.id \}/);
+  assert.match(risksMutation, /Only System Admins and Register Admins can create risks/);
+  assert.match(risksMutation, /Risk Owners cannot edit Created Date/);
 });
 
 test("protected routes use hidden-resource behaviour for inaccessible register and risk resources", async () => {
@@ -73,7 +75,8 @@ test("riskAccess canViewRisk and canEditRisk check ownerPerson.userId for email-
 });
 
 test("risks.service edit guard allows email-only owner via ownerPerson.userId", async () => {
-  const riskService = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: edit guard lives in risks.mutation.service.ts.
+  const riskService = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   // The edit guard must check ownerPerson?.userId against actor.id so that a user
   // matched through a PersonReference (email-only owner) is not incorrectly denied.

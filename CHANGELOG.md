@@ -15,6 +15,26 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-06-24
+
+### Changed
+
+- **Backend service files split into focused sub-services (MAINT-018)**
+  - `risks.service.ts` split into three files: `risks.query.service.ts` (all read-only operations), `risks.mutation.service.ts` (create, update, delete), and `risks.calculatedFields.service.ts` (calculated field evaluation). `configVersion.service.ts` split into `configVersion.draft.service.ts`, `configVersion.publish.service.ts`, and `configVersion.shared.ts`. Barrel facades retained so no existing import paths change. The `decimalOrNull` helper extracted to `utils/formatters.ts` to allow safe sharing across domains without circular dependencies.
+
+- **Frontend static tests migrated from .test.mjs to .test.ts (MAINT-022)**
+  - All 16 files in `frontend/test/` renamed from `.test.mjs` to `.test.ts`. The `test:static` script updated to use the new extension and the `tsx` loader so Node can execute TypeScript test files directly. No test content changed.
+
+### Fixed
+
+- **Playwright show-report localhost binding on macOS (MAINT-026)**
+  - `npx playwright show-report` now passes `--host 127.0.0.1` so the report server binds to IPv4 rather than the default, which caused "Unable to connect" in Firefox on macOS where `localhost` resolves to IPv6.
+
+### Infrastructure
+
+- **Bumped actions/checkout from v6 to v7 in all GitHub Actions workflows (MAINT-027)**
+  - Updated all five workflow files (`ci.yml`, `release.yml`, `main-image.yml`, `branch-image.yml`).
+
 ## [1.25.0] - 2026-06-22
 
 ### Added

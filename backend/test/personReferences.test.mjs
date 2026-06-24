@@ -93,7 +93,8 @@ test("auth service links person reference to user on successful login", async ()
 });
 
 test("risks service resolves person input for owner on create and update", async () => {
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: mutation logic lives in risks.mutation.service.ts.
+  const service = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
   assert.match(service, /resolvePersonInput/);
   assert.match(service, /ownerPersonId/);
   assert.match(service, /type: "user", userId: input\.ownerUserId/);
