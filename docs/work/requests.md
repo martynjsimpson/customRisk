@@ -20,7 +20,8 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 Request ID: REQ-086
 Title: Bump actions/checkout from v6 to v7
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.26.0
 Priority: low
 Summary: The GitHub Actions workflow is using actions/checkout@v6. This should be bumped to v7 to stay current with the latest stable release.
 Derived work items: MAINT-027
@@ -30,7 +31,8 @@ Source: human request (direct)
 Request ID: REQ-087
 Title: Fix Playwright show-report localhost binding on macOS
 Type: maintenance
-Status: inbox
+Status: done
+Done in: v1.26.0
 Priority: low
 Summary: npx playwright show-report binds to 127.0.0.1:9323 but Firefox on macOS resolves localhost to IPv6, causing "Unable to connect". Workaround is to navigate to 127.0.0.1:9323 directly. Fix is to add --host 127.0.0.1 to the show-report invocation in root package.json.
 Derived work items: MAINT-026
@@ -53,7 +55,8 @@ Source: deferred from SPIKE-004
 Request ID: REQ-084
 Title: Migrate frontend static tests from .test.mjs to .test.ts
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.26.0
 Priority: low
 Summary: All 16 frontend static tests use .test.mjs extension; the coding standard says .test.ts. This is an architectural decision — requires Principal Architect review before any rename proceeds, as it may affect module resolution, toolchain config, or other tooling.
 Derived work items: MAINT-022
@@ -96,7 +99,8 @@ Source: deferred from v1.23.0 (MAINT-013)
 Request ID: REQ-080
 Title: Break up oversized backend service files
 Type: maintenance
-Status: refined
+Status: done
+Done in: v1.26.0
 Priority: medium
 Summary: risks.service.ts (1,248 lines) and configVersion.service.ts (1,186 lines) each carry multiple distinct responsibilities and warrant extraction into sub-services. Requires Principal Architect review before implementation to agree the correct split boundaries.
 Derived work items: MAINT-018
