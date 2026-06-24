@@ -2606,7 +2606,9 @@ items:
   type: feature
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.25.0
   priority: medium
   confidence: medium
   summary: Write the core permission test suite in Playwright covering the high-priority
@@ -3558,31 +3560,33 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: needs-refinement
+  status: ready
   priority: medium
-  confidence: medium
+  confidence: high
   summary: risks.service.ts (1,248 lines) and configVersion.service.ts (1,186 lines) each carry multiple distinct
-    responsibilities that should be separated into sub-services. Requires Principal Architect review to define the correct
-    split boundaries before implementation begins. Deferred from v1.23.0 (MAINT-012 audit finding).
+    responsibilities that should be separated into sub-services. PA boundaries defined in MAINT-024 (v1.25.0). Ready
+    for implementation.
   acceptance:
-  - The Principal Architect has reviewed both files and defined proposed sub-service boundaries, including what each
-    sub-service is responsible for and how they are composed.
-  - risks.service.ts is split into focused sub-services with single responsibilities; the original module re-exports or
-    delegates cleanly.
-  - configVersion.service.ts is split into focused sub-services with single responsibilities; the original module re-exports
-    or delegates cleanly.
+  - risks.service.ts is split into risks.query.service.ts, risks.mutation.service.ts, and risks.calculatedFields.service.ts
+    per the boundaries defined in MAINT-024.
+  - configVersion.service.ts is split into configVersion.draft.service.ts, configVersion.publish.service.ts, and
+    configVersion.shared.ts (internal) per the boundaries defined in MAINT-024.
+  - decimalOrNull helper is extracted to backend/src/utils/formatters.ts so both query and calculatedFields sub-services
+    can share it without a circular dependency.
+  - findRegisterWithVersions is extracted to configVersion.shared.ts so both draft and publish sub-services can share it.
+  - The existing risks.service.ts and configVersion.service.ts barrel files are retained as thin re-export facades during
+    transition so route handler imports do not need to change immediately.
   - All callers (routes, other services, tests) continue to work without changes or with only import path updates.
-  - Existing test coverage passes with no behaviour change; new tests are added for any logic that gains its own surface area
-    through the split.
-  - Help content in frontend/public/help/en/ updated to reflect this change if any user-visible behaviour changes (not
-    expected for a refactor — include only if applicable).
+  - Existing test coverage passes with no behaviour change; new tests added for any logic that gains its own surface area.
   remaining:
-  - PA to review risks.service.ts and configVersion.service.ts and define proposed split boundaries before implementation.
-  - Once PA has defined boundaries, move to status ready and assign backend-developer + test-engineer.
-  dependencies:
-  - MAINT-024
+  - Implement the risks.service.ts split per PA boundaries — three sub-service files plus thin barrel facade.
+  - Implement the configVersion.service.ts split per PA boundaries — two sub-service files plus shared internal module and
+    thin barrel facade.
+  - Extract decimalOrNull to formatters.ts and findRegisterWithVersions to configVersion.shared.ts.
+  - Verify all callers still resolve correctly after the split.
+  - Run full test suite to confirm no regressions.
+  dependencies: []
   suggested_agents:
-  - principal-architect
   - backend-developer
   - test-engineer
   evidence:
@@ -3593,10 +3597,15 @@ items:
     - backend/test/risks.test.mjs
     - backend/test/configVersion.test.mjs
     notes:
-    - Deferred from v1.23.0 MAINT-012 audit. Line counts at deferral — risks.service.ts 1,248 lines; configVersion.service.ts
-      1,186 lines.
-    - PA must define split boundaries before implementation so the refactor does not introduce its own design debt.
-    - This is needs-refinement until the PA review is complete.
+    - PA boundaries defined in MAINT-024 (v1.25.0). See active-release.md PA Spike Findings section for full detail.
+    - risks.service.ts split — RiskQueryService (~500 lines, read-only, no audit writes), RiskMutationService (createRisk/
+      updateRisk/deleteRisk, transaction-heavy), RiskCalculatedFieldService (evaluateAndStoreCalculatedFields — keep
+      separately importable as configVersion.service.ts imports it). Re-export at line 99 (getRiskReviewStatus,
+      isRiskOverdue) should be removed and callers updated to import directly from reviewStatus.service.ts.
+    - configVersion.service.ts split — ConfigVersionDraftService (lifecycle management, seam at ~line 435),
+      ConfigVersionPublishService (analyseImpact + publishDraft, tightly coupled so keep together). findRegisterWithVersions
+      used by both — extract to configVersion.shared.ts to avoid circular dependency.
+    - Retain barrel re-export facades until route handler imports are updated in a follow-on pass.
 - id: MAINT-019
   source_request: REQ-081
   title: Add opening block comments to test files missing them
@@ -3709,12 +3718,14 @@ items:
     - Note relationship to E2E-002 — that item also requires data-testid on permission-sensitive components. Coordinate
       so attributes added here are consistent with what E2E-002 will need.
 - id: MAINT-023
-  source_request: REQ-077
+  source_request: REQ-085
   title: Fix 10 CI lint warnings in frontend and backend
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.25.0
   priority: medium
   confidence: high
   summary: CI quality gates are reporting 10 warnings across frontend and backend files.
@@ -3754,7 +3765,9 @@ items:
   type: spike
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.25.0
   priority: low
   confidence: high
   summary: Before MAINT-022 (rename 16 frontend static test files from .test.mjs to .test.ts)
@@ -3790,7 +3803,9 @@ items:
   type: spike
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in:
+  - v1.25.0
   priority: medium
   confidence: medium
   summary: Before MAINT-018 (splitting risks.service.ts and configVersion.service.ts)
@@ -3832,34 +3847,97 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: needs-refinement
+  status: ready
   priority: low
-  confidence: medium
-  summary: All 16 frontend static test files use the .test.mjs extension; the coding standard says .test.ts. This is an
-    architectural decision — renaming may affect Vite/Vitest module resolution, tsconfig paths, and other toolchain config.
-    Requires Principal Architect review before any rename proceeds. Deferred from v1.23.0 (MAINT-013 audit finding).
+  confidence: high
+  summary: All 16 frontend static test files use the .test.mjs extension; the coding standard says .test.ts. PA confirmed
+    in MAINT-025 (v1.25.0) that the rename is safe with exactly two changes to frontend/package.json. No vitest.config.ts
+    or tsconfig.json changes required. Ready for implementation.
   acceptance:
-  - The Principal Architect has reviewed the toolchain impact of renaming .test.mjs to .test.ts and confirmed it is safe
-    or identified required config changes.
-  - All 16 frontend static test files are renamed from .test.mjs to .test.ts.
-  - vitest.config.ts (or equivalent) is updated if the file extension change requires it.
+  - All 16 frontend static test files in frontend/test/ are renamed from .test.mjs to .test.ts.
+  - The find glob in the test:static script in frontend/package.json is changed from '*.test.mjs' to '*.test.ts'.
+  - tsx is added as a dev dependency in frontend/package.json (it is already a backend dev dependency at ^4.22.4 but is
+    not present in the frontend).
+  - The node --test invocation in test:static is updated to include --import tsx/esm so Node can execute .ts files.
   - All 16 tests continue to pass after the rename.
-  - No regression to the frontend build or CI pipeline.
+  - No regression to the frontend build, Vitest runtime tests, or CI pipeline.
   remaining:
-  - PA to assess whether renaming .test.mjs to .test.ts requires toolchain config changes (Vitest include patterns,
-    tsconfig, Vite aliases) before proceeding.
-  - Once PA confirms the approach, move to status ready and assign test-engineer + devops-engineer if CI config changes
-    are needed.
-  dependencies:
-  - MAINT-025
+  - Rename all 16 .test.mjs files in frontend/test/ to .test.ts.
+  - Update the find glob in test:static in frontend/package.json ('*.test.mjs' → '*.test.ts').
+  - Add tsx as a dev dependency in frontend/package.json and add --import tsx/esm to the node --test invocation.
+  - Verify all 16 tests pass and CI is clean.
+  dependencies: []
   suggested_agents:
-  - principal-architect
+  - frontend-developer
   - test-engineer
   evidence:
     code:
     - frontend/test/
+    - frontend/package.json
     tests: []
     notes:
-    - Deferred from v1.23.0 MAINT-013 audit. 16 files affected.
-    - ESM (.mjs) vs TypeScript (.ts) affects how Vitest resolves and transpiles the files. PA must confirm the rename
-      is safe before implementation.
+    - PA assessment complete (MAINT-025, v1.25.0). See active-release.md PA Spike Findings section for full detail.
+    - vitest.config.ts include pattern is 'test/**/*.behavior.test.tsx' — will not pick up .test.ts files after rename.
+      No vitest config change needed.
+    - tsconfig.json excludes the test/ directory from compilation — no type-check impact.
+    - tsx is present in backend/package.json at ^4.22.4 but not in frontend/package.json. Adding it as a frontend
+      dev dependency is the zero-config path — no tsconfig changes required alongside it.
+    - The only architectural concern was whether Vitest would accidentally pick up renamed files — PA confirmed it will
+      not, because the Vitest include pattern is scoped to .behavior.test.tsx only.
+- id: MAINT-027
+  source_request: REQ-086
+  title: Bump actions/checkout from v6 to v7 in GitHub Actions workflows
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: The GitHub Actions workflows use actions/checkout@v6. This should be bumped to @v7 to stay current with the
+    latest stable release. One-line change per workflow file, no logic impact.
+  acceptance:
+  - All references to actions/checkout@v6 in .github/workflows/ are updated to actions/checkout@v7.
+  - CI passes cleanly after the change.
+  - No regression to any workflow behaviour.
+  remaining:
+  - Identify all workflow files referencing actions/checkout@v6.
+  - Update each reference to @v7.
+  - Verify CI passes.
+  dependencies: []
+  suggested_agents:
+  - devops-engineer
+  evidence:
+    code:
+    - .github/workflows/
+    tests: []
+    notes:
+    - Straightforward version bump. Check all workflow files for the reference — there may be more than one.
+- id: MAINT-026
+  source_request: REQ-087
+  title: Fix Playwright show-report localhost binding on macOS
+  type: maintenance
+  capability: build-toolchain
+  phase: null
+  status: ready
+  priority: low
+  confidence: high
+  summary: npx playwright show-report binds to 127.0.0.1:9323 but Firefox on macOS resolves localhost to IPv6, causing
+    "Unable to connect". The fix is to pass --host 127.0.0.1 to the show-report invocation so the server explicitly
+    binds to IPv4. Deferred from v1.25.0.
+  acceptance:
+  - The e2e:report script (or equivalent) in the root package.json passes --host 127.0.0.1 to npx playwright show-report.
+  - Opening the reported URL in Firefox on macOS connects successfully without needing to manually substitute 127.0.0.1.
+  - No regression to the Playwright test run or CI pipeline.
+  remaining:
+  - Update the show-report invocation in root package.json to add --host 127.0.0.1.
+  dependencies: []
+  suggested_agents:
+  - devops-engineer
+  evidence:
+    code:
+    - package.json
+    tests: []
+    notes:
+    - Deferred from v1.25.0 (E2E-002 release). Workaround is to navigate to 127.0.0.1:9323 directly.
+    - Firefox on macOS resolves localhost to ::1 (IPv6) by default; Playwright's show-report server binds to 127.0.0.1
+      (IPv4) only. Explicitly passing --host 127.0.0.1 makes the URL match the binding.
