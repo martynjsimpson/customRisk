@@ -1,6 +1,6 @@
 # Active Release
 
-Status: proposed
+Status: ready-for-release
 Version: TBD
 
 ## Release goal
@@ -41,7 +41,8 @@ Suggested agents: principal-architect
 ---
 
 ### SPIKE-007 — Define attachment implementation architecture for PM12-CORE
-Status: proposed
+Status: done
+done_in: docs/spike-SPIKE-007
 Source: REQ-008
 Capability: attachments-evidence
 Suggested agents: principal-architect
