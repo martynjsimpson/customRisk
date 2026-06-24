@@ -636,7 +636,7 @@ items:
   type: feature
   capability: advanced-reviews
   phase: 8
-  status: ready
+  status: needs-refinement
   priority: high
   confidence: medium
   summary: MVP review foundations exist, but the product still lacks the richer review-rule model needed for action reviews,
@@ -652,6 +652,7 @@ items:
   - Avoid coupling notification delivery into the first review-rule implementation unless it is essential.
   dependencies:
   - PM7-CORE
+  - SPIKE-006
   suggested_agents:
   - Product Manager
   - Backend Developer
@@ -667,6 +668,7 @@ items:
     - docs/product/prd.md
     notes:
     - Current foundations are enough to start; old planning detail is not required for the baseline scope.
+    - Needs SPIKE-006 output before scope can be defined for a release.
 - id: PM9-CORE
   source_request: REQ-006
   legacy_ids:
@@ -781,7 +783,7 @@ items:
   type: feature
   capability: attachments-evidence
   phase: 12
-  status: ready
+  status: needs-refinement
   priority: medium
   confidence: medium
   summary: Attachment storage architecture is decided, but the product still needs upload, download, linking, permissions,
@@ -798,6 +800,7 @@ items:
   - Carry ADR-0006 operational consequences into release docs when implementation starts.
   dependencies:
   - PM7-CORE
+  - SPIKE-007
   suggested_agents:
   - Product Manager
   - Principal Architect
@@ -813,6 +816,7 @@ items:
     - docs/decisions/ADR-0006-attachment-storage.md
     notes:
     - This item is ready because the architecture direction is clear, but the product implementation has not started.
+    - Needs SPIKE-007 output before scope can be defined for a release.
 - id: PM3-CORE
   source_request: REQ-009
   legacy_ids:
@@ -3560,7 +3564,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.26.0
   priority: medium
   confidence: high
   summary: risks.service.ts (1,248 lines) and configVersion.service.ts (1,186 lines) each carry multiple distinct
@@ -3847,7 +3852,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.26.0
   priority: low
   confidence: high
   summary: All 16 frontend static test files use the .test.mjs extension; the coding standard says .test.ts. PA confirmed
@@ -3890,7 +3896,8 @@ items:
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.26.0
   priority: low
   confidence: high
   summary: The GitHub Actions workflows use actions/checkout@v6. This should be bumped to @v7 to stay current with the
@@ -3912,13 +3919,119 @@ items:
     tests: []
     notes:
     - Straightforward version bump. Check all workflow files for the reference — there may be more than one.
+- id: SPIKE-006
+  source_request: REQ-005
+  title: Spike — audit current review implementation and scope PM8-CORE
+  type: spike
+  capability: advanced-reviews
+  phase: 8
+  status: in-active-release
+  priority: high
+  confidence: medium
+  summary: The MVP review baseline exists (reviews.service.ts, ReviewModal.tsx) but the exact gap between what is
+    implemented and what PRD section 10 requires is not known. Before PM8-CORE can be scoped or released, the PA
+    must audit the current implementation and answer specific questions about the review rule model, Risk Response
+    Reviews, attestation configuration, and schema readiness. Output drives PM8-CORE scoping.
+  acceptance:
+  - A document exists at docs/spikes/SPIKE-006.md containing Findings and Recommendations sections.
+  - Findings cover what the current implementation provides for each of PRD sections 10.1–10.4 — specifically
+    whether basic risk reviews, Risk Response Reviews, attestation text configuration, and review history are
+    present and correct, or absent/partial.
+  - Findings cover whether a review frequency rule model exists in the schema (e.g. a reviewRules table or
+    equivalent) or whether this is entirely absent and schema-first work is required.
+  - Findings cover whether next-review-date recalculation on relevant field edits is implemented.
+  - Recommendations define the smallest coherent first slice of PM8-CORE that can be delivered in one release,
+    including which schema changes (if any) the principal-architect must design before implementation.
+  - Recommendations note any cross-cutting concerns — permission model, audit model, notification coupling — that
+    would complicate or block the first slice.
+  remaining:
+  - PA to read reviews.service.ts, the Prisma schema (review-related tables and fields), ReviewModal.tsx, and
+    the register configuration model for review settings.
+  - PA to answer each of the Findings questions above before forming Recommendations.
+  - No implementation work starts until the spike output is reviewed by PM at the next planning session.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  evidence:
+    code:
+    - backend/src/services/reviews.service.ts
+    - backend/prisma/schema.prisma
+    - frontend/src/features/risks/ReviewModal.tsx
+    - backend/src/services/registerConfig.service.ts
+    tests:
+    - backend/test/reviews.test.mjs
+    docs:
+    - docs/product/prd.md
+    notes:
+    - PRD section 10 is the reference. Sections 10.1 (risk reviews), 10.2 (risk response reviews), 10.3 (frequency
+      rules), and 10.4 (review history) should each be assessed individually.
+    - Output document at docs/spikes/SPIKE-006.md following the existing spike convention.
+    - The spike should be definitive enough that PM can write a tight active-release.md for PM8-CORE without further
+      PA consultation.
+
+- id: SPIKE-007
+  source_request: REQ-008
+  title: Spike — define attachment implementation architecture for PM12-CORE
+  type: spike
+  capability: attachments-evidence
+  phase: 12
+  status: in-active-release
+  priority: medium
+  confidence: medium
+  summary: ADR-0006 decided the attachment storage model (local filesystem / Docker volume). Before PM12-CORE can
+    be scoped or released, the PA must define the full implementation architecture — schema shape, permission model,
+    API design, audit model, file safety controls, and the smallest coherent first release slice (risk attachments
+    first). Output drives PM12-CORE scoping.
+  acceptance:
+  - A document exists at docs/spikes/SPIKE-007.md containing Findings and Recommendations sections.
+  - Findings cover what is already decided by ADR-0006 and what remains open.
+  - Recommendations include a proposed Prisma schema for the Attachment model and its linking table(s) — at
+    minimum linking to risks; action and review attachment linking can be deferred but the schema must not
+    foreclose that path.
+  - Recommendations cover the permission model — who can upload, download, soft-delete, and hard-delete
+    attachments; how register-level and ownership-derived permissions apply; and how Register Viewer access
+    to attachments is handled.
+  - Recommendations cover the API shape — endpoints for upload (multipart), list, download (stream or redirect),
+    and soft-delete — and how the backend serves or proxies stored files without exposing storage paths.
+  - Recommendations cover file safety controls — MIME type validation, file size limits, extension allow/block
+    list — and where enforcement lives (backend middleware vs. service layer).
+  - Recommendations cover the audit model — what events are recorded, at which audit level (risk audit log vs.
+    system audit log), and whether a deletion snapshot is required.
+  - Recommendations confirm the smallest coherent first slice (risk attachments only) and what is explicitly
+    deferred to follow-on work (action attachments, review attachments).
+  - Recommendations note any operational consequences from ADR-0006 that must appear in release documentation
+    (volume backup, file-size defaults, storage path configuration).
+  remaining:
+  - PA to read ADR-0006 and the current Prisma schema to understand what storage decisions are already made and
+    what schema work is needed.
+  - PA to assess the current permission model (riskAccess.ts, registerPermissions) for extension points.
+  - No implementation work starts until the spike output is reviewed by PM at the next planning session.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  evidence:
+    code:
+    - backend/prisma/schema.prisma
+    - backend/src/permissions/riskAccess.ts
+    tests: []
+    docs:
+    - docs/decisions/ADR-0006-attachment-storage.md
+    - docs/product/prd.md
+    notes:
+    - ADR-0006 is the primary reference for storage decisions already made. The spike should build on those
+      decisions, not revisit them, unless the PA identifies a concrete reason the ADR needs amending.
+    - Output document at docs/spikes/SPIKE-007.md following the existing spike convention.
+    - The spike should be definitive enough that PM can write a tight active-release.md for PM12-CORE without
+      further PA consultation.
+
 - id: MAINT-026
   source_request: REQ-087
   title: Fix Playwright show-report localhost binding on macOS
   type: maintenance
   capability: build-toolchain
   phase: null
-  status: ready
+  status: done
+  done_in: v1.26.0
   priority: low
   confidence: high
   summary: npx playwright show-report binds to 127.0.0.1:9323 but Firefox on macOS resolves localhost to IPv6, causing
