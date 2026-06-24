@@ -274,20 +274,23 @@ test("responseActions service migrateChildRecordsToSimple uses systemUpdatedAt a
 // ---------------------------------------------------------------------------
 
 test("configVersion service analyseImpact returns impactEntries array", async () => {
-  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: analyseImpact lives in configVersion.publish.service.ts.
+  const source = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   assert.match(source, /export async function analyseImpact/);
   assert.match(source, /impactEntries/);
 });
 
 test("configVersion service analyseImpact emits REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS code", async () => {
-  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: analyseImpact lives in configVersion.publish.service.ts.
+  const source = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   assert.match(source, /REVERT_MODE_BLOCKED_MULTIPLE_ACTIONS/);
 });
 
 test("configVersion service analyseImpact emits REVERT_MODE_WILL_MIGRATE code", async () => {
-  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: analyseImpact lives in configVersion.publish.service.ts.
+  const source = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   assert.match(source, /REVERT_MODE_WILL_MIGRATE/);
 });
@@ -295,7 +298,8 @@ test("configVersion service analyseImpact emits REVERT_MODE_WILL_MIGRATE code", 
 test("configVersion service analyseImpact feasibility query uses r.state <> 'CLOSED', not r.is_active or r.is_deleted", async () => {
   // Regression: query previously used r.is_deleted = false (wrong column); corrected to r.state <> 'CLOSED'
   // (the risk table has a state RiskState column, not is_active or is_deleted boolean columns)
-  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: analyseImpact lives in configVersion.publish.service.ts.
+  const source = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   assert.doesNotMatch(source, /r\.is_deleted/, "r.is_deleted is not a column on the risk table");
   assert.doesNotMatch(source, /r\.is_active/, "r.is_active is not a column on the risk table");
@@ -382,13 +386,15 @@ test("registerConfig service includes responseActionMode in registerConfigSelect
 // ---------------------------------------------------------------------------
 
 test("getRiskDetail includes responseActionMode in response", async () => {
-  const source = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: getRiskDetail lives in risks.query.service.ts.
+  const source = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
 
   assert.match(source, /responseActionMode: risk\.register\.responseActionMode/);
 });
 
 test("getRiskDetail filters fields for RESPONSE_ACTION_OWNER in child records mode", async () => {
-  const source = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: getRiskDetail lives in risks.query.service.ts.
+  const source = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
 
   assert.match(source, /isResponseActionOwnerOnly/);
   assert.match(source, /isFieldVisibleToResponseActionOwner/);
@@ -416,7 +422,8 @@ test("configVersion service analyseImpact reads snapshotMode from raw snapshot, 
   // The fix: snapshotMode is read via a cast that allows undefined to propagate
   // (snapshot.register as { responseActionMode?: string }).responseActionMode
   // rather than from the normalised snapshot where the field is always present.
-  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: analyseImpact and publishDraft live in configVersion.publish.service.ts.
+  const source = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   // The cast that preserves undefined must appear inside analyseImpact.
   // A plain snapshot.register.responseActionMode read (without the optional cast)
@@ -430,7 +437,8 @@ test("configVersion service analyseImpact reads snapshotMode from raw snapshot, 
 });
 
 test("configVersion service analyseImpact guards all mode-migration impact entries behind snapshotMode !== undefined", async () => {
-  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: analyseImpact lives in configVersion.publish.service.ts.
+  const source = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   // The guard must appear: any mode-migration code (CHILD_RECORDS checks,
   // blockers/warnings about migration) is skipped when snapshotMode is absent.
@@ -443,7 +451,8 @@ test("configVersion service analyseImpact guards all mode-migration impact entri
 });
 
 test("configVersion service publishDraft guards responseActionMode update behind snapshotMode !== undefined", async () => {
-  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: publishDraft lives in configVersion.publish.service.ts.
+  const source = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   // The register.update call must only include responseActionMode in its data
   // object when snapshotMode is defined — confirmed by the spread conditional.
@@ -455,7 +464,8 @@ test("configVersion service publishDraft guards responseActionMode update behind
 });
 
 test("configVersion service publishDraft guards migration calls behind snapshotMode !== undefined", async () => {
-  const source = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: publishDraft lives in configVersion.publish.service.ts.
+  const source = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   // Both migrateSimpleResponseActionsToChildRecords and migrateChildRecordsToSimple
   // must only be invoked when snapshotMode !== undefined.

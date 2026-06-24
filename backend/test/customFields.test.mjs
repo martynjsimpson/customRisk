@@ -122,20 +122,26 @@ test("BUG-049: formula evaluator throws FormulaEvaluationError for an unrecognis
 // ─── Wiring verification — risks.service calls evaluateAndStoreCalculatedFields ──
 
 test("BUG-049: evaluateAndStoreCalculatedFields is wired into the risks service create and update paths", async () => {
-  const risksService = await readFile(
-    new URL("../src/services/risks.service.ts", import.meta.url),
+  // MAINT-018: mutation logic lives in risks.mutation.service.ts; formula evaluation
+  // implementation lives in risks.calculatedFields.service.ts (which imports formulaEvaluator.service).
+  const risksMutation = await readFile(
+    new URL("../src/services/risks.mutation.service.ts", import.meta.url),
+    "utf8"
+  );
+  const risksCalculatedFields = await readFile(
+    new URL("../src/services/risks.calculatedFields.service.ts", import.meta.url),
     "utf8"
   );
 
-  // Function must exist and be imported/defined
-  assert.match(risksService, /evaluateAndStoreCalculatedFields/);
+  // Function must exist and be called from mutation service
+  assert.match(risksMutation, /evaluateAndStoreCalculatedFields/);
 
   // It must be called on both create and update paths (at least 2 occurrences)
-  const callCount = (risksService.match(/evaluateAndStoreCalculatedFields/g) ?? []).length;
+  const callCount = (risksMutation.match(/evaluateAndStoreCalculatedFields/g) ?? []).length;
   assert.ok(callCount >= 2, `Expected at least 2 calls to evaluateAndStoreCalculatedFields, got ${callCount}`);
 
-  // Must use the formulaEvaluator service
-  assert.match(risksService, /formulaEvaluator\.service/);
+  // Must use the formulaEvaluator service (via calculatedFields sub-service)
+  assert.match(risksCalculatedFields, /formulaEvaluator\.service/);
 });
 
 test("BUG-049: CALCULATED field definitions are created with fieldType CALCULATED in the service", async () => {

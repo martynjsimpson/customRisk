@@ -59,20 +59,28 @@ test("global template routes require System Admin; register-scoped compare and a
 });
 
 test("config version service enforces single-draft constraint and no-draft guard", async () => {
-  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: configVersion.service.ts is now a facade; draft lifecycle lives in
+  // configVersion.draft.service.ts and configVersion.publish.service.ts.
+  const draftService = await readFile(new URL("../src/services/configVersion.draft.service.ts", import.meta.url), "utf8");
+  const publishService = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
+  const combined = draftService + "\n" + publishService;
 
   // createDraft rejects with 409 when a draft already exists
-  assert.match(service, /draftConfigVersionId !== null/);
-  assert.match(service, /A draft configuration already exists for this register/);
-  assert.match(service, /409/);
+  assert.match(draftService, /draftConfigVersionId !== null/);
+  assert.match(draftService, /A draft configuration already exists for this register/);
+  assert.match(draftService, /409/);
 
   // updateDraft, discardDraft, analyseImpact, publishDraft reject with 404 when no draft
-  const noDraftGuardCount = (service.match(/No draft configuration exists for this register/g) ?? []).length;
+  const noDraftGuardCount = (combined.match(/No draft configuration exists for this register/g) ?? []).length;
   assert.ok(noDraftGuardCount >= 3, `Expected at least 3 no-draft guard messages, got ${noDraftGuardCount}`);
 });
 
 test("config version service writes audit events for all draft lifecycle operations", async () => {
-  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: draft lifecycle events live in configVersion.draft.service.ts;
+  // analyseImpact and publish events live in configVersion.publish.service.ts.
+  const draftService = await readFile(new URL("../src/services/configVersion.draft.service.ts", import.meta.url), "utf8");
+  const publishService = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
+  const service = draftService + "\n" + publishService;
 
   assert.match(service, /action: auditActions\.configDraftCreated/);
   assert.match(service, /action: auditActions\.configDraftUpdated/);
@@ -86,7 +94,8 @@ test("config version service writes audit events for all draft lifecycle operati
 });
 
 test("publish runs impact check before mutating and uses a transaction", async () => {
-  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: publishConfigVersion lives in configVersion.publish.service.ts.
+  const service = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   // Impact analysis is called inside publishDraft
   assert.match(service, /analyseImpact\(registerId/);
@@ -104,10 +113,12 @@ test("publish runs impact check before mutating and uses a transaction", async (
 });
 
 test("publish calls evaluateAndStoreCalculatedFields for each non-CLOSED risk in the register", async () => {
-  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: publishConfigVersion lives in configVersion.publish.service.ts;
+  // evaluateAndStoreCalculatedFields is now imported from risks.calculatedFields.service (not risks.service).
+  const service = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
-  // evaluateAndStoreCalculatedFields is imported from risks.service
-  assert.match(service, /import.*evaluateAndStoreCalculatedFields.*from.*risks\.service/);
+  // evaluateAndStoreCalculatedFields is imported from risks.calculatedFields.service
+  assert.match(service, /import.*evaluateAndStoreCalculatedFields.*from.*risks\.calculatedFields\.service/);
 
   // Non-CLOSED risks are fetched using a state: { not: "CLOSED" } filter
   assert.match(service, /state:\s*\{\s*not:\s*["']CLOSED["']\s*\}/);
@@ -120,7 +131,8 @@ test("publish calls evaluateAndStoreCalculatedFields for each non-CLOSED risk in
 });
 
 test("impact analysis checks structural blockers and warns about deactivated config items", async () => {
-  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: analyseImpact lives in configVersion.publish.service.ts.
+  const service = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   // Structural blockers for empty active collections
   assert.match(service, /Draft must have at least one active likelihood value/);
@@ -255,14 +267,17 @@ test("BUG-050: snapshotCustomFieldSchema includes formula", async () => {
 });
 
 test("BUG-050: configVersion service writes formula when building draft snapshot and on publish", async () => {
-  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: draft snapshot logic lives in configVersion.draft.service.ts;
+  // publish path logic lives in configVersion.publish.service.ts.
+  const draftService = await readFile(new URL("../src/services/configVersion.draft.service.ts", import.meta.url), "utf8");
+  const publishService = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   // formula is mapped when constructing the initial draft snapshot (createDraft / buildSnapshotFromLiveTables)
-  const draftFormulaCount = (service.match(/formula:\s*f\.formula\s*\?\?\s*null/g) ?? []).length;
+  const draftFormulaCount = (draftService.match(/formula:\s*f\.formula\s*\?\?\s*null/g) ?? []).length;
   assert.ok(draftFormulaCount >= 1, `Expected at least 1 formula mapping in draft snapshot builder, got ${draftFormulaCount}`);
 
   // formula is written in the publish path (writing custom fields back to DB rows)
-  const publishFormulaCount = (service.match(/formula:\s*cf\.formula\s*\?\?\s*null/g) ?? []).length;
+  const publishFormulaCount = (publishService.match(/formula:\s*cf\.formula\s*\?\?\s*null/g) ?? []).length;
   assert.ok(publishFormulaCount >= 2, `Expected at least 2 formula writes in publish path, got ${publishFormulaCount}`);
 });
 
@@ -305,8 +320,9 @@ test("applyTemplateUpdateToDraft stores sourceTemplateVersionId on the draft, no
 });
 
 test("publishDraft recalculates risk levels for all open risks against the new matrix", async () => {
+  // MAINT-018: publishConfigVersion lives in configVersion.publish.service.ts.
   const configVersionService = await readFile(
-    new URL("../src/services/configVersion.service.ts", import.meta.url),
+    new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
     "utf8"
   );
   const matrixService = await readFile(
@@ -326,7 +342,8 @@ test("publishDraft recalculates risk levels for all open risks against the new m
 });
 
 test("publishDraft advances linkedTemplateVersionId and applies register settings only for template-originated drafts", async () => {
-  const service = await readFile(new URL("../src/services/configVersion.service.ts", import.meta.url), "utf8");
+  // MAINT-018: publishConfigVersion lives in configVersion.publish.service.ts.
+  const service = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
   // sourceTemplateVersionId presence drives both behaviours
   assert.match(service, /draft\.sourceTemplateVersionId/);
@@ -370,8 +387,9 @@ test("register linked_template_version_id is included in registerSelect and mapp
 // ─── PM6-SCORING: publishDraft calls recalculateRiskScores ────────────────────
 
 test("publishDraft calls recalculateRiskScores after recalculateRiskLevels (PM6-SCORING)", async () => {
+  // MAINT-018: publishConfigVersion lives in configVersion.publish.service.ts.
   const service = await readFile(
-    new URL("../src/services/configVersion.service.ts", import.meta.url),
+    new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
     "utf8"
   );
   const scoringService = await readFile(
@@ -382,7 +400,7 @@ test("publishDraft calls recalculateRiskScores after recalculateRiskLevels (PM6-
   // recalculateRiskScores is exported from scoring.service
   assert.match(scoringService, /export async function recalculateRiskScores/);
 
-  // configVersion.service imports recalculateRiskScores
+  // configVersion.publish.service imports recalculateRiskScores
   assert.match(service, /import.*recalculateRiskScores.*scoring\.service/);
 
   // publishDraft calls recalculateRiskScores inside the transaction
@@ -393,8 +411,9 @@ test("publishDraft calls recalculateRiskScores after recalculateRiskLevels (PM6-
 });
 
 test("publishDraft writes scoringFormula to register.update unconditionally — not inside sourceTemplateVersionId block (BUG-FIX)", async () => {
+  // MAINT-018: publishConfigVersion lives in configVersion.publish.service.ts.
   const service = await readFile(
-    new URL("../src/services/configVersion.service.ts", import.meta.url),
+    new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
     "utf8"
   );
 

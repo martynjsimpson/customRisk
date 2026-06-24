@@ -137,18 +137,21 @@ test("current session token survives password change while other tokens are revo
 // PM2-02 / PM2-05: Risk Owner email-only and access control via ownerPersonId
 
 test("risk access control checks ownerPerson.userId as well as ownerUserId", async () => {
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: edit guard lives in risks.mutation.service.ts; list query lives in risks.query.service.ts.
+  const mutationService = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
+  const queryService = await readFile(new URL("../src/services/risks.query.service.ts", import.meta.url), "utf8");
 
   // Edit permission gate checks both legacy ownerUserId and person-linked userId
-  assert.match(service, /existing\.ownerUserId !== actor\.id && existing\.ownerPerson\?\.userId !== actor\.id/);
+  assert.match(mutationService, /existing\.ownerUserId !== actor\.id && existing\.ownerPerson\?\.userId !== actor\.id/);
 
   // List/my-risks queries include both owner fields in the OR clause
-  assert.match(service, /\{ ownerUserId: actor\.id \}/);
-  assert.match(service, /\{ ownerPerson: \{ userId: actor\.id \} \}/);
+  assert.match(queryService, /\{ ownerUserId: actor\.id \}/);
+  assert.match(queryService, /\{ ownerPerson: \{ userId: actor\.id \} \}/);
 });
 
 test("risk create resolves ownerUserId to a PersonReference via ownerPerson", async () => {
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: create logic lives in risks.mutation.service.ts.
+  const service = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   // createRisk resolves the userId to a personReference ID and connects it
   assert.match(service, /resolvePersonInput\(\{ type: "user", userId: input\.ownerUserId \}, tx\)/);
@@ -156,7 +159,8 @@ test("risk create resolves ownerUserId to a PersonReference via ownerPerson", as
 });
 
 test("risk update resolves new ownerUserId to a PersonReference", async () => {
-  const service = await readFile(new URL("../src/services/risks.service.ts", import.meta.url), "utf8");
+  // MAINT-018: update logic lives in risks.mutation.service.ts.
+  const service = await readFile(new URL("../src/services/risks.mutation.service.ts", import.meta.url), "utf8");
 
   assert.match(service, /newOwnerPersonId = await resolvePersonInput\(\{ type: "user", userId: input\.ownerUserId \}, tx\)/);
   assert.match(service, /ownerPersonId: newOwnerPersonId/);
