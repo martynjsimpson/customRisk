@@ -10,7 +10,8 @@ A PA-only spike release to unblock the two highest-value pending feature tracks.
 ## Selected work items
 
 ### SPIKE-006 — Audit current review implementation and scope PM8-CORE
-Status: proposed
+Status: done
+done_in: docs/spike-SPIKE-006
 Source: REQ-005
 Capability: advanced-reviews
 Suggested agents: principal-architect
