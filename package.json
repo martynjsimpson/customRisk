@@ -31,7 +31,8 @@
     "smoke-test": "sh scripts/smoke-test.sh",
     "e2e": "playwright test",
     "e2e:seed": "npx tsx --env-file=.env e2e/fixtures/seed.ts",
-    "e2e:teardown": "npx tsx e2e/fixtures/teardown.ts"
+    "e2e:teardown": "npx tsx e2e/fixtures/teardown.ts",
+    "show-report": "npx playwright show-report --host 127.0.0.1"
   },
   "overrides": {
     "react": "^19.2.0",
