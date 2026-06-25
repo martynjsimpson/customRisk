@@ -82,6 +82,11 @@ Suggested agents: principal-architect, backend-developer, frontend-developer, te
 
 None — all clear.
 
+## Verification feedback
+
+**Verification feedback [1]:** reviewCommentMode dropdown does not appear to be saving. User suspects it is not part of the draft config on the server — when config is published it gets overridden. This issue has occurred before with other register settings.
+**Status:** investigating
+
 ---
 
 *PM: populate this file when proposing a release. Release Manager: update status and completion metadata during and after the release.*
