@@ -1,6 +1,6 @@
 # Active Release
 
-Status: in-progress
+Status: ready-for-release
 Version: v1.27.0
 
 ## Release goal
@@ -11,7 +11,8 @@ Close the remaining PRD 10.1 gaps in the risk review feature and surface review 
 
 ### PM8-CORE — Risk review completeness: comment mode, attestation text UI, review history panel
 
-Status: proposed
+Status: done
+done_in: v1.27.0
 Source: REQ-005
 Capability: advanced-reviews
 Suggested agents: principal-architect, backend-developer, frontend-developer, test-engineer
@@ -64,18 +65,22 @@ Suggested agents: principal-architect, backend-developer, frontend-developer, te
 
 ## Test / sign-off
 
-- [ ] reviewCommentMode can be set and persisted via register settings UI.
-- [ ] DISABLED mode: comment textarea hidden in ReviewModal; backend rejects any comment body field.
-- [ ] MANDATORY mode: Complete Review button disabled until non-empty comment entered; backend validates server-side.
-- [ ] OPTIONAL mode: existing review flow unchanged.
-- [ ] Attestation text editable via register settings; next review reflects change; prior reviews unaffected.
-- [ ] Review history visible in risk detail view with required fields (reviewer, date/time, comment, next review date).
-- [ ] Existing review tests still pass.
-- [ ] Help content updated.
+- [x] reviewCommentMode can be set and persisted via register settings UI.
+- [x] DISABLED mode: comment textarea hidden in ReviewModal; backend rejects any comment body field.
+- [x] MANDATORY mode: Complete Review button disabled until non-empty comment entered; backend validates server-side.
+- [x] OPTIONAL mode: existing review flow unchanged.
+- [x] Attestation text editable via register settings; next review reflects change; prior reviews unaffected.
+- [x] Review history visible in risk detail view with required fields (reviewer, date/time, comment, next review date).
+- [x] Existing review tests still pass.
+- [x] Help content updated.
+
+**Implementation pass:** complete — v1.27.0
+**Regression test pass:** complete — 239 tests, 0 failures, typecheck clean
+**Documentation pass:** complete — help content updated in `frontend/public/help/en/registers.md`
 
 ## Blockers
 
-None.
+None — all clear.
 
 ---
 
