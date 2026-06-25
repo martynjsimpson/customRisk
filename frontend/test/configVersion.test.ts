@@ -388,43 +388,48 @@ test("ConfigVersionBanner Publish button always routes through analyseImpactMuta
   assert.match(banner, /publishDraft/, "publishDraft must still be used (inside the impact analysis modal)");
 });
 
-test("UpdateDraftConfigInput.register includes reviewCommentMode and reviewAttestationText (regression: fields were missing from the draft update type)", async () => {
+test("UpdateDraftConfigInput.register does NOT include reviewCommentMode or reviewAttestationText (fix: fields are now promoted unconditionally on publish, not saved via the draft update API)", async () => {
   const api = await readFile(new URL("../src/api/configVersion.api.ts", import.meta.url), "utf8");
 
-  // Both fields must be present in the register partial of UpdateDraftConfigInput
-  assert.match(api, /reviewCommentMode\?:\s*ReviewCommentMode/,
-    "UpdateDraftConfigInput.register must declare reviewCommentMode");
-  assert.match(api, /reviewAttestationText\?:\s*string/,
-    "UpdateDraftConfigInput.register must declare reviewAttestationText");
+  // Both fields were removed from UpdateDraftConfigInput.register because reviewCommentMode and
+  // reviewAttestationText are now promoted unconditionally from the snapshot at publish time
+  // (alongside scoringFormula). They no longer need a separate draft-update path.
+  assert.doesNotMatch(api, /reviewCommentMode\?:\s*ReviewCommentMode/,
+    "UpdateDraftConfigInput.register must NOT declare reviewCommentMode — field promoted at publish");
+  assert.doesNotMatch(api, /reviewAttestationText\?:\s*string.*UpdateDraftConfigInput/s,
+    "UpdateDraftConfigInput.register must NOT declare reviewAttestationText — field promoted at publish");
+
+  // updateDraftConfig must still exist for other draft fields (scoringFormula, customFields, etc.)
+  assert.match(api, /export async function updateDraftConfig/,
+    "updateDraftConfig function must still be exported");
 });
 
-test("RegisterSettingsTab uses updateDraftReviewFieldsMutation for reviewCommentMode and reviewAttestationText in draft mode (regression: fields incorrectly routed through updateRegister)", async () => {
+test("RegisterSettingsTab uses getInputProps directly for reviewCommentMode and reviewAttestationText (fix: dual-path mutation removed — fields save via form auto-save on blur)", async () => {
   const tab = await readFile(
     new URL("../src/features/configuration/RegisterSettingsTab.tsx", import.meta.url),
     "utf8"
   );
 
-  // A dedicated mutation for review fields in draft mode must exist and call updateDraftConfig
-  assert.match(tab, /updateDraftReviewFieldsMutation/,
-    "A separate mutation for review fields in draft mode must be declared");
-  assert.match(tab, /updateDraftConfig\(registerId,\s*\{\s*register:\s*\{\s*reviewCommentMode/s,
-    "updateDraftReviewFieldsMutation must call updateDraftConfig with reviewCommentMode");
+  // The dual-path mutation and its bespoke handlers must be gone — the fields now flow through
+  // the standard form auto-save (handleFormBlur → updateSettingsMutation) like all other controls.
+  assert.doesNotMatch(tab, /updateDraftReviewFieldsMutation/,
+    "Dedicated draft mutation for review fields must be removed — fields use standard getInputProps");
+  assert.doesNotMatch(tab, /handleReviewCommentModeChange/,
+    "handleReviewCommentModeChange handler must be removed — Select uses getInputProps directly");
+  assert.doesNotMatch(tab, /handleReviewAttestationTextBlur/,
+    "handleReviewAttestationTextBlur handler must be removed — Textarea uses getInputProps directly");
 
-  // handleReviewCommentModeChange calls the draft mutation only when draftConfigMode && hasDraft
-  assert.match(tab, /handleReviewCommentModeChange/,
-    "handleReviewCommentModeChange handler must be declared");
-  assert.match(tab, /if \(draftConfigMode && hasDraft\)\s*\{[\s\S]*?updateDraftReviewFieldsMutation\.mutate/,
-    "handleReviewCommentModeChange must guard the draft mutation with draftConfigMode && hasDraft");
+  // Both controls must use getInputProps directly, consistent with all other fields in the tab
+  assert.match(tab, /getInputProps\("reviewCommentMode"\)/,
+    "Review Comment Mode Select must use getInputProps");
+  assert.match(tab, /getInputProps\("reviewAttestationText"\)/,
+    "Attestation Text Textarea must use getInputProps");
 
-  // handleReviewAttestationTextBlur calls the draft mutation on blur
-  assert.match(tab, /handleReviewAttestationTextBlur/,
-    "handleReviewAttestationTextBlur handler must be declared");
-  assert.match(tab, /onBlur=\{handleReviewAttestationTextBlur\}/,
-    "Attestation Textarea must wire onBlur to handleReviewAttestationTextBlur");
-
-  // Error alert wired to the new draft review fields mutation
-  assert.match(tab, /updateDraftReviewFieldsMutation\.error/,
-    "ApiErrorAlert must display errors from updateDraftReviewFieldsMutation");
+  // Form values still include both fields (they are part of the unified form state)
+  assert.match(tab, /reviewCommentMode:/,
+    "reviewCommentMode must be present in form initialValues");
+  assert.match(tab, /reviewAttestationText:/,
+    "reviewAttestationText must be present in form initialValues");
 });
 
 test("ImpactEntryDetail accepts and uses an onClose prop", async () => {

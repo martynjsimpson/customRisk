@@ -455,6 +455,48 @@ test("publishDraft writes scoringFormula to register.update unconditionally — 
   );
 });
 
+test("publishDraft writes reviewCommentMode and reviewAttestationText unconditionally — not inside sourceTemplateVersionId block (BUG-FIX)", async () => {
+  // Regression: reviewCommentMode and reviewAttestationText were previously inside the
+  // draft.sourceTemplateVersionId conditional spread, causing them to be silently dropped when
+  // publishing a manually-created draft. The fix moves them to the unconditional section
+  // alongside scoringFormula so they are always promoted from the snapshot.
+  const service = await readFile(
+    new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // The comment documenting the unconditional promotion must be present
+  const fixComment = "Always promote reviewCommentMode and reviewAttestationText from the published snapshot";
+  assert.ok(
+    service.includes(fixComment),
+    "Expected the unconditional reviewCommentMode/reviewAttestationText comment to be present in publishConfigVersion"
+  );
+
+  // The assignments must appear AFTER the closing of the sourceTemplateVersionId conditional block
+  const templateBlockClose = ": {}),";
+  const templateBlockCloseIdx = service.indexOf(templateBlockClose);
+  assert.ok(templateBlockCloseIdx !== -1, "Expected to find the sourceTemplateVersionId else-branch close");
+
+  const fixIdx = service.indexOf(fixComment);
+  assert.ok(
+    fixIdx > templateBlockCloseIdx,
+    "reviewCommentMode comment must appear AFTER the sourceTemplateVersionId conditional block closes, not inside it"
+  );
+
+  // Both field assignments must be present after the comment
+  const afterComment = service.slice(fixIdx);
+  assert.match(
+    afterComment,
+    /reviewCommentMode:\s*regSettings\.reviewCommentMode/,
+    "reviewCommentMode must be assigned from regSettings.reviewCommentMode after the comment"
+  );
+  assert.match(
+    afterComment,
+    /reviewAttestationText:\s*regSettings\.reviewAttestationText/,
+    "reviewAttestationText must be assigned from regSettings.reviewAttestationText after the comment"
+  );
+});
+
 test("validate-formula route is exposed under config-versions (PM6-SCORING)", async () => {
   const routes = await readFile(
     new URL("../src/routes/configVersion.routes.ts", import.meta.url),
