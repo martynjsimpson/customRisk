@@ -19,8 +19,8 @@ Version levels:
 
 ### Fixed
 
-- **reviewCommentMode and reviewAttestationText not saved via register settings (PM8-CORE)**
-  - Both fields were sent by the frontend but silently discarded by the backend. The Zod validator (`updateRegisterSchema`) and the service write path (`updateRegister`) were missing both fields. Fixed so changes to review comment mode and attestation text are correctly persisted. Both fields are now also recorded in the register audit trail.
+- **reviewCommentMode and reviewAttestationText not saving in register settings (PM8-CORE)**
+  - Two separate bugs combined to prevent both fields from persisting. First, the Zod validator and service write path for `PATCH /registers/:registerId` were missing both fields, so direct saves were silently discarded. Second, when the register is in draft-config mode, the Settings tab has no Save button — fields must be saved via the draft config update path. Both fields lacked that wiring entirely, meaning changes made while a draft was active could never be submitted. Both paths are now fixed: direct saves write the fields to the register row; draft-mode saves call `updateDraftConfig` on change/blur. `reviewCommentMode` is also now carried through the full config snapshot pipeline (draft snapshot build, normalise defaults, template-draft publish write-back, config export and import).
 
 ### Added
 
