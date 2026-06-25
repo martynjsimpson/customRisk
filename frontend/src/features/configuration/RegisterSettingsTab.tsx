@@ -121,6 +121,17 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
     }
   });
 
+  const updateDraftReviewSettingsMutation = useMutation({
+    mutationFn: ({ reviewCommentMode, reviewAttestationText }: { reviewCommentMode: ReviewCommentMode; reviewAttestationText: string }) =>
+      updateDraftConfig(registerId, { register: { reviewCommentMode, reviewAttestationText } }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["register-config", registerId] }),
+        queryClient.invalidateQueries({ queryKey: ["config-version-status", registerId] })
+      ]);
+    }
+  });
+
   const updateDraftResponseActionModeMutation = useMutation({
     mutationFn: (mode: "SIMPLE" | "CHILD_RECORDS") =>
       updateDraftConfig(registerId, { register: { responseActionMode: mode } }),
@@ -165,6 +176,25 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
       updateDraftResponseActionModeMutation.mutate(newMode);
     } else if (!draftConfigMode) {
       updateDirectResponseActionModeMutation.mutate(newMode);
+    }
+  }
+
+  function handleReviewCommentModeChange(value: string | null) {
+    settingsForm.setFieldValue("reviewCommentMode", value as ReviewCommentMode);
+    if (draftConfigMode && hasDraft) {
+      updateDraftReviewSettingsMutation.mutate({
+        reviewCommentMode: value as ReviewCommentMode,
+        reviewAttestationText: settingsForm.values.reviewAttestationText
+      });
+    }
+  }
+
+  function handleReviewAttestationTextBlur() {
+    if (draftConfigMode && hasDraft) {
+      updateDraftReviewSettingsMutation.mutate({
+        reviewCommentMode: settingsForm.values.reviewCommentMode,
+        reviewAttestationText: settingsForm.values.reviewAttestationText
+      });
     }
   }
 
@@ -237,12 +267,18 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
                     { value: "MANDATORY", label: "Mandatory" }
                   ]}
                   {...settingsForm.getInputProps("reviewCommentMode")}
+                  onChange={handleReviewCommentModeChange}
                 />
                 <Textarea
                   label="Attestation Text"
                   disabled={!canManage || settingsLocked || !settingsForm.values.reviewsEnabled}
                   {...settingsForm.getInputProps("reviewAttestationText")}
+                  onBlur={(e) => {
+                    settingsForm.getInputProps("reviewAttestationText").onBlur?.(e);
+                    handleReviewAttestationTextBlur();
+                  }}
                 />
+                <ApiErrorAlert error={updateDraftReviewSettingsMutation.error} fallback="Unable to save review settings" />
               </Stack>
             </Fieldset>
           </Stack>

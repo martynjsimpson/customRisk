@@ -75,6 +75,7 @@ const snapshotRegisterSettingsSchema = z.object({
   reviewsEnabled: z.boolean().optional(),
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120).optional(),
   reviewAttestationText: z.string().optional(),
+  reviewCommentMode: z.enum(["DISABLED", "OPTIONAL", "MANDATORY"]).optional(),
   allowViewerExport: z.boolean().optional(),
   customFieldValidationEnabled: z.boolean().optional(),
   reviewStatusPosition: z.number().int().min(0).nullable().optional(),
