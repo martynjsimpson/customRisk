@@ -12,6 +12,12 @@ The register configuration draft system allows admins to stage changes before ap
 
 ---
 
+## Evidence from v1.27.0
+
+The v1.27.0 release cycle provides direct empirical evidence that the two-category system cannot be fixed incrementally. Verification work required adding `reviewCommentMode` and `reviewAttestationText` individually to Zod validation schemas, adding per-field draft mutations, removing those mutations when they caused regressions, and re-adding them with narrower cache invalidation strategies — each iteration producing a new failure mode. After multiple fix cycles, both fields remain broken in the released build. The root cause was never resolved because each patch treated a symptom of the underlying split rather than the split itself. This is not a problem that careful per-field work can solve; every new special-case promotion adds surface area for the next regression. The unified draft system — all register settings routed through the draft, all promoted unconditionally on publish — is the only intervention that removes the footgun rather than working around it.
+
+---
+
 ## How the Draft System Works
 
 A draft is a `RegisterConfigVersion` record whose `snapshotJson` captures the full configuration state at the moment the draft was created: the risk matrix, custom fields, likelihood/impact values, scoring formula, and register settings. Admins edit the snapshot in place while the draft is active. When satisfied, they publish the draft, which atomically applies the staged configuration to the live register — recalculating risk scores, running any required data migrations, and advancing the config version. If they discard the draft, no changes are applied. There is no Save button on the configuration screen; the only commit point is Publish.

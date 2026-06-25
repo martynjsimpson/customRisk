@@ -98,23 +98,30 @@ None — all clear.
 **Ruling:** The correct fix is narrow and backend-only: move `reviewCommentMode` and `reviewAttestationText` out of the `sourceTemplateVersionId` conditional in `publishDraft` so they are always promoted on publish. The dual-path frontend mutation added in feedback [2] must be removed — it is the wrong pattern and caused the regression.
 
 **Verification feedback [4]:** reviewCommentMode still not persisting after restart and retest. reviewAttestationText does persist. User changed both fields under a config draft, saved the draft, and only attestation text survived.
-**Investigation (round 4):** Two remaining gaps. (1) `snapshotRegisterSettingsSchema` in `backend/src/validators/configVersion.schemas.ts` (line 77) includes `reviewAttestationText` but not `reviewCommentMode` — Zod strips `reviewCommentMode` from any PATCH to the draft update endpoint, so it never reaches the snapshot. (2) Both fields still have no save path in draft mode — `handleFormBlur` is suppressed, the Save button is hidden, and both fields use plain `getInputProps` with no special onChange/onBlur handler. The attestation text appeared to persist only because it was previously set via PATCH outside draft mode, and that value was captured in the snapshot at draft creation time — it was not saved within the draft session. The previous dual-path mutation was removed after it caused a regression; the root cause of that regression was the mutation's onSuccess invalidating `["register", registerId]`, which reset the whole form mid-edit. The fix must use a narrower invalidation (only `register-config` and `config-version-status`) to avoid that regression.
-**Ruling:** in scope — both fields still cannot be saved within a draft session.
-**Fix:** Backend added `reviewCommentMode` to `snapshotRegisterSettingsSchema` in `configVersion.schemas.ts`. Frontend re-added `updateDraftReviewSettingsMutation` with `handleReviewCommentModeChange` and `handleReviewAttestationTextBlur`, with `onSuccess` invalidating only `register-config` and `config-version-status` (not `["register", registerId]`, which was the cause of the prior regression). 560 tests passing, typecheck clean. Fixed in commit 2fad47b.
+**Investigation (round 4):** `snapshotRegisterSettingsSchema` missing `reviewCommentMode`. Both fields had no save path in draft mode. Fixed in commit 2fad47b — added reviewCommentMode to schema, re-added draft-mode save handlers with narrow cache invalidation. 560 tests passing.
 
-**SPIKE-008 Recommendation 7 reopened:** Product owner challenged the "keep immediate-effect" standing decision. PA re-analysed all Category B fields against a revised criterion ("jarring to an active user mid-session"). Findings: all current immediate-effect fields are correctly classified except `reviewsEnabled`, which controls the Review button and review panel visibility in the risk register UI — toggling it off mid-session causes interactive controls to disappear for active users. This is behaviourally identical to `responseActionMode` and should move to draft/always-promote treatment. All other Category B fields either have no visible mid-session effect (riskIdPrefix stamps at creation time, IDs are immutable) or are permission changes where immediate effect is correct (allowViewerExport). Full unification is not warranted. See SPIKE-008, Recommendation 7 Reopened section.
+**Verification feedback [5]:** After commit 2fad47b, reviewCommentMode is still broken and reviewAttestationText is now broken again. Product owner confirms this is caused by the lack of a unified draft config system — piecemeal per-field fixes keep producing regressions and are not sustainable.
+**Investigation (round 5):** The root cause is architectural. The two-category system (some fields through draft, some direct PATCH) is fundamentally broken and cannot be fixed field-by-field. SPIKE-008 has been revised to recommend a full unified draft system: all register settings go through the draft on change/blur in draft mode, and all are promoted unconditionally on publish. This release will implement that unified standard for all register settings, not just the two new fields.
+**Ruling:** in scope — the two new fields must work per the unified standard. The unified standard implementation will fix them correctly and prevent future regressions.
+
+**SPIKE-008 final recommendation — unified draft system:**
+All register settings should be saved via `updateDraftConfig` in draft mode and promoted unconditionally on publish. No field should use a separate direct-PATCH path in draft mode. This is the only sustainable architecture. See SPIKE-008.
 
 **SPIKE-008 recommendations and their v1.27.0 status:**
-- **[Fix — DONE in this release]** Promote `reviewCommentMode` and `reviewAttestationText` unconditionally on publish — fixed in commit 6d4bb76.
-- **[Fix — DONE in this release]** Remove `reviewCommentMode` and `reviewAttestationText` from the direct-register mutation in draft mode — fixed in commit 6d4bb76.
-- **[Fix — DEFERRED TO PM]** `createRegisterFromTemplate` silently ignores `reviewCommentMode`, `scoringFormula`, and `responseActionMode` — registers created from templates start with wrong defaults for these fields. See SPIKE-008 Finding 8.
-- **[Fix — DEFERRED TO PM]** Template Compare modal reports no differences when only `reviewCommentMode`, `scoringFormula`, or `responseActionMode` differ — diff is empty even though register is out of sync. Actively misleading. See SPIKE-008 Finding 9.
-- **[Fix — DEFERRED TO PM]** Surface a "template has updates" banner on the register settings screen when `linkedTemplate.isLatest === false` — backend data is already available; UI-only change. See SPIKE-008 Finding 10.
-- **[Fix — DEFERRED TO PM]** Move `reviewsEnabled` to draft/always-promote treatment — PA confirmed it is the one Category B field that causes jarring mid-session UI changes (Review button disappears). Pattern is identical to `responseActionMode`. See SPIKE-008 Recommendation 7 Reopened.
-- **[Fix — DEFERRED TO PM]** Codify the two-class publish model (always-promote vs template-origin-only) in architecture docs and PR template checklist — SPIKE-008 written; PR template update deferred.
-- **[Design decision needed — DEFERRED TO PM]** Policy for `linkedTemplateVersionId` when a linked register publishes a manual draft — currently remains linked at same version. Is this deliberate? Needs explicit product decision.
-- **[Future — DEFERRED TO PM]** Active notification infrastructure for template version advances — requires in-app notification system not yet built.
-- **[Future — DEFERRED TO PM]** Extend always-promote to `reviewsEnabled`/`defaultReviewFrequencyMonths` if review impact analysis is ever built.
+
+*Done in this release:*
+- **[DONE]** `reviewCommentMode` and `reviewAttestationText` added to config snapshot pipeline (build, normalise, export, import)
+- **[DONE]** Both fields promoted unconditionally on publish
+- **[DONE]** `reviewCommentMode` and `reviewAttestationText` exposed on register API and enforced in `completeRiskReview`
+- **[IN PROGRESS]** Unified draft system for all register settings — frontend and backend agents implementing now
+
+*Deferred to PM (from SPIKE-008):*
+- **[Fix]** `createRegisterFromTemplate` does not copy `reviewCommentMode`, `scoringFormula`, or `responseActionMode` — new registers get wrong defaults
+- **[Fix]** Template Compare modal shows empty diff when only those three fields differ — actively misleading
+- **[Fix]** Surface template-drift banner when `linkedTemplate.isLatest === false` — backend data already available, UI change only
+- **[Fix]** Codify unified draft system in architecture docs and PR template checklist
+- **[Design decision]** Policy for `linkedTemplateVersionId` when a linked register publishes a manual draft
+- **[Future]** Active notification infrastructure for template version advances
 
 ---
 
