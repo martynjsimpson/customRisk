@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Fieldset, Group, Modal, NumberInput, Stack, Switch, Text, Textarea, TextInput } from "@mantine/core";
+import { Alert, Button, Checkbox, Fieldset, Group, Modal, NumberInput, Select, Stack, Switch, Text, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
 import { getRegisterConfiguration } from "../../api/customFields.api";
-import { deleteRegister, getRegister, updateRegister } from "../../api/registers.api";
+import { deleteRegister, getRegister, updateRegister, type ReviewCommentMode } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { useFeatureFlags } from "../../hooks/useFeatureFlags";
 import { usePermissions } from "../../hooks/usePermissions";
@@ -42,7 +42,9 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
       defaultReviewFrequencyMonths: 12,
       allowViewerExport: false,
       customFieldValidationEnabled: true,
-      responseActionMode: "SIMPLE" as "SIMPLE" | "CHILD_RECORDS"
+      responseActionMode: "SIMPLE" as "SIMPLE" | "CHILD_RECORDS",
+      reviewCommentMode: "OPTIONAL" as ReviewCommentMode,
+      reviewAttestationText: ""
     }
   });
   const { setValues: setSettingsValues } = settingsForm;
@@ -86,7 +88,9 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
         defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
         allowViewerExport: register.allowViewerExport,
         customFieldValidationEnabled: register.customFieldValidationEnabled,
-        responseActionMode: pendingMode
+        responseActionMode: pendingMode,
+        reviewCommentMode: register.reviewCommentMode,
+        reviewAttestationText: register.reviewAttestationText
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,6 +106,8 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
         riskIdZeroPaddingWidth: settingsForm.values.riskIdZeroPaddingWidth,
         reviewsEnabled: settingsForm.values.reviewsEnabled,
         defaultReviewFrequencyMonths: settingsForm.values.defaultReviewFrequencyMonths,
+        reviewCommentMode: settingsForm.values.reviewCommentMode,
+        reviewAttestationText: settingsForm.values.reviewAttestationText,
         allowViewerExport: settingsForm.values.allowViewerExport,
         customFieldValidationEnabled: settingsForm.values.customFieldValidationEnabled
       }),
@@ -212,14 +218,32 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
               {...settingsForm.getInputProps("reviewsEnabled", { type: "checkbox" })}
             />
             <Fieldset legend="Reviews">
-              <NumberInput
-                w={220}
-                label="Default review frequency (months)"
-                min={1}
-                max={120}
-                disabled={!canManage || settingsLocked || !settingsForm.values.reviewsEnabled}
-                {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
-              />
+              <Stack>
+                <NumberInput
+                  w={220}
+                  label="Default review frequency (months)"
+                  min={1}
+                  max={120}
+                  disabled={!canManage || settingsLocked || !settingsForm.values.reviewsEnabled}
+                  {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
+                />
+                <Select
+                  w={220}
+                  label="Review Comment Mode"
+                  disabled={!canManage || settingsLocked || !settingsForm.values.reviewsEnabled}
+                  data={[
+                    { value: "DISABLED", label: "Disabled" },
+                    { value: "OPTIONAL", label: "Optional" },
+                    { value: "MANDATORY", label: "Mandatory" }
+                  ]}
+                  {...settingsForm.getInputProps("reviewCommentMode")}
+                />
+                <Textarea
+                  label="Attestation Text"
+                  disabled={!canManage || settingsLocked || !settingsForm.values.reviewsEnabled}
+                  {...settingsForm.getInputProps("reviewAttestationText")}
+                />
+              </Stack>
             </Fieldset>
           </Stack>
         </Fieldset>

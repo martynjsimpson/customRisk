@@ -3,6 +3,8 @@ import type { UserRecord } from "./users.api";
 import type { ApiResponse, ListMeta } from "./types";
 import type { ResponseActionMode } from "./responseActions.api";
 
+export type ReviewCommentMode = "DISABLED" | "OPTIONAL" | "MANDATORY";
+
 export type { ListMeta };
 export type { ResponseAction, ResponseActionMode } from "./responseActions.api";
 
@@ -27,6 +29,7 @@ export interface RegisterRecord {
   reviewsEnabled: boolean;
   defaultReviewFrequencyMonths: number;
   reviewAttestationText: string;
+  reviewCommentMode: ReviewCommentMode;
   allowViewerExport: boolean;
   customFieldValidationEnabled: boolean;
   scoringFormula: string;
@@ -74,6 +77,8 @@ export type UpdateRegisterInput = Partial<
     | "riskIdZeroPaddingWidth"
     | "reviewsEnabled"
     | "defaultReviewFrequencyMonths"
+    | "reviewAttestationText"
+    | "reviewCommentMode"
     | "allowViewerExport"
     | "customFieldValidationEnabled"
     | "reviewStatusPosition"

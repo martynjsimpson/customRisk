@@ -4,9 +4,10 @@ import { useState } from "react";
 
 import { completeRiskReview } from "../../api/risks.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
+import type { ReviewCommentMode } from "../../api/registers.api";
 
 interface ReviewModalProps {
-  register: { reviewsEnabled: boolean; reviewAttestationText: string };
+  register: { reviewsEnabled: boolean; reviewAttestationText: string; reviewCommentMode: ReviewCommentMode };
   registerId: string;
   riskId: string | null;
   opened: boolean;
@@ -46,6 +47,9 @@ export function ReviewModal({
     onClose();
   }
 
+  const commentMode = register.reviewCommentMode;
+  const commentMissing = commentMode === "MANDATORY" && reviewComment.trim() === "";
+
   return (
     <Modal opened={opened && Boolean(riskId)} onClose={handleClose} title="Review risk">
       <Stack>
@@ -53,7 +57,14 @@ export function ReviewModal({
         <Alert>
           {register.reviewsEnabled ? register.reviewAttestationText : "Reviews are disabled for this register."}
         </Alert>
-        <Textarea label="Comment" value={reviewComment} onChange={(event) => setReviewComment(event.currentTarget.value)} />
+        {commentMode !== "DISABLED" ? (
+          <Textarea
+            label="Comment"
+            required={commentMode === "MANDATORY"}
+            value={reviewComment}
+            onChange={(event) => setReviewComment(event.currentTarget.value)}
+          />
+        ) : null}
         <Checkbox
           label="Confirm review"
           checked={reviewConfirmed}
@@ -62,7 +73,7 @@ export function ReviewModal({
         <Group justify="flex-end">
           <Button variant="subtle" onClick={handleClose}>Cancel</Button>
           <Button
-            disabled={!reviewConfirmed}
+            disabled={!reviewConfirmed || commentMissing}
             loading={reviewMutation.isPending}
             onClick={() => reviewMutation.mutate()}
           >
