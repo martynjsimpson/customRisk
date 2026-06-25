@@ -373,6 +373,132 @@ Full unification — routing all register settings through the draft and applyin
 
 **Backlog item:** None required. Record as a closed decision.
 
+---
+
+### Recommendation 7 — Reopened: Full Draft Unification Review
+
+**Trigger:** The product owner challenged the "closed decision" classification above. The original analysis was grounded in the criterion of data-safety coupling (whether a field change can produce an inconsistent or migrated data state). The counter-argument is that the draft system's design intent is UX atomicity — all your changes, then publish everything together — and that many Category B fields affect the live UI in ways that can be jarring or disorienting to users who are actively working in the register when the change fires.
+
+**Revised criterion applied below:** A field should remain immediate-effect ONLY if changing it mid-session could not plausibly cause a jarring or confusing experience for any active user of that register. If it could — even occasionally — it belongs in the draft system.
+
+---
+
+#### Field-by-field re-analysis under the revised criterion
+
+**`name`**
+
+- Current behaviour: immediate-effect via `PATCH /registers/:registerId`. The new name appears in the page title, breadcrumb, and register list the moment a user tabs out of the field.
+- Mid-session jarring risk: low. No user working in the risks list sees a register name change that surprises them. The name is a heading, not an operational data point. A user mid-editing a risk does not see the register name at all on that surface. The register list does not auto-refresh unless the user navigates away and back.
+- Verdict: **keep immediate-effect.** A register rename is an administrative act. The admin performing it is the only user actively on the settings screen. Other users will see the new name on their next navigation. No jarring experience.
+
+**`description`**
+
+- Current behaviour: immediate-effect via `PATCH`. Description is shown only on the settings screen itself, not in any risk-facing surface.
+- Mid-session jarring risk: none. No user working with risks ever sees the description change under their feet.
+- Verdict: **keep immediate-effect.** No user-visible impact beyond the settings screen.
+
+**`riskIdPrefix`**
+
+- Current behaviour: immediate-effect via `PATCH`. The prefix is baked into `displayRiskId` at risk-creation time. Changing the prefix does not retroactively recalculate existing `displayRiskId` values — existing risks keep their existing IDs.
+- Mid-session jarring risk: low for existing risks (their IDs are unchanged). For the admin making the change, the settings form updates immediately. Any user currently viewing a risk list sees no change — their existing `displayRiskId` values are fixed. The only visible effect is that the next risk created gets the new prefix.
+- Counterpoint: the product owner cited this as a specific jarring example ("changing the Risk ID prefix while a user is mid-editing a risk would change the displayed risk ID under their feet"). This is factually incorrect in the current implementation: the prefix change does not alter any existing `displayRiskId`. There is no risk that a user mid-editing a risk sees its ID change.
+- Verdict: **keep immediate-effect.** The concern is based on a misunderstanding of what the field does. Existing IDs are immutable once set; only new risks inherit the updated prefix.
+
+**`riskIdZeroPaddingEnabled`**
+
+- Current behaviour: immediate-effect via `PATCH`. Like `riskIdPrefix`, zero-padding only affects the generation of new `displayRiskId` values; existing ones are unchanged.
+- Mid-session jarring risk: none for existing risks. Same reasoning as `riskIdPrefix`.
+- Verdict: **keep immediate-effect.** Same rationale.
+
+**`riskIdZeroPaddingWidth`**
+
+- Current behaviour: immediate-effect via `PATCH`. Same as above.
+- Mid-session jarring risk: none for existing risks.
+- Verdict: **keep immediate-effect.** Same rationale.
+
+**`defaultNewRiskState`**
+
+- Current behaviour: immediate-effect via `PATCH`. This field is read in `RiskFormModal.tsx` at line 498 via the `formConfig.register.defaultNewRiskState` path — the value comes from the config snapshot, not the live register. The config snapshot is invalidated on register save. A user who has the "New Risk" modal open at the exact moment the setting changes would use the cached value; the next time they open the modal, the new default applies.
+- Mid-session jarring risk: very low. The default state only pre-fills the state selector in the new risk form. A user mid-editing a new risk would not see their pre-filled state change. The change only affects the next time the modal is opened.
+- Verdict: **keep immediate-effect.** The impact is the default for the next new risk. No current user action is disrupted.
+
+**`reviewsEnabled`**
+
+- Current behaviour: immediate-effect via `PATCH`. This field is read in real time in `RiskRegisterPanel.tsx` (lines 267, 284, 436, 485) to control: (a) whether the "Review" button appears per risk row, (b) whether the review action can be opened from URL params, (c) whether the review panel is available in `RiskDetailModal`. It is also read in `RiskDetailModal.tsx` (line 209) to conditionally include review-related items in the detail view.
+- Mid-session jarring risk: **yes, genuine and significant**. If an admin disables reviews while a user is on the risk register page: the "Review" button disappears from every row instantly on the next re-render triggered by any query invalidation. If a user has the URL `?action=review&riskId=X` open, the code at line 267 will silently skip opening the review modal. If a user has the `RiskDetailModal` open and the register query re-fetches (which happens on any background refetch interval), the review section may disappear or reorder. A user who was mid-navigating to open a review modal could find the button gone. This is a real jarring experience, not a theoretical one.
+- Verdict: **move to draft.** Toggling review availability is a significant workflow change. A user actively working with the review workflow who sees the "Review" buttons vanish mid-session has a confusing, broken-feeling experience. This field belongs in the draft system for the same reason `responseActionMode` does: it changes a visible workflow capability, not just a data attribute.
+
+**`defaultReviewFrequencyMonths`**
+
+- Current behaviour: immediate-effect via `PATCH`. This field is not read anywhere in the risk-facing UI. It is used server-side when a review is submitted: it becomes the basis for calculating `nextReviewDate` on the risk. The UI does not display this value anywhere on the risks or review surfaces.
+- Mid-session jarring risk: none visible. A user in the middle of submitting a review will not see anything change in the UI. The effect is that the calculated next review date will differ from what it would have been under the old frequency — but this is a background calculation, not something the user sees change under their feet.
+- Verdict: **keep immediate-effect.** No visible mid-session UX impact.
+
+**`allowViewerExport`**
+
+- Current behaviour: immediate-effect via `PATCH`. Read in `RiskRegisterPanel.tsx` at line 131 to compute `canExport`, which controls whether the export button is shown.
+- Mid-session jarring risk: low-to-moderate. If a Register Viewer is on the risk register page and an admin revokes export permission, the export button will disappear on the next background query refetch. The Viewer may be puzzled. However: this is an administrative permission change — exactly the kind of change that should take effect immediately. Access changes that require a draft would mean viewers retain access for an unknown period until an admin completes and publishes a draft.
+- Counter-consideration: immediate revocation of a permission is exactly what administrators need when they want to restrict access. Deferring this to draft-and-publish would be an anti-pattern for permissions. The "jarring" experience here is a deliberate consequence of the revocation, not an accidental side effect.
+- Verdict: **keep immediate-effect.** Permission revocations must take effect immediately. Draft treatment would create a time window of unintended access. The jarring UX (export button disappears) is intentional and correct.
+
+**`customFieldValidationEnabled`**
+
+- Current behaviour: immediate-effect via `PATCH`. Read in `RiskRegisterPanel.tsx` at line 145 via `register.customFieldValidationEnabled` to control whether validation enforcement is active. This affects the WARN/BLOCK behaviour on custom field saves.
+- Mid-session jarring risk: moderate. If a user is actively editing a risk and saving custom field values when an admin toggles validation on, a field that previously saved with WARN (no block) may now block the save. More significantly, if validation is toggled off mid-edit, a user might bypass validation checks they were presented with a moment earlier. Neither is deeply jarring — there is no visible UI change — but the save behaviour shifts.
+- However, validation enforcement is driven from the live register value on the backend at save time, not from a client-cached value. The UI reads it for the WARN/BLOCK UI rendering. The actual enforcement happens server-side on risk save.
+- Verdict: **keep immediate-effect.** The mid-session effect is a change in save-time enforcement behaviour, not a visible UI disruption. The shift is not jarring in the sense of disappearing buttons or changed displays. A user actively saving risks sees consistent behaviour within a single save cycle. The next save reflects the new setting.
+
+**`reviewStatusPosition`**
+
+- Current behaviour: immediate-effect via `PATCH` triggered from `FieldConfigTab.tsx` (line 139), not `RegisterSettingsTab`. This controls the column ordering in the custom fields table.
+- Mid-session jarring risk: low. Only affects column ordering in the configuration screen (admin-only view). Not visible to risk editors or viewers working in the risks list.
+- Verdict: **keep immediate-effect.** Admin-only configuration detail with no risk-facing impact.
+
+---
+
+#### Summary table under revised criterion
+
+| Field | Visible in risk-facing UI | Mid-session jarring risk | Revised verdict |
+|---|---|---|---|
+| `name` | No (heading only) | Low — admin only on settings screen | Keep immediate-effect |
+| `description` | No | None | Keep immediate-effect |
+| `riskIdPrefix` | No retroactive effect | None (existing IDs unchanged) | Keep immediate-effect |
+| `riskIdZeroPaddingEnabled` | No retroactive effect | None (existing IDs unchanged) | Keep immediate-effect |
+| `riskIdZeroPaddingWidth` | No retroactive effect | None (existing IDs unchanged) | Keep immediate-effect |
+| `defaultNewRiskState` | Affects new risk modal default only | Very low | Keep immediate-effect |
+| `reviewsEnabled` | Yes — "Review" button per row, modal sections | **Yes — buttons disappear mid-session** | **Move to draft** |
+| `defaultReviewFrequencyMonths` | No — server-side calculation only | None visible | Keep immediate-effect |
+| `allowViewerExport` | Yes — export button for Viewers | Low-to-moderate, but intentional | Keep immediate-effect (permission) |
+| `customFieldValidationEnabled` | Indirectly (WARN/BLOCK UI) | Low | Keep immediate-effect |
+| `reviewStatusPosition` | Admin config only | None | Keep immediate-effect |
+
+---
+
+#### Revised overall recommendation
+
+After applying the revised criterion honestly, the answer is more nuanced than the original standing decision suggested, but it does not endorse full unification.
+
+**Finding on `reviewsEnabled`:** This is the only Category B field that fails the revised criterion clearly. Toggling review availability is not a cosmetic or administrative setting — it removes or adds visible, interactive workflow controls (the "Review" button) from a live operational view used by risk owners and managers. An admin disabling reviews while users are active in the register produces a mid-session disappearance of controls. This is the same class of experience as `responseActionMode` (which is already Category A). The field should move to draft treatment.
+
+Moving `reviewsEnabled` to draft treatment requires:
+
+- Backend: add `reviewsEnabled` to the always-promote block in `publishDraft` (alongside `scoringFormula`, `responseActionMode`, `reviewCommentMode`, `reviewAttestationText`).
+- Frontend: wire `reviewsEnabled` to `updateDraftConfig` in draft mode (analogous to `responseActionMode`'s `updateDraftResponseActionModeMutation`). Apply the `settingsLocked` guard to prevent editing when no draft exists.
+- The frontend `handleFormBlur` path already skips firing in draft mode. The gap is only on the draft-write and publish-promote side.
+- No data migration required.
+
+**Finding on the remaining fields:** The other ten fields survive the revised criterion. The original analysis was correct for them. The key empirical point that the product owner's argument misses: the `riskId*` fields do not retroactively change displayed risk IDs. Existing `displayRiskId` values are stamped at creation time and never change. The only effect of changing the prefix or padding is on the next risk created. This is not a mid-session jarring experience.
+
+**On the UX consistency argument:** The product owner's argument — "draft is the contract for safe to change" — is compelling as a design philosophy but proves too much if applied universally. A register rename, a description edit, a review frequency adjustment: requiring a draft for these would make the configuration screen feel bureaucratic for genuinely simple, safe operations. The draft system's value is specifically in co-ordinating changes that have observable consequences for users actively working in the register. Only `reviewsEnabled` clears that bar among the Category B fields.
+
+**On the friction argument:** The draft workflow adds meaningful friction. Creating a draft, staging changes, running impact analysis, then publishing is the right path for matrix restructuring, formula changes, and workflow mode switches. It is excessive for "the register is named slightly wrong" or "the review frequency should be 6 months instead of 12". The two-tier model — immediate-effect for administrative settings, draft for workflow capability changes — is the correct design.
+
+**On the middle path:** The product owner asked whether a middle path exists (e.g. "lightweight save without impact analysis" or "register-level lock while a draft is active"). The current architecture already implements a middle path implicitly: the `settingsLocked` guard prevents editing any field when no draft exists (in draft mode), and the draft system handles the co-ordinated fields. Moving `reviewsEnabled` to the draft tier extends this existing middle path correctly without inventing a new mechanism.
+
+**Revised standing decision:** Do not pursue full Category B unification. Move `reviewsEnabled` to the draft/always-promote tier. Keep all other Category B fields immediate-effect. Record this as a deliberate classification, not an artefact.
+
+**Backlog item:** "Fix: move `reviewsEnabled` to draft treatment (always-promote on publish, draft-path mutation in frontend, consistent with `responseActionMode` pattern)."
+
 ### Recommendation 8 [Future]: Active template-update notification infrastructure
 
 The current discovery mechanism (polling via `linkedTemplate.isLatest` on the settings screen) is the correct minimum viable approach. Active notification — sending a push or email when a template the register is linked to is updated — requires an in-app notification system that does not yet exist. Do not build this until a notification infrastructure is in place. When it is built, the backend hook is clear: when `publishTemplateVersion` succeeds, query all `Register` rows with `linkedTemplateVersionId` pointing to a prior version of that template and emit a notification to each register's management-role members.
