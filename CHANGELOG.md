@@ -15,6 +15,19 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-06-25
+
+### Added
+
+- **Review comment mode control per register (PM8-CORE)**
+  - Register Admins can now set a Review Comment Mode (Disabled / Optional / Mandatory) in the Reviews section of register settings. When Disabled, the comment field is hidden from reviewers and the backend rejects any comment submitted. When Mandatory, the Complete Review button stays disabled until a non-empty comment is entered, and the backend validates server-side. When Optional, the existing behaviour is unchanged.
+
+- **Attestation text now editable in register settings (PM8-CORE)**
+  - The attestation text displayed to reviewers during a review can now be edited directly in the Reviews section of register settings. Previously the field was persisted by the backend but had no UI surface.
+
+- **Review history panel confirmed in risk detail view (PM8-CORE)**
+  - The review history panel in the risk detail modal was verified to be present and complete, showing reviewer name, date/time, comment (when present), and the calculated next review date for each past review.
+
 ## [1.26.0] - 2026-06-24
 
 ### Changed
