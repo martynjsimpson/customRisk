@@ -27,7 +27,22 @@ Only System Administrators can create new registers. From the Registers page, cl
 
 ### Settings
 
-The Settings tab under Configuration allows you to rename the register, update its description, configure the risk ID format, set the default risk state for new risks, manage review settings (frequency, attestation text), and toggle features such as viewer export and custom field validation.
+The Settings tab under Configuration allows you to rename the register, update its description, configure the risk ID format, set the default risk state for new risks, manage review settings (frequency, comment mode, attestation text), and toggle features such as viewer export and custom field validation.
+
+#### Review Settings
+
+The **Reviews** section of the Settings tab controls how risk reviews work for this register:
+
+- **Default review frequency (months)** — the default interval between reviews for risks in this register. This value is used as a starting point when a risk is created; it can be overridden per risk.
+
+- **Review Comment Mode** — controls whether reviewers must provide a comment when completing a review:
+  - **Disabled** — the comment field is not shown at all. Reviewers complete the review by confirming the attestation statement only.
+  - **Optional** (default) — the comment field is shown but leaving it blank is permitted. Reviewers can add a comment if they wish.
+  - **Mandatory** — the comment field is shown and must be filled in before the review can be completed. The "Complete review" button is disabled until a non-empty comment is provided.
+
+- **Attestation Text** — the statement shown to reviewers when they complete a review. This is the text that appears in the review confirmation dialog. Customise this to reflect your organisation's review requirements or compliance language (for example, "I confirm that I have reviewed this risk and the information recorded is accurate as of today").
+
+> **Tip:** Use Mandatory comment mode for compliance-sensitive registers where a written justification or explanation is required for each review cycle.
 
 ### Custom Fields
 
