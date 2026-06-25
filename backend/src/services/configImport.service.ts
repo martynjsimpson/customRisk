@@ -63,6 +63,7 @@ export async function importRegisterConfig(
       reviewsEnabled: parsed.register.reviewsEnabled,
       defaultReviewFrequencyMonths: parsed.register.defaultReviewFrequencyMonths,
       reviewAttestationText: parsed.register.reviewAttestationText,
+      reviewCommentMode: (parsed.register as { reviewCommentMode?: string }).reviewCommentMode === "DISABLED" ? "DISABLED" : (parsed.register as { reviewCommentMode?: string }).reviewCommentMode === "MANDATORY" ? "MANDATORY" : "OPTIONAL",
       allowViewerExport: parsed.register.allowViewerExport,
       customFieldValidationEnabled: parsed.register.customFieldValidationEnabled,
       reviewStatusPosition: parsed.register.reviewStatusPosition ?? null,

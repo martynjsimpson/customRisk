@@ -710,6 +710,7 @@ export async function publishDraft(
               reviewsEnabled: regSettings.reviewsEnabled,
               defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
               reviewAttestationText: regSettings.reviewAttestationText,
+              reviewCommentMode: regSettings.reviewCommentMode as any,
               allowViewerExport: regSettings.allowViewerExport,
               customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
               reviewStatusPosition: regSettings.reviewStatusPosition ?? null,
