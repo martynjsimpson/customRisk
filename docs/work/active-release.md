@@ -89,7 +89,22 @@ None — all clear.
 **Verification feedback [2]:** Still not saving after app restart. HAR confirms: user flow goes through config-version draft/publish (POST /config-versions/draft → POST /config-versions/draft/publish). No PATCH to /registers/:registerId in HAR at all. GET /registers/:registerId returns `reviewCommentMode: "OPTIONAL"` throughout.
 **Investigation (round 2):** Root cause is in the frontend draft-mode save path. `RegisterSettingsTab` hides the Save button in draft mode (`!draftConfigMode` guard, line 268) and the blur-autosave also only fires outside draft mode (line 156). So when `draftConfigMode && hasDraft`, there is no save path for `reviewCommentMode` or `reviewAttestationText` — the user can edit them in the form but they can never be submitted. Additionally, `reviewCommentMode` is absent from `buildSnapshotFromRelationalTables` in `configVersion.draft.service.ts` (lines 46–109), so it is also missing from the config snapshot and would not survive a template-draft publish even if saved. `reviewAttestationText` is in the snapshot but has the same missing save-path problem in draft mode.
 **Ruling:** in scope — gap against acceptance criteria for both fields.
-**Fix:** Backend added `reviewCommentMode` to config snapshot pipeline (draft build, normalise, template publish write-back, export, import). Frontend added `updateDraftReviewFieldsMutation` with `handleReviewCommentModeChange` and `handleReviewAttestationTextBlur` handlers that call `updateDraftConfig` when `draftConfigMode && hasDraft`. 241 tests passing, typecheck clean. Fixed in commits af0c027 + ca60855.
+**Fix (partial):** Backend added `reviewCommentMode` to config snapshot pipeline (draft build, normalise, template publish write-back, export, import). Frontend added `updateDraftReviewFieldsMutation` with `handleReviewCommentModeChange` and `handleReviewAttestationTextBlur` handlers that call `updateDraftConfig` when `draftConfigMode && hasDraft`. 241 tests passing, typecheck clean. Fixed in commits af0c027 + ca60855.
+
+**Verification feedback [3]:** After PA architectural review (SPIKE-008), a deeper root cause was identified. PA review also surfaced that the fix in feedback [2] introduced a regression — other settings (e.g. register name) stopped updating, caused by the dual-path frontend mutation. User also noted settings are not being greyed out correctly when no draft exists, and controls that were working are now broken.
+
+**Investigation (round 3):** Root cause confirmed via SPIKE-008 — the `sourceTemplateVersionId` conditional in `configVersion.publish.service.ts` is the true cause. For manual drafts (no `sourceTemplateVersionId`), the publish flow intentionally does not write Category A snapshot fields back to the `Register` row, to avoid overwriting direct edits made via `PATCH /registers/:registerId` while a draft was open. However, `reviewCommentMode` and `reviewAttestationText` have no direct-edit path in draft mode — they are supposed to save only via the draft. So the "protection" is a silent no-op for these two fields: the snapshot value is staged, publish succeeds, nothing changes. The fix in feedback [2] attempted to compensate via a dual-path frontend mutation, which caused the observed regression in other settings.
+
+**Ruling:** The correct fix is narrow and backend-only: move `reviewCommentMode` and `reviewAttestationText` out of the `sourceTemplateVersionId` conditional in `publishDraft` so they are always promoted on publish. The dual-path frontend mutation added in feedback [2] must be removed — it is the wrong pattern and caused the regression.
+
+**SPIKE-008 recommendations and their v1.27.0 status:**
+- **[Fix — IN THIS RELEASE]** Promote `reviewCommentMode` and `reviewAttestationText` unconditionally on publish — fixing now.
+- **[Fix — IN THIS RELEASE]** Remove `reviewCommentMode` and `reviewAttestationText` from the direct-register mutation in draft mode (undo the dual-path added in feedback [2]) — fixing now.
+- **[Fix — DEFERRED TO PM]** Surface a "template has updates" banner when `linkedTemplate.isLatest === false` — backend data is already there; UI work not in scope for this release.
+- **[Fix — DEFERRED TO PM]** Codify the two-class publish model in architecture docs and PR template — partially done (SPIKE-008 written); PR template update deferred.
+- **[Design decision needed — DEFERRED TO PM]** Policy for `linkedTemplateVersionId` when a linked register publishes a manual draft — needs product decision.
+- **[Future — DEFERRED TO PM]** Active notification infrastructure for template version advances.
+- **[Future — DEFERRED TO PM]** Extend always-promote to `reviewsEnabled`/`defaultReviewFrequencyMonths` if review impact analysis is built.
 
 ---
 
