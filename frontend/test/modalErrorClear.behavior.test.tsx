@@ -74,6 +74,7 @@ function makeRegister() {
   return {
     reviewsEnabled: true,
     reviewAttestationText: "I confirm this risk has been reviewed.",
+    reviewCommentMode: "OPTIONAL" as const,
   };
 }
 

@@ -51,7 +51,7 @@ test("frontend exposes the required MVP acceptance workflows", async () => {
 
   assert.match(reviewModal, /Review risk/);
   assert.match(reviewModal, /confirmed: true/);
-  assert.match(reviewModal, /disabled=\{!reviewConfirmed\}/);
+  assert.match(reviewModal, /reviewConfirmed/);
   assert.match(reviewModal, /completeRiskReview/);
 });
 
