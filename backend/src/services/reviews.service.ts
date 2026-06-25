@@ -92,7 +92,8 @@ export async function completeRiskReview(
           select: {
             reviewsEnabled: true,
             defaultReviewFrequencyMonths: true,
-            reviewAttestationText: true
+            reviewAttestationText: true,
+            reviewCommentMode: true
           }
         }
       }
@@ -107,6 +108,22 @@ export async function completeRiskReview(
     if (!risk.register.reviewsEnabled) {
       throw new ApiError(400, "VALIDATION_ERROR", "Risk reviews are disabled for this register", {
         registerId: "Risk reviews are disabled for this register"
+      });
+    }
+
+    const commentMode = risk.register.reviewCommentMode;
+    const commentProvided = input.comment !== undefined;
+    const commentHasContent = typeof input.comment === "string" && input.comment.trim().length > 0;
+
+    if (commentMode === "DISABLED" && commentProvided) {
+      throw new ApiError(400, "VALIDATION_ERROR", "Comments are disabled for this register", {
+        comment: "Comments are disabled for this register"
+      });
+    }
+
+    if (commentMode === "MANDATORY" && !commentHasContent) {
+      throw new ApiError(400, "VALIDATION_ERROR", "A comment is required to complete this review", {
+        comment: "A comment is required to complete this review"
       });
     }
 

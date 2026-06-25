@@ -34,6 +34,7 @@ const registerSelect = {
   reviewStatusPosition: true,
   scoringFormula: true,
   responseActionMode: true,
+  reviewCommentMode: true,
   createdAt: true,
   updatedAt: true,
   linkedTemplateVersion: {
