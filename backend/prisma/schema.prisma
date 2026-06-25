@@ -111,6 +111,12 @@ enum ConfigVersionStatus {
   PUBLISHED
 }
 
+enum ReviewCommentMode {
+  DISABLED
+  OPTIONAL
+  MANDATORY
+}
+
 model PersonReference {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email       String    @unique
@@ -263,6 +269,7 @@ model Register {
   reviewStatusPosition         Int?      @map("review_status_position")
   scoringFormula               String    @default("") @map("scoring_formula") @db.Text
   responseActionMode           ResponseActionMode @default(SIMPLE) @map("response_action_mode")
+  reviewCommentMode            ReviewCommentMode  @default(OPTIONAL) @map("review_comment_mode")
 
   currentConfigVersionId  String?  @unique @map("current_config_version_id") @db.Uuid
   draftConfigVersionId    String?  @unique @map("draft_config_version_id") @db.Uuid
