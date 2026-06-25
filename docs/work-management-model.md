@@ -266,7 +266,8 @@ Use:
 - `in-active-release` when one or more derived work items are selected in `active-release.md`.
 - `partially-done` when some of the request outcome has shipped or is complete, but meaningful scope remains.
 - `done` when the request's intended outcome is satisfied.
-- `deferred` when the request is valid but not currently planned.
+- `blocked` when the request cannot proceed until a specific condition is met. Always pair with a `Blocked on:` field naming the dependency (e.g. `Blocked on: SPIKE-006 output`, `Blocked on: PM8-CORE shipping`). Blocked items are actively monitored — the PM checks them at the start of every planning session to see if the blocker has resolved.
+- `deferred` when the request is valid but deliberately parked with no specific dependency. Deferred items are not surfaced automatically — they are only reviewed when the human explicitly asks. Use this for genuine "not now, maybe someday" items, not for items waiting on something specific.
 - `rejected` when the request is out of scope or deliberately not being pursued.
 - `duplicate` when the request is covered by another request or work item.
 
@@ -298,6 +299,12 @@ blocked
 done
 deferred
 ```
+
+**`blocked` vs `deferred` for work items:**
+- Use `blocked` when the work item cannot proceed until a named dependency resolves. Add a `blocked_on` field: `blocked_on: SPIKE-006 output` or `blocked_on: PM8-CORE`. Blocked items are checked at every planning session.
+- Use `deferred` when the work item is deliberately parked with no specific dependency — genuine "not now" work. Deferred items are not surfaced automatically.
+
+Work items with `blocked` status must include a `blocked_on` field. Work items with `deferred` status should not have a `blocked_on` field — if there is a dependency, use `blocked` instead.
 
 For completed work items in `backlog.yml`, keep completion metadata separate from status:
 
