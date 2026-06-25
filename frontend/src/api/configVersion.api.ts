@@ -1,6 +1,7 @@
 import { apiClient } from "./client";
 import { getAccessToken } from "../auth/session";
 import type { CustomFieldDefinition } from "./customFields.api";
+import type { ReviewCommentMode } from "./registers.api";
 import type { ImpactValue, LikelihoodValue, RiskLevel } from "./scoring.api";
 import type { ApiResponse } from "./types";
 
@@ -52,6 +53,8 @@ export interface UpdateDraftConfigInput {
   register?: {
     scoringFormula?: string;
     responseActionMode?: "SIMPLE" | "CHILD_RECORDS";
+    reviewCommentMode?: ReviewCommentMode;
+    reviewAttestationText?: string;
   };
   customFields?: Array<
     Pick<
