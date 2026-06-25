@@ -85,7 +85,9 @@ None — all clear.
 ## Verification feedback
 
 **Verification feedback [1]:** reviewCommentMode dropdown does not appear to be saving. User suspects it is not part of the draft config on the server — when config is published it gets overridden. This issue has occurred before with other register settings.
-**Status:** investigating
+**Investigation:** Bug confirmed at two layers in the backend. (1) `updateRegisterSchema` in `backend/src/validators/registers.schemas.ts` (line 38–55) does not include `reviewCommentMode` or `reviewAttestationText` — Zod strips them from the request body before they reach the service. (2) The `data` object in `updateRegister` (`backend/src/services/registers.service.ts` lines 402–414) does not write either field to the database even if they were present. The frontend sends both fields correctly; the backend silently discards them.
+**Ruling:** in scope — gap against acceptance criterion "A Register Admin can set reviewCommentMode via register settings"
+**Fix:** Backend developer to (a) add `reviewCommentMode` and `reviewAttestationText` to `updateRegisterSchema`, and (b) include both fields in the `data` object in `updateRegister`.
 
 ---
 
