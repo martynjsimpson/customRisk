@@ -98,13 +98,15 @@ None — all clear.
 **Ruling:** The correct fix is narrow and backend-only: move `reviewCommentMode` and `reviewAttestationText` out of the `sourceTemplateVersionId` conditional in `publishDraft` so they are always promoted on publish. The dual-path frontend mutation added in feedback [2] must be removed — it is the wrong pattern and caused the regression.
 
 **SPIKE-008 recommendations and their v1.27.0 status:**
-- **[Fix — IN THIS RELEASE]** Promote `reviewCommentMode` and `reviewAttestationText` unconditionally on publish — fixing now.
-- **[Fix — IN THIS RELEASE]** Remove `reviewCommentMode` and `reviewAttestationText` from the direct-register mutation in draft mode (undo the dual-path added in feedback [2]) — fixing now.
-- **[Fix — DEFERRED TO PM]** Surface a "template has updates" banner when `linkedTemplate.isLatest === false` — backend data is already there; UI work not in scope for this release.
-- **[Fix — DEFERRED TO PM]** Codify the two-class publish model in architecture docs and PR template — partially done (SPIKE-008 written); PR template update deferred.
-- **[Design decision needed — DEFERRED TO PM]** Policy for `linkedTemplateVersionId` when a linked register publishes a manual draft — needs product decision.
-- **[Future — DEFERRED TO PM]** Active notification infrastructure for template version advances.
-- **[Future — DEFERRED TO PM]** Extend always-promote to `reviewsEnabled`/`defaultReviewFrequencyMonths` if review impact analysis is built.
+- **[Fix — DONE in this release]** Promote `reviewCommentMode` and `reviewAttestationText` unconditionally on publish — fixed in commit 6d4bb76.
+- **[Fix — DONE in this release]** Remove `reviewCommentMode` and `reviewAttestationText` from the direct-register mutation in draft mode — fixed in commit 6d4bb76.
+- **[Fix — DEFERRED TO PM]** `createRegisterFromTemplate` silently ignores `reviewCommentMode`, `scoringFormula`, and `responseActionMode` — registers created from templates start with wrong defaults for these fields. See SPIKE-008 Finding 8.
+- **[Fix — DEFERRED TO PM]** Template Compare modal reports no differences when only `reviewCommentMode`, `scoringFormula`, or `responseActionMode` differ — diff is empty even though register is out of sync. Actively misleading. See SPIKE-008 Finding 9.
+- **[Fix — DEFERRED TO PM]** Surface a "template has updates" banner on the register settings screen when `linkedTemplate.isLatest === false` — backend data is already available; UI-only change. See SPIKE-008 Finding 10.
+- **[Fix — DEFERRED TO PM]** Codify the two-class publish model (always-promote vs template-origin-only) in architecture docs and PR template checklist — SPIKE-008 written; PR template update deferred.
+- **[Design decision needed — DEFERRED TO PM]** Policy for `linkedTemplateVersionId` when a linked register publishes a manual draft — currently remains linked at same version. Is this deliberate? Needs explicit product decision.
+- **[Future — DEFERRED TO PM]** Active notification infrastructure for template version advances — requires in-app notification system not yet built.
+- **[Future — DEFERRED TO PM]** Extend always-promote to `reviewsEnabled`/`defaultReviewFrequencyMonths` if review impact analysis is ever built.
 
 ---
 

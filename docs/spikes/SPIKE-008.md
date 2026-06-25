@@ -166,67 +166,6 @@ There is a theoretical edge case: an admin creates a draft, directly edits `revi
 
 ### How template linkage works today
 
-The template system has two distinct mechanisms that are frequently conflated.
-
-**`Register.linkedTemplateVersionId`** — a nullable FK to `RegisterTemplateVersion`. This is a tracking reference. It records which template version this register was most recently aligned to. It does not gate any write operations. Nothing in the backend reads `linkedTemplateVersionId` to enforce any constraint on edits or on what a draft can contain. It is purely informational: the UI reads it to show the `TemplateLinkPanel`, which exposes "Compare", "Apply latest", and "Unlink" actions. A register can be linked to a template while its admin makes arbitrary manual edits to the config — the system does not prevent this.
-
-**`RegisterConfigVersion.sourceTemplateVersionId`** — a nullable FK on the `RegisterConfigVersion` row (i.e., on a specific draft). This is set when a draft is created via `applyTemplateUpdateToDraft` (in `template.service.ts`, line 508). It is NOT set when a manual draft is created via `createDraft`. It is this flag — not `linkedTemplateVersionId` — that changes publish behaviour.
-
-The two flags serve different purposes and are independently nullable. A register with `linkedTemplateVersionId` set may have `draftConfigVersionId` pointing to a draft with `sourceTemplateVersionId = null` (if the admin manually created the draft rather than using "Apply latest"). Conversely, `sourceTemplateVersionId` on a draft does not require the register to currently be linked to any template.
-
-### The template update workflow
-
-When a system admin publishes a new version of a template (via `publishTemplateVersion` in `template.service.ts`), nothing automatic happens to linked registers. There is no notification and no enforcement. The admin of a linked register sees a visual indicator in `TemplateLinkPanel` — an orange badge reading "v2 — latest is v3" — and a button labelled "Apply latest (v3)".
-
-Clicking "Apply latest" calls `applyTemplateUpdateToDraft` (`template.service.ts` line 436), which:
-1. Validates that no draft already exists (returns 409 if one does).
-2. Takes the template's snapshot wholesale, overwriting only `register.name` with the register's actual name.
-3. Creates a `RegisterConfigVersion` row with `status = DRAFT` and `sourceTemplateVersionId` set to the template version's ID.
-4. Updates `Register.draftConfigVersionId` to point to the new draft.
-
-The admin then uses the standard draft workflow (edit, impact analysis, publish) to review and publish the template changes. At publish time, `draft.sourceTemplateVersionId` being set triggers the full Category A promotion path in `publishDraft`, writing all register settings from the snapshot back to the `Register` row.
-
-### What is locked/unlocked when a register is linked to a template
-
-**Answer: nothing is locked in either the backend or the frontend on the basis of template linkage alone.**
-
-The backend `PATCH /registers/:registerId` handler has no check for `linkedTemplateVersionId`. Any admin can call it at any time regardless of template linkage status. The frontend `RegisterSettingsTab` applies `settingsLocked` based on `draftConfigMode && !hasDraft` — not on template linkage. The `TemplateLinkPanel` is rendered alongside the `ConfigVersionBanner` and settings form as a purely informational widget; it does not disable any form controls.
-
-A linked register admin can freely edit the register name, description, review frequency, and all other direct-register fields at any time, linked or not. There is no enforcement of "template compliance". This is consistent with the intended design as stated in the product brief: admins may deviate from the template, and the template linkage is advisory.
-
-### The `sourceTemplateVersionId` publish conditional: is it correct?
-
-The current publish logic in `publishDraft` (lines 699–731) applies the full set of register settings from the snapshot — including `reviewCommentMode`, `reviewAttestationText`, `reviewsEnabled`, `defaultReviewFrequencyMonths`, `allowViewerExport`, `customFieldValidationEnabled`, `reviewStatusPosition`, `name`, `description`, `riskIdPrefix`, `riskIdZeroPaddingEnabled`, `riskIdZeroPaddingWidth`, `defaultNewRiskState` — only when `draft.sourceTemplateVersionId` is set. For manual drafts, only `scoringFormula` and (conditionally) `responseActionMode` are promoted.
-
-The rationale stated in the code comment — "direct edits to the register made while the draft was in progress take precedence and must not be overwritten" — was correct for the original design: in the original system, all register settings were immediate-effect and the draft was only for matrix/field changes. Register settings in the snapshot were there for historical record and for the template-origin path.
-
-However, as `reviewCommentMode` and `reviewAttestationText` were added to the snapshot AND given draft-mode UI paths (where the frontend writes them via `updateDraftConfig` and suppresses the direct `updateRegister` path via the `onBlur` guard), this rationale broke down. For these two fields specifically:
-
-- In draft mode, the admin edits them via `updateDraftConfig`. The snapshot is updated.
-- The `onBlur` guard (`if (!draftConfigMode && ...)`) suppresses the `updateRegister` path.
-- On publish, the snapshot value is NOT written to the `Register` row (template-origin conditional).
-- The live `Register` row retains the value it had before the draft began.
-
-The result is that for `reviewCommentMode` and `reviewAttestationText`, the draft path is currently a dead-end for manual drafts. The admin appears to have staged the change, but it is silently discarded at publish. This is the root cause identified in v1.27.0.
-
-**The distinction is not correct as currently applied.** The `sourceTemplateVersionId` conditional is the right gate for fields that should only be overwritten when explicitly adopting a template (name, description, ID prefix settings, defaultNewRiskState — fields where an admin might have intentionally diverged from the template and expects that divergence to survive a manual draft cycle). It is the wrong gate for fields that have an active draft-mode edit path, because those fields are already being written via the draft in draft mode and are NOT being written via direct PATCH.
-
-### Fields missing from `createRegisterFromTemplate` and `compareRegisterToTemplate`
-
-**`createRegisterFromTemplate`** (`registers.service.ts`, lines 700–718) creates the initial `Register` row from the template snapshot but does not apply `reviewCommentMode`, `scoringFormula`, or `responseActionMode`. These fields are left at their column defaults (`OPTIONAL`, `""`, `SIMPLE`). A register created from a template that specifies `reviewCommentMode: "MANDATORY"` or a non-empty `scoringFormula` will silently ignore those template values. This is a data fidelity bug.
-
-**`compareRegisterToTemplate`** (`template.service.ts`, lines 342–353) only compares these keys: `riskIdPrefix`, `riskIdZeroPaddingEnabled`, `riskIdZeroPaddingWidth`, `defaultNewRiskState`, `reviewsEnabled`, `defaultReviewFrequencyMonths`, `reviewAttestationText`, `allowViewerExport`, `customFieldValidationEnabled`, `reviewStatusPosition`. It omits `reviewCommentMode`, `scoringFormula`, and `responseActionMode`. This means if a template changes any of these three fields, the comparison will not detect the difference, the orange "out of date" badge may not appear even when the register has diverged on those fields, and the "Apply latest" workflow will not surface the change.
-
-### Template change notification mechanism
-
-There is no push notification. The mechanism is pull-based: when the admin visits the configuration settings screen of a linked register, the `getRegister` response includes `linkedTemplate.isLatest` (a boolean computed by comparing `linkedTemplateVersion.versionNumber` to the latest published template version). The UI shows an orange badge when `!isLatest`. There is no email notification, no in-app notification to the register admin, and no API endpoint to query "which registers are out of sync with their templates". A register admin who never visits the configuration screen will never see the update indicator.
-
----
-
-## Template System Interplay
-
-### How template linkage works today
-
 The schema maintains two distinct pointers:
 
 - `Register.linkedTemplateVersionId` — points to a specific `RegisterTemplateVersion`. This is the version the register is currently "linked to" for the purpose of detecting template drift. It is set when a register is created from a template, when a template is created from a register (the originating register is automatically linked), and when `applyTemplateUpdateToDraft` is called and that draft is published.
@@ -344,6 +283,18 @@ For any field with dual paths, the correctness of the system depends on three se
 **Finding 6: Future developers have no reliable signal for which category a new field belongs to.**
 The architecture document (`register-config-draft-system.md`) now describes both categories, but the categorisation guidance is informal. The code itself provides no guard: both `PATCH /registers/:registerId` and `PATCH /config-versions/draft` accept overlapping fields without enforcing separation.
 
+**Finding 7: The `sourceTemplateVersionId` publish conditional correctly gates some fields but incorrectly gates others.**
+The conditional is the right mechanism for protecting fields that an admin may have intentionally customised away from the template — `name`, `riskIdPrefix`, `reviewsEnabled`, etc. It is the wrong gate for `reviewCommentMode` and `reviewAttestationText`, which have no direct-edit path in draft mode. For those two fields, the draft is the only edit path. The conditional creates a dead zone: no write reaches the `Register` row for these fields during manual draft workflows.
+
+**Finding 8: `createRegisterFromTemplate` silently ignores `reviewCommentMode`, `scoringFormula`, and `responseActionMode`.**
+The `tx.register.create` call in `createRegisterFromTemplate` (`registers.service.ts`, lines 700–718) omits these three fields. Any register created from a template that encodes non-default values for these fields silently starts with wrong values (`OPTIONAL`, `""`, `SIMPLE`). This is a data fidelity bug present since template support was introduced.
+
+**Finding 9: `compareRegisterToTemplate` omits `reviewCommentMode`, `scoringFormula`, and `responseActionMode` from its comparison.**
+The `registerSettingsKeys` array in `compareRegisterToTemplate` (`template.service.ts`, lines 342–353) covers only ten fields. A template update that only modifies these three fields will show no differences in the Compare modal, even though the register is genuinely out of sync on those fields. The orange badge will appear (version numbers differ) but the diff will say "no differences". This is actively misleading.
+
+**Finding 10: Template drift discovery is passive and limited to the configuration screen.**
+The `getRegister` response already includes `linkedTemplate.isLatest`. The orange badge in `TemplateLinkPanel` is the only surface that uses this data. Admins who work primarily in the risks list have no visibility into template drift. No active notification mechanism exists.
+
 ---
 
 ## Recommendations
@@ -374,6 +325,20 @@ Once Recommendation 1 is implemented, the `PATCH /registers/:registerId` path fo
 This change belongs to the frontend-developer.
 
 **Backlog item:** "Simplify: remove `reviewCommentMode`/`reviewAttestationText` from the direct-register save path in draft mode."
+
+### Recommendation 3b [Fix]: Add `reviewCommentMode`, `scoringFormula`, and `responseActionMode` to `createRegisterFromTemplate`
+
+The `tx.register.create` call in `createRegisterFromTemplate` (`backend/src/services/registers.service.ts`, lines 700–718) does not write `reviewCommentMode`, `scoringFormula`, or `responseActionMode`. These fields default to `OPTIONAL`, `""`, and `SIMPLE` on the new row, regardless of what the template snapshot specifies. Add all three, reading from `regSettings` as the other fields do.
+
+No schema change, no migration required.
+
+**Backlog item:** "Fix: `createRegisterFromTemplate` silently ignores `reviewCommentMode`, `scoringFormula`, and `responseActionMode` from template snapshot — new registers start with wrong defaults."
+
+### Recommendation 3c [Fix]: Add `reviewCommentMode`, `scoringFormula`, and `responseActionMode` to `compareRegisterToTemplate`
+
+Add the three fields to the `registerSettingsKeys` array in `compareRegisterToTemplate` (`backend/src/services/template.service.ts`, line 342). Without this change, a template update that only modifies these fields produces a misleading "no differences" result in the Compare modal, even though the register is out of sync.
+
+**Backlog item:** "Fix: template Compare modal reports no differences when only `reviewCommentMode`, `scoringFormula`, or `responseActionMode` differ between register and template."
 
 ### Recommendation 4 [Design decision needed]: Define what happens to a linked register's `linkedTemplateVersionId` when a manual draft is published
 
@@ -424,16 +389,23 @@ These fields are semantically close to `reviewCommentMode` — they govern revie
 
 ## Summary
 
-Category B is an unintentional artefact, not a design decision. For the vast majority of fields it produces the correct outcome: immediate-effect changes that require no draft. The specific problem identified by the product owner is real and the template system confirms its root cause.
+Category B is an unintentional artefact, not a design decision. For the vast majority of fields it produces the correct outcome: immediate-effect changes that require no draft. The template system analysis surfaces three additional correctness gaps beyond the original question.
 
-The `sourceTemplateVersionId` conditional in `publishDraft` was written to serve template-origin drafts: adopt the template's register settings wholesale on publish, and advance `linkedTemplateVersionId` to record the sync point. For manual drafts, the conditional was left empty — the rationale being that direct edits made while the draft was open should not be overwritten. This rationale is sound for immediate-effect fields (name, riskIdPrefix, etc.) but was incorrectly applied to `reviewCommentMode` and `reviewAttestationText`, which have no direct-edit path in draft mode. For those two fields, the draft is the only edit path. Publishing without applying them was a silent bug, not a deliberate protection.
+**The core problem** — `reviewCommentMode` and `reviewAttestationText` — stems from the `sourceTemplateVersionId` conditional in `publishDraft`. That conditional was correct for the original design (all register settings were immediate-effect; the conditional existed to adopt template values at publish). As those two fields gained draft-mode UI paths with frontend guards suppressing the direct `PATCH`, they moved into a dead zone: no direct write happens in draft mode, and no publish promotion happens for manual drafts. The fix is targeted: move them out of the conditional in one service file.
+
+**Three additional template gaps** were identified during this analysis:
+
+1. `createRegisterFromTemplate` does not apply `reviewCommentMode`, `scoringFormula`, or `responseActionMode` from the template snapshot. Registers created from templates start with wrong defaults for these fields.
+
+2. `compareRegisterToTemplate` omits the same three fields from its comparison key set. A template update that only changes these fields produces a misleading "no differences" in the Compare modal.
+
+3. The `TemplateLinkPanel` orange badge is the only place template drift is surfaced. Admins who work primarily outside the configuration screen will never see it.
 
 The correct unified model is:
 
-- **Always-promote on publish** (regardless of draft origin): `scoringFormula`, `responseActionMode`, `reviewCommentMode`, `reviewAttestationText`. These fields have draft-mode UI paths; the direct register path is suppressed in draft mode; the publish must apply them.
-- **Template-origin only** (inside the `sourceTemplateVersionId` conditional): all immediate-effect fields. Direct edits made while a draft is open should not be overwritten.
-- **Immediate-effect, no draft involvement**: the same fields, edited via `PATCH /registers/:registerId` in both draft and non-draft modes.
+- **Always-promote on publish** (regardless of draft origin): `scoringFormula`, `responseActionMode`, `reviewCommentMode`, `reviewAttestationText`. These fields have draft-mode UI paths; the direct register path is suppressed in draft mode; publish must apply them.
+- **Template-origin only** (inside the `sourceTemplateVersionId` conditional): all immediate-effect fields. Direct edits made while a manual draft is open should survive publish.
 - **No locks on linked registers**: the template link is informational. Admins may deviate freely. The link advances only when a template-origin draft is published.
-- **Template drift discovery**: `linkedTemplate.isLatest` is already returned by the backend. The missing piece is a UI banner on the settings screen — no backend work needed.
+- **Template drift discovery**: `linkedTemplate.isLatest` is already returned by the backend. The missing piece is a more prominent UI surface — no backend changes required.
 
-The fix is targeted: move two fields out of a conditional block in one service file. No schema changes, no data migration, no new infrastructure.
+Items 1, 3b, and 3c above are the immediate fix backlog items. Item 6 (classification rule in docs and PR template) is the process change that prevents recurrence.
