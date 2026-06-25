@@ -1,91 +1,77 @@
 # Active Release
 
-Status: ready-for-release
-Version: TBD
+Status: in-progress
+Version: v1.27.0
 
 ## Release goal
 
-A PA-only spike release to unblock the two highest-value pending feature tracks. SPIKE-006 audits the current review implementation and produces a scoped delivery plan for PM8-CORE. SPIKE-007 defines the full attachment architecture (schema, permissions, API, file safety, audit model) and produces a scoped delivery plan for PM12-CORE. No shippable code in this release — output is two spike documents that let the PM write tight release briefs for both features at the next planning session.
+Close the remaining PRD 10.1 gaps in the risk review feature and surface review history in the UI. No new review rule engine, no Risk Response Reviews — this is a completeness pass on what the product already ships. One PA-approved schema change unblocks the rest of the work.
 
 ## Selected work items
 
-### SPIKE-006 — Audit current review implementation and scope PM8-CORE
-Status: done
-done_in: docs/spike-SPIKE-006
+### PM8-CORE — Risk review completeness: comment mode, attestation text UI, review history panel
+
+Status: proposed
 Source: REQ-005
 Capability: advanced-reviews
-Suggested agents: principal-architect
+Suggested agents: principal-architect, backend-developer, frontend-developer, test-engineer
 
-**Investigation question:** What does the current review implementation actually provide versus what PRD section 10 requires, and what is the smallest coherent first slice of PM8-CORE that can be delivered in one release?
+**Scope:**
 
-**The PA must answer all of the following in `docs/spikes/SPIKE-006.md`:**
+1. Add `ReviewCommentMode` enum (DISABLED / OPTIONAL / MANDATORY) to the Prisma schema with a migration. Add `reviewCommentMode ReviewCommentMode @default(OPTIONAL) @map("review_comment_mode")` to the `Register` model. This schema change is approved by the PA in `docs/spikes/SPIKE-006.md` — the backend developer may proceed with the migration without further PA consultation. PA's only role in this release is creating the schema migration.
 
-*Findings:*
-- What does the current implementation provide for each of PRD sections 10.1–10.4? Assess each separately: basic risk reviews (10.1), Risk Response Reviews (10.2), review frequency rules (10.3), and review history (10.4).
-- Does a review frequency rule model exist in the schema (e.g. a `reviewRules` table or equivalent), or is this entirely absent and schema-first work is required?
-- Does next-review-date recalculation on relevant field edits exist in the backend?
-- Is attestation text configuration (disabled/optional/mandatory comments, configurable attestation text per register) implemented or absent?
-- Are Risk Response Reviews implemented in any form, or entirely missing?
+2. Expose `reviewCommentMode` on the register API response shape.
 
-*Recommendations:*
-- The smallest coherent first slice of PM8-CORE that can be delivered in one release, with explicit acceptance criteria.
-- Any schema changes required, and whether the principal-architect needs to design them before implementation begins.
-- Any cross-cutting concerns — permission model, audit model, notification coupling — that would complicate or block the first slice.
-- What is explicitly deferred to a follow-on release.
+3. Enforce `reviewCommentMode` in `completeRiskReview` (backend service):
+   - DISABLED: reject any request body that includes a comment (return 400 VALIDATION_ERROR)
+   - MANDATORY: require a non-empty comment or return 400 VALIDATION_ERROR
+   - OPTIONAL: existing behaviour, no change
 
-**Acceptance criteria:**
-- `docs/spikes/SPIKE-006.md` exists with `## Findings` and `## Recommendations` sections.
-- Every Findings question above is answered.
-- Recommendations are specific enough for the PM to write a tight active-release.md for PM8-CORE without further PA consultation.
+4. Add `reviewCommentMode` Select control (dropdown) and `reviewAttestationText` Textarea to the Reviews fieldset in `RegisterSettingsTab`. The backend already persists `reviewAttestationText` — this is a missing UI surface only. Invalidate the `["register", registerId]` query after saving either field so `ReviewModal` picks up the updated values on next open.
 
----
+5. Conditionally show or hide the comment textarea in `ReviewModal` based on the register's `reviewCommentMode`. Disable the Complete Review button when mode is MANDATORY and the comment field is empty.
 
-### SPIKE-007 — Define attachment implementation architecture for PM12-CORE
-Status: done
-done_in: docs/spike-SPIKE-007
-Source: REQ-008
-Capability: attachments-evidence
-Suggested agents: principal-architect
-
-**Investigation question:** What is the full implementation architecture for attachments, and what is the smallest coherent first slice (risk attachments) that can be delivered in one release?
-
-**The PA must answer all of the following in `docs/spikes/SPIKE-007.md`:**
-
-*Findings:*
-- What storage decisions are already fixed by ADR-0006, and what remains open for implementation design?
-- Does the current schema have any attachment-related tables, or is this entirely greenfield?
-
-*Recommendations:*
-- Proposed Prisma schema for the Attachment model and its linking table(s). At minimum, risk attachment linking. Action and review attachment linking may be deferred, but the schema must not foreclose that path.
-- Permission model: who can upload, download, soft-delete, and hard-delete attachments; how register-level and ownership-derived permissions apply; how Register Viewer access is handled.
-- API shape: endpoints for upload (multipart), list, download (stream or signed URL), and soft-delete. How the backend serves or proxies stored files without exposing raw storage paths.
-- File safety controls: MIME type validation, file size limits, extension allow/block list, and where enforcement lives (middleware vs. service layer).
-- Audit model: which events are recorded, at which audit level (risk audit log vs. system audit log), and whether a deletion snapshot is required.
-- The smallest coherent first slice (risk attachments only) with explicit acceptance criteria, and what is deferred to follow-on work.
-- Operational consequences from ADR-0006 that must appear in release documentation (volume backup, file-size defaults, storage path configuration).
+6. Add or verify a review history panel in the risk detail view. **Important:** `UI-018` (v1.14.0) claims to have paginated a "Review History table" in the risk detail modal, but `SPIKE-006` could not find a rendering component. Before building, the frontend developer must audit `RiskDetailModal.tsx` and the `listRiskReviews` usage in `risks.api.ts`. If a review history panel already exists, verify it shows reviewer name, date/time, comment (when present), and calculated next review date. If it does not exist, build it using data from `GET /api/v1/registers/:registerId/risks/:riskId/reviews` (endpoint is implemented and working).
 
 **Acceptance criteria:**
-- `docs/spikes/SPIKE-007.md` exists with `## Findings` and `## Recommendations` sections.
-- Every Recommendations item above is addressed.
-- The schema proposal is concrete enough that a backend developer can implement it without further PA input.
-- Recommendations are specific enough for the PM to write a tight active-release.md for PM12-CORE without further PA consultation.
 
----
+- A Register Admin can set reviewCommentMode (Disabled / Optional / Mandatory) via the Reviews section of register settings.
+- When Disabled: comment textarea is not shown in ReviewModal; backend rejects any request body with a comment field.
+- When Mandatory: Complete Review button is disabled until a non-empty comment is entered; backend returns 400 if comment is absent or blank.
+- When Optional: existing behaviour is unchanged.
+- A Register Admin can edit the attestation text via register settings. The next completed review shows the updated text. Previously completed reviews retain the text that was active at their time.
+- The risk detail view shows a review history section with reviewer name, date/time, comment (if present), and calculated next review date for each past review.
+- All existing review tests pass.
+- New backend tests cover each reviewCommentMode enforcement path.
+- Help content in `frontend/public/help/en/` updated to describe reviewCommentMode options and attestation text configuration.
 
 ## Required agents
 
-- **principal-architect** — SPIKE-006 and SPIKE-007 (owns both spike documents).
+- **principal-architect** — schema migration only (ReviewCommentMode enum + Register column). No other PA involvement required; PA's output unblocks backend-developer.
+- **backend-developer** — expose reviewCommentMode on API response; enforce in completeRiskReview; new backend tests.
+- **frontend-developer** — RegisterSettingsTab UI (comment mode Select + attestation text Textarea); ReviewModal conditional rendering; review history panel audit/build; help content update.
+- **test-engineer** — verify acceptance criteria; update frontend tests for comment mode conditional rendering and review history panel.
 
-**Sequencing:** Both spikes are independent and can run in parallel.
+**Sequencing:** PA creates schema migration first. Backend developer may begin enforcement work once migration is in place. Frontend developer can begin RegisterSettingsTab and ReviewModal work in parallel with backend once the API shape for reviewCommentMode is confirmed.
 
 ## Decisions
 
-None — this is a discovery release. Decisions will be surfaced from spike output at the next planning session.
+**Decision:** reviewCommentMode UI control → Select (dropdown) within the Reviews fieldset in RegisterSettingsTab, consistent with other configuration selects in the app.
+
+**Decision:** reviewAttestationText UI control → Textarea, appropriate for multi-line attestation text.
+
+**Decision:** review history panel — frontend developer must audit whether UI-018 (v1.14.0) already produced a rendered review history list in RiskDetailModal before building from scratch. Build only if absent.
 
 ## Test / sign-off
 
-- [ ] SPIKE-006: docs/spikes/SPIKE-006.md exists with Findings and Recommendations sections, all questions answered.
-- [ ] SPIKE-007: docs/spikes/SPIKE-007.md exists with Findings and Recommendations sections, all questions answered.
+- [ ] reviewCommentMode can be set and persisted via register settings UI.
+- [ ] DISABLED mode: comment textarea hidden in ReviewModal; backend rejects any comment body field.
+- [ ] MANDATORY mode: Complete Review button disabled until non-empty comment entered; backend validates server-side.
+- [ ] OPTIONAL mode: existing review flow unchanged.
+- [ ] Attestation text editable via register settings; next review reflects change; prior reviews unaffected.
+- [ ] Review history visible in risk detail view with required fields (reviewer, date/time, comment, next review date).
+- [ ] Existing review tests still pass.
+- [ ] Help content updated.
 
 ## Blockers
 

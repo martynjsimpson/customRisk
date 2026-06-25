@@ -10,7 +10,9 @@ Request status describes the state of the human-facing ask, not the exact implem
 - Use `in-active-release` when one or more derived work items are currently selected for delivery.
 - Use `partially-done` when some of the requested outcome has shipped or is complete but meaningful scope remains.
 - Use `done` when the human-facing ask is satisfied.
-- Use `deferred`, `rejected`, or `duplicate` when that best describes what happened to the ask.
+- Use `blocked` when the request cannot proceed until a named dependency resolves. Always include a `Blocked on:` field naming the dependency. Blocked requests are reviewed at every planning session to see if the blocker has resolved.
+- Use `deferred` when the request is deliberately parked with no specific dependency — "not now, maybe someday". Deferred requests are not surfaced automatically.
+- Use `rejected` or `duplicate` when that best describes what happened to the ask.
 
 Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in request status alone.
 
@@ -50,6 +52,18 @@ Derived work items: MAINT-015
 Source: deferred from SPIKE-004
 
 ## Refined requests
+
+### REQ-005
+Request ID: REQ-005
+Title: Add child actions and stronger review workflows so treatment work can be tracked properly
+Type: feature
+Status: in-active-release
+Done in: v1.19.0 (PM7-CORE — child-record response actions)
+Priority: high
+Summary: Users need first-class response actions, richer review rules, and better ownership tracking instead of relying on a simple risk field.
+Notes: PM7-CORE (child-record response actions) shipped in v1.19.0. PM8-CORE (risk review completeness — comment mode, attestation text UI, review history panel) is in the active release.
+Derived work items: PM7-CORE, PM8-CORE
+Source: migrated from old planning
 
 ### REQ-084
 Request ID: REQ-084
@@ -183,6 +197,8 @@ Notes: Storage architecture is decided in ADR-0006, but the product implementati
 Derived work items: PM12-CORE
 Source: migrated from old planning
 
+## Blocked requests
+
 ## Partially done
 
 ### REQ-001
@@ -235,18 +251,6 @@ Notes: Basic scoring, matrix behaviour, and calculated-field formula support exi
 Derived work items: PM6-SCORING, PM6-CORE, PM6-RESIDUAL-SUGGESTIONS
 Source: migrated from old planning
 Evidence: `backend/src/services/scoring.service.ts`, `backend/src/services/matrix.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `backend/test/riskScoring.test.mjs`
-
-### REQ-005
-Request ID: REQ-005
-Title: Add child actions and stronger review workflows so treatment work can be tracked properly
-Type: feature
-Status: partially-done
-Done in: v1.19.0 (PM7-CORE — child-record response actions)
-Priority: high
-Summary: Users need first-class response actions, richer review rules, and better ownership tracking instead of relying on a simple risk field.
-Notes: PM7-CORE (child-record response actions) shipped in v1.19.0. PM8-CORE (rule-driven review workflows) remains open and depends on PM7-CORE being stable.
-Derived work items: PM7-CORE, PM8-CORE
-Source: migrated from old planning
 
 ### REQ-007
 Request ID: REQ-007
