@@ -17,6 +17,11 @@ Version levels:
 
 ## [1.27.0] - 2026-06-25
 
+### Fixed
+
+- **reviewCommentMode and reviewAttestationText not saved via register settings (PM8-CORE)**
+  - Both fields were sent by the frontend but silently discarded by the backend. The Zod validator (`updateRegisterSchema`) and the service write path (`updateRegister`) were missing both fields. Fixed so changes to review comment mode and attestation text are correctly persisted. Both fields are now also recorded in the register audit trail.
+
 ### Added
 
 - **Review comment mode control per register (PM8-CORE)**
