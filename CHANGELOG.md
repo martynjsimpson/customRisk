@@ -15,6 +15,10 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-06-25
+
+This version was not released and skipped due to internal issues. This version number should not be used.
+
 ## [1.26.0] - 2026-06-24
 
 ### Changed

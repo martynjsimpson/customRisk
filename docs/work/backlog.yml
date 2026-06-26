@@ -137,7 +137,7 @@ items:
   type: spike
   capability: person-identity
   phase: 2
-  status: needs-audit
+  status: ready
   priority: medium
   confidence: medium
   summary: Core person-reference support is live, and a system-admin unresolved-person route exists, but admin usability,
@@ -156,10 +156,7 @@ items:
   - Implement the missing admin view or audit coverage only after the audit narrows the gap.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - backend-developer
   evidence:
     code:
     - backend/src/routes/persons.routes.ts
@@ -298,7 +295,7 @@ items:
   type: security
   capability: api-keys
   phase: 13
-  status: deferred
+  status: needs-refinement
   priority: high
   confidence: medium
   summary: ADR-0009 and the current API key service both call out a remaining hardening gap around key-auth request enforcement
@@ -632,43 +629,81 @@ items:
   - PM8-06
   - PM8-07
   - PM8-08
-  title: Extend MVP reviews into rule-driven review workflows
+  title: Risk review completeness — comment mode, attestation text UI, and review history panel
   type: feature
   capability: advanced-reviews
   phase: 8
-  status: needs-refinement
+  status: blocked
+  blocked_on: DRAFT-UNIFIED (unified draft system — prerequisite per SPIKE-008; also requires createRegisterFromTemplate data fidelity fix and Template Compare modal fix before re-proposing)
   priority: high
-  confidence: medium
-  summary: MVP review foundations exist, but the product still lacks the richer review-rule model needed for action reviews,
-    escalations, and broader workflow automation.
+  confidence: high
+  summary: SPIKE-006 audited the current review implementation against PRD sections 10.1–10.4. The core review flow is
+    production-ready. Two PRD 10.1 gaps remain — comment mode configuration and attestation text editing UI — and review
+    history is unrendered in the frontend. This first slice closes those gaps without requiring any frequency rule engine
+    or Risk Response Review work. One schema change required (reviewCommentMode enum on Register), approved by the PA in
+    docs/spikes/SPIKE-006.md — backend developer may proceed with the migration without further PA consultation.
   acceptance:
-  - Review rules can target the intended objects and due-date logic without requiring manual chasing.
-  - Review outcomes, comments, and attestation evidence remain auditable and understandable to non-specialist users.
-  - Advanced reviews integrate cleanly with child actions where that model is enabled.
-  - Help content in frontend/public/help/en/ updated to reflect this change.
+  - A Register Admin can set reviewCommentMode (Disabled / Optional / Mandatory) via the Reviews section of register
+    settings. The setting persists and is returned on the register API response.
+  - When Disabled — the comment textarea is not shown in ReviewModal, and the backend rejects any request body that
+    includes a comment with a validation error.
+  - When Mandatory — the Complete Review button is disabled until a non-empty comment is entered; the backend returns
+    400 VALIDATION_ERROR if comment is absent or blank.
+  - When Optional — existing behaviour is unchanged.
+  - A Register Admin can edit the review attestation text via register settings. The next completed review reflects the
+    updated text. Previously completed reviews retain the text that was active at review time (the snapshot in
+    risk_review.attestation_text is unaffected).
+  - The risk detail view contains a review history section listing all reviews for that risk, showing reviewer name,
+    date/time, comment (if present), and calculated next review date per row.
+  - All existing review tests pass. New backend tests cover each reviewCommentMode enforcement path (disabled rejects
+    comment, mandatory requires non-empty comment, optional unchanged).
+  - Help content in frontend/public/help/en/ updated to reflect reviewCommentMode and attestation text configuration.
   remaining:
-  - Confirm the smallest rule set that should ship first.
-  - Sequence review-rule work after the child-action model is stable enough to consume.
-  - Avoid coupling notification delivery into the first review-rule implementation unless it is essential.
+  - Backend developer to add ReviewCommentMode enum and reviewCommentMode column to Register in schema.prisma, then
+    run prisma migrate dev. Schema approved by PA in docs/spikes/SPIKE-006.md — no further PA consultation required.
+    Enum values — DISABLED, OPTIONAL, MANDATORY; default OPTIONAL; column map review_comment_mode.
+  - Backend developer to expose reviewCommentMode on the register API response shape.
+  - Backend developer to enforce reviewCommentMode in completeRiskReview — DISABLED rejects any comment field present;
+    MANDATORY requires comment non-empty or returns 400; OPTIONAL is current behaviour unchanged.
+  - Frontend developer to add reviewCommentMode dropdown (or radio group) to RegisterSettingsTab within the Reviews
+    fieldset, and add reviewAttestationText text input to the same fieldset. Backend already persists attestation text;
+    this is purely a UI addition.
+  - Frontend developer to conditionally show or hide the comment textarea in ReviewModal based on the register's
+    reviewCommentMode, and to disable the Complete Review button when mode is MANDATORY and comment is empty.
+  - Frontend developer to add a review history panel to the risk detail view. Data is available from
+    GET /api/v1/registers/:registerId/risks/:riskId/reviews (already implemented). Display reviewer name, date/time,
+    comment (if present), and calculated next review date.
+  - Frontend developer to invalidate the register query (["register", registerId]) after saving attestation text or
+    comment mode so ReviewModal picks up the updated values on next open.
+  - Test engineer to add or update frontend tests covering the comment mode conditional rendering and the review history
+    panel.
   dependencies:
   - PM7-CORE
-  - SPIKE-006
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/reviews.service.ts
+    - backend/prisma/schema.prisma
     - frontend/src/features/risks/ReviewModal.tsx
+    - frontend/src/pages/RegisterConfigPage.tsx
     tests:
     - backend/test/reviews.test.mjs
     docs:
     - docs/product/prd.md
+    - docs/spikes/SPIKE-006.md
     notes:
-    - Current foundations are enough to start; old planning detail is not required for the baseline scope.
-    - Needs SPIKE-006 output before scope can be defined for a release.
+    - SPIKE-006 confirms the schema change (reviewCommentMode enum on Register) is the only schema change required for
+      this slice. PA approved in the spike doc — no ADR needed, no further PA consultation before implementation.
+    - The attestation text backend field (register.review_attestation_text) already exists and is snapshotted correctly
+      at review time. The gap is purely a missing UI surface in RegisterSettingsTab.
+    - review history list endpoint (GET .../reviews) exists and is already called from risks.api.ts; no new backend
+      route is needed. The gap is a missing frontend rendering component.
+    - Frequency rules (PRD 10.3) and Risk Response Reviews (PRD 10.2) are explicitly deferred — see PM8-FREQ-RULES
+      and PM8-RESPONSE in the backlog.
 - id: PM9-CORE
   source_request: REQ-006
   legacy_ids:
@@ -776,47 +811,92 @@ items:
   - PM12-01
   - PM12-02
   - PM12-03
-  - PM12-04
-  - PM12-05
-  - PM12-06
-  title: Implement attachments and evidence support on the approved storage model
+  title: Implement risk attachments — first slice on approved storage model
   type: feature
   capability: attachments-evidence
   phase: 12
-  status: needs-refinement
+  status: ready
   priority: medium
-  confidence: medium
-  summary: Attachment storage architecture is decided, but the product still needs upload, download, linking, permissions,
-    audit, and cleanup behaviour.
+  confidence: high
+  summary: SPIKE-007 produced a complete implementation architecture for attachments (schema, permissions, API, file safety,
+    audit). This first slice delivers risk attachments only. Stub tables for ActionAttachment and ReviewAttachment are
+    included in the migration to keep the follow-on phases from requiring a destructive migration. No code exists yet —
+    entirely greenfield. The PA's schema is concrete enough for the backend developer to proceed without further PA
+    consultation.
   acceptance:
-  - Users can upload, list, download, and soft-delete permitted attachments without exposing storage internals.
-  - Attachment links work for risks first and leave a clean path for actions and reviews.
-  - Audit records capture metadata and deletion events without storing file content.
-  - Deployment docs cover volume, backup, file-size, and MIME-type controls.
-  - Help content in frontend/public/help/en/ updated to reflect this change.
+  - A Register Admin can upload a file to a risk via the UI. The file appears in the attachment list with correct
+    filename, MIME type, and size.
+  - A Register Viewer can see the attachment list and download the file. The downloaded file is byte-identical to the
+    uploaded file.
+  - A Risk Owner can upload to their own risk and download attachments on their own risk. They cannot see attachments
+    on a risk they do not own.
+  - A Register Viewer cannot upload — the upload button is absent in the UI and POST returns 403.
+  - Uploading a file with a disallowed extension (e.g. .exe) is rejected with 422 before any byte is written to storage.
+  - Uploading a file larger than ATTACHMENT_MAX_SIZE_MB is rejected with 422.
+  - Uploading a file whose detected MIME type does not match its extension (e.g. an .exe renamed to .pdf) is rejected
+    with 422.
+  - Soft-deleting an attachment removes it from the list and prevents download. The Attachment row exists in the
+    database with deletedAt set. No physical file is removed from the filesystem.
+  - The risk audit trail shows RISK_ATTACHMENT_UPLOADED and RISK_ATTACHMENT_DELETED events with the correct actor and
+    file name.
+  - The attachments Docker volume survives a docker compose down / docker compose up cycle with files intact.
+  - ActionAttachment and ReviewAttachment tables exist in the database (created by the migration) but have no routes or
+    UI in this release.
+  - Release documentation covers the new attachments Docker volume, updated backup scope (pgdata + attachments must be
+    backed up together), ATTACHMENT_STORAGE_LOCAL_PATH, ATTACHMENT_MAX_SIZE_MB (default 25), and
+    ATTACHMENT_ALLOWED_MIME_TYPES defaults.
+  - Help content in frontend/public/help/en/ updated to describe attachment upload, download, and soft-delete for risks.
   remaining:
-  - Decide the smallest useful attachment scope for the first release, likely risk attachments before action/review attachments.
-  - Confirm whether any schema work should wait for PM7 if action attachments are deferred.
-  - Carry ADR-0006 operational consequences into release docs when implementation starts.
+  - Principal Architect to add Attachment, RiskAttachment, ActionAttachment (stub), ReviewAttachment (stub) models and
+    ATTACHMENT enum value to AuditObjectType in schema.prisma, then run prisma migrate dev. Full schema is in
+    docs/spikes/SPIKE-007.md Recommendation 1 — backend developer should not modify the schema before the PA adds it
+    to avoid drift.
+  - Backend developer to implement StorageProvider interface at backend/src/services/storage/storageProvider.ts
+    (four-method contract — put, get, delete, exists) and LocalFileStorageProvider implementation.
+  - Backend developer to wire ATTACHMENT_STORAGE_PROVIDER, ATTACHMENT_STORAGE_LOCAL_PATH, ATTACHMENT_MAX_SIZE_MB, and
+    ATTACHMENT_ALLOWED_MIME_TYPES env vars at application startup. LocalFileStorageProvider creates the storage
+    directory on startup if absent.
+  - Backend developer to implement AttachmentService in backend/src/services/attachmentService.ts covering upload,
+    list, download, and soft-delete. Use multer (memory storage) for multipart parsing. Use file-type library for
+    server-side MIME detection (do not trust client Content-Type). Enforce extension allow-list before MIME check.
+    Full API shape and safety rules in docs/spikes/SPIKE-007.md Recommendations 3 and 4.
+  - Backend developer to add four routes under /api/v1/registers/:registerId/risks/:riskId/attachments — upload (POST),
+    list (GET), download (GET /:attachmentId/download), soft-delete (DELETE /:attachmentId). Permission matrix in
+    docs/spikes/SPIKE-007.md Recommendation 2.
+  - Backend developer to write RISK_ATTACHMENT_UPLOADED and RISK_ATTACHMENT_DELETED audit events in the same Prisma
+    transaction as the business change. Audit event detail in docs/spikes/SPIKE-007.md Recommendation 5.
+  - Backend developer to add attachments named volume to docker-compose.yml and docker-compose.release.yml.
+  - Frontend developer to add attachment list panel to the risk detail view — upload control, filename/type/size
+    display, download link per attachment, delete button shown only when canDelete = true (returned by list API).
+  - Test engineer to cover upload, list, download, and soft-delete permission paths; file safety rejection paths
+    (disallowed extension, oversized file, MIME mismatch); and audit event correctness.
+  - Release Manager to update operator README with Docker volume instructions and backup scope expansion as detailed in
+    docs/spikes/SPIKE-007.md Recommendation 7.
   dependencies:
   - PM7-CORE
-  - SPIKE-007
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  - Release Manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
+  - release-manager
   evidence:
     code:
     - backend/prisma/schema.prisma
+    - backend/src/permissions/riskAccess.ts
     tests: []
     docs:
     - docs/decisions/ADR-0006-attachment-storage.md
+    - docs/spikes/SPIKE-007.md
     notes:
-    - This item is ready because the architecture direction is clear, but the product implementation has not started.
-    - Needs SPIKE-007 output before scope can be defined for a release.
+    - SPIKE-007 is the authoritative reference for all implementation decisions. The schema, permission matrix, API
+      shape, file safety controls, and audit model are fully specified there.
+    - principal-architect must add the schema before the backend-developer begins, as the schema is the foundation for
+      all other backend work.
+    - ActionAttachment and ReviewAttachment stub tables are included in the PM12-CORE migration intentionally — they
+      have no routes or logic in this release but must be created now to avoid a future destructive migration.
+    - Action and review attachment follow-on phases are tracked as PM12-04 and PM12-05 respectively. Physical file
+      deletion via orphan cleanup is PM12-06.
 - id: PM3-CORE
   source_request: REQ-009
   legacy_ids:
@@ -3925,7 +4005,7 @@ items:
   type: spike
   capability: advanced-reviews
   phase: 8
-  status: in-active-release
+  status: done
   priority: high
   confidence: medium
   summary: The MVP review baseline exists (reviews.service.ts, ReviewModal.tsx) but the exact gap between what is
@@ -3975,7 +4055,7 @@ items:
   type: spike
   capability: attachments-evidence
   phase: 12
-  status: in-active-release
+  status: done
   priority: medium
   confidence: medium
   summary: ADR-0006 decided the attachment storage model (local filesystem / Docker volume). Before PM12-CORE can
@@ -4024,6 +4104,224 @@ items:
     - The spike should be definitive enough that PM can write a tight active-release.md for PM12-CORE without
       further PA consultation.
 
+- id: PM8-FREQ-RULES
+  source_request: REQ-005
+  title: Implement field-value-driven review frequency rules
+  type: feature
+  capability: advanced-reviews
+  phase: 8
+  status: needs-refinement
+  priority: medium
+  confidence: low
+  summary: PRD section 10.3 requires field-value-driven review frequency rules — e.g. "High residual risk reviewed every
+    X months" or "Residual Risk Acceptable = false reviewed at residual risk level frequency". SPIKE-006 confirmed no
+    ReviewFrequencyRule table or rule evaluation engine exists. Only a single global frequency (defaultReviewFrequencyMonths)
+    is supported. This is significant standalone work requiring PA schema design and a new ADR before any implementation.
+    Deferred until PM8-CORE (first slice) is stable.
+  acceptance:
+  - Register Admins can define frequency rules that map field values (risk level, custom boolean fields, or other
+    configurable conditions) to a review frequency in months.
+  - Rules have a defined order and a fallback to defaultReviewFrequencyMonths when no rule matches.
+  - When a rule-relevant field changes on a risk, the next review date is recalculated using the latest applicable
+    frequency.
+  - Rule configuration is auditable and does not break existing single-frequency registers.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
+  remaining:
+  - PA to design the ReviewFrequencyRule schema (new table required) and produce an ADR covering the rule model,
+    including how rules match against calculated fields, custom boolean fields, and composite conditions.
+  - Define the smallest releasable slice once the PA design is complete.
+  - Sequence after PM8-CORE (first slice) is stable.
+  dependencies:
+  - PM8-CORE
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/reviews.service.ts
+    - backend/src/services/scoring.service.ts
+    - backend/prisma/schema.prisma
+    tests:
+    - backend/test/reviews.test.mjs
+    docs:
+    - docs/product/prd.md
+    - docs/spikes/SPIKE-006.md
+    notes:
+    - SPIKE-006 confirmed no ReviewFrequencyRule table or equivalent exists. The calculateNextReviewDate function in
+      scoring.service.ts adds defaultReviewFrequencyMonths to a base date with no rule evaluation.
+    - The only existing on-edit recalculation is a narrow special case for createdDate edits on never-reviewed risks.
+    - PA must produce schema design and ADR before any implementation. Do not pull into a release before this is done.
+
+- id: PM8-RESPONSE
+  source_request: REQ-005
+  title: Implement Risk Response Reviews
+  type: feature
+  capability: advanced-reviews
+  phase: 8
+  status: needs-refinement
+  priority: medium
+  confidence: low
+  summary: PRD section 10.2 requires review capability for Risk Response Actions. SPIKE-006 confirmed this is entirely
+    absent — no responseReviewsEnabled flag on Register, no review fields on ResponseAction, no ResponseActionReview
+    table, no backend routes, no frontend flows, no audit events, and no permission rules. This is a significant standalone
+    feature requiring schema design, new routes, and new frontend flows. Deferred until PM8-CORE (first slice) and
+    PM7-CORE (child actions) are both stable.
+  acceptance:
+  - Registers can enable response action reviews independently of risk reviews via a responseReviewsEnabled setting.
+  - Response actions have a last-reviewed date, next-review date, and reviewer fields.
+  - Completing a review on a response action creates a ResponseActionReview record and writes an audit event.
+  - Permission rules covering who can complete a response action review are defined and enforced.
+  - Response action review history is accessible in the action detail view.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
+  remaining:
+  - PA to design the ResponseActionReview schema and update the permission model document to cover response action
+    review permissions before implementation begins.
+  - Define the smallest releasable slice once the PA design is complete.
+  - Sequence after PM8-CORE (first slice) and PM7-CORE are both stable.
+  dependencies:
+  - PM7-CORE
+  - PM8-CORE
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/reviews.service.ts
+    - backend/prisma/schema.prisma
+    tests: []
+    docs:
+    - docs/product/prd.md
+    - docs/spikes/SPIKE-006.md
+    notes:
+    - SPIKE-006 confirmed ResponseAction has no review fields, no ResponseActionReview table exists, and no backend
+      routes or frontend flows exist. This is entirely greenfield.
+    - PA must update the permission model document to cover response action review access before the backend developer
+      implements enforcement.
+
+- id: PM12-04
+  source_request: REQ-008
+  title: Add attachment support for Risk Response Actions
+  type: feature
+  capability: attachments-evidence
+  phase: 12
+  status: blocked
+  blocked_on: PM12-CORE
+  priority: medium
+  confidence: medium
+  summary: Follow-on to PM12-CORE. The ActionAttachment stub table will be created as part of the PM12-CORE migration.
+    This item implements the routes, service logic, and frontend UI for uploading, listing, downloading, and soft-deleting
+    attachments on Risk Response Actions. Deferred until PM12-CORE is stable.
+  acceptance:
+  - Users with action-edit access can upload, list, download, and soft-delete attachments on Response Actions,
+    consistent with the risk attachment permission model.
+  - Action attachment audit events are written (ACTION_ATTACHMENT_UPLOADED, ACTION_ATTACHMENT_DELETED) scoped to the
+    action's parent risk.
+  - The ActionAttachment link table (created in PM12-CORE migration) is used; no destructive migration is required.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
+  remaining:
+  - Define routes under /api/v1/registers/:registerId/risks/:riskId/actions/:actionId/attachments consistent with the
+    PM12-CORE pattern.
+  - Define permission matrix for action attachments (who can upload, download, soft-delete).
+  - Sequence after PM12-CORE is stable.
+  dependencies:
+  - PM12-CORE
+  - PM7-CORE
+  suggested_agents:
+  - backend-developer
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/prisma/schema.prisma
+    docs:
+    - docs/spikes/SPIKE-007.md
+    tests: []
+    notes:
+    - ActionAttachment stub table is created by the PM12-CORE migration. No schema migration is needed when this
+      item is implemented — only routes and service logic.
+
+- id: PM12-05
+  source_request: REQ-008
+  title: Add attachment support for Risk Reviews
+  type: feature
+  capability: attachments-evidence
+  phase: 12
+  status: blocked
+  blocked_on: PM12-CORE
+  priority: low
+  confidence: medium
+  summary: Follow-on to PM12-CORE. The ReviewAttachment stub table will be created as part of the PM12-CORE migration.
+    This item implements routes, service logic, and frontend UI for attaching evidence files to completed risk reviews.
+    Deferred until PM12-CORE is stable.
+  acceptance:
+  - Users completing or viewing a risk review can upload, list, download, and soft-delete review attachments.
+  - Review attachment audit events are written scoped to the parent risk.
+  - The ReviewAttachment link table (created in PM12-CORE migration) is used; no destructive migration is required.
+  - Help content in frontend/public/help/en/ updated to reflect this change.
+  remaining:
+  - Define routes and permission matrix for review attachments consistent with the PM12-CORE pattern.
+  - Sequence after PM12-CORE is stable.
+  dependencies:
+  - PM12-CORE
+  - PM8-CORE
+  suggested_agents:
+  - backend-developer
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/prisma/schema.prisma
+    docs:
+    - docs/spikes/SPIKE-007.md
+    tests: []
+    notes:
+    - ReviewAttachment stub table is created by the PM12-CORE migration. No schema migration needed when implemented.
+
+- id: PM12-06
+  source_request: REQ-008
+  title: Implement orphan file cleanup job for soft-deleted attachments
+  type: feature
+  capability: attachments-evidence
+  phase: 12
+  status: blocked
+  blocked_on: PM12-CORE
+  priority: medium
+  confidence: medium
+  summary: PM12-CORE implements soft-delete for attachments — deletedAt is set on the Attachment row but the physical
+    file on disk is not removed. This item implements a background job that identifies orphaned or soft-deleted
+    attachments (where no active link rows remain or deletedAt is past the retention window) and physically removes
+    the files from storage. The PA explicitly states that hard-delete must never be a user-facing route.
+  acceptance:
+  - A scheduled or on-demand job runs that identifies Attachment rows with deletedAt set and no active link rows,
+    and calls storageProvider.delete() to remove the physical file.
+  - The cleanup job refuses to delete a physical file if any active RiskAttachment, ActionAttachment, or
+    ReviewAttachment link row still references the Attachment.
+  - Cleanup job execution is logged. Errors are captured and do not crash the application.
+  - No user-facing hard-delete route exists.
+  remaining:
+  - Define the cleanup job scheduling approach (cron, startup hook, or triggered endpoint for operators).
+  - Define the retention window — how long after deletedAt a file is eligible for physical deletion.
+  - Sequence after PM12-CORE is stable.
+  dependencies:
+  - PM12-CORE
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  evidence:
+    code:
+    - backend/prisma/schema.prisma
+    docs:
+    - docs/spikes/SPIKE-007.md
+    tests: []
+    notes:
+    - ADR-0006 and SPIKE-007 both document that physical deletion is deferred to a cleanup job, not a user-facing route.
+    - The PA notes that a storage write before a transaction commit can leave a dangling file if the transaction fails;
+      the cleanup job is also responsible for collecting those.
+
 - id: MAINT-026
   source_request: REQ-087
   title: Fix Playwright show-report localhost binding on macOS
@@ -4054,3 +4352,309 @@ items:
     - Deferred from v1.25.0 (E2E-002 release). Workaround is to navigate to 127.0.0.1:9323 directly.
     - Firefox on macOS resolves localhost to ::1 (IPv6) by default; Playwright's show-report server binds to 127.0.0.1
       (IPv4) only. Explicitly passing --host 127.0.0.1 makes the URL match the binding.
+- id: DRAFT-UNIFIED
+  source_request: extracted from abandoned v1.27.0
+  title: Implement unified draft system for all register settings
+  type: refactor
+  capability: config-lifecycle-templates
+  phase: null
+  status: in-active-release
+  priority: high
+  confidence: high
+  summary: The register settings architecture has an undocumented split — some fields travel
+    through the draft and are promoted on publish (Category A), others are written directly
+    to the Register row and bypass the draft (Category B). SPIKE-008 demonstrates this split
+    cannot be fixed field-by-field; every new special-case causes regressions. The fix is to
+    move all register settings fields to the always-promote path — all edits in draft mode
+    route through updateDraftConfig; all fields are promoted unconditionally on publish.
+    Outside draft mode the direct-write path remains correct. This is the prerequisite for
+    PM8-CORE and for safely adding any new register settings in future.
+  acceptance:
+  - All fields in ConfigSnapshotRegisterSettings are promoted unconditionally on publish,
+    regardless of whether the draft originated from a template. The sourceTemplateVersionId
+    conditional in configVersion.publish.service.ts applies only to linkedTemplateVersionId.
+  - In draft mode, all fields in RegisterSettingsTab route through updateDraftConfig (not
+    PATCH /registers/:registerId). The direct-write path is only used when no draft is active.
+  - Publishing a manual draft correctly persists name, description, riskIdPrefix,
+    riskIdZeroPaddingEnabled, riskIdZeroPaddingWidth, defaultNewRiskState, reviewsEnabled,
+    defaultReviewFrequencyMonths, allowViewerExport, customFieldValidationEnabled,
+    reviewStatusPosition, reviewCommentMode, and reviewAttestationText.
+  - No regression to non-draft-mode save behaviour — direct edits outside draft mode continue
+    to apply immediately via PATCH /registers/:registerId.
+  - responseActionMode continues to work correctly (already Category A with data migration;
+    no change needed).
+  - All existing config lifecycle tests pass. New tests cover the always-promote path for
+    at least three previously Category B fields.
+  - Architecture docs updated to codify the unified draft standard so future developers know
+    the rule (all new settings fields go through draft in draft mode).
+  remaining:
+  - Backend developer to move all register settings fields out of the sourceTemplateVersionId
+    conditional in configVersion.publish.service.ts into the always-promote block. Only
+    linkedTemplateVersionId remains inside the conditional. Reference: SPIKE-008 Recommendation
+    section "What needs to change technically — Backend".
+  - Frontend developer to update RegisterSettingsTab.tsx so all field blur/change handlers
+    call updateDraftConfig when in draft mode, matching the pattern established by
+    reviewCommentMode and reviewAttestationText handlers. Reference: SPIKE-008 Recommendation
+    section "What needs to change technically — Frontend".
+  - Principal Architect to update or create architecture docs codifying the unified draft
+    standard, so the rule is documented for future developers.
+  - Test engineer to add tests covering the always-promote path and verify no Category B
+    regressions remain.
+  dependencies: []
+  suggested_agents:
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/configVersion.publish.service.ts
+    - backend/src/services/configVersion.draft.service.ts
+    - frontend/src/features/configuration/RegisterSettingsTab.tsx
+    tests:
+    - backend/test/configVersion.test.mjs
+    - frontend/test/configuration.test.mjs
+    docs:
+    - docs/spikes/SPIKE-008.md
+    notes:
+    - SPIKE-008 is the authoritative reference. Full field-by-field analysis and technical
+      change description in that document.
+    - The engineering reference doc docs/architecture/register-config-draft-system.md
+      (created during v1.27.0, preserved on release branch) should be merged to main and
+      updated to reflect the unified standard once this work ships.
+    - principal-architect is listed because this item introduces a documented architectural
+      standard and touches configVersion.publish.service.ts (a core service). PA should
+      write the architecture doc update and review the backend changes before they merge.
+- id: UI-024
+  source_request: extracted from abandoned v1.27.0 (SPIKE-008 deferred items)
+  title: Surface template-drift banner when linkedTemplate.isLatest is false
+  type: improvement
+  capability: config-lifecycle-templates
+  phase: null
+  status: in-active-release
+  priority: medium
+  confidence: high
+  summary: The backend already returns linkedTemplate.isLatest on the register response. The
+    UI currently surfaces template drift only via an orange badge on the TemplateLinkPanel,
+    which is only visible on the configuration screen. Register Admins who work primarily
+    in the risks list will not notice it. A persistent banner on the register settings page
+    (or register list) would make template drift more visible without any backend work.
+  acceptance:
+  - When linkedTemplate.isLatest is false, a visible banner or alert is shown in a location
+    accessible to Register Admins who do not regularly visit the configuration screen.
+  - The banner includes a clear call-to-action (e.g. "A new template version is available —
+    view changes") linking to the configuration page or the Template Compare modal.
+  - When linkedTemplate.isLatest is true (or register is not linked to a template), the
+    banner is not shown.
+  - No regression to the existing TemplateLinkPanel orange badge or any config page functionality.
+  - Help content in frontend/public/help/en/ updated to describe template drift notification,
+    and explicitly states that publishing a manual draft does NOT unlink the register from its
+    template — the register remains linked at the same template version, and the drift banner
+    will appear if the template advances further (REQ-093 policy decision).
+  remaining:
+  - Decide the exact placement of the banner — register settings page, register list, or both.
+  - Confirm the linkedTemplate.isLatest field is already available in the frontend data for
+    the relevant view (likely already present on the register API response).
+  - Implement the banner using an existing Mantine Alert or similar component.
+  dependencies: []
+  suggested_agents:
+  - frontend-developer
+  - test-engineer
+  evidence:
+    code:
+    - frontend/src/features/configuration/TemplateLinkPanel.tsx
+    - frontend/src/pages/RegisterConfigPage.tsx
+    tests: []
+    docs:
+    - docs/spikes/SPIKE-008.md
+    notes:
+    - Backend already returns linkedTemplate.isLatest — no backend change needed.
+    - SPIKE-008 explicitly describes this as a frontend-only change.
+    - The minimum viable approach is the drift banner; full notification infrastructure
+      (push/email) is a separate capability tracked under PM9-CORE.
+- id: BUG-058
+  source_request: REQ-088
+  title: Fix createRegisterFromTemplate — Prisma crash due to missing createdBy relation
+  type: bug
+  capability: config-lifecycle-templates
+  phase: null
+  status: in-active-release
+  priority: critical
+  confidence: high
+  summary: The "create register from template" feature throws a PrismaClientValidationError
+    at runtime. tx.register.create() in registers.service.ts is called with createdByUserId
+    and updatedByUserId scalar fields but without the required createdBy relation. Prisma
+    7.8.0 rejects the invocation because the createdBy relation argument is missing.
+    The fix is to replace or supplement the scalar fields with a createdBy connect
+    relation, matching how other register creates in the codebase are structured.
+  observed_behaviour:
+  - Creating a register from a template throws PrismaClientValidationError at runtime.
+  - Error "Argument `createdBy` is missing." in tx.register.create() at registers.service.ts line 700.
+  - Stack trace correlationId 7f39d6ba-ef11-48b0-96f0-17f2c3973135.
+  expected_behaviour:
+  - Creating a register from a template succeeds and produces a correctly seeded register.
+  acceptance:
+  - Creating a register from a template no longer throws a PrismaClientValidationError.
+  - The created register has the correct createdBy and updatedBy relations set.
+  - Fix uses the createdBy connect pattern consistent with other register creates in the codebase.
+  - Backend tests cover the create-from-template happy path to prevent regression.
+  remaining:
+  - Locate tx.register.create() in registers.service.ts around line 700.
+  - Replace createdByUserId / updatedByUserId scalar arguments with createdBy / updatedBy
+    connect relation arguments, consistent with how other register creates in the codebase
+    are structured.
+  - Add or update a backend test covering the create-register-from-template flow.
+  dependencies: []
+  suggested_agents:
+  - backend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/registers.service.ts
+    tests:
+    - backend/test/registers.test.mjs
+    notes:
+    - Error reported with exact correlationId 7f39d6ba-ef11-48b0-96f0-17f2c3973135.
+    - Check other register creates in registers.service.ts for the correct relation pattern to follow.
+    - Note: this is a different bug from REQ-091/BUG-060 (missing field copying in the same
+      function). Both bugs exist independently. Fix this crash first; BUG-060 can follow.
+- id: BUG-059
+  source_request: REQ-090
+  title: Fix broken Prisma seed file — v1.27.0 remnants
+  type: bug
+  capability: build-toolchain
+  phase: null
+  status: in-active-release
+  priority: high
+  confidence: medium
+  summary: backend/prisma/seed.ts is broken due to incomplete or conflicting changes left
+    over from the abandoned v1.27.0 release. The seed likely references the ReviewCommentMode
+    enum or related schema fields that were introduced during v1.27.0 and subsequently
+    reverted from the codebase (though the DB column was also cleaned up separately).
+    The fix is to identify and remove or revert the v1.27.0 additions in seed.ts so it
+    runs cleanly against the current schema.
+  observed_behaviour:
+  - backend/prisma/seed.ts fails to run, likely due to references to ReviewCommentMode
+    or other schema artefacts from the abandoned v1.27.0 work.
+  expected_behaviour:
+  - The seed runs cleanly against the current schema with no errors.
+  acceptance:
+  - npx prisma db seed runs to completion without errors.
+  - The seed produces the expected demo data consistent with the MAINT-014 refresh (custom
+    fields, response action child records, custom formula, completed reviews).
+  - No seed references remain to ReviewCommentMode or any other schema artefact from the
+    abandoned v1.27.0 release.
+  remaining:
+  - Inspect backend/prisma/seed.ts for any references to ReviewCommentMode or other
+    v1.27.0 additions and remove them.
+  - Run the seed against a clean database to confirm it completes successfully.
+  - Verify the seeded data matches expectations from MAINT-014.
+  dependencies: []
+  suggested_agents:
+  - backend-developer
+  evidence:
+    code:
+    - backend/prisma/seed.ts
+    - backend/prisma/schema.prisma
+    tests:
+    - backend/test/seed.test.mjs
+    notes:
+    - v1.27.0 added ReviewCommentMode enum and review_comment_mode column during the release,
+      both of which were reverted from the codebase when the release was abandoned.
+    - Medium confidence because the exact failure mode has not been confirmed — the backend
+      developer should read seed.ts before implementing to confirm the root cause.
+- id: BUG-060
+  source_request: REQ-091
+  title: Fix createRegisterFromTemplate — does not copy reviewCommentMode, scoringFormula, responseActionMode
+  type: bug
+  capability: config-lifecycle-templates
+  phase: null
+  status: in-active-release
+  priority: high
+  confidence: high
+  summary: The createRegisterFromTemplate function omits reviewCommentMode, scoringFormula,
+    and responseActionMode from the tx.register.create() call. Registers created from
+    templates that encode non-default values for these fields silently start with wrong
+    values (the schema defaults). Identified in SPIKE-008 as a pre-existing bug unrelated
+    to the draft unification work.
+  observed_behaviour:
+  - A register created from a template that sets reviewCommentMode, scoringFormula, or
+    responseActionMode to non-default values starts with the schema defaults instead of
+    the template values.
+  - No error is thrown — the register is created but silently misconfigured.
+  expected_behaviour:
+  - A register created from a template inherits the template's values for all three fields.
+  acceptance:
+  - createRegisterFromTemplate copies reviewCommentMode, scoringFormula, and responseActionMode
+    from the template's config snapshot into the new register.
+  - A register created from a template with a non-default scoring formula uses that formula,
+    not the default.
+  - A register created from a template with responseActionMode CHILD_RECORDS starts in
+    CHILD_RECORDS mode, not SIMPLE.
+  - Backend tests cover the create-from-template path for all three fields.
+  remaining:
+  - Locate the tx.register.create() call in createRegisterFromTemplate in registers.service.ts.
+  - Add reviewCommentMode, scoringFormula, and responseActionMode to the call, reading
+    values from the template's config snapshot.
+  - Add or update backend tests covering each of the three fields.
+  dependencies:
+  - BUG-058
+  suggested_agents:
+  - backend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/registers.service.ts
+    tests:
+    - backend/test/registers.test.mjs
+    docs:
+    - docs/spikes/SPIKE-008.md
+    notes:
+    - Identified in SPIKE-008 deferred items section.
+    - BUG-058 (Prisma crash) should be fixed first — both bugs are in the same function
+      and fixing them together in one pass is cleaner than two separate changes.
+    - Dependency on BUG-058 is soft — the developer can address both in a single pass.
+- id: BUG-061
+  source_request: REQ-092
+  title: Fix Template Compare modal — empty diff when only reviewCommentMode, scoringFormula, or responseActionMode differ
+  type: bug
+  capability: config-lifecycle-templates
+  phase: null
+  status: in-active-release
+  priority: high
+  confidence: high
+  summary: The compareRegisterToTemplate function omits reviewCommentMode, scoringFormula,
+    and responseActionMode from its registerSettingsKeys array. A template update that
+    changes only these fields shows "no differences" in the Compare modal even though
+    the register is genuinely out of sync with the template. Actively misleading.
+  observed_behaviour:
+  - Comparing a register to a template that differs only in reviewCommentMode, scoringFormula,
+    or responseActionMode shows an empty diff ("no differences").
+  expected_behaviour:
+  - The Compare modal correctly surfaces differences in all three fields.
+  acceptance:
+  - compareRegisterToTemplate includes reviewCommentMode, scoringFormula, and responseActionMode
+    in its field comparison.
+  - A template update that changes any of these three fields shows the correct diff in
+    the Compare modal.
+  - No regression to the existing Compare modal diff display for other fields.
+  - Backend or frontend tests cover the comparison path for the three fields.
+  remaining:
+  - Locate the registerSettingsKeys array in compareRegisterToTemplate.
+  - Add reviewCommentMode, scoringFormula, and responseActionMode to the array.
+  - Add or update tests covering the comparison path for these fields.
+  dependencies: []
+  suggested_agents:
+  - backend-developer
+  - test-engineer
+  evidence:
+    code:
+    - backend/src/services/registers.service.ts
+    tests:
+    - backend/test/registers.test.mjs
+    docs:
+    - docs/spikes/SPIKE-008.md
+    notes:
+    - Identified in SPIKE-008 deferred items section.
+    - Fix is small — one array addition. Verify the fix produces correct diff output in
+      the Compare modal after implementation.

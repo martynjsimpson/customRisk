@@ -10,11 +10,18 @@ Request status describes the state of the human-facing ask, not the exact implem
 - Use `in-active-release` when one or more derived work items are currently selected for delivery.
 - Use `partially-done` when some of the requested outcome has shipped or is complete but meaningful scope remains.
 - Use `done` when the human-facing ask is satisfied.
-- Use `deferred`, `rejected`, or `duplicate` when that best describes what happened to the ask.
+- Use `blocked` when the request cannot proceed until a named dependency resolves. Always include a `Blocked on:` field naming the dependency. Blocked requests are reviewed at every planning session to see if the blocker has resolved.
+- Use `deferred` when the request is deliberately parked with no specific dependency — "not now, maybe someday". Deferred requests are not surfaced automatically.
+- Use `rejected` or `duplicate` when that best describes what happened to the ask.
 
 Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in request status alone.
 
 ## Inbox / needs refinement
+
+
+
+
+
 
 ### REQ-086
 Request ID: REQ-086
@@ -50,6 +57,70 @@ Derived work items: MAINT-015
 Source: deferred from SPIKE-004
 
 ## Refined requests
+
+### REQ-093
+Request ID: REQ-093
+Title: Decide linkedTemplateVersionId policy for manual draft publishes
+Type: feature
+Status: in-active-release
+Priority: low
+Summary: When a linked register publishes a manual draft (not a template-origin draft), linkedTemplateVersionId is not updated — the register remains linked at the same template version. Whether this is the correct policy (stay linked, drift silently) or whether the register should auto-unlink when the admin diverges via a manual draft has never been explicitly decided.
+Notes: PM decision made — option 1: stay linked at the current template version. Publishing a manual draft does NOT auto-unlink the register. Current backend behaviour is already correct; no code change needed. Help content must explain this behaviour: publishing a manual draft does not change the register's template link, and the drift banner will alert the admin if the template advances further. This help content note is captured in UI-024's acceptance criteria.
+Derived work items: UI-024 (help content note only)
+Source: extracted from abandoned v1.27.0 (SPIKE-008 deferred items)
+
+### REQ-088
+Request ID: REQ-088
+Title: Fix broken create-register-from-template function
+Type: bug
+Status: in-active-release
+Priority: critical
+Summary: The "create register from template" feature throws a PrismaClientValidationError at runtime. The error occurs in `registers.service.ts` line 700 inside a `$transaction` block where `tx.register.create()` is called with `createdByUserId` and `updatedByUserId` scalar fields but without the required `createdBy` relation. Prisma 7.8.0 is rejecting the invocation because the `createdBy` relation argument is missing.
+Notes: Error: "Argument `createdBy` is missing." in `tx.register.create()`. The fix is likely to replace or supplement the scalar `createdByUserId`/`updatedByUserId` fields with a `createdBy: { connect: { id: <userId> } }` relation connect, matching how other register creates in the codebase are structured. Stack trace correlationId: 7f39d6ba-ef11-48b0-96f0-17f2c3973135.
+Derived work items: BUG-058
+Source: human request (direct)
+### REQ-090
+Request ID: REQ-090
+Title: Fix broken Prisma seed file
+Type: bug
+Status: in-active-release
+Priority: high
+Summary: The `backend/prisma/seed.ts` file is broken, likely due to incomplete or conflicting changes left over from the abandoned v1.27.0 release. This will affect local development setup and any CI steps that run the seed.
+Notes: Suspected cause is partial v1.27.0 work that was not cleaned up when that release was abandoned. Investigate what schema or data changes were introduced and whether seed.ts needs to be reverted or updated to match the current schema.
+Derived work items: BUG-059
+Source: human request (direct)
+### REQ-091
+Request ID: REQ-091
+Title: Fix createRegisterFromTemplate — does not copy reviewCommentMode, scoringFormula, responseActionMode
+Type: bug
+Status: in-active-release
+Priority: high
+Summary: The createRegisterFromTemplate function omits reviewCommentMode, scoringFormula, and responseActionMode from the tx.register.create call. Registers created from templates that encode non-default values for these three fields silently start with wrong values (defaults). This is a pre-existing bug unrelated to the draft unification work.
+Notes: Root cause identified in SPIKE-008 deferred items. Note: this is distinct from REQ-088 (which is a Prisma crash in the same function due to a missing createdBy relation). Both bugs exist independently. Fix for this item is to include the three fields in the tx.register.create call.
+Derived work items: BUG-060
+Source: extracted from abandoned v1.27.0 (SPIKE-008 deferred items)
+### REQ-092
+Request ID: REQ-092
+Title: Fix Template Compare modal — shows empty diff when only reviewCommentMode, scoringFormula, or responseActionMode differ
+Type: bug
+Status: in-active-release
+Priority: high
+Summary: The compareRegisterToTemplate function omits reviewCommentMode, scoringFormula, and responseActionMode from its registerSettingsKeys array. A template update that changes only these fields shows "no differences" in the Compare modal even though the register is genuinely out of sync. Actively misleading.
+Notes: Root cause identified in SPIKE-008 deferred items. Fix is to add the three fields to registerSettingsKeys in compareRegisterToTemplate.
+Derived work items: BUG-061
+Source: extracted from abandoned v1.27.0 (SPIKE-008 deferred items)
+
+### REQ-005
+Request ID: REQ-005
+Title: Add child actions and stronger review workflows so treatment work can be tracked properly
+Type: feature
+Status: refined
+Done in: v1.19.0 (PM7-CORE — child-record response actions)
+Priority: high
+Summary: Users need first-class response actions, richer review rules, and better ownership tracking instead of relying on a simple risk field.
+Notes: PM7-CORE (child-record response actions) shipped in v1.19.0. PM8-CORE (risk review completeness — comment mode, attestation text UI, review history panel) is blocked pending the unified draft system prerequisite (DRAFT-UNIFIED).
+Derived work items: PM7-CORE, PM8-CORE
+Source: migrated from old planning
 
 ### REQ-084
 Request ID: REQ-084
@@ -183,6 +254,8 @@ Notes: Storage architecture is decided in ADR-0006, but the product implementati
 Derived work items: PM12-CORE
 Source: migrated from old planning
 
+## Blocked requests
+
 ## Partially done
 
 ### REQ-001
@@ -235,18 +308,6 @@ Notes: Basic scoring, matrix behaviour, and calculated-field formula support exi
 Derived work items: PM6-SCORING, PM6-CORE, PM6-RESIDUAL-SUGGESTIONS
 Source: migrated from old planning
 Evidence: `backend/src/services/scoring.service.ts`, `backend/src/services/matrix.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `backend/test/riskScoring.test.mjs`
-
-### REQ-005
-Request ID: REQ-005
-Title: Add child actions and stronger review workflows so treatment work can be tracked properly
-Type: feature
-Status: partially-done
-Done in: v1.19.0 (PM7-CORE — child-record response actions)
-Priority: high
-Summary: Users need first-class response actions, richer review rules, and better ownership tracking instead of relying on a simple risk field.
-Notes: PM7-CORE (child-record response actions) shipped in v1.19.0. PM8-CORE (rule-driven review workflows) remains open and depends on PM7-CORE being stable.
-Derived work items: PM7-CORE, PM8-CORE
-Source: migrated from old planning
 
 ### REQ-007
 Request ID: REQ-007
@@ -953,6 +1014,16 @@ Derived work items: MAINT-001
 Source: human request
 
 ## Deferred requests
+
+### REQ-089
+Request ID: REQ-089
+Title: Decide fate of config draft system feature flag
+Type: improvement
+Status: deferred
+Priority: medium
+Summary: The config draft system is now deeply integrated into the product, prompting a question of whether to promote it from a feature flag to a permanent, always-on feature. Removing the flag would simplify the architecture — no per-setting API endpoints needed — but would eliminate the ability to gate it commercially. The alternative is to keep it as a flag and position draft config as an enterprise-tier feature.
+Notes: Two paths to evaluate: (1) remove the feature flag entirely and ship draft config as a core capability; (2) retain the flag and assign it to an enterprise edition (see also REQ-076 re: editions model). PM decision needed on commercial positioning before implementation can proceed. Deferred — not a near-term priority.
+Source: human request (direct)
 
 ### REQ-077
 Request ID: REQ-077
