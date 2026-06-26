@@ -388,80 +388,6 @@ test("ConfigVersionBanner Publish button always routes through analyseImpactMuta
   assert.match(banner, /publishDraft/, "publishDraft must still be used (inside the impact analysis modal)");
 });
 
-test("UpdateDraftConfigInput.register includes reviewCommentMode and reviewAttestationText so draft-mode saves persist review settings", async () => {
-  // Regression (v1.27.0): reviewCommentMode and reviewAttestationText were previously absent from
-  // UpdateDraftConfigInput.register, causing Zod to silently strip them from PATCH requests to the
-  // draft update endpoint. Both fields must be present so the frontend can save review settings
-  // while a draft is active.
-  const api = await readFile(new URL("../src/api/configVersion.api.ts", import.meta.url), "utf8");
-
-  assert.match(api, /reviewCommentMode\?:\s*ReviewCommentMode/,
-    "UpdateDraftConfigInput.register must declare reviewCommentMode for draft-mode save");
-  assert.match(api, /reviewAttestationText\?:\s*string/,
-    "UpdateDraftConfigInput.register must declare reviewAttestationText for draft-mode save");
-
-  // ReviewCommentMode type must be imported
-  assert.match(api, /import type \{.*ReviewCommentMode.*\}.*registers\.api/s,
-    "ReviewCommentMode must be imported from registers.api");
-
-  // updateDraftConfig must still exist
-  assert.match(api, /export async function updateDraftConfig/,
-    "updateDraftConfig function must still be exported");
-});
-
-test("RegisterSettingsTab has updateDraftReviewSettingsMutation guarded by draftConfigMode && hasDraft with narrow cache invalidation", async () => {
-  // Regression (v1.27.0): reviewCommentMode and reviewAttestationText were not saved through the
-  // draft update path, so changes were lost on publish. The fix introduces
-  // updateDraftReviewSettingsMutation for immediate draft persistence.
-  //
-  // The onSuccess must NOT invalidate ["register", registerId] or ["registers"] — doing so would
-  // reset the form via the useEffect that watches registerQuery.data, discarding unsaved changes.
-  const tab = await readFile(
-    new URL("../src/features/configuration/RegisterSettingsTab.tsx", import.meta.url),
-    "utf8"
-  );
-
-  // The dedicated draft mutation must be present
-  assert.match(tab, /updateDraftReviewSettingsMutation/,
-    "updateDraftReviewSettingsMutation must exist in RegisterSettingsTab");
-
-  // It must be guarded — only fires when draftConfigMode and hasDraft are both true
-  assert.match(tab, /handleReviewCommentModeChange/,
-    "handleReviewCommentModeChange handler must be present");
-  assert.match(tab, /handleReviewAttestationTextBlur/,
-    "handleReviewAttestationTextBlur handler must be present");
-  assert.match(tab, /draftConfigMode && hasDraft/,
-    "Draft mutation guard must check both draftConfigMode and hasDraft");
-
-  // onSuccess must NOT widen invalidation to the register query — that would reset form state
-  // Extract the onSuccess block to verify absence of register-invalidating keys
-  const onSuccessMatch = tab.match(/updateDraftReviewSettingsMutation\s*=\s*useMutation\(\{[\s\S]*?onSuccess[\s\S]*?\}\s*\}\s*\)/);
-  assert.ok(onSuccessMatch, "updateDraftReviewSettingsMutation block must be present");
-  const mutationBlock = onSuccessMatch[0];
-  assert.doesNotMatch(mutationBlock, /"register",\s*registerId/,
-    "onSuccess must NOT invalidate [\"register\", registerId] — causes form-reset regression");
-  assert.doesNotMatch(mutationBlock, /"registers"/,
-    "onSuccess must NOT invalidate [\"registers\"] — not needed and widens cache churn");
-
-  // onSuccess must include the narrow keys
-  assert.match(mutationBlock, /"register-config",\s*registerId/,
-    "onSuccess must invalidate [\"register-config\", registerId]");
-  assert.match(mutationBlock, /"config-version-status",\s*registerId/,
-    "onSuccess must invalidate [\"config-version-status\", registerId]");
-
-  // Both controls still use getInputProps (the spread before onChange override)
-  assert.match(tab, /getInputProps\("reviewCommentMode"\)/,
-    "Review Comment Mode Select must spread getInputProps");
-  assert.match(tab, /getInputProps\("reviewAttestationText"\)/,
-    "Attestation Text Textarea must spread getInputProps");
-
-  // Both fields are in form initialValues
-  assert.match(tab, /reviewCommentMode:/,
-    "reviewCommentMode must be in form initialValues");
-  assert.match(tab, /reviewAttestationText:/,
-    "reviewAttestationText must be in form initialValues");
-});
-
 test("ImpactEntryDetail accepts and uses an onClose prop", async () => {
   // Regression: ImpactEntryDetail previously had no onClose prop, so clicking a deep-link in the
   // impact analysis modal could not close the modal.
@@ -505,20 +431,4 @@ test("draft and export snapshots preserve the register-level custom field valida
   assert.match(configExportImportSchemas, /customFieldValidationEnabled: z\.boolean\(\)/);
   assert.match(configVersionDraftService, /customFieldValidationEnabled: register\.customFieldValidationEnabled/);
   assert.match(configVersionPublishService, /customFieldValidationEnabled: regSettings\.customFieldValidationEnabled/);
-});
-
-test("snapshotRegisterSettingsSchema includes reviewCommentMode so it is not silently stripped by Zod on draft PATCH", async () => {
-  // Regression (v1.27.0): reviewCommentMode was absent from snapshotRegisterSettingsSchema,
-  // causing Zod to silently strip the field from every PATCH request to the draft update endpoint.
-  // The field must be declared as an enum with the three valid modes.
-  const configVersionSchemas = await readFile(
-    new URL("../../backend/src/validators/configVersion.schemas.ts", import.meta.url),
-    "utf8"
-  );
-
-  assert.match(
-    configVersionSchemas,
-    /reviewCommentMode:\s*z\.enum\(\["DISABLED",\s*"OPTIONAL",\s*"MANDATORY"\]\)\.optional\(\)/,
-    "snapshotRegisterSettingsSchema must declare reviewCommentMode as z.enum([...]).optional()"
-  );
 });

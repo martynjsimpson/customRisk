@@ -10,10 +10,6 @@ export interface ApiErrorBody {
   };
 }
 
-// ─── Review Comment Mode (PM8-CORE) ──────────────────────────────────────────
-
-export type ReviewCommentMode = "DISABLED" | "OPTIONAL" | "MANDATORY";
-
 // ─── Response Actions (PM7-CORE) ─────────────────────────────────────────────
 
 export type ResponseActionStatus =

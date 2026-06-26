@@ -1,7 +1,33 @@
 # Active Release
 
-Status: ready-for-release
+Status: abandoned
 Version: v1.27.0
+
+## Abandonment note
+
+This release was abandoned during verification. All code changes have been reverted to the main branch state. The following documentation files created during this session are preserved on the release branch and must be reviewed before the next attempt:
+
+- `docs/architecture/register-config-draft-system.md` — engineering reference for the draft config system
+- `docs/spikes/SPIKE-008.md` — architectural review concluding that a unified draft system (all register settings through draft) is required before this feature can be delivered correctly
+- `CHANGELOG.md` — contains a v1.27.0 entry that should be removed or held until the release ships
+
+**Why abandoned:** The two new settings (`reviewCommentMode` and `reviewAttestationText`) could not be made to persist correctly through the draft/publish flow despite multiple fix attempts. The root cause is a structural split in the register settings architecture (some fields go through the draft snapshot, others bypass it via direct PATCH) that makes adding any new setting unreliable. SPIKE-008 documents the full diagnosis and recommends implementing a unified draft system as a prerequisite. The PM should scope that work before re-proposing this release.
+
+**What was NOT delivered (carry forward to next release):**
+- `reviewCommentMode` setting (DISABLED / OPTIONAL / MANDATORY) on register settings
+- `reviewAttestationText` editable in register settings UI
+- `ReviewModal` conditional rendering based on `reviewCommentMode`
+- Backend enforcement of `reviewCommentMode` in `completeRiskReview`
+- Review history panel (audit found it already exists — no work needed here)
+- Help content for review comment mode and attestation text
+
+**What must be done before re-proposing (PM to scope):**
+- Unified draft system: all register settings saved via draft, all promoted unconditionally on publish (see SPIKE-008)
+- `createRegisterFromTemplate` bug: does not copy `reviewCommentMode`, `scoringFormula`, `responseActionMode` from template
+- Template Compare modal bug: shows empty diff when only those fields differ
+- Template-drift banner: surface when `linkedTemplate.isLatest === false`
+
+**Database note:** The `ReviewCommentMode` enum and `review_comment_mode` column were added to the database via Prisma migration during this session. The migration SQL has been reverted from the codebase but the database schema change persists locally. This will need to be handled in the next release attempt (the migration can be re-applied cleanly or the column dropped manually for local dev).
 
 ## Release goal
 
@@ -65,18 +91,16 @@ Suggested agents: principal-architect, backend-developer, frontend-developer, te
 
 ## Test / sign-off
 
-- [x] reviewCommentMode can be set and persisted via register settings UI.
-- [x] DISABLED mode: comment textarea hidden in ReviewModal; backend rejects any comment body field.
-- [x] MANDATORY mode: Complete Review button disabled until non-empty comment entered; backend validates server-side.
-- [x] OPTIONAL mode: existing review flow unchanged.
-- [x] Attestation text editable via register settings; next review reflects change; prior reviews unaffected.
-- [x] Review history visible in risk detail view with required fields (reviewer, date/time, comment, next review date).
-- [x] Existing review tests still pass.
-- [x] Help content updated.
+- [ ] reviewCommentMode can be set and persisted via register settings UI. — NOT DELIVERED
+- [ ] DISABLED mode: comment textarea hidden in ReviewModal; backend rejects any comment body field. — NOT DELIVERED
+- [ ] MANDATORY mode: Complete Review button disabled until non-empty comment entered; backend validates server-side. — NOT DELIVERED
+- [ ] OPTIONAL mode: existing review flow unchanged. — NOT DELIVERED
+- [ ] Attestation text editable via register settings; next review reflects change; prior reviews unaffected. — NOT DELIVERED
+- [x] Review history visible in risk detail view with required fields — ALREADY EXISTS (audited, no changes needed)
+- [ ] Existing review tests still pass. — NOT VERIFIED (code reverted)
+- [ ] Help content updated. — NOT DELIVERED (reverted)
 
-**Implementation pass:** complete — v1.27.0
-**Regression test pass:** complete — 239 tests, 0 failures, typecheck clean
-**Documentation pass:** complete — help content updated in `frontend/public/help/en/registers.md`
+**Release abandoned** — see Abandonment note above.
 
 ## Blockers
 

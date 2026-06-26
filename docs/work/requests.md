@@ -18,6 +18,26 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
+### REQ-089
+Request ID: REQ-089
+Title: Decide fate of config draft system feature flag
+Type: improvement
+Status: inbox
+Priority: medium
+Summary: The config draft system is now deeply integrated into the product, prompting a question of whether to promote it from a feature flag to a permanent, always-on feature. Removing the flag would simplify the architecture — no per-setting API endpoints needed — but would eliminate the ability to gate it commercially. The alternative is to keep it as a flag and position draft config as an enterprise-tier feature.
+Notes: Two paths to evaluate: (1) remove the feature flag entirely and ship draft config as a core capability; (2) retain the flag and assign it to an enterprise edition (see also REQ-076 re: editions model). PM decision needed on commercial positioning before implementation can proceed.
+Source: human request (direct)
+
+### REQ-088
+Request ID: REQ-088
+Title: Fix broken create-register-from-template function
+Type: bug
+Status: inbox
+Priority: critical
+Summary: The "create register from template" feature throws a PrismaClientValidationError at runtime. The error occurs in `registers.service.ts` line 700 inside a `$transaction` block where `tx.register.create()` is called with `createdByUserId` and `updatedByUserId` scalar fields but without the required `createdBy` relation. Prisma 7.8.0 is rejecting the invocation because the `createdBy` relation argument is missing.
+Notes: Error: "Argument `createdBy` is missing." in `tx.register.create()`. The fix is likely to replace or supplement the scalar `createdByUserId`/`updatedByUserId` fields with a `createdBy: { connect: { id: <userId> } }` relation connect, matching how other register creates in the codebase are structured. Stack trace correlationId: 7f39d6ba-ef11-48b0-96f0-17f2c3973135.
+Source: human request (direct)
+
 ### REQ-086
 Request ID: REQ-086
 Title: Bump actions/checkout from v6 to v7

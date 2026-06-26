@@ -248,10 +248,6 @@ test("config snapshot type covers all seven required sections", async () => {
 
   // reviewStatusPosition is part of the snapshot register settings
   assert.match(snapshot, /reviewStatusPosition/);
-
-  // reviewCommentMode must be present in ConfigSnapshotRegisterSettings
-  // (regression: was missing from the type, causing the field to be silently dropped)
-  assert.match(snapshot, /reviewCommentMode/);
 });
 
 // ─── BUG-050: CALCULATED field formula round-trip ────────────────────────────
@@ -455,48 +451,6 @@ test("publishDraft writes scoringFormula to register.update unconditionally — 
   );
 });
 
-test("publishDraft writes reviewCommentMode and reviewAttestationText unconditionally — not inside sourceTemplateVersionId block (BUG-FIX)", async () => {
-  // Regression: reviewCommentMode and reviewAttestationText were previously inside the
-  // draft.sourceTemplateVersionId conditional spread, causing them to be silently dropped when
-  // publishing a manually-created draft. The fix moves them to the unconditional section
-  // alongside scoringFormula so they are always promoted from the snapshot.
-  const service = await readFile(
-    new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
-    "utf8"
-  );
-
-  // The comment documenting the unconditional promotion must be present
-  const fixComment = "Always promote reviewCommentMode and reviewAttestationText from the published snapshot";
-  assert.ok(
-    service.includes(fixComment),
-    "Expected the unconditional reviewCommentMode/reviewAttestationText comment to be present in publishConfigVersion"
-  );
-
-  // The assignments must appear AFTER the closing of the sourceTemplateVersionId conditional block
-  const templateBlockClose = ": {}),";
-  const templateBlockCloseIdx = service.indexOf(templateBlockClose);
-  assert.ok(templateBlockCloseIdx !== -1, "Expected to find the sourceTemplateVersionId else-branch close");
-
-  const fixIdx = service.indexOf(fixComment);
-  assert.ok(
-    fixIdx > templateBlockCloseIdx,
-    "reviewCommentMode comment must appear AFTER the sourceTemplateVersionId conditional block closes, not inside it"
-  );
-
-  // Both field assignments must be present after the comment
-  const afterComment = service.slice(fixIdx);
-  assert.match(
-    afterComment,
-    /reviewCommentMode:\s*regSettings\.reviewCommentMode/,
-    "reviewCommentMode must be assigned from regSettings.reviewCommentMode after the comment"
-  );
-  assert.match(
-    afterComment,
-    /reviewAttestationText:\s*regSettings\.reviewAttestationText/,
-    "reviewAttestationText must be assigned from regSettings.reviewAttestationText after the comment"
-  );
-});
-
 test("validate-formula route is exposed under config-versions (PM6-SCORING)", async () => {
   const routes = await readFile(
     new URL("../src/routes/configVersion.routes.ts", import.meta.url),
@@ -536,46 +490,4 @@ test("recalculateRiskScores emits riskUpdated audit events for changed scores (P
 
   // Only audit when the score actually changed (not unconditionally)
   assert.match(service, /newScoreDecimal\.equals\(oldScore\)/);
-});
-
-// ─── BUG: reviewCommentMode missing from config snapshot pipeline ──────────────
-
-test("reviewCommentMode flows through the full draft snapshot pipeline (regression: was missing from type, select, normalizeSnapshot, and publish write-back)", async () => {
-  const draftService = await readFile(new URL("../src/services/configVersion.draft.service.ts", import.meta.url), "utf8");
-  const publishService = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
-
-  // normalizeSnapshot applies a defensive default so legacy drafts without the field don't throw
-  assert.match(draftService, /reviewCommentMode:\s*snapshot\.register\.reviewCommentMode\s*\?\?\s*"OPTIONAL"/,
-    "normalizeSnapshot must default reviewCommentMode to OPTIONAL for legacy snapshots");
-
-  // buildSnapshotFromRelationalTables Prisma select includes the field
-  assert.match(draftService, /reviewCommentMode:\s*true/,
-    "Prisma select in buildSnapshotFromRelationalTables must include reviewCommentMode: true");
-
-  // buildSnapshotFromRelationalTables return object maps the field from the DB row
-  assert.match(draftService, /reviewCommentMode:\s*register\.reviewCommentMode/,
-    "Snapshot return object must map register.reviewCommentMode");
-
-  // Publish template write-back must include the field so draft values survive publish
-  assert.match(publishService, /reviewCommentMode:\s*regSettings\.reviewCommentMode/,
-    "Publish write-back must carry reviewCommentMode from regSettings to the register update");
-});
-
-test("reviewCommentMode is present in configExport select and return, and configImport applies a defensive default (regression)", async () => {
-  const exportService = await readFile(new URL("../src/services/configExport.service.ts", import.meta.url), "utf8");
-  const importService = await readFile(new URL("../src/services/configImport.service.ts", import.meta.url), "utf8");
-
-  // Export Prisma select
-  assert.match(exportService, /reviewCommentMode:\s*true/,
-    "configExport Prisma select must include reviewCommentMode: true");
-
-  // Export return object
-  assert.match(exportService, /reviewCommentMode:\s*register\.reviewCommentMode/,
-    "configExport return must map register.reviewCommentMode");
-
-  // Import applies a safe default for legacy payloads that pre-date the field
-  assert.match(importService, /reviewCommentMode/,
-    "configImport must handle reviewCommentMode");
-  assert.match(importService, /"OPTIONAL"/,
-    "configImport must default reviewCommentMode to OPTIONAL for legacy payloads");
 });

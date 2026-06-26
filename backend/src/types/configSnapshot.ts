@@ -71,7 +71,6 @@ export interface ConfigSnapshotRegisterSettings {
   reviewsEnabled: boolean;
   defaultReviewFrequencyMonths: number;
   reviewAttestationText: string;
-  reviewCommentMode: "DISABLED" | "OPTIONAL" | "MANDATORY";
   allowViewerExport: boolean;
   customFieldValidationEnabled: boolean;
   reviewStatusPosition: number | null;

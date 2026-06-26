@@ -32,8 +32,7 @@ export function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterCon
       customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true,
       reviewStatusPosition: snapshot.register.reviewStatusPosition ?? null,
       scoringFormula: snapshot.register.scoringFormula ?? "",
-      responseActionMode: snapshot.register.responseActionMode ?? "SIMPLE",
-      reviewCommentMode: snapshot.register.reviewCommentMode ?? "OPTIONAL"
+      responseActionMode: snapshot.register.responseActionMode ?? "SIMPLE"
     },
     customFields: snapshot.customFields.map((field) => normalizeCustomFieldValidationMode(field))
   };
@@ -54,7 +53,6 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
           reviewsEnabled: true,
           defaultReviewFrequencyMonths: true,
           reviewAttestationText: true,
-          reviewCommentMode: true,
           allowViewerExport: true,
           customFieldValidationEnabled: true,
           reviewStatusPosition: true,
@@ -103,7 +101,6 @@ async function buildSnapshotFromRelationalTables(registerId: string): Promise<Re
       reviewsEnabled: register.reviewsEnabled,
       defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
       reviewAttestationText: register.reviewAttestationText,
-      reviewCommentMode: register.reviewCommentMode,
       allowViewerExport: register.allowViewerExport,
       customFieldValidationEnabled: register.customFieldValidationEnabled,
       reviewStatusPosition: register.reviewStatusPosition,

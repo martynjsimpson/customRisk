@@ -34,7 +34,6 @@ const registerSelect = {
   reviewStatusPosition: true,
   scoringFormula: true,
   responseActionMode: true,
-  reviewCommentMode: true,
   createdAt: true,
   updatedAt: true,
   linkedTemplateVersion: {
@@ -411,8 +410,6 @@ export async function updateRegister(
           customFieldValidationEnabled: input.customFieldValidationEnabled,
           reviewStatusPosition: input.reviewStatusPosition,
           responseActionMode: input.responseActionMode,
-          reviewCommentMode: input.reviewCommentMode,
-          reviewAttestationText: input.reviewAttestationText,
           updatedByUserId: actor.id
         },
         select: registerSelect
@@ -443,9 +440,7 @@ export async function updateRegister(
             { name: "allowViewerExport", label: "Allow viewer export", valueType: "BOOLEAN" },
             { name: "customFieldValidationEnabled", label: "Custom field validation enabled", valueType: "BOOLEAN" },
             { name: "reviewStatusPosition", label: "Review status position", valueType: "NUMBER" },
-            { name: "responseActionMode", label: "Response action mode", valueType: "TEXT" },
-            { name: "reviewCommentMode", label: "Review comment mode", valueType: "TEXT" },
-            { name: "reviewAttestationText", label: "Review attestation text", valueType: "TEXT" }
+            { name: "responseActionMode", label: "Response action mode", valueType: "TEXT" }
           ])
         },
         tx

@@ -41,27 +41,6 @@ test("new register defaults to a 3-level Low/Medium/High scoring scale", async (
   assert.match(service, /\["Low",\s*"Medium",\s*"Medium"\]/);
 });
 
-test("reviewCommentMode and reviewAttestationText are included in updateRegister write path and validator (regression: fields were silently discarded on PATCH /registers/:registerId)", async () => {
-  const service = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
-  const schema = await readFile(new URL("../src/validators/registers.schemas.ts", import.meta.url), "utf8");
-
-  // Validator accepts both fields
-  assert.match(schema, /reviewCommentMode:\s*z\.enum\(\["DISABLED",\s*"OPTIONAL",\s*"MANDATORY"\]\)/);
-  assert.match(schema, /reviewAttestationText:\s*z\.string\(\)\.optional\(\)/);
-
-  // Service writes both fields to the DB
-  assert.match(service, /reviewCommentMode: input\.reviewCommentMode/);
-  assert.match(service, /reviewAttestationText: input\.reviewAttestationText/);
-
-  // Service selects both fields back
-  assert.match(service, /reviewCommentMode: true/);
-  assert.match(service, /reviewAttestationText: true/);
-
-  // Audit trail includes both fields
-  assert.match(service, /Review comment mode/);
-  assert.match(service, /Review attestation text/);
-});
-
 test("reviewStatusPosition is included in updateRegister write path, validator, and audit field changes", async () => {
   const service = await readFile(new URL("../src/services/registers.service.ts", import.meta.url), "utf8");
   const schema = await readFile(new URL("../src/validators/registers.schemas.ts", import.meta.url), "utf8");

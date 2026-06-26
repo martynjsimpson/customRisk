@@ -709,6 +709,7 @@ export async function publishDraft(
               defaultNewRiskState: regSettings.defaultNewRiskState as any,
               reviewsEnabled: regSettings.reviewsEnabled,
               defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
+              reviewAttestationText: regSettings.reviewAttestationText,
               allowViewerExport: regSettings.allowViewerExport,
               customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
               reviewStatusPosition: regSettings.reviewStatusPosition ?? null,
@@ -718,10 +719,6 @@ export async function publishDraft(
         // Always promote scoringFormula from the published snapshot so that
         // resolveRiskScoring reads the correct formula on subsequent risk edits.
         scoringFormula: regSettings.scoringFormula ?? "",
-        // Always promote reviewCommentMode and reviewAttestationText from the published snapshot
-        // so that manual-draft publishes apply these settings, not just template-origin drafts.
-        reviewCommentMode: regSettings.reviewCommentMode as any,
-        reviewAttestationText: regSettings.reviewAttestationText,
         // Only promote responseActionMode when the snapshot explicitly carries the field.
         // Legacy snapshots (field absent) must not overwrite the live register mode.
         ...(snapshotMode !== undefined ? { responseActionMode: snapshotMode as "SIMPLE" | "CHILD_RECORDS" } : {}),
