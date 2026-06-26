@@ -1,151 +1,143 @@
 # Active Release
 
-Status: abandoned
-Version: v1.27.0
+Status: proposed
+Version: TBD
 
-## Abandonment note
-
-This release was abandoned during verification. All code changes have been reverted to the main branch state. The following documentation files created during this session are preserved on the release branch and must be reviewed before the next attempt:
-
-- `docs/architecture/register-config-draft-system.md` — engineering reference for the draft config system
-- `docs/spikes/SPIKE-008.md` — architectural review concluding that a unified draft system (all register settings through draft) is required before this feature can be delivered correctly
-- `CHANGELOG.md` — contains a v1.27.0 entry that should be removed or held until the release ships
-
-**Why abandoned:** The two new settings (`reviewCommentMode` and `reviewAttestationText`) could not be made to persist correctly through the draft/publish flow despite multiple fix attempts. The root cause is a structural split in the register settings architecture (some fields go through the draft snapshot, others bypass it via direct PATCH) that makes adding any new setting unreliable. SPIKE-008 documents the full diagnosis and recommends implementing a unified draft system as a prerequisite. The PM should scope that work before re-proposing this release.
-
-**What was NOT delivered (carry forward to next release):**
-- `reviewCommentMode` setting (DISABLED / OPTIONAL / MANDATORY) on register settings
-- `reviewAttestationText` editable in register settings UI
-- `ReviewModal` conditional rendering based on `reviewCommentMode`
-- Backend enforcement of `reviewCommentMode` in `completeRiskReview`
-- Review history panel (audit found it already exists — no work needed here)
-- Help content for review comment mode and attestation text
-
-**What must be done before re-proposing (PM to scope):**
-- Unified draft system: all register settings saved via draft, all promoted unconditionally on publish (see SPIKE-008)
-- `createRegisterFromTemplate` bug: does not copy `reviewCommentMode`, `scoringFormula`, `responseActionMode` from template
-- Template Compare modal bug: shows empty diff when only those fields differ
-- Template-drift banner: surface when `linkedTemplate.isLatest === false`
-
-**Database note:** The `ReviewCommentMode` enum and `review_comment_mode` column were added to the database via Prisma migration during this session. The migration SQL has been reverted from the codebase but the database schema change persists locally. This will need to be handled in the next release attempt (the migration can be re-applied cleanly or the column dropped manually for local dev).
+> **Note for Release Manager:** Do not use v1.27.0 as the version number. That version was started during the abandoned release and must be skipped. Use v1.28.0 (or whatever the next correct semver increment is from the current main branch tag).
 
 ## Release goal
 
-Close the remaining PRD 10.1 gaps in the risk review feature and surface review history in the UI. No new review rule engine, no Risk Response Reviews — this is a completeness pass on what the product already ships. One PA-approved schema change unblocks the rest of the work.
+Implement the unified draft system for all register settings, fixing the root architectural cause of the v1.27.0 regressions and unblocking PM8-CORE. Alongside, fix two related createRegisterFromTemplate bugs, the Template Compare modal field gap, and the broken seed file. Add the template drift banner on the register settings page to complete the template-drift story.
 
 ## Selected work items
 
-### PM8-CORE — Risk review completeness: comment mode, attestation text UI, review history panel
+### DRAFT-UNIFIED — Implement unified draft system for all register settings
 
-Status: done
-done_in: v1.27.0
-Source: REQ-005
-Capability: advanced-reviews
+Status: proposed
+Source: extracted from abandoned v1.27.0 (SPIKE-008)
+Capability: config-lifecycle-templates
 Suggested agents: principal-architect, backend-developer, frontend-developer, test-engineer
 
 **Scope:**
 
-1. Add `ReviewCommentMode` enum (DISABLED / OPTIONAL / MANDATORY) to the Prisma schema with a migration. Add `reviewCommentMode ReviewCommentMode @default(OPTIONAL) @map("review_comment_mode")` to the `Register` model. This schema change is approved by the PA in `docs/spikes/SPIKE-006.md` — the backend developer may proceed with the migration without further PA consultation. PA's only role in this release is creating the schema migration.
+All register settings must travel through the draft system in draft mode and be promoted unconditionally on publish. The `sourceTemplateVersionId` conditional in `configVersion.publish.service.ts` must apply only to `linkedTemplateVersionId`; all other register settings fields move to the always-promote block.
 
-2. Expose `reviewCommentMode` on the register API response shape.
+1. **Principal Architect** — write or update architecture documentation (suggested location: `docs/architecture/register-config-draft-system.md`, which already exists on the release branch being merged to main) to codify the unified draft standard as the rule for all current and future register settings fields. This is a docs-only task; no code changes for PA.
 
-3. Enforce `reviewCommentMode` in `completeRiskReview` (backend service):
-   - DISABLED: reject any request body that includes a comment (return 400 VALIDATION_ERROR)
-   - MANDATORY: require a non-empty comment or return 400 VALIDATION_ERROR
-   - OPTIONAL: existing behaviour, no change
+2. **Backend developer** — in `configVersion.publish.service.ts`, move all register settings fields out of the `sourceTemplateVersionId` conditional block into the always-promote section. Fields to move: `name`, `description`, `riskIdPrefix`, `riskIdZeroPaddingEnabled`, `riskIdZeroPaddingWidth`, `defaultNewRiskState`, `reviewsEnabled`, `defaultReviewFrequencyMonths`, `allowViewerExport`, `customFieldValidationEnabled`, `reviewStatusPosition`. `responseActionMode` is already correctly handled. `scoringFormula` and `reviewCommentMode` and `reviewAttestationText` should also be verified as always-promote.
 
-4. Add `reviewCommentMode` Select control (dropdown) and `reviewAttestationText` Textarea to the Reviews fieldset in `RegisterSettingsTab`. The backend already persists `reviewAttestationText` — this is a missing UI surface only. Invalidate the `["register", registerId]` query after saving either field so `ReviewModal` picks up the updated values on next open.
+3. **Frontend developer** — in `RegisterSettingsTab.tsx`, update all field blur/change handlers so that in draft mode they call `updateDraftConfig` rather than `PATCH /registers/:registerId`. The direct-write path (`PATCH /registers/:registerId`) is correct and must be preserved for non-draft mode. The pattern for `reviewCommentMode` and `reviewAttestationText` (established in the abandoned v1.27.0 work) is the reference — extend it to all other settings fields.
 
-5. Conditionally show or hide the comment textarea in `ReviewModal` based on the register's `reviewCommentMode`. Disable the Complete Review button when mode is MANDATORY and the comment field is empty.
+4. **Test engineer** — verify all acceptance criteria; add tests covering the always-promote path for at least three previously Category B fields; confirm no Category B regressions remain.
 
-6. Add or verify a review history panel in the risk detail view. **Important:** `UI-018` (v1.14.0) claims to have paginated a "Review History table" in the risk detail modal, but `SPIKE-006` could not find a rendering component. Before building, the frontend developer must audit `RiskDetailModal.tsx` and the `listRiskReviews` usage in `risks.api.ts`. If a review history panel already exists, verify it shows reviewer name, date/time, comment (when present), and calculated next review date. If it does not exist, build it using data from `GET /api/v1/registers/:registerId/risks/:riskId/reviews` (endpoint is implemented and working).
+**Acceptance criteria:** See `docs/work/backlog.yml` item DRAFT-UNIFIED.
 
-**Acceptance criteria:**
+---
 
-- A Register Admin can set reviewCommentMode (Disabled / Optional / Mandatory) via the Reviews section of register settings.
-- When Disabled: comment textarea is not shown in ReviewModal; backend rejects any request body with a comment field.
-- When Mandatory: Complete Review button is disabled until a non-empty comment is entered; backend returns 400 if comment is absent or blank.
-- When Optional: existing behaviour is unchanged.
-- A Register Admin can edit the attestation text via register settings. The next completed review shows the updated text. Previously completed reviews retain the text that was active at their time.
-- The risk detail view shows a review history section with reviewer name, date/time, comment (if present), and calculated next review date for each past review.
-- All existing review tests pass.
-- New backend tests cover each reviewCommentMode enforcement path.
-- Help content in `frontend/public/help/en/` updated to describe reviewCommentMode options and attestation text configuration.
+### BUG-058 — Fix createRegisterFromTemplate Prisma crash
+
+Status: proposed
+Source: REQ-088
+Capability: config-lifecycle-templates
+Suggested agents: backend-developer, test-engineer
+
+**Scope:** In `registers.service.ts` around line 700, `tx.register.create()` is called with `createdByUserId`/`updatedByUserId` scalar fields but without the required `createdBy` relation, causing a hard PrismaClientValidationError. Replace with `createdBy: { connect: { id: userId } }` (and equivalently for `updatedBy`) matching the pattern used by other register creates in the codebase.
+
+**Sequencing:** Fix this before BUG-060 — both are in the same function and should be addressed in a single pass.
+
+**Acceptance criteria:** See `docs/work/backlog.yml` item BUG-058.
+
+---
+
+### BUG-060 — Fix createRegisterFromTemplate — does not copy reviewCommentMode, scoringFormula, responseActionMode
+
+Status: proposed
+Source: REQ-091
+Capability: config-lifecycle-templates
+Suggested agents: backend-developer, test-engineer
+
+**Scope:** In the same `tx.register.create()` call fixed in BUG-058, add `reviewCommentMode`, `scoringFormula`, and `responseActionMode` so registers created from templates inherit the template's values for these fields rather than silently defaulting.
+
+**Sequencing:** Fix in the same pass as BUG-058.
+
+**Acceptance criteria:** See `docs/work/backlog.yml` item BUG-060.
+
+---
+
+### BUG-061 — Fix Template Compare modal — empty diff for reviewCommentMode, scoringFormula, responseActionMode
+
+Status: proposed
+Source: REQ-092
+Capability: config-lifecycle-templates
+Suggested agents: backend-developer, test-engineer
+
+**Scope:** Add `reviewCommentMode`, `scoringFormula`, and `responseActionMode` to the `registerSettingsKeys` array in `compareRegisterToTemplate`. One-line fix; verify the Compare modal shows correct diffs after the change.
+
+**Acceptance criteria:** See `docs/work/backlog.yml` item BUG-061.
+
+---
+
+### BUG-059 — Fix broken Prisma seed file
+
+Status: proposed
+Source: REQ-090
+Capability: build-toolchain
+Suggested agents: backend-developer
+
+**Scope:** Identify and remove any `ReviewCommentMode` references or other v1.27.0 artefacts from `backend/prisma/seed.ts` so the seed runs cleanly against the current schema. Verify `npx prisma db seed` completes without errors and produces the expected demo data from the MAINT-014 refresh.
+
+**Acceptance criteria:** See `docs/work/backlog.yml` item BUG-059.
+
+---
+
+### UI-024 — Surface template-drift banner on register settings page
+
+Status: proposed
+Source: extracted from abandoned v1.27.0 (SPIKE-008 deferred items)
+Capability: config-lifecycle-templates
+Suggested agents: frontend-developer, test-engineer
+
+**Scope:** When `linkedTemplate.isLatest` is `false`, show a visible banner or alert on the register settings page. The banner should include a call-to-action linking to the Template Compare modal (or configuration page). The backend already returns `linkedTemplate.isLatest` on the register response — no backend change needed.
+
+**Decision:** Drift banner placement → **register settings page only**. Do not add to the register list page in this release.
+
+**Decision:** Help content must be updated to explain the template-drift banner and to state explicitly that publishing a manual draft does NOT unlink the register from its template — the register remains linked at the same template version, and the drift banner will appear if the template advances further (REQ-093 policy decision).
+
+**Acceptance criteria:** See `docs/work/backlog.yml` item UI-024.
+
+---
 
 ## Required agents
 
-- **principal-architect** — schema migration only (ReviewCommentMode enum + Register column). No other PA involvement required; PA's output unblocks backend-developer.
-- **backend-developer** — expose reviewCommentMode on API response; enforce in completeRiskReview; new backend tests.
-- **frontend-developer** — RegisterSettingsTab UI (comment mode Select + attestation text Textarea); ReviewModal conditional rendering; review history panel audit/build; help content update.
-- **test-engineer** — verify acceptance criteria; update frontend tests for comment mode conditional rendering and review history panel.
+- **principal-architect** — DRAFT-UNIFIED architecture docs only. No code changes. PA output (architecture doc) does not block other agents — backend and frontend can begin in parallel.
+- **backend-developer** — DRAFT-UNIFIED backend (publish service changes); BUG-058 + BUG-060 (single pass in createRegisterFromTemplate); BUG-061 (compareRegisterToTemplate); BUG-059 (seed cleanup).
+- **frontend-developer** — DRAFT-UNIFIED frontend (RegisterSettingsTab draft-mode handlers); UI-024 (drift banner on settings page + help content).
+- **test-engineer** — verify all acceptance criteria across all six work items.
 
-**Sequencing:** PA creates schema migration first. Backend developer may begin enforcement work once migration is in place. Frontend developer can begin RegisterSettingsTab and ReviewModal work in parallel with backend once the API shape for reviewCommentMode is confirmed.
+## Sequencing
 
-## Decisions
-
-**Decision:** reviewCommentMode UI control → Select (dropdown) within the Reviews fieldset in RegisterSettingsTab, consistent with other configuration selects in the app.
-
-**Decision:** reviewAttestationText UI control → Textarea, appropriate for multi-line attestation text.
-
-**Decision:** review history panel — frontend developer must audit whether UI-018 (v1.14.0) already produced a rendered review history list in RiskDetailModal before building from scratch. Build only if absent.
-
-## Test / sign-off
-
-- [ ] reviewCommentMode can be set and persisted via register settings UI. — NOT DELIVERED
-- [ ] DISABLED mode: comment textarea hidden in ReviewModal; backend rejects any comment body field. — NOT DELIVERED
-- [ ] MANDATORY mode: Complete Review button disabled until non-empty comment entered; backend validates server-side. — NOT DELIVERED
-- [ ] OPTIONAL mode: existing review flow unchanged. — NOT DELIVERED
-- [ ] Attestation text editable via register settings; next review reflects change; prior reviews unaffected. — NOT DELIVERED
-- [x] Review history visible in risk detail view with required fields — ALREADY EXISTS (audited, no changes needed)
-- [ ] Existing review tests still pass. — NOT VERIFIED (code reverted)
-- [ ] Help content updated. — NOT DELIVERED (reverted)
-
-**Release abandoned** — see Abandonment note above.
+1. Backend developer starts with BUG-058 + BUG-060 (single pass, same function), then BUG-061, then BUG-059, then DRAFT-UNIFIED backend changes.
+2. Frontend developer works in parallel: DRAFT-UNIFIED frontend changes first, then UI-024.
+3. Principal Architect produces the architecture doc in parallel — no blocking dependency.
+4. Test engineer verifies once backend and frontend work is complete.
 
 ## Blockers
 
 None — all clear.
 
-## Verification feedback
+## Test / sign-off
 
-**Verification feedback [1]:** reviewCommentMode dropdown does not appear to be saving. User suspects it is not part of the draft config on the server — when config is published it gets overridden. This issue has occurred before with other register settings.
-**Investigation (round 1):** Bug confirmed at two layers in the backend. (1) `updateRegisterSchema` did not include `reviewCommentMode` or `reviewAttestationText`. (2) `updateRegister` service did not write either field to the DB. Fixed in commit 4c71132.
-**Verification feedback [2]:** Still not saving after app restart. HAR confirms: user flow goes through config-version draft/publish (POST /config-versions/draft → POST /config-versions/draft/publish). No PATCH to /registers/:registerId in HAR at all. GET /registers/:registerId returns `reviewCommentMode: "OPTIONAL"` throughout.
-**Investigation (round 2):** Root cause is in the frontend draft-mode save path. `RegisterSettingsTab` hides the Save button in draft mode (`!draftConfigMode` guard, line 268) and the blur-autosave also only fires outside draft mode (line 156). So when `draftConfigMode && hasDraft`, there is no save path for `reviewCommentMode` or `reviewAttestationText` — the user can edit them in the form but they can never be submitted. Additionally, `reviewCommentMode` is absent from `buildSnapshotFromRelationalTables` in `configVersion.draft.service.ts` (lines 46–109), so it is also missing from the config snapshot and would not survive a template-draft publish even if saved. `reviewAttestationText` is in the snapshot but has the same missing save-path problem in draft mode.
-**Ruling:** in scope — gap against acceptance criteria for both fields.
-**Fix (partial):** Backend added `reviewCommentMode` to config snapshot pipeline (draft build, normalise, template publish write-back, export, import). Frontend added `updateDraftReviewFieldsMutation` with `handleReviewCommentModeChange` and `handleReviewAttestationTextBlur` handlers that call `updateDraftConfig` when `draftConfigMode && hasDraft`. 241 tests passing, typecheck clean. Fixed in commits af0c027 + ca60855.
-
-**Verification feedback [3]:** After PA architectural review (SPIKE-008), a deeper root cause was identified. PA review also surfaced that the fix in feedback [2] introduced a regression — other settings (e.g. register name) stopped updating, caused by the dual-path frontend mutation. User also noted settings are not being greyed out correctly when no draft exists, and controls that were working are now broken.
-
-**Investigation (round 3):** Root cause confirmed via SPIKE-008 — the `sourceTemplateVersionId` conditional in `configVersion.publish.service.ts` is the true cause. For manual drafts (no `sourceTemplateVersionId`), the publish flow intentionally does not write Category A snapshot fields back to the `Register` row, to avoid overwriting direct edits made via `PATCH /registers/:registerId` while a draft was open. However, `reviewCommentMode` and `reviewAttestationText` have no direct-edit path in draft mode — they are supposed to save only via the draft. So the "protection" is a silent no-op for these two fields: the snapshot value is staged, publish succeeds, nothing changes. The fix in feedback [2] attempted to compensate via a dual-path frontend mutation, which caused the observed regression in other settings.
-
-**Ruling:** The correct fix is narrow and backend-only: move `reviewCommentMode` and `reviewAttestationText` out of the `sourceTemplateVersionId` conditional in `publishDraft` so they are always promoted on publish. The dual-path frontend mutation added in feedback [2] must be removed — it is the wrong pattern and caused the regression.
-
-**Verification feedback [4]:** reviewCommentMode still not persisting after restart and retest. reviewAttestationText does persist. User changed both fields under a config draft, saved the draft, and only attestation text survived.
-**Investigation (round 4):** `snapshotRegisterSettingsSchema` missing `reviewCommentMode`. Both fields had no save path in draft mode. Fixed in commit 2fad47b — added reviewCommentMode to schema, re-added draft-mode save handlers with narrow cache invalidation. 560 tests passing.
-
-**Verification feedback [5]:** After commit 2fad47b, reviewCommentMode is still broken and reviewAttestationText is now broken again. Product owner confirms this is caused by the lack of a unified draft config system — piecemeal per-field fixes keep producing regressions and are not sustainable.
-**Investigation (round 5):** The root cause is architectural. The two-category system (some fields through draft, some direct PATCH) is fundamentally broken and cannot be fixed field-by-field. SPIKE-008 has been revised to recommend a full unified draft system: all register settings go through the draft on change/blur in draft mode, and all are promoted unconditionally on publish. This release will implement that unified standard for all register settings, not just the two new fields.
-**Ruling:** in scope — the two new fields must work per the unified standard. The unified standard implementation will fix them correctly and prevent future regressions.
-
-**SPIKE-008 final recommendation — unified draft system:**
-All register settings should be saved via `updateDraftConfig` in draft mode and promoted unconditionally on publish. No field should use a separate direct-PATCH path in draft mode. This is the only sustainable architecture. See SPIKE-008.
-
-**SPIKE-008 recommendations and their v1.27.0 status:**
-
-*Done in this release:*
-- **[DONE]** `reviewCommentMode` and `reviewAttestationText` added to config snapshot pipeline (build, normalise, export, import)
-- **[DONE]** Both fields promoted unconditionally on publish
-- **[DONE]** `reviewCommentMode` and `reviewAttestationText` exposed on register API and enforced in `completeRiskReview`
-- **[IN PROGRESS]** Unified draft system for all register settings — frontend and backend agents implementing now
-
-*Deferred to PM (from SPIKE-008):*
-- **[Fix]** `createRegisterFromTemplate` does not copy `reviewCommentMode`, `scoringFormula`, or `responseActionMode` — new registers get wrong defaults
-- **[Fix]** Template Compare modal shows empty diff when only those three fields differ — actively misleading
-- **[Fix]** Surface template-drift banner when `linkedTemplate.isLatest === false` — backend data already available, UI change only
-- **[Fix]** Codify unified draft system in architecture docs and PR template checklist
-- **[Design decision]** Policy for `linkedTemplateVersionId` when a linked register publishes a manual draft
-- **[Future]** Active notification infrastructure for template version advances
+- [ ] Publishing a manual draft correctly persists all register settings fields (name, description, riskIdPrefix, reviewsEnabled, allowViewerExport, reviewCommentMode, scoringFormula, reviewAttestationText, and others).
+- [ ] Non-draft mode direct-write path continues to work correctly.
+- [ ] Creating a register from a template no longer throws a PrismaClientValidationError.
+- [ ] A register created from a template inherits the template's reviewCommentMode, scoringFormula, and responseActionMode values.
+- [ ] Template Compare modal shows a correct diff when only reviewCommentMode, scoringFormula, or responseActionMode differ.
+- [ ] `npx prisma db seed` runs to completion without errors.
+- [ ] Template drift banner appears on the register settings page when linkedTemplate.isLatest is false.
+- [ ] Template drift banner is absent when linkedTemplate.isLatest is true or register has no linked template.
+- [ ] Help content updated to describe the drift banner and the manual-draft-does-not-unlink policy.
+- [ ] Architecture documentation codifies the unified draft standard.
+- [ ] All existing config lifecycle tests pass.
 
 ---
 

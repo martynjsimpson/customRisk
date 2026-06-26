@@ -327,8 +327,11 @@ in-progress
 testing
 ready-for-release
 released
+abandoned
 cancelled
 ```
+
+Use `abandoned` when a release was started but could not be completed and all code changes have been reverted. An abandoned release must include an `## Abandonment note` explaining why it was abandoned, what was not delivered, what must be done before re-proposing, and any manual actions required (e.g. stale CHANGELOG entries, database state). The PM processes an abandoned release at the start of the next planning session — resetting work item statuses, extracting prerequisites as new backlog items, and flagging manual actions to the human.
 
 ---
 

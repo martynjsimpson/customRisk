@@ -17,21 +17,7 @@ Version levels:
 
 ## [1.27.0] - 2026-06-25
 
-### Fixed
-
-- **reviewCommentMode and reviewAttestationText not saving in register settings (PM8-CORE)**
-  - Two separate bugs combined to prevent both fields from persisting. First, the Zod validator and service write path for `PATCH /registers/:registerId` were missing both fields, so direct saves were silently discarded. Second, when the register is in draft-config mode, the Settings tab has no Save button — fields must be saved via the draft config update path. Both fields lacked that wiring entirely, meaning changes made while a draft was active could never be submitted. Both paths are now fixed: direct saves write the fields to the register row; draft-mode saves call `updateDraftConfig` on change/blur. `reviewCommentMode` is also now carried through the full config snapshot pipeline (draft snapshot build, normalise defaults, template-draft publish write-back, config export and import).
-
-### Added
-
-- **Review comment mode control per register (PM8-CORE)**
-  - Register Admins can now set a Review Comment Mode (Disabled / Optional / Mandatory) in the Reviews section of register settings. When Disabled, the comment field is hidden from reviewers and the backend rejects any comment submitted. When Mandatory, the Complete Review button stays disabled until a non-empty comment is entered, and the backend validates server-side. When Optional, the existing behaviour is unchanged.
-
-- **Attestation text now editable in register settings (PM8-CORE)**
-  - The attestation text displayed to reviewers during a review can now be edited directly in the Reviews section of register settings. Previously the field was persisted by the backend but had no UI surface.
-
-- **Review history panel confirmed in risk detail view (PM8-CORE)**
-  - The review history panel in the risk detail modal was verified to be present and complete, showing reviewer name, date/time, comment (when present), and the calculated next review date for each past review.
+This version was not released and skipped due to internal issues. This version number should not be used.
 
 ## [1.26.0] - 2026-06-24
 
