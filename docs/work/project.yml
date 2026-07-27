@@ -1,0 +1,278 @@
+# Work-management manifest.
+#
+# This is the ONLY file that should contain project-specific facts.
+# Commands, skills, and generated agents all derive from it.
+# If you find yourself editing a command or an agent to record a project
+# fact, that fact belongs here instead.
+#
+# Every field marked (required) must be present. Optional fields may be
+# omitted or set to null; commands degrade gracefully when they are absent.
+
+model_version: 2
+
+# ---------------------------------------------------------------------------
+# Project identity
+# ---------------------------------------------------------------------------
+project:
+  # (required) Replaces every hardcoded project name in agent prompts.
+  name: Custom Risk
+  # (required) One line. Injected into agent system prompts so each agent
+  # knows what it is building without reading the whole PRD.
+  description: a self-hosted, configurable risk register web application with custom scoring matrices, review workflows, configurable fields, and a full audit trail
+  # (required) The product truth source. Agents align planned work to it.
+  primary_reference: docs/product/prd.md
+  # (optional) A file of invariant domain rules (calculations, business
+  # constants, naming laws) that implementers must not violate. Generated
+  # agents link to it rather than restating it.
+  # Created during /work-init Step 5, extracted from the existing
+  # backend-developer.md (audit, permission, security invariants).
+  domain_rules: docs/architecture/domain-rules.md
+
+# ---------------------------------------------------------------------------
+# Paths. All relative to the repository root. Set to null if not used.
+# ---------------------------------------------------------------------------
+paths:
+  work: docs/work                 # (required) requests.md, backlog.yml, active-release.md
+  spikes: docs/spikes             # (required) one file per spike work item
+  architecture: docs/architecture # optional
+  decisions: docs/decisions       # optional — ADRs
+  product: docs/product           # optional
+  changelog: CHANGELOG.md         # optional — set null if the project has none
+
+# ---------------------------------------------------------------------------
+# Identifiers
+# ---------------------------------------------------------------------------
+ids:
+  request_prefix: REQ
+  work_prefix: WORK
+  pad: 3                          # REQ-001 with pad 3; REQ-0001 with pad 4
+  # Note: existing work items predate this manifest and use per-type IDs
+  # (BUG-058, UI-024, MAINT-027, PM4-CLOSEOUT, DRAFT-UNIFIED, ...). By human
+  # decision (2026-07-27), those legacy IDs are left exactly as they are —
+  # only NEW work items adopt the WORK-NNN sequence below.
+
+# ---------------------------------------------------------------------------
+# Taxonomy. Statuses are fixed by the model and NOT configurable — see the
+# work-model skill. Types and priorities are per project.
+#
+# request_types and work_types MUST be supersets of whatever already appears
+# in requests.md / backlog.yml, or validation will report drift.
+# ---------------------------------------------------------------------------
+taxonomy:
+  request_types: [feature, bug, improvement, maintenance, chore, spike, security]
+  work_types: [feature, bug, improvement, maintenance, chore, audit, docs, security, refactor, spike]
+  priorities: [critical, high, medium, low]
+
+# ---------------------------------------------------------------------------
+# Version control.
+#
+# Set system: none for a project not under version control. Every VCS step is
+# then SKIPPED rather than failed — no command will ask for a commit, a tag, or
+# a clean working tree.
+#
+# Read the consequences before choosing none:
+#   - There is no undo. /work-init takes file backups instead of relying on a
+#     clean tree, and /work-release cannot offer a revert path.
+#   - There is no fallback record of what shipped. The changelog and
+#     release.version_file become the ONLY durable record, which makes
+#     release.changelog: required effectively mandatory and makes /work-prune
+#     genuinely destructive rather than merely tidy.
+# ---------------------------------------------------------------------------
+vcs:
+  # git | none
+  system: git
+  # Who performs commit / tag / push: command | human
+  # Set to null when system is none — an inert value left at its default reads
+  # like a decision nobody made.
+  owner: command
+  # none (work directly on the default branch) | branch | pr
+  # Set to null when system is none.
+  branching: pr
+
+# ---------------------------------------------------------------------------
+# Release mechanics. Together with the vcs block above, this is the single
+# source of truth for how shipping works. Declaring it once is what stops the
+# release command, the model doc, and the agent prompts contradicting each
+# other.
+#
+# Note: the release coordinator is a PERSONA the /work-release command adopts
+# for the session. It is not a sub-agent and must never be spawned as one.
+# When vcs.owner is 'command', it is that persona doing the VCS work.
+# ---------------------------------------------------------------------------
+release:
+  # semver-v (v1.2.3) | semver (1.2.3) | date (2026.07.27) | none
+  version_scheme: semver-v
+  # Who assigns the version number: human | command
+  version_owner: command
+
+  # The file holding the version of record, or null when the version lives only
+  # in a VCS tag. Commands read the current version from here and, when
+  # version_owner is 'command', write the new one to it.
+  #
+  # Recognised shapes: package.json (.version), pyproject.toml
+  # ([project].version or [tool.poetry].version), Cargo.toml ([package].version),
+  # *.csproj (<Version>), a plain VERSION file (whole contents).
+  #
+  # REQUIRED when vcs.system is none — without a tag there is nowhere else for
+  # the version to live.
+  version_file: package.json
+
+  # Additional version-bearing files kept in step with version_file.
+  #
+  # A workspace monorepo has one manifest per member (frontend/package.json,
+  # backend/package.json, shared/package.json, ...). Whether those track the
+  # root version or hold their own is a real per-project decision, so it is
+  # declared rather than guessed:
+  #
+  #   - list them here to have every release write the same version to each;
+  #   - leave the list empty to have releases touch ONLY version_file.
+  #
+  # An empty list is a deliberate statement that member versions are
+  # independent or unused, not an oversight. /work-init lists every
+  # version-bearing file it finds and asks which belong here — it must never
+  # assume that finding one manifest means there is only one.
+  version_mirrors: [backend/package.json, frontend/package.json, shared/package.json]
+
+  # required | optional | none
+  # Treat as required when vcs.system is none: it is then the only narrative
+  # record of what shipped.
+  changelog: required
+
+  # Automated pipeline, if any. /work-init detects a workflow definition where
+  # one exists; otherwise the human describes it, or it is left absent.
+  #
+  # Most pipelines are triggered by a VCS event, so this is normally null when
+  # vcs.system is none — but a locally-run build script is still worth recording
+  # here with trigger: manual.
+  #
+  # When `definition` names a file, /work-release READS it at release time to
+  # report what will actually happen — a path is more durable than a prose
+  # description, which goes stale the first time the workflow changes.
+  #
+  # When the whole block is absent (definition, trigger and does all null),
+  # there is no pipeline: /work-release commits, tags and pushes, then says
+  # plainly that no automated build follows.
+  pipeline:
+    definition: .github/workflows/release.yml
+    trigger: tag-push           # tag-push | branch-push | manual
+    does: null
+
+  # Ordered manual steps the human performs after the release is out.
+  deploy_steps: []
+
+# ---------------------------------------------------------------------------
+# Testing.
+#
+# Work management does NOT define what needs test coverage. Which areas
+# require tests is a property of the codebase, and belongs with the project's
+# technical documentation (README.md, TECHNICAL_ARCHITECTURE.md, AI.md,
+# docs/testing.md) alongside the stack it describes. Restating it here would
+# create a second copy that drifts.
+#
+# Point at that document instead. Commands read it when they need to decide
+# whether a work item's condition of done includes a passing test.
+# ---------------------------------------------------------------------------
+testing:
+  # Path to the document stating the project's testing policy, or null if the
+  # project has no written policy. When null, verification is whatever the
+  # release's verification bar says.
+  policy_document: docs/operations/e2e-testing.md
+  # Agent name from agents[] that owns testing, or false when the implementing
+  # developer writes their own tests.
+  agent: test-engineer
+
+# ---------------------------------------------------------------------------
+# Agent roster. /work-init generates .claude/agents/<name>.md from these
+# entries. Scope-enforcement redirect tables are DERIVED by inverting the
+# `owns` map — never hand-write them.
+#
+# Ownership must not overlap: after `excludes` is applied, every path belongs to
+# exactly one agent. Overlap is a hard stop, not a warning — two agents claiming
+# one path generates two contradictory scope tables that each tell the other to
+# keep out.
+#
+# `excludes` exists for the legitimate carve-out: a role that owns a slice
+# living inside someone else's directory. The classic case is a test engineer
+# owning test files under a developer's source tree. Declare it on BOTH sides —
+# the developer excludes the paths, the test engineer owns them — so the
+# arrangement is machine-checkable rather than resting on a
+# most-specific-path-wins convention that no check enforces.
+#
+# Glob patterns are permitted in owns and excludes.
+# ---------------------------------------------------------------------------
+agents:
+  - name: product-manager
+    role: Product Manager
+    model: sonnet
+    owns: [docs/product, docs/work]
+    excludes: []
+    reads: []
+    stack: null
+    consult_before: []
+
+  - name: principal-architect
+    role: Principal Architect
+    model: opus
+    owns: [docs/architecture, docs/decisions, docs/spikes, docs/operations, docs/engineering]
+    excludes: []
+    reads: []
+    stack: docs/architecture/technical-architecture.md
+    # Triggers that require this agent to be engaged BEFORE implementers start.
+    consult_before:
+      - a data-model or schema change
+      - a new dependency not already declared in the project manifest
+      - a new cross-cutting pattern or architectural concern
+
+  - name: backend-developer
+    role: Backend Developer
+    model: sonnet
+    owns: [backend, shared]
+    excludes: [backend/test]
+    reads: []
+    stack: docs/architecture/backend-stack.md
+    consult_before: []
+
+  - name: frontend-developer
+    role: Frontend Developer
+    model: sonnet
+    owns: [frontend]
+    excludes: [frontend/test]
+    reads: []
+    stack: docs/architecture/frontend-stack.md
+    consult_before: []
+
+  - name: devops-engineer
+    role: DevOps Engineer
+    model: haiku
+    owns: [.github, scripts, Dockerfile, docker-compose.yml, docker-compose.release.yml, docker, .dockerignore, .editorconfig, .nvmrc]
+    excludes: []
+    reads: []
+    stack: docs/architecture/devops-stack.md
+    consult_before: []
+
+  - name: test-engineer
+    role: Test Engineer
+    model: sonnet
+    owns: [backend/test, frontend/test, e2e]
+    excludes: []
+    reads: [backend, frontend, shared]
+    stack: docs/architecture/testing-stack.md
+    consult_before: []
+
+# ---------------------------------------------------------------------------
+# Agents that deliberately do NOT exist on this project.
+#
+# Declare these when a role is a common default that agents would otherwise
+# invent (test-engineer, devops-engineer, release-manager). /work-init writes
+# a short tombstone agent file for each, which stops work being routed into a
+# role that has no owner.
+# ---------------------------------------------------------------------------
+inactive_agents: []
+
+# ---------------------------------------------------------------------------
+# Responsibilities held by the human, not any agent. Generated agents refuse
+# these and redirect to the human.
+# ---------------------------------------------------------------------------
+human_owns:
+  - approving proposed release scope
+  - verifying the build before release
