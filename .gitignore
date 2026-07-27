@@ -18,8 +18,6 @@ docs/implementation/bugs.md
 .claude/settings.json
 docs/implementation/tweaks.md
 
-# Claude
-.claude/
 # Playwright E2E
 e2e/auth/.auth/
 playwright-report/
