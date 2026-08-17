@@ -42,11 +42,11 @@
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
     "dotenv": "^17.4.2",
-    "eslint": "^10.8.0",
+    "eslint": "^10.8.1",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^17.9.0",
+    "globals": "^17.11.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "typescript-eslint": "^8.66.0"
+    "typescript-eslint": "^8.67.0"
   }
 }
