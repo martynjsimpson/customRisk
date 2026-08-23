@@ -11,6 +11,7 @@ import {
 import { ApiErrorAlert } from "../components/ApiErrorAlert";
 import { RegisterAuditPanel } from "../features/audit/RegisterAuditPanel";
 import { RegisterConfigurationPanel } from "../features/configuration/RegisterConfigurationPanel";
+import { TemplateDriftBanner } from "../features/configuration/TemplateDriftBanner";
 import { RegisterPermissionsPanel } from "../features/registers/RegisterPermissionsPanel";
 import { RiskRegisterPanel } from "../features/risks/RiskRegisterPanel";
 import { usePermissions } from "../hooks/usePermissions";
@@ -68,6 +69,12 @@ export function RegisterDetailPage() {
       </Group>
       {registerQuery.isLoading ? <Loader /> : null}
       <ApiErrorAlert error={registerQuery.error} fallback="Unable to load register" />
+      {canManage && registerQuery.data ? (
+        <TemplateDriftBanner
+          linkedTemplate={registerQuery.data.linkedTemplate}
+          onViewChanges={() => setActiveTab("configuration")}
+        />
+      ) : null}
       <Tabs value={activeTab} onChange={(v) => setActiveTab(v ?? "risks")}>
         <Tabs.List>
           <Tabs.Tab value="risks">Risks</Tabs.Tab>

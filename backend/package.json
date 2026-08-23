@@ -1,6 +1,6 @@
 {
   "name": "@custom-risk/backend",
-  "version": "1.26.0",
+  "version": "1.28.0",
   "private": true,
   "type": "module",
   "main": "dist/server.js",

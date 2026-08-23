@@ -134,9 +134,15 @@ export function FieldConfigTab({ registerId, draftConfigMode }: FieldConfigTabPr
 
   // Mutation to persist a new position for the Review status row.
   // reviewStatusPosition: null means "last".
+  // Per the unified draft standard (docs/architecture/register-config-draft-system.md,
+  // section 5.4), this must branch on hasDraft the same way reorderFieldMutation above does —
+  // writing directly to the register while a draft is open is guaranteed to be discarded on
+  // publish, since publish now promotes every ConfigSnapshotRegisterSettings field.
   const reorderReviewStatusMutation = useMutation<unknown, Error, number | null>({
     mutationFn: (reviewStatusPosition) =>
-      updateRegister(registerId, { reviewStatusPosition }),
+      hasDraft
+        ? updateDraftConfig(registerId, { register: { reviewStatusPosition } })
+        : updateRegister(registerId, { reviewStatusPosition }),
     onSuccess: () => invalidateCustomFieldConfiguration(queryClient, registerId)
   });
 

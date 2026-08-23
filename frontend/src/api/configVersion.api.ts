@@ -1,6 +1,7 @@
 import { apiClient } from "./client";
 import { getAccessToken } from "../auth/session";
 import type { CustomFieldDefinition } from "./customFields.api";
+import type { RegisterRecord } from "./registers.api";
 import type { ImpactValue, LikelihoodValue, RiskLevel } from "./scoring.api";
 import type { ApiResponse } from "./types";
 
@@ -49,10 +50,27 @@ interface DraftMatrixCell {
 }
 
 export interface UpdateDraftConfigInput {
-  register?: {
-    scoringFormula?: string;
-    responseActionMode?: "SIMPLE" | "CHILD_RECORDS";
-  };
+  // Every field here is a member of ConfigSnapshotRegisterSettings (see
+  // docs/architecture/register-config-draft-system.md, section 5) and routes through the
+  // draft unconditionally in draft mode. Only add fields here that are actually wired to a
+  // control — see RegisterSettingsTab.tsx and FieldConfigTab.tsx for the current set.
+  register?: Partial<
+    Pick<
+      RegisterRecord,
+      | "name"
+      | "description"
+      | "riskIdPrefix"
+      | "riskIdZeroPaddingEnabled"
+      | "riskIdZeroPaddingWidth"
+      | "reviewsEnabled"
+      | "defaultReviewFrequencyMonths"
+      | "allowViewerExport"
+      | "customFieldValidationEnabled"
+      | "reviewStatusPosition"
+      | "scoringFormula"
+      | "responseActionMode"
+    >
+  >;
   customFields?: Array<
     Pick<
       CustomFieldDefinition,

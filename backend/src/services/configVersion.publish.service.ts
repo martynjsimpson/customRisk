@@ -103,6 +103,24 @@ export async function analyseImpact(
     }
   }
 
+  // --- Register name uniqueness ---
+  // Register.name is globally @unique and publishDraft has no try/catch or mapPrismaError
+  // call, so a P2002 collision at the write site would surface as an unhandled 500 and abort
+  // the whole publish. The collision may have been created by a different register after this
+  // draft was opened, so it must be checked here, not relied on to throw at the update.
+  const draftName = (snapshot.register.name ?? register.name).trim();
+  if (draftName.length === 0) {
+    blockers.push("Register name cannot be empty");
+  } else {
+    const nameCollision = await prisma.register.findFirst({
+      where: { name: draftName, id: { not: registerId } },
+      select: { id: true }
+    });
+    if (nameCollision) {
+      blockers.push(`Register name "${draftName}" is already in use by another register`);
+    }
+  }
+
   // --- Risk-level impact analysis ---
   // Fetch live data to determine what will change
   const [
@@ -691,37 +709,41 @@ export async function publishDraft(
     }
 
     // --- Update register settings ---
-    // Apply register settings from snapshot only when draft originated from a template.
-    // Register settings are only applied from the snapshot when the draft originated from a
-    // template (sourceTemplateVersionId set), because adopting the template's settings is
-    // deliberate. For manually-created drafts, direct edits to the register made while the
-    // draft was in progress take precedence and must not be overwritten.
+    // Unified draft standard (docs/architecture/register-config-draft-system.md section 5):
+    // every field of ConfigSnapshotRegisterSettings is promoted unconditionally, regardless of
+    // whether the draft originated from a template. There is no Save button on the
+    // configuration screen in draft mode, so there is no "immediate save" expectation to
+    // protect. linkedTemplateVersionId is the only field that remains conditional on
+    // sourceTemplateVersionId — it is not a settings field, it is the register's template sync
+    // point, and it must not be set for a manually-created draft.
     const regSettings: ConfigSnapshotRegisterSettings = snapshot.register;
     await tx.register.update({
       where: { id: registerId },
       data: {
-        ...(draft.sourceTemplateVersionId
-          ? {
-              description: regSettings.description ?? null,
-              riskIdPrefix: regSettings.riskIdPrefix ?? null,
-              riskIdZeroPaddingEnabled: regSettings.riskIdZeroPaddingEnabled,
-              riskIdZeroPaddingWidth: regSettings.riskIdZeroPaddingWidth,
-              defaultNewRiskState: regSettings.defaultNewRiskState as any,
-              reviewsEnabled: regSettings.reviewsEnabled,
-              defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
-              reviewAttestationText: regSettings.reviewAttestationText,
-              allowViewerExport: regSettings.allowViewerExport,
-              customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
-              reviewStatusPosition: regSettings.reviewStatusPosition ?? null,
-              linkedTemplateVersionId: draft.sourceTemplateVersionId
-            }
-          : {}),
-        // Always promote scoringFormula from the published snapshot so that
-        // resolveRiskScoring reads the correct formula on subsequent risk edits.
+        name: regSettings.name,
+        description: regSettings.description ?? null,
+        riskIdPrefix: regSettings.riskIdPrefix ?? null,
+        riskIdZeroPaddingEnabled: regSettings.riskIdZeroPaddingEnabled,
+        riskIdZeroPaddingWidth: regSettings.riskIdZeroPaddingWidth,
+        defaultNewRiskState: regSettings.defaultNewRiskState,
+        reviewsEnabled: regSettings.reviewsEnabled,
+        defaultReviewFrequencyMonths: regSettings.defaultReviewFrequencyMonths,
+        reviewAttestationText: regSettings.reviewAttestationText,
+        allowViewerExport: regSettings.allowViewerExport,
+        customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
+        reviewStatusPosition: regSettings.reviewStatusPosition ?? null,
         scoringFormula: regSettings.scoringFormula ?? "",
-        // Only promote responseActionMode when the snapshot explicitly carries the field.
-        // Legacy snapshots (field absent) must not overwrite the live register mode.
+        // Only promote responseActionMode when the snapshot explicitly carries the field. This
+        // is a legacy-snapshot guard, not a template-origin conditional: snapshots written
+        // before the field existed must not be read as a deliberate request to revert to
+        // SIMPLE. The field is always promoted whenever the snapshot carries it.
         ...(snapshotMode !== undefined ? { responseActionMode: snapshotMode as "SIMPLE" | "CHILD_RECORDS" } : {}),
+
+        // The ONLY member of the sourceTemplateVersionId conditional.
+        ...(draft.sourceTemplateVersionId
+          ? { linkedTemplateVersionId: draft.sourceTemplateVersionId }
+          : {}),
+
         // Promote draft to current
         currentConfigVersionId: draft.id,
         draftConfigVersionId: null,

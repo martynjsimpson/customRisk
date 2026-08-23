@@ -432,3 +432,154 @@ test("draft and export snapshots preserve the register-level custom field valida
   assert.match(configVersionDraftService, /customFieldValidationEnabled: register\.customFieldValidationEnabled/);
   assert.match(configVersionPublishService, /customFieldValidationEnabled: regSettings\.customFieldValidationEnabled/);
 });
+
+// ─── DRAFT-UNIFIED: every register settings field handler routes through the draft ────────────
+
+test("RegisterSettingsTab: each of the nine draft-routed field handlers commits only its own field via commitDraftField, and commitDraftField only fires in draft mode with an active draft", async () => {
+  const tab = await readFile(
+    new URL("../src/features/configuration/RegisterSettingsTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // The shared gate: commitDraftField only calls updateDraftSettingsFieldMutation when
+  // draftConfigMode && hasDraft — outside a draft it is a no-op (settingsLocked disables the
+  // inputs, so no direct write can race the draft's write).
+  assert.match(tab, /function commitDraftField\(patch: DraftRegisterSettingsPatch\) \{/);
+  assert.match(tab, /if \(draftConfigMode && hasDraft\) \{\s*updateDraftSettingsFieldMutation\.mutate\(patch\);/);
+
+  // Each of the nine handlers below responseActionMode (which has its own dedicated mutation
+  // pair, covered separately in responseActionMode.behavior.test.tsx) calls commitDraftField
+  // with exactly its own field — never the whole form, never another field's key.
+  const fieldHandlers = {
+    handleNameBlur: /commitDraftField\(\{ name: settingsForm\.values\.name \}\)/,
+    handleDescriptionBlur: /commitDraftField\(\{ description: settingsForm\.values\.description \}\)/,
+    handleRiskIdPrefixBlur: /commitDraftField\(\{ riskIdPrefix: settingsForm\.values\.riskIdPrefix \|\| null \}\)/,
+    handleRiskIdZeroPaddingEnabledChange: /commitDraftField\(\{ riskIdZeroPaddingEnabled: checked \}\)/,
+    handleRiskIdZeroPaddingWidthBlur: /commitDraftField\(\{ riskIdZeroPaddingWidth: settingsForm\.values\.riskIdZeroPaddingWidth \}\)/,
+    handleAllowViewerExportChange: /commitDraftField\(\{ allowViewerExport: checked \}\)/,
+    handleCustomFieldValidationEnabledChange: /commitDraftField\(\{ customFieldValidationEnabled: checked \}\)/,
+    handleReviewsEnabledChange: /commitDraftField\(\{ reviewsEnabled: checked \}\)/,
+    handleDefaultReviewFrequencyMonthsBlur: /commitDraftField\(\{ defaultReviewFrequencyMonths: settingsForm\.values\.defaultReviewFrequencyMonths \}\)/
+  };
+
+  for (const [handlerName, patchPattern] of Object.entries(fieldHandlers)) {
+    const fnMatch = tab.match(new RegExp(`function ${handlerName}\\([^)]*\\) \\{([\\s\\S]*?)\\n  \\}`));
+    assert.ok(fnMatch, `Expected to find ${handlerName} in RegisterSettingsTab.tsx`);
+    assert.match(fnMatch[1], patchPattern, `${handlerName} must call commitDraftField with only its own field`);
+  }
+});
+
+test("RegisterSettingsTab: setSettingsValues reads every field from the draft snapshot in draft mode, and from the live register otherwise", async () => {
+  const tab = await readFile(
+    new URL("../src/features/configuration/RegisterSettingsTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // The read source is chosen once, per the doc: configQuery.data.register in draft mode with an
+  // active draft, the live register row otherwise — not decided per field.
+  assert.match(
+    tab,
+    /const source = draftConfigMode && hasDraft && configQuery\.data \? configQuery\.data\.register : register;/
+  );
+
+  // Every field in the setSettingsValues call reads from `source`, not from `register` directly —
+  // a field reading `register.x` here would show pre-draft values once its direct-write path
+  // stops firing (see docs/architecture/register-config-draft-system.md, Known Pitfalls).
+  const setValuesMatch = tab.match(/setSettingsValues\(\{([\s\S]*?)\}\);/);
+  assert.ok(setValuesMatch, "Expected to find the setSettingsValues({...}) call");
+  const setValuesBody = setValuesMatch[1];
+
+  for (const field of [
+    "name",
+    "description",
+    "riskIdPrefix",
+    "riskIdZeroPaddingEnabled",
+    "riskIdZeroPaddingWidth",
+    "reviewsEnabled",
+    "defaultReviewFrequencyMonths",
+    "allowViewerExport",
+    "customFieldValidationEnabled",
+    "responseActionMode"
+  ]) {
+    assert.match(
+      setValuesBody,
+      new RegExp(`${field}: source\\.${field}`),
+      `${field} must be read from 'source', not directly from 'register'`
+    );
+    assert.doesNotMatch(
+      setValuesBody,
+      new RegExp(`${field}: register\\.${field}`),
+      `${field} must not bypass 'source' and read the live register directly`
+    );
+  }
+});
+
+test("FieldConfigTab reorderReviewStatusMutation branches on hasDraft exactly like the custom-field reorder above it", async () => {
+  const fieldTab = await readFile(
+    new URL("../src/features/configuration/FieldConfigTab.tsx", import.meta.url),
+    "utf8"
+  );
+
+  const reorderMatch = fieldTab.match(
+    /const reorderReviewStatusMutation = useMutation<[\s\S]*?mutationFn: \(reviewStatusPosition\) =>([\s\S]*?),\n {4}onSuccess:/
+  );
+  assert.ok(reorderMatch, "Expected to find reorderReviewStatusMutation's mutationFn");
+  const mutationFnBody = reorderMatch[1];
+
+  // Draft path writes through updateDraftConfig; direct path (no draft open) still writes
+  // through updateRegister — the same hasDraft ternary shape as reorderFieldMutation above it.
+  assert.match(mutationFnBody, /hasDraft\s*\?/);
+  assert.match(mutationFnBody, /updateDraftConfig\(registerId, \{ register: \{ reviewStatusPosition \} \}\)/);
+  assert.match(mutationFnBody, /updateRegister\(registerId, \{ reviewStatusPosition \}\)/);
+});
+
+// ─── UI-024: template-drift banner ─────────────────────────────────────────────────────────────
+
+test("TemplateDriftBanner renders only when linkedTemplate is non-null and not the latest version", async () => {
+  const banner = await readFile(
+    new URL("../src/features/configuration/TemplateDriftBanner.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // Single guard covers both the null case and the up-to-date case.
+  assert.match(banner, /if \(!linkedTemplate \|\| linkedTemplate\.isLatest\) return null;/);
+
+  // Stable selectors for E2E/behavioral coverage, per docs/operations/e2e-testing.md.
+  assert.match(banner, /data-testid="template-drift-banner"/);
+  assert.match(banner, /data-testid="template-drift-banner-cta"/);
+
+  // The CTA calls the onViewChanges callback — RegisterDetailPage wires this to switch tabs.
+  assert.match(banner, /onClick=\{onViewChanges\}/);
+});
+
+test("RegisterDetailPage renders TemplateDriftBanner only for users with manage rights, and the CTA switches to the Configuration tab", async () => {
+  const page = await readFile(new URL("../src/pages/RegisterDetailPage.tsx", import.meta.url), "utf8");
+
+  // Gated behind canManage, alongside registerQuery having resolved — a viewer without manage
+  // rights never renders the banner, regardless of drift state.
+  assert.match(page, /\{canManage && registerQuery\.data \? \(\s*<TemplateDriftBanner/);
+
+  // linkedTemplate is passed straight through from the register response (no frontend
+  // drift-detection logic — the backend already computes isLatest).
+  assert.match(page, /linkedTemplate=\{registerQuery\.data\.linkedTemplate\}/);
+
+  // The CTA's onViewChanges switches the active tab to "configuration".
+  assert.match(page, /onViewChanges=\{\(\) => setActiveTab\("configuration"\)\}/);
+});
+
+test("TemplateLinkPanel's isLatest badge is unaffected by the new TemplateDriftBanner component", async () => {
+  const panel = await readFile(
+    new URL("../src/features/configuration/TemplateLinkPanel.tsx", import.meta.url),
+    "utf8"
+  );
+
+  // TemplateLinkPanel owns its own badge independently of TemplateDriftBanner — it must not
+  // import or delegate to the new banner component.
+  assert.doesNotMatch(panel, /TemplateDriftBanner/);
+  assert.match(panel, /linked\.isLatest \? \(/);
+  assert.match(panel, /<Badge color="teal" variant="light" size="sm">v\{linked\.linkedVersionNumber\} — up to date<\/Badge>/);
+  assert.match(
+    panel,
+    /<Badge color="orange" variant="light" size="sm">\s*v\{linked\.linkedVersionNumber\} — latest is v\{linked\.latestPublishedVersionNumber\}\s*<\/Badge>/
+  );
+});

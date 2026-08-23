@@ -67,11 +67,17 @@ const snapshotResponseStrategySchema = z.object({
 });
 
 const snapshotRegisterSettingsSchema = z.object({
+  name: z.string().trim().min(1).optional(),
   description: z.string().nullable().optional(),
-  riskIdPrefix: z.string().nullable().optional(),
+  riskIdPrefix: z
+    .string()
+    .trim()
+    .regex(/^[A-Z0-9][A-Z0-9-]*$/, "Use uppercase letters, numbers, and hyphens only")
+    .nullable()
+    .optional(),
   riskIdZeroPaddingEnabled: z.boolean().optional(),
   riskIdZeroPaddingWidth: z.number().int().min(2).max(12).optional(),
-  defaultNewRiskState: z.string().optional(),
+  defaultNewRiskState: z.enum(["DRAFT", "OPEN", "CLOSED"]).optional(),
   reviewsEnabled: z.boolean().optional(),
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120).optional(),
   reviewAttestationText: z.string().optional(),

@@ -15,6 +15,37 @@ Version levels:
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-08-23
+
+### Added
+
+- **Template drift banner on the register page (UI-024)**
+  - A register linked to a template that has since published a newer version now shows a banner on every tab of the register page, with a link through to the comparison. Previously drift was signalled only by a badge inside the Configuration tab, so Register Admins who work in the risks list never saw it.
+  - Help content now states explicitly that publishing a manual draft does not unlink a register from its template — the register stays linked at its current version and continues to show drift as the template advances.
+
+### Changed
+
+- **All register settings now travel through the configuration draft (DRAFT-UNIFIED)**
+  - Register settings were served by two competing write paths: some fields went through the draft and were applied on publish, others were written straight to the register and bypassed the draft. Editing a setting in a manually-created draft appeared to work and was silently discarded when the draft was published.
+  - Every register settings field now behaves the same way. In draft mode edits are held in the draft and applied on publish, whatever the draft's origin; outside draft mode they continue to save immediately. Only the template link itself still depends on whether the draft came from a template.
+  - Publishing a draft that renames a register to a name already in use is now reported as a blocker before publishing starts, instead of failing partway through.
+  - A register name changed in a draft is now saved. It was previously discarded before reaching the draft at all.
+  - Risk ID prefixes and default risk states are now validated identically on both paths, including on configuration import, which had accepted any value for the default risk state.
+
+### Fixed
+
+- **Creating a register from a template failed outright (BUG-058)**
+  - The feature raised a database error every time and could not be used.
+
+- **Registers created from a template ignored three of its settings (BUG-060)**
+  - Scoring formula and response action mode were not carried across, so a register silently started on the defaults rather than the template's values, with no error to indicate it.
+
+- **Template comparison reported no differences when there were some (BUG-061)**
+  - A template differing from its register only in scoring formula or response action mode showed as identical, which was actively misleading — the register was genuinely out of sync.
+
+- **Demo seed data verified against a clean database (BUG-059)**
+  - The seed was reported as failing partway through and leaving a half-populated database. The reported cause had already been resolved; a clean run against an empty database was confirmed end to end, twice, including that repeating it is safe.
+
 ## [1.27.0] - 2026-06-25
 
 This version was not released and skipped due to internal issues. This version number should not be used.
