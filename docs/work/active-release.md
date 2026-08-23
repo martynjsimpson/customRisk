@@ -1,7 +1,7 @@
 # Active Release
 
 Version: v1.28.0
-Status: testing
+Status: ready-for-release
 Branch: release/custom-risk-1.28.0 (cut from main @ 8fc908e)
 
 ## Release goal
@@ -15,7 +15,7 @@ Sequencing: backend takes the four bugs first — BUG-058 and BUG-060 in a singl
 ### DRAFT-UNIFIED — Implement unified draft system for all register settings
 
 Source: none — extracted from the abandoned v1.27.0 release; provenance is SPIKE-008
-Type: refactor | Priority: high | Status: ready
+Type: refactor | Priority: high | Status: done
 
 Backend: in `backend/src/services/configVersion.publish.service.ts`, move every register settings field out of the `sourceTemplateVersionId` conditional and into the always-promote block. Only `linkedTemplateVersionId` remains inside the conditional. The fields to move are `name`, `description`, `riskIdPrefix`, `riskIdZeroPaddingEnabled`, `riskIdZeroPaddingWidth`, `defaultNewRiskState`, `reviewsEnabled`, `defaultReviewFrequencyMonths`, `allowViewerExport`, `customFieldValidationEnabled` and `reviewStatusPosition`. `responseActionMode` is already handled correctly; `scoringFormula`, `reviewCommentMode` and `reviewAttestationText` must be confirmed as always-promote rather than assumed.
 
@@ -28,7 +28,7 @@ Full acceptance criteria: `docs/work/backlog.yml`, item DRAFT-UNIFIED.
 ### BUG-058 — createRegisterFromTemplate crashes with a missing createdBy relation
 
 Source: REQ-088
-Type: bug | Priority: critical | Status: ready
+Type: bug | Priority: critical | Status: done
 
 `tx.register.create()` in `backend/src/services/registers.service.ts` (around line 700) passes the `createdByUserId` / `updatedByUserId` scalars without the required `createdBy` relation, and Prisma rejects the call outright. Replace with `createdBy: { connect: { id: userId } }` and the equivalent for `updatedBy`, matching the pattern the other register creates in that file already use.
 
@@ -37,7 +37,7 @@ Full acceptance criteria: `docs/work/backlog.yml`, item BUG-058.
 ### BUG-060 — createRegisterFromTemplate does not copy three template fields
 
 Source: REQ-091
-Type: bug | Priority: high | Status: ready
+Type: bug | Priority: high | Status: done
 
 The same `tx.register.create()` call omits `reviewCommentMode`, `scoringFormula` and `responseActionMode`, so a register created from a template that sets any of them silently starts on the schema defaults with no error raised. Read the values from the template's config snapshot and pass them through. Depends on BUG-058, but softly — fix both in one pass.
 
@@ -46,7 +46,7 @@ Full acceptance criteria: `docs/work/backlog.yml`, item BUG-060.
 ### BUG-061 — Template Compare modal reports an empty diff for three fields
 
 Source: REQ-092
-Type: bug | Priority: high | Status: ready
+Type: bug | Priority: high | Status: done
 
 `compareRegisterToTemplate` omits `reviewCommentMode`, `scoringFormula` and `responseActionMode` from its `registerSettingsKeys` array, so a template differing only in those fields shows "no differences" while the register is genuinely out of sync. Add the three keys, then confirm the modal renders the diff correctly — the array change alone is not evidence the user-facing symptom is gone.
 
@@ -55,7 +55,7 @@ Full acceptance criteria: `docs/work/backlog.yml`, item BUG-061.
 ### BUG-059 — Prisma seed file writes a column the schema no longer has
 
 Source: REQ-090
-Type: bug | Priority: high | Status: ready
+Type: bug | Priority: high | Status: done
 
 Root cause is confirmed, not suspected. `backend/prisma/seed.ts:548` writes `reviewCommentMode` in `prisma.register.upsert()`, and the `review_comment_mode` column was removed when v1.27.0 was reverted; `prisma migrate deploy` reports all 19 migrations applied and none pending, so the schema is right and seed.ts is stale. The System Admin upsert succeeds first, so the failure lands mid-way through the demo-register loop and leaves a partially populated database. Remove the reference, sweep the file for other v1.27.0 remnants, and verify a clean full run rather than merely an error-free exit.
 
@@ -64,7 +64,7 @@ Full acceptance criteria: `docs/work/backlog.yml`, item BUG-059.
 ### UI-024 — Surface the template-drift banner on the register settings page
 
 Source: REQ-093
-Type: improvement | Priority: medium | Status: ready
+Type: improvement | Priority: medium | Status: done
 
 When `linkedTemplate.isLatest` is `false`, show a banner on the register settings page with a call-to-action leading to the template comparison. The backend already returns `linkedTemplate.isLatest` on the register response, so there is no backend work. This item also carries the REQ-093 help content: publishing a manual draft does **not** unlink a register from its template.
 
