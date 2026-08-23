@@ -705,9 +705,11 @@ export async function createRegisterFromTemplate(
           reviewAttestationText: regSettings.reviewAttestationText,
           allowViewerExport: regSettings.allowViewerExport,
           customFieldValidationEnabled: regSettings.customFieldValidationEnabled,
+          scoringFormula: regSettings.scoringFormula,
+          responseActionMode: regSettings.responseActionMode,
           nextRiskSequence: 1,
-          createdByUserId: actorId,
-          updatedByUserId: actorId
+          createdBy: { connect: { id: actorId } },
+          updatedBy: { connect: { id: actorId } }
         },
         select: registerSelect
       });
