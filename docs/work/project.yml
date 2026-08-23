@@ -8,7 +8,7 @@
 # Every field marked (required) must be present. Optional fields may be
 # omitted or set to null; commands degrade gracefully when they are absent.
 
-model_version: 2
+model_version: 5
 
 # ---------------------------------------------------------------------------
 # Project identity
@@ -29,7 +29,44 @@ project:
   domain_rules: docs/architecture/domain-rules.md
 
 # ---------------------------------------------------------------------------
-# Paths. All relative to the repository root. Set to null if not used.
+# Project boundary.
+#
+# Set `root` when this project is ONE MEMBER of a larger repository — an app
+# in a monorepo, a package in a workspace. It separates the two roots the
+# model otherwise conflates:
+#
+#   VCS root      where .git lives; where branch, tag and push happen
+#   project root  where this project's world begins and ends
+#
+# Leave `root` null on an ordinary single-project repository. The two roots
+# are then the same and nothing below changes.
+# ---------------------------------------------------------------------------
+scope:
+  # Project root, relative to the VCS root. null means the project IS the
+  # whole repository — the single-project default, and the case here: the
+  # manifest sits at the VCS root, so this preserves prior behaviour exactly.
+  root: null
+
+  # Paths OUTSIDE the project root this project may WRITE, each relative to
+  # the VCS root. Empty is the right answer almost always; every entry is a
+  # deliberate hole in the boundary, so put the reason in a comment beside it.
+  #
+  # Reads are NOT restricted — only writes are fenced.
+  writes_outside: []
+
+  # Where /work-init writes .claude/agents/*.md when `root` is set. Inert
+  # while `root` is null, as it is here.
+  #
+  #   project  <root>/.claude/agents/ — self-contained
+  #   repo     .claude/agents/ at the VCS root
+  agents_dir: project
+
+# ---------------------------------------------------------------------------
+# Paths. All relative to the PROJECT ROOT — that is, to <scope.root> when it
+# is set, and to the repository root when it is null (as it is here).
+#
+# A leading slash anchors a path to the VCS ROOT instead, exactly as it does
+# in .gitignore. Set to null if not used.
 # ---------------------------------------------------------------------------
 paths:
   work: docs/work                 # (required) requests.md, backlog.yml, active-release.md
@@ -74,20 +111,106 @@ taxonomy:
 #   - There is no undo. /work-init takes file backups instead of relying on a
 #     clean tree, and /work-release cannot offer a revert path.
 #   - There is no fallback record of what shipped. The changelog and
-#     release.version_file become the ONLY durable record, which makes
+#     version.file become the ONLY durable record, which makes
 #     release.changelog: required effectively mandatory and makes /work-prune
 #     genuinely destructive rather than merely tidy.
 # ---------------------------------------------------------------------------
 vcs:
   # git | none
   system: git
-  # Who performs commit / tag / push: command | human
-  # Set to null when system is none — an inert value left at its default reads
-  # like a decision nobody made.
-  owner: command
-  # none (work directly on the default branch) | branch | pr
-  # Set to null when system is none.
-  branching: pr
+
+  # ---------------------------------------------------------------------------
+  # A release performs six things, in this order, and each one says separately
+  # whether it happens and who does it:
+  #
+  #   none    it does not happen
+  #   agent   the release coordinator does it
+  #   human   the session STOPS, tells you exactly what to run, waits for your
+  #           confirmation, VERIFIES it, and continues
+  #
+  # "agent" means who acts — the AI rather than you. It does NOT mean a
+  # sub-agent gets spawned: the release coordinator is a persona /work-release
+  # adopts, and there is never a release-manager agent on any project.
+  #
+  # These six replace the old single `owner` + `branching` pair, which asked
+  # once what is properly six separate questions.
+  # ---------------------------------------------------------------------------
+  stages:
+    # Cut a release branch from HEAD. none = work on the current branch.
+    branch: agent
+    # Commit the work. agent | human only.
+    commit: agent
+    # Publish to the remote. One owner covers every push, branch and tag alike.
+    push: agent
+    # Merge the release branch into the branch it was cut from.
+    #
+    # none because integration happens via pull_request below, and the two are
+    # mutually exclusive — a manifest setting both is rejected as invalid.
+    # This does NOT mean no merge occurs: main is fully protected on this
+    # project (no direct pushes, ever), so the agent opens the PR and you merge
+    # it on GitHub. The tag still waits for that merge, because tagging before
+    # a pull request lands is not supported and not configurable.
+    merge: none
+    # Open a pull request. The agent opens it; you merge it on GitHub.
+    pull_request: agent
+    # Create the version tag. Comes AFTER integration, so it waits until the
+    # pull request above has actually merged.
+    tag: agent
+
+  # What happens to the release branch once a merge lands. after-merge is what
+  # this project did unconditionally before the stages existed.
+  delete_branch: after-merge
+
+# ---------------------------------------------------------------------------
+# Versioning — deliberately separate from the vcs and release blocks. A
+# project can be versioned without being under version control, or vice
+# versa, so the two are declared independently.
+#
+# /work-release writes the version at the START of a release, right after
+# scope is approved, so everything built during the session already carries
+# the new number.
+# ---------------------------------------------------------------------------
+version:
+  # semver-v (v1.2.3) | semver (1.2.3) | date (2026.07.27) | none
+  scheme: semver-v
+  # Who assigns the number: human | agent
+  owner: agent
+
+  # The file holding the version of record, or null when the version lives only
+  # in a VCS tag. Commands read the current version from here and, when
+  # owner is 'agent', write the new one to it.
+  #
+  # Recognised shapes: package.json (.version), pyproject.toml
+  # ([project].version or [tool.poetry].version), Cargo.toml ([package].version),
+  # *.csproj (<Version>), a plain VERSION file (whole contents).
+  #
+  # REQUIRED when vcs.system is none — without a tag there is nowhere else for
+  # the version to live.
+  file: package.json
+
+  # Additional version-bearing files kept in step with `file`.
+  #
+  # A workspace monorepo has one manifest per member (frontend/package.json,
+  # backend/package.json, shared/package.json, ...). Whether those track the
+  # root version or hold their own is a real per-project decision, so it is
+  # declared rather than guessed:
+  #
+  #   - list them here to have every release write the same version to each;
+  #   - leave the list empty to have releases touch ONLY `file`.
+  #
+  # An empty list is a deliberate statement that member versions are
+  # independent or unused, not an oversight. /work-init lists every
+  # version-bearing file it finds and asks which belong here — it must never
+  # assume that finding one manifest means there is only one.
+  mirrors: [backend/package.json, frontend/package.json, shared/package.json]
+  # Shape of the git tag a release creates. null renders the version alone,
+  # per `scheme` — v1.2.3 here under semver-v.
+  #
+  # null is correct while scope.root is null: the tag name is repo-global and
+  # this project is the whole repository, so there is nothing to collide with.
+  # It also matches the `v*.*.*` trigger filter in the release workflow named
+  # in release.pipeline.definition — checked at migration time.
+  tag_template: null
 
 # ---------------------------------------------------------------------------
 # Release mechanics. Together with the vcs block above, this is the single
@@ -97,42 +220,9 @@ vcs:
 #
 # Note: the release coordinator is a PERSONA the /work-release command adopts
 # for the session. It is not a sub-agent and must never be spawned as one.
-# When vcs.owner is 'command', it is that persona doing the VCS work.
+# When a vcs.stages entry is 'agent', it is that persona doing the work.
 # ---------------------------------------------------------------------------
 release:
-  # semver-v (v1.2.3) | semver (1.2.3) | date (2026.07.27) | none
-  version_scheme: semver-v
-  # Who assigns the version number: human | command
-  version_owner: command
-
-  # The file holding the version of record, or null when the version lives only
-  # in a VCS tag. Commands read the current version from here and, when
-  # version_owner is 'command', write the new one to it.
-  #
-  # Recognised shapes: package.json (.version), pyproject.toml
-  # ([project].version or [tool.poetry].version), Cargo.toml ([package].version),
-  # *.csproj (<Version>), a plain VERSION file (whole contents).
-  #
-  # REQUIRED when vcs.system is none — without a tag there is nowhere else for
-  # the version to live.
-  version_file: package.json
-
-  # Additional version-bearing files kept in step with version_file.
-  #
-  # A workspace monorepo has one manifest per member (frontend/package.json,
-  # backend/package.json, shared/package.json, ...). Whether those track the
-  # root version or hold their own is a real per-project decision, so it is
-  # declared rather than guessed:
-  #
-  #   - list them here to have every release write the same version to each;
-  #   - leave the list empty to have releases touch ONLY version_file.
-  #
-  # An empty list is a deliberate statement that member versions are
-  # independent or unused, not an oversight. /work-init lists every
-  # version-bearing file it finds and asks which belong here — it must never
-  # assume that finding one manifest means there is only one.
-  version_mirrors: [backend/package.json, frontend/package.json, shared/package.json]
-
   # required | optional | none
   # Treat as required when vcs.system is none: it is then the only narrative
   # record of what shipped.

@@ -1,43 +1,8 @@
 model_version: 1
 source: planningV3 migration
 items:
-- id: PM1-CLOSEOUT
-  source_request: legacy-migration
-  legacy_ids:
-  - PM1-01
-  - PM1-03
-  - PM1-05
-  title: Confirm shipped profile and preferences baseline stays closed
-  type: audit
-  capability: profile-preferences
-  phase: 1
-  status: done
-  priority: low
-  confidence: high
-  summary: Phase 1 post-MVP work is already implemented and tested; keep one concise done marker so agents do not reopen it.
-  acceptance:
-  - Password change preserves the current session while revoking other refresh tokens.
-  - Preference updates deep-merge nested settings rather than overwriting them wholesale.
-  - Preference state is cached and updated consistently in the frontend.
-  remaining:
-  - No active delivery work; reopen only if regressions appear.
-  dependencies: []
-  suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - backend/src/services/auth.service.ts
-    - frontend/src/hooks/usePreferences.ts
-    tests:
-    - backend/test/auth.test.mjs
-    - frontend/test/preferences.behavior.test.tsx
-    notes:
-    - Verified as done in the current planning audit and retained only to prevent duplicate reopenings.
 - id: PM4-CLOSEOUT
-  source_request: legacy-migration
+  source_request: null
   legacy_ids:
   - PM4-01
   - PM4-02
@@ -52,10 +17,10 @@ items:
   title: Preserve the shipped configuration lifecycle and template baseline
   type: audit
   capability: config-lifecycle-templates
-  phase: 4
   status: done
+  done_in: ['v1.2.0']
   priority: low
-  confidence: medium-high
+  confidence: medium
   summary: Draft configuration versions, publish flows, import and export, and template operations appear feature-complete
     enough to treat Phase 4 as closed for normal planning.
   acceptance:
@@ -66,10 +31,10 @@ items:
   - Reopen only if later field or scoring work exposes a concrete gap.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
   evidence:
     code:
     - backend/src/services/configVersion.service.ts
@@ -81,13 +46,15 @@ items:
     - docs/product/prd.md
     notes:
     - Retained as a done baseline because later work depends on it heavily.
+    - >-
+        Provenance: migrated from the legacy planning system (previously recorded as source_request
+        "legacy-migration").
 - id: PM4-TEMPLATE-EXTENSIONS
   source_request: REQ-012
   legacy_ids: []
   title: Extend the template library beyond the shipped baseline
   type: feature
   capability: config-lifecycle-templates
-  phase: 4
   status: deferred
   priority: medium
   confidence: medium
@@ -108,10 +75,10 @@ items:
   dependencies:
   - PM4-CLOSEOUT
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
   evidence:
     code:
     - backend/src/services/template.service.ts
@@ -136,7 +103,6 @@ items:
   title: Close the remaining person-assignment admin and audit gaps
   type: spike
   capability: person-identity
-  phase: 2
   status: ready
   priority: medium
   confidence: medium
@@ -170,8 +136,9 @@ items:
     - The backend route evidence now exists in Planning V3; old planning is only needed for optional historical context.
     - Current code exposes `/persons/unresolved` for System Admins, but no dedicated unresolved-person frontend admin view
       was found in the audit.
-  notes: 'PM2-05 (email-only owner access permission fix) shipped in v1.9.0. Remaining scope: admin UI for unresolved person
-    references and assignment audit gap coverage.'
+    - >-
+        PM2-05 (email-only owner access permission fix) shipped in v1.9.0. Remaining scope: admin UI for
+        unresolved person references and assignment audit gap coverage.
 - id: PM11-01
   source_request: REQ-001
   legacy_ids:
@@ -182,7 +149,6 @@ items:
   title: Ship personal saved views and tighten reporting-export foundations
   type: feature
   capability: reporting-saved-views
-  phase: 11
   status: done
   priority: high
   confidence: medium
@@ -202,11 +168,10 @@ items:
   dependencies:
   - PM4-CLOSEOUT
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  - Release Manager
+  - product-manager
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/savedViews.service.ts
@@ -233,7 +198,6 @@ items:
   title: Finish and verify API key management baseline
   type: security
   capability: api-keys
-  phase: 13
   status: done
   priority: high
   confidence: medium
@@ -252,11 +216,10 @@ items:
   - Verify release docs and UX copy align with the accepted inherit-scope design.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  - Release Manager
+  - product-manager
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/apiKeys.service.ts
@@ -294,7 +257,6 @@ items:
   title: Harden API key authentication and deactivated-user enforcement
   type: security
   capability: api-keys
-  phase: 13
   status: needs-refinement
   priority: high
   confidence: medium
@@ -313,10 +275,9 @@ items:
   dependencies:
   - PM13-01
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Test Engineer
-  - Release Manager
+  - product-manager
+  - backend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/apiKeys.service.ts
@@ -344,7 +305,6 @@ items:
   title: Finish the advanced custom-field model
   type: feature
   capability: advanced-fields
-  phase: 5
   status: done
   done_in:
   - v1.7.0
@@ -365,11 +325,11 @@ items:
   dependencies:
   - PM4-CLOSEOUT
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/customFields.service.ts
@@ -403,9 +363,8 @@ items:
   title: Implement configurable risk score formula engine
   type: feature
   capability: advanced-scoring
-  phase: 6
   status: done
-  done_in: v1.17.0
+  done_in: ['v1.17.0']
   priority: high
   confidence: medium
   summary: Replace the hardcoded Likelihood × Impact formula with a per-register configurable scoring formula. Register Admins
@@ -471,7 +430,6 @@ items:
   title: Add inherent and residual risk scoring mode
   type: feature
   capability: advanced-scoring
-  phase: 6
   status: deferred
   priority: high
   confidence: medium
@@ -517,7 +475,6 @@ items:
   title: Use child actions as control evidence for residual risk suggestions
   type: feature
   capability: advanced-scoring
-  phase: 6
   status: ready
   priority: medium
   confidence: medium
@@ -543,11 +500,11 @@ items:
   - PM6-CORE
   - PM7-CORE
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/scoring.service.ts
@@ -581,7 +538,6 @@ items:
   title: Introduce child-record response actions
   type: feature
   capability: child-actions
-  phase: 7
   status: done
   done_in:
   - v1.19.0
@@ -603,11 +559,11 @@ items:
   - PM5-CORE
   - PM6-SCORING
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/prisma/schema.prisma
@@ -632,7 +588,6 @@ items:
   title: Risk review completeness — comment mode, attestation text UI, and review history panel
   type: feature
   capability: advanced-reviews
-  phase: 8
   status: blocked
   blocked_on: DRAFT-UNIFIED (unified draft system — prerequisite per SPIKE-008; also requires createRegisterFromTemplate data fidelity fix and Template Compare modal fix before re-proposing)
   priority: high
@@ -719,7 +674,6 @@ items:
   title: Add notification and reminder infrastructure
   type: feature
   capability: notifications
-  phase: 9
   status: deferred
   priority: medium
   confidence: medium
@@ -737,10 +691,10 @@ items:
   - PM7-CORE
   - PM8-CORE
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/config/featureFlags.ts
@@ -767,7 +721,6 @@ items:
   title: Finish practical data portability beyond the current config and CSV exports
   type: improvement
   capability: import-export
-  phase: 10
   status: ready
   priority: medium
   confidence: medium
@@ -787,10 +740,10 @@ items:
   - PM6-CORE
   - PM4-CLOSEOUT
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/export.service.ts
@@ -803,8 +756,9 @@ items:
     notes:
     - Old phase docs may still help with CSV import edge cases, but they should not be required for normal understanding.
     - v1.9.0 personal saved views do not make CSV export saved-view-column-aware.
-  notes: 'PM10-10 (audit log CSV export) shipped in v1.9.0. Remaining scope: CSV import, advanced export polish, broader portability
-    workflows.'
+    - >-
+        PM10-10 (audit log CSV export) shipped in v1.9.0. Remaining scope: CSV import, advanced export
+        polish, broader portability workflows.
 - id: PM12-CORE
   source_request: REQ-008
   legacy_ids:
@@ -814,7 +768,6 @@ items:
   title: Implement risk attachments — first slice on approved storage model
   type: feature
   capability: attachments-evidence
-  phase: 12
   status: ready
   priority: medium
   confidence: high
@@ -879,7 +832,6 @@ items:
   - backend-developer
   - frontend-developer
   - test-engineer
-  - release-manager
   evidence:
     code:
     - backend/prisma/schema.prisma
@@ -911,7 +863,6 @@ items:
   title: Add enterprise authentication and recovery foundations
   type: feature
   capability: enterprise-auth
-  phase: 3
   status: deferred
   priority: medium
   confidence: medium
@@ -927,11 +878,11 @@ items:
   - Choose the first supported auth pattern explicitly instead of leaving scope abstract.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/config/featureFlags.ts
@@ -941,816 +892,11 @@ items:
     - docs/product/prd.md
     notes:
     - Still depends primarily on product intent and should remain deferred until there is a concrete need.
-- id: MAINT-001
-  source_request: REQ-011
-  legacy_ids: []
-  title: Upgrade toolchain to Node 24 LTS and tighten package engine constraint
-  type: maintenance
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in:
-  - v1.16.0
-  priority: low
-  confidence: medium
-  summary: Node 24 became LTS in October 2025 and is the current LTS line as of mid-2026. The project toolchain (.nvmrc,
-    GitHub Actions, Dockerfile) and the root package.json engines field should be updated to target Node 24. The Principal
-    Architect should confirm no breaking changes before the devops-engineer executes the upgrade.
-  acceptance:
-  - Root package.json engines.node is set to >=24.
-  - .nvmrc, GitHub Actions CI, and Dockerfile are updated to Node 24.
-  - Any workspace package.json files with their own engines.node field are updated to match.
-  - The change is verified not to break CI, local install, or Docker build.
-  - No version pinning to a non-LTS Node version.
-  remaining:
-  - Principal Architect to confirm Node 24 compatibility — check for any known breaking changes affecting current dependencies.
-  - Confirm whether any workspace packages (backend/package.json, frontend/package.json) carry their own engines fields that
-    also need updating.
-  - Verify CI and Docker continue to pass after the change.
-  dependencies: []
-  suggested_agents:
-  - principal-architect
-  - devops-engineer
-  evidence:
-    code:
-    - package.json
-    - .nvmrc
-    - .github/workflows
-    - Dockerfile
-    notes:
-    - Node 24 is the current LTS line (LTS from October 2025). Node 22 remains Active LTS but Node 24 is the correct upgrade target.
-    - The engines constraint change alone does not prevent operators running older Node in production, but it signals the supported
-      minimum clearly and lets package managers warn on mismatch.
-    - PM note: this change is potentially disruptive. It should be isolated in its own dedicated release — do not bundle with
-      other work items. PA must confirm compatibility before the devops-engineer proceeds.
-- id: BUG-001
-  source_issue: '#100'
-  title: Keep main audit screen search facets on one line at normal desktop width
-  type: bug
-  capability: audit-log-ui
-  phase: null
-  status: done
-  done_in:
-  - v1.9.1
-  priority: medium
-  confidence: medium
-  summary: The system audit page currently wraps the search facets onto two lines, leaving the Object type filter isolated
-    on its own row instead of preserving a single-row filter bar.
-  observed_behaviour:
-  - On the main audit screen, the Search, Actor, IP Address, From date, To date, Action, and Object type facets do not fit
-    on one row.
-  - The Object type facet wraps onto a second line on its own, making the filter bar look broken and less scannable.
-  expected_behaviour:
-  - On the main audit screen, the core search facets should sit on one line at the intended normal desktop layout width.
-  - The filter bar should preserve readable labels and usable inputs without isolating Object type on a separate row.
-  acceptance:
-  - The main audit screen keeps Search, Actor, IP Address, From date, To date, Action, and Object type on a single row at
-    the agreed standard desktop breakpoint.
-  - The layout remains usable and readable without overlapping labels, clipped inputs, or inaccessible controls.
-  - Any responsive fallback for narrower widths is intentional rather than leaving a single facet stranded on its own row.
-  remaining:
-  - Inspect the current audit filter layout and width allocation before implementation so the fix does not regress smaller
-    screens.
-  - Add or update frontend coverage if the audit filter layout has an existing practical test seam.
-  dependencies: []
-  suggested_agents:
-  - Product Manager
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/features/audit/AuditFilters.tsx
-    - frontend/src/features/audit/AuditLogPanel.tsx
-    - frontend/src/pages/AuditPage.tsx
-    tests:
-    - frontend/test/audit.test.mjs
-    docs: []
-    notes:
-    - Source issue is a direct user-reported UI defect rather than a legacy planning migration item.
-    - The issue text is clear enough to refine, but it does not yet specify an exact viewport width; implementation should
-      confirm the intended desktop baseline first.
-    - "User-confirmed breakpoint: wrapping observed at 1728 x 1117 (MacBook Pro default resolution). This is the target desktop
-      width the fix must handle."
-- id: QOL-001
-  source_request: REQ-015
-  title: Add password strength meter to change password form on /profile
-  type: improvement
-  capability: profile-preferences
-  phase: null
-  status: done
-  done_in:
-  - v1.10.0
-  priority: low
-  confidence: high
-  summary: The new password field on the /profile change password form gives no feedback on password strength. Adding a
-    live strength meter below the new password field would help users choose stronger passwords without requiring server-side
-    policy enforcement.
-  acceptance:
-  - A password strength meter appears below the new-password field and updates live as the user types.
-  - The meter covers at least weak / fair / strong signal — exact bands to be confirmed during implementation.
-  - The meter is purely informational by default; the form submits regardless of score unless a minimum policy is explicitly
-    added.
-  - No regression to the existing change password flow or tests.
-  remaining:
-  - Check whether Mantine provides a built-in strength meter component or whether a lightweight third-party library
-    (e.g. zxcvbn) should be used. Prefer staying within the existing Mantine component set if coverage is sufficient.
-  - Decide whether to enforce a minimum strength score at submit time or keep it advisory only.
-  - Confirm the visual placement — between the new password and confirm password fields is the natural location.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/ProfilePage.tsx
-    tests:
-    - frontend/test/preferences.behavior.test.tsx
-    docs: []
-    notes:
-    - The change password form currently uses three PasswordInput fields (current, new, confirm) with no strength feedback.
-    - Mantine docs include a password strength example using Progress and Popover — this pattern can be adapted without
-      adding a new dependency if the team prefers to avoid zxcvbn.
-    - This can be bundled with UI-001 (profile page TLC) or shipped independently as it is a self-contained addition.
-- id: UI-001
-  source_request: REQ-014
-  title: Polish /profile page — align card styling and fix API keys table overflow
-  type: improvement
-  capability: profile-preferences
-  phase: null
-  status: done
-  done_in:
-  - v1.10.0
-  priority: medium
-  confidence: high
-  summary: The /profile page is the only page in the frontend that uses Mantine Card components. The cards render with
-    a grey background that does not match the plain Stack-based layout used everywhere else in the app. Both issues should
-    be fixed together in a single TLC pass — correct the card appearance to match the app's design language, and fix the
-    API keys table which overflows its card and produces a horizontal scrollbar at normal desktop widths.
-  observed_behaviour:
-  - Cards on /profile render with a grey background, visually inconsistent with the rest of the app.
-  - The API keys table is wider than the card content area and shows a horizontal scrollbar at normal desktop widths.
-  expected_behaviour:
-  - Cards on /profile match the app's design system — either styled correctly with the right Mantine props, or replaced
-    with the plain layout pattern used elsewhere.
-  - The API keys table fits within its container without a horizontal scrollbar at standard desktop widths.
-  acceptance:
-  - The /profile page visually matches the overall app design — no grey background card inconsistency.
-  - The API keys table renders without a horizontal scrollbar at the standard desktop breakpoint (1728x1117).
-  - All profile page functionality is unaffected — name update, password change, API key generate/revoke, colour scheme preference.
-  - No regression to existing frontend tests for profile or API keys.
-  remaining:
-  - Decide whether to keep cards (with corrected styling props) or switch to the plain Stack pattern used on other pages.
-  - Investigate the correct Mantine Card props or theme tokens to match the app's existing design system before implementing.
-  - For the table overflow — evaluate column sizing, reduce minWidth on Table.ScrollContainer, or widen the page constraint (maw=520
-    on the outer Stack may itself be too narrow given the six-column table).
-  - Consider whether the six table columns (Name, Prefix, Created, Last used, Status, Revoke) can be rationalised to fit
-    the card width more naturally, or whether the page width constraint should simply be relaxed for this section.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/ProfilePage.tsx
-    tests:
-    - frontend/test/apiKeys.behavior.test.tsx
-    - frontend/test/apiKeys.test.mjs
-    - frontend/test/preferences.behavior.test.tsx
-    docs: []
-    notes:
-    - ProfilePage.tsx is the only file in the entire frontend that uses Mantine Card — confirmed by grep across all .tsx files.
-      All other pages use plain Stack layouts.
-    - The table overflow root cause is the combination of outer Stack maw=520, Card padding="lg" (~16px per side), and
-      Table.ScrollContainer minWidth=480. Six columns including a Code-styled prefix cell push the table wider than the
-      ~488px available content width.
-    - Card withBorder and padding="lg" are the current props — the grey background is likely the default Mantine Card
-      background colour not matching the page/app surface colour. Check theme overrides or use a transparent/subtle variant.
-- id: BUG-002
-  source_request: REQ-013
-  title: Fix SavedViewsPanel crash on /registers — views.map is not a function
-  type: bug
-  capability: reporting-saved-views
-  phase: null
-  status: done
-  done_in:
-  - v1.10.0
-  priority: critical
-  confidence: high
-  summary: SavedViewsPanel.tsx calls .map() on `views` at line 85, but `views` is not an array when the crash occurs. The
-    /registers page throws an unhandled application error and becomes completely unusable. Root cause is either a missing
-    array guard around the .map() call, an API response that returns a non-array value (object, null, or error shape), or
-    a race condition where `views` is not yet initialised before the render. Fix must add a defensive guard at minimum, and
-    confirm the API response contract matches the expected array type.
-  observed_behaviour:
-  - Navigating to /registers throws "views.map is not a function" at SavedViewsPanel.tsx:85.
-  - The entire page becomes unusable due to the unhandled React error boundary.
-  expected_behaviour:
-  - SavedViewsPanel renders without error when saved views are available, empty, or still loading.
-  - If the API returns an unexpected shape, the panel degrades gracefully rather than crashing.
-  acceptance:
-  - SavedViewsPanel does not call .map() on a non-array value under any conditions (loading, empty, error, or populated).
-  - The fix is verified against both the empty-views state and the normal populated-views state.
-  - No regression to the SavedViewsPanel feature behaviour (create, apply, delete saved views) is introduced.
-  - Frontend tests cover the crash scenario (null/undefined/non-array views response).
-  remaining:
-  - Inspect SavedViewsPanel.tsx line 85 and the surrounding views fetch/initialisation code to confirm root cause.
-  - Check the savedViews API client and route handler to confirm what shape is returned on error or empty state.
-  - Add a defensive Array.isArray guard or initialise views as [] to prevent the crash.
-  - Add or update frontend tests to cover the non-array views case.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/SavedViewsPanel.tsx
-    - frontend/src/api/savedViews.api.ts
-    tests:
-    - frontend/test/savedViews.behavior.test.tsx
-    - frontend/test/savedViews.test.mjs
-    docs: []
-    notes:
-    - Stack trace: SavedViewsPanel@SavedViewsPanel.tsx:85 — confirmed crash point is the .map() call on views.
-    - This is a regression introduced with the v1.9.0 saved-views feature (PM11-01). The feature shipped but the non-array
-      edge case was not caught in testing.
-    - Fix is likely small (one guard or initialiser) but must be verified against the full saved-views UX to avoid silent regressions.
-- id: BUG-003
-  source_request: REQ-029
-  title: Fix "Save View" broken on register — columns type mismatch
-  type: bug
-  capability: reporting-saved-views
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: critical
-  confidence: high
-  summary: The Save View feature on the register page is completely broken. Attempting to save a view throws a validation
-    error. Root cause is a type mismatch — the API expects `columns` as an array but the frontend is sending an object.
-  observed_behaviour:
-  - Saving a view throws "Invalid request body — Columns: Invalid input: expected array, received object".
-  - The Save View feature is completely unusable.
-  expected_behaviour:
-  - Users can save a view successfully with the current filter, sort, and column state persisted.
-  acceptance:
-  - Saving a view from the register page sends `columns` as an array in the request body.
-  - Save View succeeds and the saved view appears in the views list without error.
-  - No regression to the view list, apply, update, or delete flows.
-  - Frontend tests cover the save-view request serialisation to confirm columns is always an array.
-  remaining:
-  - Inspect the frontend view-save request builder to find where columns is serialised as an object instead of an array.
-  - Fix the serialisation bug and confirm the API contract is satisfied.
-  - Add or update a test to catch this serialisation path.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/SavedViewsPanel.tsx
-    - frontend/src/api/savedViews.api.ts
-    tests:
-    - frontend/test/savedViews.behavior.test.tsx
-    - frontend/test/savedViews.test.mjs
-    notes:
-    - Exact error reported by user — confirms API schema validation is working and the bug is on the frontend serialisation side.
-    - Columns state in Mantine Table is likely a Record/object shape that needs converting to an array before dispatch.
-- id: BUG-004
-  source_request: REQ-026
-  title: Fix calculated field dark mode styling in risk modals
-  type: bug
-  capability: advanced-fields
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: high
-  confidence: high
-  summary: Calculated fields are unreadable in dark mode in both the add risk and edit risk modals. They appear to use
-    hardcoded or theme-unaware colours that do not adapt to the dark colour scheme.
-  observed_behaviour:
-  - Calculated fields in the add risk modal are illegible in dark mode.
-  - Calculated fields in the edit risk modal are illegible in dark mode.
-  expected_behaviour:
-  - Calculated field values are readable in both light and dark mode in all risk modals.
-  acceptance:
-  - Calculated fields render with legible colours in both light and dark mode in the add and edit risk modals.
-  - No hardcoded colour values remain in the calculated field display component.
-  - No regression to light mode rendering.
-  remaining:
-  - Inspect the calculated field display component for hardcoded or non-adaptive colour usage.
-  - Replace with Mantine theme tokens or CSS variables that adapt to colour scheme.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskFormModal.tsx
-    - frontend/src/features/configuration/CustomFieldModal.tsx
-    tests:
-    - frontend/test/configuration.test.mjs
-    notes:
-    - Confirmed in both add and edit risk modals — likely the same display component shared between them.
-    - Mantine provides `useMantineColorScheme` and CSS variables for theme-aware styling; prefer that approach over conditional checks.
-- id: BUG-005
-  source_request: REQ-023
-  title: Hide Review button on /my-risks when reviews are not required
-  type: bug
-  capability: advanced-reviews
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: high
-  confidence: high
-  summary: The /my-risks table shows a Review button for all risks regardless of whether the parent register has reviews
-    enabled. Risks with a review status of "not required" should not show this button.
-  observed_behaviour:
-  - The Review button appears on /my-risks for risks where the register has reviews disabled (review status "not required").
-  expected_behaviour:
-  - The Review button is hidden for risks where review status is "not required".
-  acceptance:
-  - Risks with review status "not required" do not show a Review button in the /my-risks table.
-  - Risks with an active review requirement continue to show the Review button.
-  - No regression to the review flow for risks where reviews are required.
-  remaining:
-  - Confirm how the /my-risks table receives review status per risk — check if the API already returns review status or if
-    an additional field is needed.
-  - Add conditional rendering in the /my-risks row based on review status.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/MyRisksPage.tsx
-    tests:
-    - frontend/test/myRisks.test.mjs
-    notes:
-    - The condition to check is whether the register for that risk has reviews disabled, which surfaces as review status
-      "not required" on the risk record.
-- id: BUG-006
-  source_request: REQ-030
-  title: Align "Views" dropdown styling with Columns and Export CSV controls
-  type: bug
-  capability: reporting-saved-views
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: high
-  confidence: high
-  summary: On the /registers/<registerID> page the Views dropdown is styled differently from the adjacent Columns dropdown
-    and Export CSV button. All three controls should share a consistent style.
-  observed_behaviour:
-  - The Views dropdown has a different visual style from Columns and Export CSV on the register page toolbar.
-  expected_behaviour:
-  - Views, Columns, and Export CSV controls share a consistent button/dropdown style on the register page.
-  acceptance:
-  - The Views dropdown matches the Columns dropdown and Export CSV button in variant, size, and colour.
-  - No regression to Views, Columns, or Export CSV functionality.
-  remaining:
-  - Compare the Mantine component variant/size props used for each control and align Views to match.
-  dependencies:
-  - BUG-003
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/pages/RegisterPage.tsx
-    - frontend/src/features/risks/SavedViewsPanel.tsx
-    tests: []
-    notes:
-    - Depends on BUG-003 being fixed first so the Views feature is usable — style fix is low value while the underlying feature
-      is broken.
-- id: BUG-007
-  source_request: REQ-018
-  title: Fix /audit page Export CSV button styling and layout
-  type: bug
-  capability: audit-log-ui
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: high
-  confidence: high
-  summary: The Export CSV button on /audit is styled incorrectly and positioned below the page title rather than inline
-    with it. It should use the same blue button style and title-row layout as the equivalent button on the register page.
-  observed_behaviour:
-  - Export CSV on /audit uses a different style from the register page equivalent.
-  - The button is not positioned on the same line as the page title.
-  expected_behaviour:
-  - Export CSV on /audit uses the same variant/colour as the register page Export CSV button.
-  - The button sits inline with the page title, matching the register page layout pattern.
-  acceptance:
-  - Export CSV on /audit matches the button variant, colour, and title-row position of the register page Export CSV button.
-  - No regression to the audit export functionality.
-  remaining:
-  - Reference the register page layout for the title-row button pattern.
-  - Update AuditPage.tsx to match.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/pages/AuditPage.tsx
-    - frontend/src/pages/RegisterPage.tsx
-    tests: []
-    notes:
-    - Use the register page as the reference for both the button variant/colour and the title-row layout.
-- id: BUG-008
-  source_request: REQ-019
-  title: Remove icon from /help page header
-  type: bug
-  capability: help-content
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: medium
-  confidence: high
-  summary: The /help page displays an icon before the page heading text. No other page in the app follows this pattern.
-    The icon should be removed for visual consistency.
-  observed_behaviour:
-  - The /help page header renders an icon before the "Help" heading.
-  expected_behaviour:
-  - The /help page header matches all other page headers — no leading icon.
-  acceptance:
-  - No icon is rendered before the /help page heading.
-  - No other page layout is affected.
-  remaining:
-  - Remove the icon element from the /help page header component.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/pages/HelpPage.tsx
-    tests: []
-    notes:
-    - One-line change. Can be batched with other small UI polish items.
-- id: UI-002
-  source_request: REQ-024
-  legacy_ids:
-  - REQ-025
-  title: Show risk ID and title in sticky risk modal headers
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in:
-  - v1.12.0
-  priority: medium
-  confidence: high
-  summary: The risk view modal shows "Risk Detail" as its sticky header text, and the edit risk modal shows a generic
-    heading. Both should show the risk ID and title so users retain context while scrolling. In the edit modal the title
-    display should mirror the live value of the title input field.
-  acceptance:
-  - The risk view modal sticky header shows the risk ID and title instead of "Risk Detail".
-  - The edit risk modal sticky header shows the risk ID and the live current value of the title field, updating on every
-    keystroke.
-  - No regression to modal layout, scroll behaviour, or submit/cancel flows.
-  remaining:
-  - Confirm the current sticky header implementation in both modals before implementing.
-  - For the edit modal, determine the best approach to mirror the title input value (e.g. controlled state) without introducing
-    layout issues.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskFormModal.tsx
-    - frontend/src/features/risks/RiskDetailModal.tsx
-    tests: []
-    notes:
-    - REQ-025 (edit modal) and REQ-024 (view modal) are closely related and should be implemented together.
-    - The header is already sticky so no layout changes are needed — this is purely a content change.
-- id: UI-003
-  source_request: REQ-037
-  title: Remove redundant "Show closed" checkbox from register page
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: medium
-  confidence: high
-  summary: The /registers/<registerID> page has both a State dropdown filter (with Open, Closed, Draft options) and a
-    separate Show closed checkbox. The checkbox is redundant and should be removed to simplify the filter bar.
-  acceptance:
-  - The Show closed checkbox is removed from the register page filter bar.
-  - Closed risks remain accessible via the State dropdown filter.
-  - No regression to the register page filter behaviour or any existing filter tests.
-  remaining:
-  - Confirm that removing the checkbox does not break any filter state persistence or URL param logic that uses it.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/RegisterPage.tsx
-    tests:
-    - frontend/test/risks.test.mjs
-    notes:
-    - Small change. Verify that the State dropdown already handles closed risks correctly before removing the checkbox.
-- id: UI-004
-  source_request: REQ-022
-  title: Open edit and view modals in-place on /my-risks page
-  type: improvement
-  capability: my-risks-ui
-  phase: null
-  status: done
-  done_in:
-  - v1.12.0
-  priority: medium
-  confidence: medium
-  summary: Clicking Edit or a risk ID on /my-risks currently navigates to /registers/<registerID> and opens the modal
-    there. Both actions should open the modal directly on the /my-risks page to keep the user in context.
-  acceptance:
-  - Clicking a risk ID on /my-risks opens the risk view modal on the /my-risks page without navigating away.
-  - Clicking Edit on /my-risks opens the risk edit modal on the /my-risks page without navigating away.
-  - After the modal is dismissed or submitted, the user remains on /my-risks with the table refreshed if needed.
-  - No regression to the modal content or submit/cancel behaviour.
-  remaining:
-  - Confirm the risk view and edit modals are generic enough to be mounted from /my-risks or if they assume register page context.
-  - Wire up the modal open state on MyRisksPage.tsx.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/MyRisksPage.tsx
-    - frontend/src/features/risks/RiskFormModal.tsx
-    - frontend/src/features/risks/RiskDetailModal.tsx
-    tests:
-    - frontend/test/myRisks.test.mjs
-    notes:
-    - Modal content does not need to change — only the trigger location.
-    - Check whether the modal components need a registerId prop or similar to operate in cross-register context.
-- id: UI-005
-  source_request: REQ-035
-  title: Add search and filter capability to /my-risks page
-  type: improvement
-  capability: my-risks-ui
-  phase: null
-  status: done
-  done_in: v1.13.0
-  priority: medium
-  confidence: medium
-  summary: The /my-risks page has no search or filter capability. Standard filters (title/description search, state,
-    risk level, register) should be added consistent with the register page filter pattern. Custom field filters are out
-    of scope for this item due to the cross-register nature of the view.
-  acceptance:
-  - The /my-risks page has a filter bar with at minimum search (title/description), state, risk level, and register filters.
-  - Filters work correctly across risks from different registers.
-  - Custom field filters are explicitly out of scope for this item.
-  - Filter state is applied to the displayed table and clears cleanly on reset.
-  - No regression to existing /my-risks functionality.
-  remaining:
-  - Confirm which filter fields the /my-risks API endpoint supports or can support with query params.
-  - Implement filter bar UI consistent with the register page filter pattern, excluding custom field filters.
-  - Add or update tests for the filter behaviour.
-  dependencies: []
-  suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/MyRisksPage.tsx
-    - backend/src/routes/risks.routes.ts
-    tests:
-    - frontend/test/myRisks.test.mjs
-    - backend/test/risks.test.mjs
-    notes:
-    - Custom field filters are out of scope because /my-risks is a cross-register view and custom fields vary per register.
-    - The backend may need new query parameters to support filtering; check current /my-risks route handler.
-- id: UI-006
-  source_request: REQ-036
-  title: Add Export CSV button to /my-risks page
-  type: improvement
-  capability: my-risks-ui
-  phase: null
-  status: done
-  done_in: v1.13.0
-  priority: medium
-  confidence: high
-  summary: The /my-risks page has no CSV export capability. An Export CSV button should be added, styled and positioned
-    consistently with the equivalent control on the register page.
-  acceptance:
-  - An Export CSV button appears on /my-risks styled and positioned consistently with the register page Export CSV button.
-  - Clicking Export CSV exports the current visible (filtered, if filters are active) set of risks owned by the user across
-    all registers.
-  - Export respects permissions — only risks the user can see are exported.
-  - No regression to existing /my-risks functionality.
-  remaining:
-  - Confirm whether the backend already supports a my-risks CSV export endpoint or if a new endpoint is needed.
-  - Implement button in the /my-risks page title row, matching the register page layout.
-  dependencies: []
-  suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/MyRisksPage.tsx
-    - backend/src/services/export.service.ts
-    tests:
-    - frontend/test/myRisks.test.mjs
-    - backend/test/registers.test.mjs
-    notes:
-    - The export service likely needs a my-risks variant that filters by ownership rather than register scope.
-- id: UI-007
-  source_request: REQ-034
-  title: Make Admin summary widget counts link to pre-filtered register
-  type: improvement
-  capability: homepage
-  phase: null
-  status: done
-  done_in:
-  - v1.12.0
-  priority: medium
-  confidence: medium
-  summary: The Admin summary homepage widget shows open risk counts and overdue review counts per register as plain numbers.
-    Each count should be a clickable link that navigates to the relevant register page with the appropriate filter pre-applied.
-  acceptance:
-  - The open risks count in the Admin summary widget links to /registers/<registerID> with the open risks filter pre-applied.
-  - The overdue reviews count links to /registers/<registerID> with the overdue reviews filter pre-applied.
-  - No regression to the Admin summary widget data display or other homepage widgets.
-  remaining:
-  - Confirm the URL parameter or navigation state mechanism for pre-applying filters on the register page.
-  - Implement link behaviour on both the open risks and overdue reviews columns.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/features/homepage
-    - frontend/src/pages/RegisterPage.tsx
-    tests: []
-    notes:
-    - Requires a mechanism to pass filter state into the register page — check if the register page already supports URL
-      params for filter state, as this would be the cleanest approach.
-- id: UI-008
-  source_request: REQ-033
-  title: Add inline review action to "My overdue risks" homepage widget
-  type: improvement
-  capability: homepage
-  phase: null
-  status: done
-  done_in:
-  - v1.12.0
-  priority: medium
-  confidence: medium
-  summary: The My overdue risks homepage widget should include a Review button per risk that opens the review modal directly
-    on the homepage without navigating away. After submission the widget refreshes.
-  acceptance:
-  - Each risk in the My overdue risks widget shows a Review button.
-  - Clicking Review opens the review modal in-place on the homepage.
-  - After the review is submitted the widget data refreshes to reflect the updated state.
-  - No regression to the review modal content or submit flow.
-  remaining:
-  - Confirm the review modal is mountable from a homepage context (not tied to the register page).
-  - Implement Review button and modal wiring in the homepage widget.
-  dependencies:
-  - UI-004
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/features/homepage
-    - frontend/src/features/risks/ReviewModal.tsx
-    tests: []
-    notes:
-    - Related to UI-004 (in-place modals on /my-risks). Confirm the modal portability pattern is consistent between the
-      two use cases.
-    - Blocked by UI-004 in a soft sense — if the modal requires register context to function, that constraint must be resolved
-      first.
-- id: UI-009
-  source_request: REQ-028
-  title: Move "Configuration is version-controlled" alert above action buttons
-  type: improvement
-  capability: config-lifecycle-templates
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: medium
-  confidence: high
-  summary: On the register configuration page, the "Configuration is version-controlled" alert box appears below the
-    action button group. It should be positioned above the action buttons so the contextual information is presented before
-    the actions it relates to.
-  acceptance:
-  - The version-controlled alert is rendered above the action button group on the configuration page.
-  - No regression to the configuration page layout or functionality.
-  remaining:
-  - Locate the alert and button group in the configuration page component and reorder them.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/pages/RegisterConfigPage.tsx
-    tests: []
-    notes:
-    - One-line reorder. Can be batched with other small config page polish items.
-- id: UI-010
-  source_request: REQ-027
-  title: Use Mantine Fieldset on register permissions page for visual consistency
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.11.0
-  priority: medium
-  confidence: high
-  summary: The register permissions page does not use Mantine Fieldset for grouping its content, unlike the configuration
-    settings page and other configuration sub-pages. The permissions page should be updated to match.
-  acceptance:
-  - The register permissions page uses Mantine Fieldset for content grouping, consistent with the configuration settings
-    page pattern.
-  - No regression to permissions page functionality or existing tests.
-  remaining:
-  - Reference the configuration settings page and sub-pages for the Fieldset pattern to follow.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/pages/RegisterPermissionsPage.tsx
-    - frontend/src/pages/RegisterConfigPage.tsx
-    tests: []
-    notes:
-    - Small UI-consistency change. Can be batched with other small polish items.
-- id: UI-011
-  source_request: REQ-020
-  title: Add descriptive helper text beneath page titles across the app
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.15.0
-  priority: medium
-  confidence: medium
-  summary: Only the /help page displays a subtitle beneath its title. All pages should display short descriptive helper
-    text to improve user orientation. The /api-keys alert box content should be repurposed as helper text. On register
-    pages the register description field should serve as the helper text.
-  acceptance:
-  - All pages show a short descriptive subtitle beneath the page title, following the /help page pattern.
-  - The /api-keys page uses its current alert box content as helper text rather than an alert.
-  - The /registers/<registerID> page uses the register description as its helper text.
-  - No regression to any page layout or functionality.
-  remaining:
-  - Audit all pages to identify which need helper text authored vs. which already have it or use dynamic content.
-  - Author helper text for each page without dynamic content.
-  - Convert the /api-keys alert to helper text format.
-  - Wire the register description field into the register page subtitle.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/pages/HelpPage.tsx
-    - frontend/src/pages/ApiKeysPage.tsx
-    - frontend/src/pages/RegisterPage.tsx
-    tests: []
-    notes:
-    - The /help page subtitle is the reference pattern. All other pages should adopt the same layout component.
-    - This item touches many pages — implementation should be systematic but each individual change is small.
-- id: UI-012
-  source_request: REQ-016
-  title: Use date picker in Create API Key modal
-  type: improvement
-  capability: api-keys
-  phase: null
-  status: done
-  done_in: v1.13.0
-  priority: medium
-  confidence: high
-  summary: The Create API Key modal uses a plain text input for the expiry date field instead of a proper date picker.
-    The audit log search filter already implements a date picker component that can be reused.
-  acceptance:
-  - The Create API Key modal expiry date field uses a date picker component matching the audit log search filter pattern.
-  - Users cannot easily enter invalid dates.
-  - No regression to API key creation functionality or existing tests.
-  remaining:
-  - Identify and extract (or reference) the date picker component used in the audit log search filter.
-  - Replace the plain text input in the Create API Key modal with the date picker.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/ApiKeysPage.tsx
-    - frontend/src/features/audit/AuditFilters.tsx
-    tests:
-    - frontend/test/apiKeys.behavior.test.tsx
-    notes:
-    - Reuse the existing date picker component to avoid adding a new dependency.
 - id: UI-013
   source_request: REQ-021
   title: Overhaul the homepage — post-MVP rework
   type: feature
   capability: homepage
-  phase: null
   status: deferred
   priority: medium
   confidence: low
@@ -1768,9 +914,9 @@ items:
   - Define scope explicitly before adding to a release.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/HomePage.tsx
@@ -1778,329 +924,11 @@ items:
     notes:
     - Deferred until PM has defined scope. UI-007 and UI-008 are ready and can ship independently if the homepage overhaul
       scope is not yet defined.
-- id: MAINT-002
-  source_request: REQ-032
-  title: Externalise /help page content out of source code
-  type: improvement
-  capability: help-content
-  phase: null
-  status: done
-  done_in: v1.15.0
-  priority: medium
-  confidence: medium
-  summary: Help content is currently embedded in source code, making it hard to maintain and update without a code change.
-    Content should be moved to external files (e.g. Markdown) that can be edited independently and support future localisation.
-    Image references must be supported.
-  acceptance:
-  - Help content is stored in external files (e.g. Markdown or similar) rather than inline in HelpPage.tsx.
-  - Images can be included or referenced from help content files.
-  - The help page renders the externalised content correctly.
-  - The structure supports locale variants in future (e.g. locale subdirectories) without requiring architectural rework.
-  - No regression to help page display.
-  remaining:
-  - Choose the file format and serving approach (Markdown files as static assets, JSON, or similar).
-  - Confirm image handling — inline base64, public asset references, or a separate image folder.
-  - Define the directory structure with future locale support in mind.
-  - Migrate existing content to the new format.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/pages/HelpPage.tsx
-    tests: []
-    notes:
-    - REQ-031 (content accuracy audit) should ideally be done after or alongside this change so content is corrected in
-      the new format.
-    - Prefer a simple solution that does not require a new CMS dependency — static Markdown files served as assets is
-      the most pragmatic approach.
-- id: MAINT-003
-  source_request: REQ-031
-  title: Audit and update /help page content for accuracy
-  type: improvement
-  capability: help-content
-  phase: null
-  status: done
-  done_in: v1.15.0
-  priority: medium
-  confidence: high
-  summary: The /help page content has not been kept in sync with the live product. A review pass is needed to identify
-    and correct outdated, inaccurate, or missing information.
-  acceptance:
-  - All help content accurately describes the current state of the live product.
-  - No outdated or incorrect information remains in help content.
-  - Any missing help topics that would benefit users are added.
-  remaining:
-  - Review all help content against the live product systematically.
-  - Correct any inaccurate or outdated sections.
-  - Identify and add any missing topics.
-  dependencies: []
-  suggested_agents:
-  - Product Manager
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/pages/HelpPage.tsx
-    tests: []
-    notes:
-    - Can be done alongside MAINT-002 (externalise content) or after, so corrections are made in the final format.
-    - If done before MAINT-002, corrections will require a subsequent migration when the content is externalised.
-- id: UI-014
-  source_request: REQ-038
-  title: Make Review status field position configurable in risk detail modal
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.15.0
-  priority: medium
-  confidence: medium
-  summary: The Review status row in the risk detail modal appears at a fixed position (end of table) because it is not part
-    of the register's field configuration system. Register admins should be able to control its display position relative
-    to other fields, consistent with how custom fields can be ordered.
-  acceptance:
-  - Register admins can set the display position of the Review status field within the risk detail modal via the field configuration UI.
-  - The configured position is respected when rendering the risk detail modal table.
-  - The Review status field remains non-removable (it is always shown when reviews are enabled); only its position is configurable.
-  - No regression to custom field ordering, review status display, or the field configuration page.
-  remaining:
-  - Confirm how the backend stores field display order for the register configuration and extend it to include the Review status field.
-  - Update the field configuration UI to expose position control for Review status.
-  - Update the risk detail modal renderer to honour the configured position.
-  - Add or update tests for the configuration save and modal render paths.
-  dependencies:
-  - PM5-CORE
-  suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskDetailModal.tsx
-    - frontend/src/pages/RegisterConfigPage.tsx
-    - backend/src/services/registerConfig.service.ts
-    tests:
-    - frontend/test/risks.test.mjs
-    - backend/test/registers.test.mjs
-    notes:
-    - Gap surfaced during v1.12.0 verification — Review status was moved from modal body header to a plain table row, but
-      the ordering gap was explicitly deferred to the backlog rather than fixed in-release.
-    - The Review status field is only relevant when reviews are enabled for the register; behaviour when reviews are disabled
-      (field hidden) does not change.
-- id: UI-015
-  source_request: REQ-047
-  title: Apply rounded corners to left nav hover and active states
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.14.0
-  priority: medium
-  confidence: high
-  summary: The left-hand navigation hover and active highlight does not use rounded corners, inconsistent with the rounded
-    corner treatment used on buttons, frames, and other UI elements throughout the app. Both hover and active states should
-    be updated to use rounded corners to match the app's design language.
-  acceptance:
-  - The left nav hover state uses rounded corners consistent with the app's design language.
-  - The left nav active/selected state uses rounded corners consistent with the app's design language.
-  - No regression to left nav navigation behaviour or other UI elements.
-  remaining:
-  - Locate the left nav component and identify the CSS or Mantine style props controlling the hover/active highlight.
-  - Apply border-radius to match the app's standard rounding token.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/components/AppShell.tsx
-    tests: []
-    notes:
-    - Small styling change. Can be batched with other nav or UI polish items.
-- id: UI-016
-  source_request: REQ-044
-  title: Append ellipsis to API key prefix in audit log
-  type: improvement
-  capability: audit-log-ui
-  phase: null
-  status: done
-  done_in: v1.14.0
-  priority: low
-  confidence: high
-  summary: API key prefixes in the audit log are displayed without a trailing ellipsis (e.g. `cr_live_27e6515b`), which could
-    imply they are the full key. A trailing ellipsis should be added (e.g. `cr_live_27e6515b...`) in both the description
-    text and the affected field column to make clear the value is truncated.
-  acceptance:
-  - API key prefix values in the audit log description text are rendered with a trailing ellipsis.
-  - API key prefix values in the affected field column are rendered with a trailing ellipsis.
-  - No regression to audit log display or functionality.
-  remaining:
-  - Locate where API key prefix values are rendered in the audit log and add the ellipsis.
-  - Confirm both the description text and the affected field column are updated.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  evidence:
-    code:
-    - frontend/src/features/audit/AuditLogPanel.tsx
-    tests: []
-    notes:
-    - Small display change. Can be batched with other audit log or polish items.
-- id: UI-017
-  source_request: REQ-041
-  legacy_ids:
-  - REQ-046
-  title: Restyle action buttons to look like buttons, not links
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.14.0
-  priority: high
-  confidence: medium
-  summary: Action buttons throughout the app — including "Review", "Edit", and "Delete" in the register table, the /templates
-    screen ("Create Register", "Update Config", "Deactivate"), and other locations — have a background matching the page
-    surface, making them look like plain text links rather than interactive controls. Font size is also inconsistent with
-    other buttons. All three issues (background, visual weight, font size) should be resolved with a consistent button style
-    applied globally.
-  acceptance:
-  - Action buttons ("Review", "Edit", "Delete", and similar) are visually distinct from plain text links — they have appropriate
-    visual weight (background, border, or clearly button-like styling).
-  - Button font size is consistent with other buttons in the app.
-  - The /templates screen buttons ("Create Register", "Update Config", "Deactivate") are fixed as part of the same pass.
-  - No regression to button functionality or other styled elements in the app.
-  remaining:
-  - Audit all locations where action buttons currently suffer from these styling issues — register table rows, modals, /templates
-    screen, and any other pages.
-  - Determine the correct Mantine button variant/size to use as the standard for these action buttons.
-  - Apply the style consistently across all identified locations.
-  - Check that dark mode is handled correctly after restyling.
-  dependencies: []
-  suggested_agents:
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/pages/RegisterPage.tsx
-    - frontend/src/pages/TemplatesPage.tsx
-    - frontend/src/features/risks/RiskFormModal.tsx
-    tests:
-    - frontend/test/risks.test.mjs
-    notes:
-    - REQ-046 (button styling on /templates) is consolidated into this item. Both describe the same class of problem.
-    - This change may touch many files. Implementation should be systematic — audit all action button usages before making changes.
-    - Be careful not to restyle buttons that are intentionally plain (e.g. text-only secondary actions that are meant to look like links).
-- id: UI-018
-  source_request: REQ-040
-  title: Paginate Review History table in View Risk modal
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.14.0
-  priority: medium
-  confidence: high
-  summary: The Review History table in the View Risk modal is not paginated. It should be paginated with a page size of 5
-    rows. A hard cap of 100 rows should be enforced server-side, and the UI should display a note explaining that only the
-    most recent 100 review records are shown.
-  acceptance:
-  - The Review History table is paginated with a page size of 5 rows.
-  - A hard cap of 100 review records is enforced server-side; the backend does not return more than 100 records regardless
-    of total count.
-  - The UI displays a note when the cap applies, explaining that only the most recent 100 records are shown.
-  - No regression to review history display or the View Risk modal.
-  remaining:
-  - Confirm whether the review history is fetched inline with the risk detail or as a separate request; adjust accordingly.
-  - Add server-side hard cap of 100 rows to the review history query.
-  - Implement frontend pagination with page size 5 and the explanatory cap note.
-  - Add or update tests for the cap and pagination behaviour.
-  dependencies: []
-  suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskDetailModal.tsx
-    - backend/src/services/reviews.service.ts
-    - backend/src/routes/risks.routes.ts
-    tests:
-    - frontend/test/risks.test.mjs
-    - backend/test/reviews.test.mjs
-    notes:
-    - Related to UI-019 (audit history pagination) — both address the same pattern in the same modal. Can be implemented together.
-- id: UI-019
-  source_request: REQ-039
-  title: Paginate Audit History table in View Risk modal
-  type: improvement
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.14.0
-  priority: medium
-  confidence: high
-  summary: The Audit History table in the View Risk modal is not paginated. As audit records accumulate the list can become
-    very long and slow to render. Pagination should be added with a page size of 5 rows. A hard cap of 100 rows should be
-    enforced server-side, and the UI should display a note explaining that only the most recent 100 audit records are shown.
-  acceptance:
-  - The Audit History table is paginated with a page size of 5 rows.
-  - A hard cap of 100 audit records is enforced server-side; the backend does not return more than 100 records regardless
-    of total count.
-  - The UI displays a note when the cap applies, explaining that only the most recent 100 records are shown.
-  - No regression to audit history display or the View Risk modal.
-  remaining:
-  - Confirm whether risk audit history is fetched inline with the risk detail or as a separate request; adjust accordingly.
-  - Add server-side hard cap of 100 rows to the audit history query.
-  - Implement frontend pagination with page size 5 and the explanatory cap note.
-  - Add or update tests for the cap and pagination behaviour.
-  dependencies: []
-  suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskDetailModal.tsx
-    - backend/src/services/audit.service.ts
-    - backend/src/routes/risks.routes.ts
-    tests:
-    - frontend/test/risks.test.mjs
-    - backend/test/registers.test.mjs
-    notes:
-    - Related to UI-018 (review history pagination) — both address the same pattern in the same modal. Can be implemented together.
-- id: MAINT-005
-  source_request: REQ-045
-  title: Delete legacy docs/planning directory
-  type: maintenance
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in: v1.15.0
-  priority: low
-  confidence: high
-  summary: The docs/planning directory and all its contents are superseded by the planning system under docs/work. It should
-    be deleted to keep the repository clean and remove the risk of agents or humans consulting outdated planning documents.
-  acceptance:
-  - The docs/planning directory and all its contents are deleted from the repository.
-  - No other files in the repository reference docs/planning in a way that breaks after deletion.
-  - The deletion is confirmed in a single clean commit.
-  remaining:
-  - Check for any remaining references to docs/planning in source files, docs, or CI config before deleting.
-  - Delete the directory.
-  dependencies: []
-  suggested_agents:
-  - devops-engineer
-  evidence:
-    code:
-    tests: []
-    notes:
-    - Confirm no active CI jobs, scripts, or agent prompts reference files under docs/planning before deleting.
-    - Can be batched with MAINT-001 (Node 22 engine constraint) in a maintenance-only release if desired.
 - id: SPIKE-001
   source_request: REQ-042
   title: Spike — SaaS multi-tenant architecture for hosted offering
   type: spike
   capability: architecture
-  phase: null
   status: deferred
   priority: low
   confidence: low
@@ -2135,7 +963,6 @@ items:
   title: Spike — encryption of client data at rest
   type: spike
   capability: architecture
-  phase: null
   status: deferred
   priority: medium
   confidence: low
@@ -2167,467 +994,13 @@ items:
     - This is a discovery item only. Do not pull into a coding release until the spike has been completed and decomposed.
     - BYOK (Bring Your Own Key) is an explicit scope requirement from the original request — clients should be able to supply
       and manage their own encryption keys.
-- id: MAINT-004
-  source_request: REQ-017
-  title: Investigate and improve CI/CD pipeline performance
-  type: maintenance
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in:
-  - v1.16.0
-  priority: medium
-  confidence: low
-  summary: The CI/CD pipeline is running slowly and impacting developer velocity. An audit of the current pipeline configuration
-    should identify bottlenecks and explore improvements such as caching, parallelisation, or tooling changes.
-  acceptance:
-  - The CI/CD pipeline bottlenecks are identified and documented.
-  - At least one concrete improvement is implemented and validated to reduce build or test time.
-  - CI remains reliable — no regression to test correctness or deployment safety.
-  remaining:
-  - Profile the current pipeline to identify the slowest stages.
-  - Evaluate caching, parallelisation, and tooling options.
-  - Implement the highest-value improvement and measure the result.
-  dependencies: []
-  suggested_agents:
-  - devops-engineer
-  evidence:
-    code:
-    - .github/workflows
-    tests: []
-    notes:
-    - This is an investigation item — scope and delivery estimate will be determined during the investigation phase.
-    - Low confidence because the bottleneck is unknown until profiled.
-- id: BUG-050
-  source_request: REQ-050
-  title: Fix calculated field save error — missing validationMode
-  type: bug
-  capability: custom-fields
-  status: done
-  done_in: v1.17.1
-  priority: critical
-  confidence: high
-  summary: Adding or editing a custom field of type CALCULATED throws a backend validation error because the frontend omits
-    validationMode. The fix is to default validationMode to "ALLOW" in the form onSubmit handler when fieldType is CALCULATED.
-    This is a one-line frontend fix; no backend change needed.
-  acceptance:
-  - Adding a CALCULATED custom field no longer throws a validation error.
-  - Editing an existing CALCULATED custom field saves successfully.
-  - validationMode is sent as "ALLOW" for CALCULATED fields in all form submission paths.
-  - No regression to ALLOW/WARN/BLOCK behaviour for non-CALCULATED field types.
-  remaining:
-  - In CustomFieldModal.tsx onSubmit handler, add `validationMode: "ALLOW"` when `values.fieldType === "CALCULATED"`.
-  - Add or update a test covering CALCULATED field create and edit.
-  dependencies: []
-  suggested_agents:
-  - frontend-developer
-  - test-engineer
-  evidence:
-    code:
-    - frontend/src/features/configuration/CustomFieldModal.tsx
-    tests:
-    - frontend/test/configuration.test.mjs
-    notes:
-    - Error text observed: "Invalid request body — Custom Fields 1 Validation Mode: Invalid option: expected one of 'ALLOW'|'WARN'|'BLOCK'"
-    - validationMode input is intentionally hidden for CALCULATED fields; backend still requires the value.
-
-- id: BUG-049
-  source_request: REQ-049
-  title: Verify calculated field end-to-end functionality post BUG-050 fix
-  type: bug
-  capability: custom-fields
-  status: done
-  done_in: v1.17.1
-  priority: high
-  confidence: medium
-  summary: Following the BUG-050 save-error fix, verify that calculated fields work correctly end-to-end. Confirm a working
-    example, test formula evaluation behaviour, and identify any remaining bugs after the save error is resolved.
-  acceptance:
-  - A CALCULATED custom field can be created, saved, and displays a computed value on a risk record.
-  - The formula evaluator correctly resolves field references in a sample formula.
-  - Any remaining bugs identified during verification are logged as separate requests.
-  - A working example (formula, fields referenced, expected output) is documented or surfaced in-app.
-  remaining:
-  - Depends on BUG-050 being shipped first.
-  - QA/test-engineer to verify calculated field creation and display with a concrete example.
-  - Identify and log any further issues discovered during verification.
-  dependencies:
-  - BUG-050
-  suggested_agents:
-  - test-engineer
-  - frontend-developer
-  evidence:
-    code:
-    - backend/src/services/formulaEvaluator.service.ts
-    - frontend/src/features/configuration/CustomFieldModal.tsx
-    tests:
-    - backend/test/customFields.test.mjs
-    notes:
-    - REQ-049 flagged this may be user error — verify with a known-good example before treating as a definite bug.
-    - Related to REQ-003 (custom field behaviour).
-
-- id: UI-020
-  source_request: REQ-051
-  title: Make open-risk and overdue counts clickable links on /registers
-  type: improvement
-  capability: register-list
-  status: done
-  done_in: v1.17.1
-  priority: medium
-  confidence: high
-  summary: The /registers page table shows plain-text open-risk and overdue counts. These should be clickable links navigating
-    to the relevant register pre-filtered to open risks or overdue reviews, consistent with the Admin Summary widget pattern
-    (REQ-034 / similar implementation).
-  acceptance:
-  - Open-risk count on /registers is a link to /registers/<registerID> with an open-risks filter pre-applied.
-  - Overdue count on /registers is a link to /registers/<registerID> with an overdue-reviews filter pre-applied.
-  - Links match the visual and navigation pattern used by the Admin Summary widget counts.
-  - No regression to /registers page load, permissions, or table sorting/filtering behaviour.
-  remaining:
-  - Identify the filter param format used by the Admin Summary widget implementation and replicate it.
-  - Update the /registers table component to render count cells as links.
-  dependencies: []
-  suggested_agents:
-  - frontend-developer
-  - test-engineer
-  evidence:
-    code:
-    - frontend/src/features/registers/RegistersPage.tsx
-    tests:
-    - frontend/test/registers.test.mjs
-    notes:
-    - Reference implementation: Admin Summary widget (REQ-034). Use the same link and filter pattern.
-
-- id: UI-023
-  source_request: REQ-055
-  title: Show real-time CALCULATED field preview in risk edit form
-  type: improvement
-  capability: custom-fields
-  status: done
-  done_in: v1.18.0
-  priority: medium
-  confidence: medium
-  summary: When editing a risk, CALCULATED custom fields show the last saved server-side value and do not update as the user
-    changes referenced numeric fields. A real-time preview should be computed client-side (using the formula from the register
-    config) and displayed in the CALCULATED field row as the user types, so the expected output is visible before saving.
-  acceptance:
-  - The CALCULATED field value updates in real time as the user edits the referenced numeric fields in the risk edit form.
-  - The preview is computed client-side using the formula stored in the register config — no extra backend call per keystroke.
-  - The preview is clearly labelled or visually distinguished as a computed preview (not yet saved).
-  - On save, the server-side evaluated value is used as the authoritative result; the preview is discarded.
-  - No regression to risk edit form submission, field validation, or the existing CALCULATED field display on the risk detail view.
-  remaining:
-  - Confirm that the formula and referenced field definitions are available in the risk edit form context (i.e. passed from the
-    register config already loaded on the page).
-  - Implement client-side formula evaluation in the edit form, reusing or referencing the formulaEvaluator logic already present
-    in the backend. Note: a lightweight client-side evaluator may need to be extracted or reimplemented for the frontend — do not
-    call the backend on every keystroke.
-  - Decide the visual treatment for the preview value (e.g. greyed-out or italicised until saved).
-  - Add or update frontend tests to cover the real-time preview behaviour.
-  dependencies:
-  - BUG-050
-  suggested_agents:
-  - frontend-developer
-  - test-engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskFormModal.tsx
-    - backend/src/services/formulaEvaluator.service.ts
-    tests:
-    - frontend/test/risks.test.mjs
-    notes:
-    - The formulaEvaluator service is backend-only; a client-side equivalent (or a simplified version) will be needed for
-      real-time preview without extra network calls.
-    - The formula and field definitions should already be in scope on the edit form via the register config. Confirm this before
-      designing the implementation approach.
-
-- id: UI-022
-  source_request: REQ-054
-  title: Add live formula validation to CALCULATED field modal
-  type: improvement
-  capability: custom-fields
-  status: done
-  done_in: v1.18.0
-  priority: medium
-  confidence: high
-  summary: The formula textarea in CustomFieldModal.tsx gives no validation feedback when the user saves a CALCULATED field
-    definition. An invalid formula is silently accepted at save time and only rejected at config publish. The scoring formula
-    panel already uses debounced live validation against the /validate-formula endpoint — the same pattern should be applied
-    to the CALCULATED field formula input.
-  acceptance:
-  - The CALCULATED field formula textarea in the custom field modal shows live validation feedback as the user types, using
-    debounced calls to the existing /validate-formula endpoint.
-  - An invalid formula displays a clear error message below the textarea without blocking typing.
-  - A valid formula clears the error state.
-  - Saving a field definition with an invalid formula is either prevented or shows a clear warning (consistent with the scoring
-    formula panel pattern — match whatever behaviour the scoring panel uses).
-  - No regression to the custom field modal save flow or other field types.
-  remaining:
-  - Identify the debounced validation implementation in the scoring formula panel and replicate the pattern in CustomFieldModal.tsx.
-  - Confirm the /validate-formula endpoint signature accepts the formula and context needed for CALCULATED field evaluation
-    (may need different variable context than the scoring formula).
-  - Add or update frontend tests to cover the validation feedback behaviour.
-  dependencies:
-  - BUG-050
-  suggested_agents:
-  - frontend-developer
-  - test-engineer
-  evidence:
-    code:
-    - frontend/src/features/configuration/CustomFieldModal.tsx
-    - frontend/src/features/configuration/ScoringConfigurationPanel.tsx
-    tests:
-    - frontend/test/configuration.test.mjs
-    notes:
-    - The /validate-formula endpoint already exists from PM6-SCORING work. Confirm whether it handles both scoring formula
-      and CALCULATED field formula contexts, or whether CALCULATED field validation requires a different endpoint or payload.
-    - Match the exact debounce and error-display pattern from ScoringConfigurationPanel.tsx for consistency.
-
-- id: UI-021
-  source_request: REQ-053
-  title: Show yellow asterisk for WARN fields in risk edit form
-  type: improvement
-  capability: custom-fields
-  status: done
-  done_in: v1.18.0
-  priority: high
-  confidence: high
-  summary: The risk edit form shows red asterisks (*) for required (BLOCK) fields but gives no visual indicator for WARN fields.
-    Users cannot tell which fields are "suggested" before attempting to save. A yellow asterisk should appear next to WARN-mode
-    fields, distinct from the red asterisk used for required fields.
-  acceptance:
-  - Fields with validationMode WARN display a yellow asterisk (*) in the risk edit form.
-  - Fields with validationMode BLOCK continue to display a red asterisk (*).
-  - Fields with validationMode ALLOW display no asterisk.
-  - The yellow and red asterisk indicators are visually distinguishable in both light and dark mode.
-  - No regression to form submission, field validation behaviour, or existing required-field indicators.
-  remaining:
-  - Identify where field labels and asterisks are rendered in RiskFormModal.tsx (or shared field component).
-  - Confirm how validationMode is available in the form rendering context — check whether the register config is accessible
-    at field-render time.
-  - Apply yellow colour to the asterisk when validationMode is WARN; use a Mantine colour token rather than a hardcoded hex.
-  - Add or update frontend tests to cover the WARN and BLOCK indicator rendering.
-  dependencies: []
-  suggested_agents:
-  - frontend-developer
-  - test-engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskFormModal.tsx
-    tests:
-    - frontend/test/configuration.test.mjs
-    - frontend/test/risks.test.mjs
-    notes:
-    - The existing red asterisk for required fields is the reference pattern. The yellow asterisk for WARN should follow the
-      same rendering approach but with a different colour.
-    - Mantine colour tokens (e.g. yellow.6) should be used so the indicator adapts to theme and dark mode correctly.
-
-- id: SPIKE-005
-  source_request: REQ-068
-  title: Spike — internationalisation architecture assessment
-  type: spike
-  capability: architecture
-  phase: null
-  status: done
-  done_in: v1.20.0
-  priority: low
-  confidence: low
-  summary: Assess what architectural changes are needed to support multiple languages
-    across the full product surface — frontend UI strings, backend-generated text,
-    help content, validation messages, and user-visible configuration labels. Output
-    is a scoping document with a recommended approach, sequencing, risks, and areas
-    of the app requiring refactoring before i18n can be added.
-  acceptance:
-  - A scoping document exists covering: frontend string externalisation approach (i18n
-    library, translation file structure, locale selection); backend-generated text
-    (error messages, audit summaries, email/notification strings if applicable);
-    help content locale management (relationship to the existing Markdown file
-    structure under frontend/public/help/en/); validation message localisation;
-    and user-visible configuration labels (likelihood/impact names, field labels, etc.).
-  - The document covers formatting concerns — dates, numbers, and currency — and
-    recommends a consistent approach across frontend and backend.
-  - The document identifies which areas of the app require the most refactoring and
-    recommends a sequencing that allows incremental progress without a big-bang rewrite.
-  - The document flags any third-party library recommendations and assesses their
-    fit with the existing Vite/React/Node/Mantine stack.
-  - No implementation work starts before the spike output is reviewed and accepted.
-  remaining:
-  - PA to produce the scoping document (suggested location docs/spikes/SPIKE-005.md).
-  - Review against the existing help content structure (frontend/public/help/en/)
-    which already uses a locale-path convention.
-  dependencies: []
-  suggested_agents:
-  - principal-architect
-  evidence:
-    code:
-    - frontend/src/
-    - frontend/public/help/en/
-    - backend/src/
-    tests: []
-    notes:
-    - Help content already uses a locale-path convention (help/en/) which partially
-      anticipates i18n — the spike should build on this rather than ignore it.
-    - Low priority until there is a concrete commercial or user need for a second language.
-    - Output document at docs/spikes/SPIKE-005.md following the existing spike convention.
-- id: SPIKE-004
-  source_request: REQ-064
-  title: Spike — production editions model for feature flag management
-  type: spike
-  capability: architecture
-  phase: null
-  status: done
-  done_in:
-  - v1.22.0
-  priority: medium
-  confidence: low
-  summary: Production deployments currently rely on arbitrary per-deployment .env flag
-    values, which creates drift and makes flag behaviour unpredictable (see BUG-055).
-    The Principal Architect should design a production editions model — fixed, named
-    editions with defined feature sets — while preserving per-developer flag flexibility
-    in local development. The spike must also consider how editions might attach to a
-    future org/tenant model (REQ-042).
-  acceptance:
-  - A scoping document exists covering: how editions are defined and where the
-    edition-to-feature mapping lives; how a production deployment selects an edition
-    (e.g. a single EDITION env var rather than N individual flag vars); how local
-    development retains the ability to override individual flags; and how the current
-    flag-per-env-var approach migrates to the editions model.
-  - The document explicitly addresses the short-term context — BUG-055 (flags broken
-    in Docker production) — and clarifies whether the editions model is the right
-    long-term fix or whether BUG-055 needs a separate immediate fix.
-  - The document notes how an edition might later be attached to an org, tenant, or
-    subscription entity (REQ-042), so the design does not foreclose that path.
-  - No implementation work starts before the spike output is reviewed and accepted.
-  remaining:
-  - PA to produce the scoping document (suggested location docs/spikes/SPIKE-004.md).
-  - Explicitly cover migration from the current featureFlags.ts approach.
-  - Confirm whether BUG-055 should be fixed independently before the editions model
-    lands, or whether the editions model is itself the fix.
-  dependencies:
-  - BUG-055
-  suggested_agents:
-  - principal-architect
-  - devops-engineer
-  evidence:
-    code:
-    - backend/src/config/featureFlags.ts
-    - frontend/src/hooks/useFeatureFlags.ts
-    - docker-compose.yml
-    tests: []
-    notes:
-    - Short-term context is BUG-055 (production flags have no effect in Docker). The
-      spike should clarify whether the editions model replaces or supplements the
-      immediate BUG-055 fix.
-    - Long-term context is REQ-042 (SaaS multi-tenant spike) where editions may need
-      to be attached to a tenant or organisation entity.
-    - Output document at docs/spikes/SPIKE-004.md following the existing spike convention.
-- id: SPIKE-003
-  source_request: REQ-057
-  title: Spike — evaluate Playwright for browser-based permission testing
-  type: spike
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in: v1.20.0
-  priority: low
-  confidence: medium
-  summary: Current static and Vitest/jsdom tests do not fully exercise real login sessions,
-    routing, backend authorisation, and browser-rendered permission states together.
-    The Principal Architect should evaluate Playwright as a browser-based E2E layer
-    and produce a spike document covering the proposed architecture, fixture design,
-    CI integration approach, and an implementation plan. No implementation in this
-    release — the spike document becomes the input for scoping the implementation.
-  acceptance:
-  - A spike document exists at docs/spikes/SPIKE-003.md covering: whether to adopt
-    Playwright (vs. Cypress or alternatives) and the rationale; the proposed
-    three-layer test model (static, Vitest/jsdom runtime, Playwright E2E) and how
-    it relates to ADR-0008; the permission fixture design — named users, named
-    registers, named risks and actions, explicit cross-user access edges — and how
-    it would be seeded without coupling to seed.ts; the proposed CI integration
-    approach including how Playwright tests would be gated separately from unit and
-    integration tests; and a scoped implementation plan with sequencing for a
-    follow-on release.
-  - The document explicitly references QA-001 (manual permission test plan) as the
-    source of truth for the permission matrix the future suite will automate.
-  - ADR-0008 is assessed but not updated in this release — any update to ADR-0008
-    is deferred to the implementation release.
-  - No Playwright tests are written in this release.
-  remaining:
-  - PA to produce the spike document at docs/spikes/SPIKE-003.md.
-  - PA to assess Playwright against the existing stack (Vite/React/Node/Vitest) and
-    confirm it is the right choice before recommending adoption.
-  dependencies:
-  - QA-001
-  suggested_agents:
-  - principal-architect
-  evidence:
-    code:
-    - backend/test/
-    - frontend/test/
-    docs:
-    - docs/decisions/ADR-0008-api-key-scope-and-saved-views.md
-    notes:
-    - ADR-0008 currently documents the two-layer frontend test model. The spike should
-      assess whether a third Playwright layer is the right addition — but ADR-0008
-      is not updated until implementation is approved.
-    - Cypress was considered but Playwright appears to fit the existing stack better.
-      PA to confirm or challenge this in the spike document.
-    - Implementation follows in a separate release once the spike document is reviewed.
-- id: QA-001
-  source_request: REQ-056
-  title: Write manual permission test plan covering all role and content-type permutations
-  type: feature
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in: v1.20.0
-  priority: medium
-  confidence: high
-  summary: No comprehensive permission test plan exists. A human-executable document
-    covering every combination of role and permission-gated entity type is needed both
-    as a QA reference and as the specification from which a future Playwright suite
-    (SPIKE-003) can be built.
-  acceptance:
-  - A document exists (suggested location docs/engineering/permission-test-plan.md)
-    covering every role defined in the system — System Admin, Register Admin, Register
-    Editor, Register Viewer, Risk Owner, Risk Response Owner — against every
-    permission-gated action and entity type.
-  - Each test case specifies: the role or persona, the entity/action being tested, and
-    the expected outcome (allowed or denied).
-  - The plan covers at minimum: register CRUD, risk CRUD, custom field visibility,
-    response action CRUD and ownership, review actions, configuration and permissions
-    tab access, export controls, audit log access, user management, template management,
-    and API key management.
-  - The document is structured as a pass/fail checklist executable by a human tester
-    without needing code access.
-  - The plan is acknowledged as the authoritative permission matrix for SPIKE-003
-    (Playwright automation).
-  remaining:
-  - Confirm the full list of roles currently in the system before writing the plan.
-  - Structure the document by entity type with a row per role and action combination.
-  - Review against the PRD permission model (§5, §12) to ensure no gaps.
-  dependencies: []
-  suggested_agents:
-  - test-engineer
-  - product-manager
-  evidence:
-    code:
-    - backend/src/permissions/
-    docs:
-    - docs/product/prd.md
-    notes:
-    - This document is the specification that SPIKE-003 (Playwright) will automate.
-      It should exist before Playwright implementation begins.
-    - Roles to cover at minimum — System Admin, Register Admin, Register Editor,
-      Register Viewer, Risk Owner, Risk Response Owner (new in v1.19.0).
 - id: E2E-001
   source_request: REQ-075
   title: Set up Playwright E2E test infrastructure
   type: feature
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: medium
   confidence: high
   summary: Establish the Playwright E2E test layer as documented in docs/spikes/SPIKE-003.md
@@ -2651,12 +1024,13 @@ items:
   - The e2e CI job is added to ci.yml gated on quality, Chromium-only, with artifact upload
     on failure. The job passes with no test files present.
   - e2e:seed and e2e:teardown scripts are added to the root package.json.
-  - docs/operations/e2e-testing.md is created covering: prerequisites and environment setup
-    (required env vars including E2E_TEST_PASSWORD, how to obtain or set them locally);
-    how to run the seed and teardown scripts; how to run the full Playwright suite locally;
-    how to run a single test file or a specific test; how to view the Playwright HTML report
-    after a local run; and how the e2e CI job is triggered and where to find the report
-    artifact on failure.
+  - >-
+      docs/operations/e2e-testing.md is created covering: prerequisites and environment setup
+      (required env vars including E2E_TEST_PASSWORD, how to obtain or set them locally);
+      how to run the seed and teardown scripts; how to run the full Playwright suite locally;
+      how to run a single test file or a specific test; how to view the Playwright HTML report
+      after a local run; and how the e2e CI job is triggered and where to find the report
+      artifact on failure.
   remaining:
   - PA to produce the ADR-0008 amendment as Step 1 before any other work begins.
   - devops-engineer to implement the ci.yml e2e job per the structure in SPIKE-003.md Section 5.2.
@@ -2689,7 +1063,6 @@ items:
   title: Implement core Playwright E2E permission test suite
   type: feature
   capability: build-toolchain
-  phase: null
   status: done
   done_in:
   - v1.25.0
@@ -2730,8 +1103,9 @@ items:
     - docs/engineering/permission-test-plan.md
     notes:
     - QA-001 (permission-test-plan.md) is the authoritative source for what the suite automates.
-    - Priority order for test authoring per SPIKE-003.md Section 5 — high: 19, 1, 2, 12, 13;
-      medium: 3, 5, 9, 7, 8; lower: remaining sections.
+    - >-
+        Priority order for test authoring per SPIKE-003.md Section 5 — high: 19, 1, 2, 12, 13;
+        medium: 3, 5, 9, 7, 8; lower: remaining sections.
     - Selector stability pass (Step 6) must be completed before the suite is considered
       production-quality. data-testid attributes preferred; ARIA roles acceptable where
       data-testid is impractical.
@@ -2740,9 +1114,8 @@ items:
   title: Refresh seed scripts to cover features shipped since v1.7.0
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: medium
   confidence: high
   summary: The seed data (backend/prisma/seed.ts) was last meaningfully updated on
@@ -2752,10 +1125,11 @@ items:
     history capabilities shipped since then. The seed should be updated to exercise
     current product capabilities so a fresh deployment is genuinely representative.
   acceptance:
-  - At least one demo register is seeded with custom fields covering: a DROPDOWN field,
-    a CALCULATED field (referencing at least one numeric field), and at least one field
-    with validationMode WARN. Field visibility (visibleToRoles) should be demonstrated
-    on at least one field.
+  - >-
+      At least one demo register is seeded with custom fields covering: a DROPDOWN field,
+      a CALCULATED field (referencing at least one numeric field), and at least one field
+      with validationMode WARN. Field visibility (visibleToRoles) should be demonstrated
+      on at least one field.
   - Custom field values are seeded on demo risks in that register so the fields are
     populated on first load, not empty.
   - One demo register is seeded in responseActionMode CHILD_RECORDS with at least three
@@ -2807,7 +1181,6 @@ items:
   title: Implement production editions model for feature flag management
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: deferred
   priority: low
   confidence: high
@@ -2864,9 +1237,8 @@ items:
   title: Audit test code against agreed coding standards
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: medium
   confidence: medium
   summary: Test Engineer assesses all test code against the standards established in
@@ -2887,8 +1259,7 @@ items:
   - Depends on MAINT-010 being complete so standards are available to assess against.
   - Test Engineer to systematically review all test files under backend/test/ and
     frontend/test/.
-  dependencies:
-  - MAINT-010
+  dependencies: []
   suggested_agents:
   - test-engineer
   evidence:
@@ -2906,9 +1277,8 @@ items:
   title: Audit backend code against agreed coding standards
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: medium
   confidence: medium
   summary: Backend Developer assesses all backend code against the standards established
@@ -2928,8 +1298,7 @@ items:
   remaining:
   - Depends on MAINT-010 being complete so standards are available to assess against.
   - Backend Developer to systematically review all code under backend/src/.
-  dependencies:
-  - MAINT-010
+  dependencies: []
   suggested_agents:
   - backend-developer
   evidence:
@@ -2945,9 +1314,8 @@ items:
   title: Audit frontend code against agreed coding standards
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: medium
   confidence: medium
   summary: Frontend Developer assesses all frontend code against the standards established
@@ -2966,8 +1334,7 @@ items:
   remaining:
   - Depends on MAINT-010 being complete so standards are available to assess against.
   - Frontend Developer to systematically review all code under frontend/src/.
-  dependencies:
-  - MAINT-010
+  dependencies: []
   suggested_agents:
   - frontend-developer
   evidence:
@@ -2978,186 +1345,13 @@ items:
     - Run after or alongside MAINT-010 so the Frontend Developer has agreed standards
       to assess against.
     - Findings should distinguish quick fixes from larger refactoring work.
-- id: MAINT-010
-  source_request: REQ-069
-  title: Establish coding standards for frontend, backend, and test code
-  type: maintenance
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in: v1.20.0
-  priority: medium
-  confidence: high
-  summary: Principal Architect writes practical coding standards covering frontend,
-    backend, and test code. Output is a document in docs/engineering/ that engineers
-    and reviewers can apply during implementation and code review, including clear
-    refactoring triggers.
-  acceptance:
-  - A coding standards document is created at docs/engineering/coding-standards.md (or
-    equivalent under docs/engineering/).
-  - Standards cover backend concerns — DRY, consistency, service layer patterns,
-    separation of concerns, error handling, and when to refactor rather than extend.
-  - Standards cover frontend concerns — component reuse, avoiding duplicate UI patterns,
-    when shared components or hooks are appropriate, and state management consistency.
-  - Standards cover test writing — when tests are required, what level of test is
-    appropriate (unit/integration/e2e), naming and structure conventions, fixture usage,
-    avoiding brittle assertions, and expectations for regression coverage.
-  - Standards include clear refactoring triggers for both frontend and backend — concrete
-    signals that indicate code should be refactored rather than extended in place.
-  - The document is practical enough to reference during a code review, not just aspirational.
-  remaining:
-  - PA to draft the standards document under docs/engineering/.
-  - PM to review and confirm the document is sufficient before MAINT-011/012/013 begin.
-  dependencies: []
-  suggested_agents:
-  - principal-architect
-  evidence:
-    code: []
-    tests: []
-    notes:
-    - MAINT-011, MAINT-012, and MAINT-013 depend on this item and can run in parallel
-      once it is complete.
-    - Output location — docs/engineering/ — is a new directory; PA should create it as
-      part of this work item.
-- id: MAINT-009
-  source_request: REQ-065
-  title: Reduce duplicate CI runs across branch, PR, and post-merge workflows
-  type: improvement
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in: v1.21.0
-  priority: medium
-  confidence: medium
-  summary: CI currently runs the same checks multiple times — on the release branch, again
-    when a PR is created even with no new changes, and again after merge to main. This
-    repetition slows releases without adding confidence. The GitHub Actions trigger
-    configuration should be investigated and tightened to eliminate redundant runs while
-    preserving release safety.
-  acceptance:
-  - CI does not re-run identical checks on a PR if the branch has already passed CI with
-    the same commit SHA.
-  - Post-merge CI does not repeat checks already passed pre-merge unless new code was
-    introduced by the merge itself.
-  - All required status checks for branch protection and release confidence are still
-    satisfied after the change.
-  - Release velocity is measurably improved — fewer redundant CI minutes per release.
-  remaining:
-  - Audit current GitHub Actions workflow triggers (push, pull_request, merge) and
-    identify where redundant runs occur.
-  - Evaluate options — workflow_run conditions, concurrency groups, required-check
-    reuse, merge queue behaviour, or skip-duplicate-steps tooling.
-  - Implement the highest-value reduction and confirm branch protection rules still pass.
-  dependencies: []
-  suggested_agents:
-  - devops-engineer
-  evidence:
-    code:
-    - .github/workflows
-    tests: []
-    notes:
-    - Preserve release confidence as the primary constraint — do not skip checks in a
-      way that could let a broken commit reach main undetected.
-    - Related to REQ-062 (on-demand branch publishing) — both touch CI/CD workflow config
-      and can be addressed in the same release if scope permits.
-- id: MAINT-008
-  source_request: REQ-061
-  title: Improve production backend logging with configurable log levels and operational docs
-  type: improvement
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in:
-  - v1.22.0
-  priority: high
-  confidence: medium
-  summary: Production deployments emit insufficient log information to debug live issues.
-    The Principal Architect should first define the logging structure, verbosity levels,
-    and approach for the two-container Docker setup. The backend developer then implements
-    structured logging with a LOG_LEVEL env var, and operational documentation is written
-    to docs/operations/observability.md.
-  acceptance:
-  - The Principal Architect defines the logging approach — structure, correlation strategy,
-    verbosity levels, and how logs flow across the two Docker containers — before
-    implementation begins.
-  - Backend logging is structured and actionable, going beyond a basic HTTP access log.
-  - A LOG_LEVEL environment variable in .env controls logging verbosity (e.g. error,
-    warn, info, debug), with a recommended default for production.
-  - docs/operations/observability.md is created or updated to cover relevant Docker
-    Compose log commands, log levels, recommended production defaults, and when to
-    temporarily increase verbosity for investigation.
-  - No regression to existing backend behaviour or local development logging.
-  remaining:
-  - PA to define logging structure, verbosity model, and any cross-container correlation
-    approach before backend implementation starts.
-  - Implement structured logging in the backend using the PA-approved approach.
-  - Write or update docs/operations/observability.md.
-  dependencies: []
-  suggested_agents:
-  - principal-architect
-  - backend-developer
-  - devops-engineer
-  evidence:
-    code:
-    - backend/src/config/featureFlags.ts
-    - docker-compose.yml
-    tests:
-    - backend/test/observability.test.mjs
-    notes:
-    - PA goes first. Backend cannot begin implementation until the logging structure and
-      approach are agreed.
-    - Existing observability.test.mjs may inform what is already instrumented.
-- id: MAINT-007
-  source_request: REQ-062
-  title: Add on-demand branch package publishing via GitHub Actions manual trigger
-  type: improvement
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in: v1.21.0
-  priority: high
-  confidence: high
-  summary: There is no way to publish a Docker package for a specific branch without going
-    through a full PR and merge cycle. A manually triggered GitHub Actions workflow should
-    allow publishing a branch package on demand, using exactly the same build and packaging
-    process as a main/tag release, so production-environment issues can be debugged before
-    merging.
-  acceptance:
-  - A GitHub Actions workflow can be triggered manually (workflow_dispatch) for a specified
-    branch to build and publish a Docker package using the same process as the main release
-    build.
-  - The on-demand workflow does not trigger automatically on push or PR — it runs only
-    when explicitly invoked.
-  - The published branch package is clearly distinguishable from a release package (e.g.
-    by tag naming convention) to avoid confusion.
-  - The root README.md is updated to document how to trigger the on-demand build and how
-    to configure a production Docker Compose setup to target the resulting branch package.
-  - No change to the existing automatic release workflow behaviour.
-  remaining:
-  - Define the branch package tag naming convention to avoid collision with release tags.
-  - Implement the workflow_dispatch workflow reusing the existing build and package steps.
-  - Update README.md with trigger instructions and production targeting guidance.
-  dependencies: []
-  suggested_agents:
-  - devops-engineer
-  evidence:
-    code:
-    - .github/workflows
-    - README.md
-    tests: []
-    notes:
-    - Must use exactly the same build and packaging process as the main/tag release build
-      so branch packages are representative of production.
-    - Related to REQ-065 (reduce duplicate CI) — both touch workflow config and can be
-      addressed in the same release if scope permits.
 - id: BUG-057
   source_request: REQ-074
   title: Fix Admin summary widget to exclude soft-deleted registers
   type: bug
   capability: homepage
-  phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: high
   confidence: high
   summary: The Admin summary widget on the homepage includes soft-deleted registers in
@@ -3188,296 +1382,11 @@ items:
       The fix is expected to be backend-only — the query filter, not the UI.
     - Confirm the soft-delete model for registers before implementing (deletedAt field,
       isDeleted flag, or a status value) to apply the correct filter.
-- id: BUG-056
-  source_request: REQ-066
-  title: Investigate and fix draft config application across register config pages
-  type: bug
-  capability: config-lifecycle-templates
-  phase: null
-  status: done
-  done_in:
-  - v1.22.0
-  priority: high
-  confidence: medium
-  summary: Each config change correctly sends a PATCH to /draft, but a subsequent PATCH
-    to <registerId> appears to send all settings currently on the page, which would
-    override the server-side draft with local page state and undermine the draft
-    mechanism. The Principal Architect must audit all register config pages to confirm
-    whether draft state or local state is the true source of truth, then fix any incorrect
-    paths.
-  acceptance:
-  - The Principal Architect has audited all register configuration pages — fields, scoring,
-    and all other config sections — and confirmed which are correctly using draft state
-    vs. incorrectly using local page state.
-  - Any config page that overwrites the server-side draft with local page state is fixed
-    so changes are stored in the draft and not applied via a direct register PATCH.
-  - Publishing a draft produces the expected config state regardless of which config
-    pages were used during editing.
-  - If the fix scope is larger than a single release can safely contain, the Release
-    Manager logs remaining items under a Deferred items for PM section in active-release.md.
-  - No regression to draft creation, editing, or publish flows.
-  remaining:
-  - PA to audit all register config page save handlers to confirm the PATCH target and
-    payload for each.
-  - Confirm whether the register-level PATCH is a legitimate parallel save path or an
-    incorrect override of the draft.
-  - Fix all config pages found to be bypassing or overwriting the draft.
-  - Add or update tests to cover the draft-only save path for each config section.
-  dependencies: []
-  suggested_agents:
-  - principal-architect
-  - backend-developer
-  - frontend-developer
-  - test-engineer
-  evidence:
-    code:
-    - frontend/src/pages/RegisterConfigPage.tsx
-    - backend/src/services/configVersion.service.ts
-    - backend/src/routes/registers.routes.ts
-    tests:
-    - backend/test/configVersion.test.mjs
-    - frontend/test/configuration.test.mjs
-    notes:
-    - Observed pattern — config change sends PATCH /draft (correct) then PATCH /<registerId>
-      with all page settings (suspect). If confirmed, the second PATCH overrides the
-      server-side draft with whatever state is currently in the local form.
-    - PA should check fields config page, scoring config page, and any other sub-pages
-      under register configuration.
-    - User offered to provide a HAR file if needed during investigation.
-- id: BUG-055
-  source_request: REQ-063
-  title: Fix production feature flags — .env values have no effect in Docker deployment
-  type: bug
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in: v1.21.0
-  priority: high
-  confidence: medium
-  summary: Feature flags set in .env have no effect when running the production Docker
-    Compose setup as documented in the root README.md. Operators have no reliable way
-    to control feature flags in a deployed instance. The full env var pipeline from
-    Docker Compose through to backend process and frontend bundle needs to be investigated
-    and fixed.
-  acceptance:
-  - Feature flag values set in .env take effect in a production Docker Compose deployment
-    following the documented setup in the root README.md.
-  - Both backend-read flags (env vars consumed at runtime by the Node process) and
-    frontend-read flags (Vite env vars baked into the bundle at build time) are confirmed
-    to work correctly, or the architectural split between them is explicitly documented.
-  - If a runtime config mechanism is required for frontend flags (because Vite bakes
-    values at build time), the approach is designed and agreed with the Principal Architect
-    before implementation.
-  - The root README.md production setup section is updated to accurately describe how to
-    configure feature flags in a production deployment.
-  - No regression to local development flag behaviour.
-  remaining:
-  - Trace the full env var pipeline for both frontend and backend flags in the Docker
-    Compose setup — confirm where values are passed in, where they are read, and where
-    the break occurs.
-  - Identify whether the frontend flag issue is a Vite build-time baking problem requiring
-    a runtime config approach (PA input needed if so).
-  - Fix the pipeline and update README.md.
-  dependencies: []
-  suggested_agents:
-  - principal-architect
-  - devops-engineer
-  - backend-developer
-  - frontend-developer
-  evidence:
-    code:
-    - backend/src/config/featureFlags.ts
-    - frontend/src/hooks/useFeatureFlags.ts
-    - docker-compose.yml
-    - README.md
-    tests: []
-    notes:
-    - Vite bakes VITE_* env vars into the frontend bundle at build time, not at runtime.
-      A runtime config mechanism (e.g. a config endpoint or injected window object) may
-      be required for frontend flags to be configurable post-build.
-    - PA should be consulted if the fix requires a new runtime config pattern — this
-      could touch the architecture of how flags are consumed across the app.
-    - Related to REQ-064 (production editions model), which addresses long-term flag
-      management strategy. Fix this bug first; let the editions spike inform the
-      longer-term shape.
-- id: BUG-054
-  source_request: REQ-060
-  title: Harden app behaviour across feature flag combinations
-  type: bug
-  capability: build-toolchain
-  phase: null
-  status: done
-  done_in: v1.21.0
-  priority: high
-  confidence: medium
-  summary: The app may crash or behave incorrectly when certain feature flags are disabled.
-    The /registers/<registerId> route is specifically suspected. All feature-flagged code
-    paths on both frontend and backend need to be reviewed and hardened so disabled flags
-    produce a clean degraded state rather than broken routes, failed renders, or unhandled
-    errors.
-  acceptance:
-  - All feature-flagged routes and components degrade cleanly when their flag is disabled —
-    no crashes, unhandled errors, or broken UI.
-  - /registers/<registerId> is verified to load correctly under all supported flag
-    combinations.
-  - Flag-gated backend endpoints return appropriate responses (e.g. 404 or 403) rather
-    than 500 errors when their flag is off.
-  - Flag-gated frontend components either hide cleanly or show an appropriate fallback
-    when their flag is disabled.
-  - Test coverage exists for at least the key disabled-flag scenarios, particularly around
-    /registers/<registerId> and any other routes identified during the review.
-  remaining:
-  - Audit all feature-flagged code paths on both frontend and backend to identify where
-    disabled-flag states are unhandled or unsafe.
-  - Prioritise /registers/<registerId> and any routes/components that depend on flags
-    that may be off in a default production deployment.
-  - Fix each unsafe path and add test coverage for the disabled state.
-  dependencies: []
-  suggested_agents:
-  - frontend-developer
-  - backend-developer
-  - test-engineer
-  evidence:
-    code:
-    - backend/src/config/featureFlags.ts
-    - frontend/src/hooks/useFeatureFlags.ts
-    - frontend/src/pages/RegisterPage.tsx
-    tests:
-    - frontend/test/risks.test.mjs
-    notes:
-    - /registers/<registerId> is explicitly called out as a suspected affected route.
-    - Pay particular attention to features that are disabled by default in production
-      but enabled in development — these are the most likely to have untested disabled states.
-- id: BUG-053
-  source_request: REQ-059
-  title: Clear modal error state on close across all modals
-  type: bug
-  capability: register-ui
-  phase: null
-  status: done
-  done_in: v1.21.0
-  priority: high
-  confidence: high
-  summary: Error state is not cleared when modals are closed. Reopening any affected modal
-    shows the previous error until a successful action clears it. Root cause is likely
-    error state living in a parent component or store that is not reset on modal
-    unmount/close. Fix requires a sweep of all modals to identify and correct each case.
-  acceptance:
-  - All modals in the app reset their error state when closed, so reopening always starts
-    clean with no prior error visible.
-  - The fix covers every modal that can display an error — risk add/edit, response action
-    add/edit, review, config modals, API key creation, and any others identified during
-    the sweep.
-  - No regression to error display behaviour during an active modal session (errors must
-    still appear correctly when they occur within a single open).
-  - Frontend tests cover the close-then-reopen scenario for at least the highest-traffic
-    modals to prevent regression.
-  remaining:
-  - Audit all modals in the app to identify where error state is stored and whether it is
-    reset on close/unmount.
-  - Apply a consistent reset pattern (e.g. clear on onClose callback, or reset on
-    unmount via useEffect) across all affected modals.
-  - Add or update tests for the close-then-reopen error-clear path on key modals.
-  dependencies: []
-  suggested_agents:
-  - frontend-developer
-  - test-engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskFormModal.tsx
-    - frontend/src/features/risks/ResponseActionModal.tsx
-    - frontend/src/features/risks/ReviewModal.tsx
-    - frontend/src/pages/ApiKeysPage.tsx
-    tests:
-    - frontend/test/risks.test.mjs
-    notes:
-    - Reported as widespread — affects multiple modals rather than one specific case.
-    - Likely a single shared pattern fix once the root cause is confirmed.
-- id: BUG-052
-  source_request: REQ-058
-  title: Refresh audit table in View Risk modal after response action mutations
-  type: bug
-  capability: child-actions
-  phase: null
-  status: done
-  done_in: v1.21.0
-  priority: medium
-  confidence: high
-  summary: When a response action is added, edited, or soft-deleted in child record mode,
-    the audit table in the View Risk modal does not update. The new audit entry only
-    appears after closing and reopening the modal. The audit table should refresh
-    automatically whenever a response action mutation completes.
-  acceptance:
-  - The audit table in the View Risk modal refreshes automatically after a response action
-    is added, without requiring the modal to be closed and reopened.
-  - The audit table refreshes automatically after a response action is edited.
-  - The audit table refreshes automatically after a response action is soft-deleted.
-  - No regression to response action CRUD behaviour, the audit table display, or other
-    sections of the View Risk modal.
-  remaining:
-  - Identify how the audit table is fetched and what triggers a refetch — confirm whether
-    it is driven by a query key, an event, or a manual refresh call.
-  - Wire a refetch trigger to the response action add/edit/delete success callbacks.
-  - Add or update frontend tests to cover the audit table refresh after each mutation type.
-  dependencies:
-  - PM7-CORE
-  suggested_agents:
-  - frontend-developer
-  - test-engineer
-  evidence:
-    code:
-    - frontend/src/features/risks/RiskDetailModal.tsx
-    - frontend/src/features/risks/ResponseActionModal.tsx
-    tests:
-    - frontend/test/risks.test.mjs
-    notes:
-    - Reproduce by opening a risk in View Risk modal in child record mode, adding a
-      response action, then observing the audit table — new entry absent until modal
-      is closed and reopened.
-- id: BUG-051
-  source_request: REQ-067
-  title: Surface response actions help content within the risks help section
-  type: bug
-  capability: help-content
-  phase: null
-  status: done
-  done_in: v1.20.0
-  priority: medium
-  confidence: high
-  summary: response-actions.md was written as part of v1.19.0 but was never linked from
-    the in-app help page. The content should be integrated into the risks help section
-    rather than exposed as a standalone tab.
-  acceptance:
-  - The response actions help content from frontend/public/help/en/response-actions.md
-    is reachable from within the risks section of the in-app help page.
-  - Response actions content is not a standalone tab — it is a subsection of the risks
-    help article, appearing in a logical position after core risk management content.
-  - The developer may merge the file into the risks help article or keep it as a separate
-    file that is included/referenced — whichever is cleaner — as long as the content is
-    reachable from the risks section.
-  - No regression to other help content or help page navigation.
-  remaining:
-  - Review response-actions.md content and decide the best integration point within the
-    risks help article.
-  - Update the help page component or content loader to surface this content within the
-    risks section.
-  dependencies: []
-  suggested_agents:
-  - frontend-developer
-  evidence:
-    code:
-    - frontend/public/help/en/response-actions.md
-    - frontend/public/help/en/
-    tests: []
-    notes:
-    - Content was written to satisfy the v1.19.0 help acceptance criterion but was never
-      wired into the help page navigation.
 - id: I18N-001
   source_request: REQ-077
   title: Implement internationalisation support
   type: feature
   capability: architecture
-  phase: null
   status: deferred
   priority: low
   confidence: low
@@ -3526,44 +1435,13 @@ items:
       Prisma migration — treat as a separate major release item if translated audit logs
       are a confirmed requirement.
     - Deferred pending product decision.
-- id: MAINT-006
-  source_request: REQ-052
-  title: Update help docs for configurable scoring formula feature
-  type: maintenance
-  capability: help-content
-  status: done
-  done_in: v1.17.1
-  priority: medium
-  confidence: high
-  summary: In-app help docs were not updated when PM6-SCORING shipped in v1.17.0. Users reading help content find no guidance
-    on configuring or using custom scoring formulas. The relevant help article(s) must be updated.
-  acceptance:
-  - Help content in frontend/public/help/en/ updated to cover the scoring formula feature.
-  - Content describes how to write a formula, available canonical variable names (likelihood, impact), numeric custom field
-    references, constants, and supported arithmetic operators.
-  - Content describes validation behaviour — formulas are checked on save and on publish; invalid formulas are rejected with
-    an error message.
-  - Content notes that existing registers default to likelihood × impact and are unaffected unless a Register Admin changes
-    the formula.
-  remaining:
-  - Identify which help article(s) cover register configuration or scoring and update or create them.
-  dependencies: []
-  suggested_agents:
-  - frontend-developer
-  evidence:
-    code:
-    - frontend/public/help/en/
-    tests: []
-    notes:
-    - PM6-SCORING shipped in v1.17.0. This is a post-ship doc gap.
 - id: MAINT-016
   source_request: REQ-078
   title: Extract feature components from large page files
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: medium
   confidence: high
   summary: RegisterDetailPage.tsx, UsersPage.tsx, and MyRisksPage.tsx each contain substantial inline logic and JSX that
@@ -3602,9 +1480,8 @@ items:
   title: Extract shared utility functions to backend/src/utils/
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: medium
   confidence: high
   summary: toDateOnlyString and decimalToNumber are duplicated across four backend service files — risks.service.ts,
@@ -3643,9 +1520,8 @@ items:
   title: Break up risks.service.ts and configVersion.service.ts into sub-services
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.26.0
+  done_in: ['v1.26.0']
   priority: medium
   confidence: high
   summary: risks.service.ts (1,248 lines) and configVersion.service.ts (1,186 lines) each carry multiple distinct
@@ -3696,9 +1572,8 @@ items:
   title: Add opening block comments to test files missing them
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: low
   confidence: high
   summary: Approximately 38 test files (24 backend, 14 frontend static) are missing required opening block comments per the
@@ -3712,8 +1587,7 @@ items:
   remaining:
   - Identify the exact list of affected files at time of implementation (count may shift as new test files are added).
   - Add block comments to each affected file — this can be done in batches across releases if scope is large.
-  dependencies:
-  - MAINT-010
+  dependencies: []
   suggested_agents:
   - test-engineer
   - backend-developer
@@ -3731,9 +1605,8 @@ items:
   title: Restructure myRisks.test.mjs to use describe blocks
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: low
   confidence: high
   summary: 17 tests in myRisks.test.mjs are currently separated by inline comments rather than describe blocks, contrary
@@ -3764,9 +1637,8 @@ items:
   title: Replace brittle querySelector selectors in three frontend test files
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: medium
   confidence: high
   summary: passwordStrength.behavior.test.tsx, apiKeys.behavior.test.tsx, and riskDetailModal.behavior.test.tsx use
@@ -3807,7 +1679,6 @@ items:
   title: Fix 10 CI lint warnings in frontend and backend
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in:
   - v1.25.0
@@ -3849,7 +1720,6 @@ items:
   title: PA assessment — confirm .test.mjs to .test.ts toolchain compatibility
   type: spike
   capability: build-toolchain
-  phase: null
   status: done
   done_in:
   - v1.25.0
@@ -3887,7 +1757,6 @@ items:
   title: PA assessment — define sub-service boundaries for risks.service.ts and configVersion.service.ts
   type: spike
   capability: build-toolchain
-  phase: null
   status: done
   done_in:
   - v1.25.0
@@ -3931,9 +1800,8 @@ items:
   title: Migrate frontend static test files from .test.mjs to .test.ts
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.26.0
+  done_in: ['v1.26.0']
   priority: low
   confidence: high
   summary: All 16 frontend static test files use the .test.mjs extension; the coding standard says .test.ts. PA confirmed
@@ -3975,9 +1843,8 @@ items:
   title: Bump actions/checkout from v6 to v7 in GitHub Actions workflows
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.26.0
+  done_in: ['v1.26.0']
   priority: low
   confidence: high
   summary: The GitHub Actions workflows use actions/checkout@v6. This should be bumped to @v7 to stay current with the
@@ -3999,117 +1866,11 @@ items:
     tests: []
     notes:
     - Straightforward version bump. Check all workflow files for the reference — there may be more than one.
-- id: SPIKE-006
-  source_request: REQ-005
-  title: Spike — audit current review implementation and scope PM8-CORE
-  type: spike
-  capability: advanced-reviews
-  phase: 8
-  status: done
-  priority: high
-  confidence: medium
-  summary: The MVP review baseline exists (reviews.service.ts, ReviewModal.tsx) but the exact gap between what is
-    implemented and what PRD section 10 requires is not known. Before PM8-CORE can be scoped or released, the PA
-    must audit the current implementation and answer specific questions about the review rule model, Risk Response
-    Reviews, attestation configuration, and schema readiness. Output drives PM8-CORE scoping.
-  acceptance:
-  - A document exists at docs/spikes/SPIKE-006.md containing Findings and Recommendations sections.
-  - Findings cover what the current implementation provides for each of PRD sections 10.1–10.4 — specifically
-    whether basic risk reviews, Risk Response Reviews, attestation text configuration, and review history are
-    present and correct, or absent/partial.
-  - Findings cover whether a review frequency rule model exists in the schema (e.g. a reviewRules table or
-    equivalent) or whether this is entirely absent and schema-first work is required.
-  - Findings cover whether next-review-date recalculation on relevant field edits is implemented.
-  - Recommendations define the smallest coherent first slice of PM8-CORE that can be delivered in one release,
-    including which schema changes (if any) the principal-architect must design before implementation.
-  - Recommendations note any cross-cutting concerns — permission model, audit model, notification coupling — that
-    would complicate or block the first slice.
-  remaining:
-  - PA to read reviews.service.ts, the Prisma schema (review-related tables and fields), ReviewModal.tsx, and
-    the register configuration model for review settings.
-  - PA to answer each of the Findings questions above before forming Recommendations.
-  - No implementation work starts until the spike output is reviewed by PM at the next planning session.
-  dependencies: []
-  suggested_agents:
-  - principal-architect
-  evidence:
-    code:
-    - backend/src/services/reviews.service.ts
-    - backend/prisma/schema.prisma
-    - frontend/src/features/risks/ReviewModal.tsx
-    - backend/src/services/registerConfig.service.ts
-    tests:
-    - backend/test/reviews.test.mjs
-    docs:
-    - docs/product/prd.md
-    notes:
-    - PRD section 10 is the reference. Sections 10.1 (risk reviews), 10.2 (risk response reviews), 10.3 (frequency
-      rules), and 10.4 (review history) should each be assessed individually.
-    - Output document at docs/spikes/SPIKE-006.md following the existing spike convention.
-    - The spike should be definitive enough that PM can write a tight active-release.md for PM8-CORE without further
-      PA consultation.
-
-- id: SPIKE-007
-  source_request: REQ-008
-  title: Spike — define attachment implementation architecture for PM12-CORE
-  type: spike
-  capability: attachments-evidence
-  phase: 12
-  status: done
-  priority: medium
-  confidence: medium
-  summary: ADR-0006 decided the attachment storage model (local filesystem / Docker volume). Before PM12-CORE can
-    be scoped or released, the PA must define the full implementation architecture — schema shape, permission model,
-    API design, audit model, file safety controls, and the smallest coherent first release slice (risk attachments
-    first). Output drives PM12-CORE scoping.
-  acceptance:
-  - A document exists at docs/spikes/SPIKE-007.md containing Findings and Recommendations sections.
-  - Findings cover what is already decided by ADR-0006 and what remains open.
-  - Recommendations include a proposed Prisma schema for the Attachment model and its linking table(s) — at
-    minimum linking to risks; action and review attachment linking can be deferred but the schema must not
-    foreclose that path.
-  - Recommendations cover the permission model — who can upload, download, soft-delete, and hard-delete
-    attachments; how register-level and ownership-derived permissions apply; and how Register Viewer access
-    to attachments is handled.
-  - Recommendations cover the API shape — endpoints for upload (multipart), list, download (stream or redirect),
-    and soft-delete — and how the backend serves or proxies stored files without exposing storage paths.
-  - Recommendations cover file safety controls — MIME type validation, file size limits, extension allow/block
-    list — and where enforcement lives (backend middleware vs. service layer).
-  - Recommendations cover the audit model — what events are recorded, at which audit level (risk audit log vs.
-    system audit log), and whether a deletion snapshot is required.
-  - Recommendations confirm the smallest coherent first slice (risk attachments only) and what is explicitly
-    deferred to follow-on work (action attachments, review attachments).
-  - Recommendations note any operational consequences from ADR-0006 that must appear in release documentation
-    (volume backup, file-size defaults, storage path configuration).
-  remaining:
-  - PA to read ADR-0006 and the current Prisma schema to understand what storage decisions are already made and
-    what schema work is needed.
-  - PA to assess the current permission model (riskAccess.ts, registerPermissions) for extension points.
-  - No implementation work starts until the spike output is reviewed by PM at the next planning session.
-  dependencies: []
-  suggested_agents:
-  - principal-architect
-  evidence:
-    code:
-    - backend/prisma/schema.prisma
-    - backend/src/permissions/riskAccess.ts
-    tests: []
-    docs:
-    - docs/decisions/ADR-0006-attachment-storage.md
-    - docs/product/prd.md
-    notes:
-    - ADR-0006 is the primary reference for storage decisions already made. The spike should build on those
-      decisions, not revisit them, unless the PA identifies a concrete reason the ADR needs amending.
-    - Output document at docs/spikes/SPIKE-007.md following the existing spike convention.
-    - The spike should be definitive enough that PM can write a tight active-release.md for PM12-CORE without
-      further PA consultation.
-
 - id: PM8-FREQ-RULES
   source_request: REQ-005
   title: Implement field-value-driven review frequency rules
   type: feature
   capability: advanced-reviews
-  phase: 8
   status: needs-refinement
   priority: medium
   confidence: low
@@ -4159,7 +1920,6 @@ items:
   title: Implement Risk Response Reviews
   type: feature
   capability: advanced-reviews
-  phase: 8
   status: needs-refinement
   priority: medium
   confidence: low
@@ -4207,7 +1967,6 @@ items:
   title: Add attachment support for Risk Response Actions
   type: feature
   capability: attachments-evidence
-  phase: 12
   status: blocked
   blocked_on: PM12-CORE
   priority: medium
@@ -4249,7 +2008,6 @@ items:
   title: Add attachment support for Risk Reviews
   type: feature
   capability: attachments-evidence
-  phase: 12
   status: blocked
   blocked_on: PM12-CORE
   priority: low
@@ -4286,7 +2044,6 @@ items:
   title: Implement orphan file cleanup job for soft-deleted attachments
   type: feature
   capability: attachments-evidence
-  phase: 12
   status: blocked
   blocked_on: PM12-CORE
   priority: medium
@@ -4327,9 +2084,8 @@ items:
   title: Fix Playwright show-report localhost binding on macOS
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
-  done_in: v1.26.0
+  done_in: ['v1.26.0']
   priority: low
   confidence: high
   summary: npx playwright show-report binds to 127.0.0.1:9323 but Firefox on macOS resolves localhost to IPv6, causing
@@ -4353,12 +2109,11 @@ items:
     - Firefox on macOS resolves localhost to ::1 (IPv6) by default; Playwright's show-report server binds to 127.0.0.1
       (IPv4) only. Explicitly passing --host 127.0.0.1 makes the URL match the binding.
 - id: DRAFT-UNIFIED
-  source_request: extracted from abandoned v1.27.0
+  source_request: null
   title: Implement unified draft system for all register settings
   type: refactor
   capability: config-lifecycle-templates
-  phase: null
-  status: in-active-release
+  status: ready
   priority: high
   confidence: high
   summary: The register settings architecture has an undocumented split — some fields travel
@@ -4387,15 +2142,21 @@ items:
     at least three previously Category B fields.
   - Architecture docs updated to codify the unified draft standard so future developers know
     the rule (all new settings fields go through draft in draft mode).
+  - Because this change alters register configuration publish behaviour, the Test Engineer
+    runs the Playwright E2E suite manually and records the result. E2E is not part of CI on
+    this project — see docs/operations/e2e-testing.md, "E2E tests are not run in CI" — so a
+    green CI run is not sufficient evidence for this item.
   remaining:
-  - Backend developer to move all register settings fields out of the sourceTemplateVersionId
-    conditional in configVersion.publish.service.ts into the always-promote block. Only
-    linkedTemplateVersionId remains inside the conditional. Reference: SPIKE-008 Recommendation
-    section "What needs to change technically — Backend".
-  - Frontend developer to update RegisterSettingsTab.tsx so all field blur/change handlers
-    call updateDraftConfig when in draft mode, matching the pattern established by
-    reviewCommentMode and reviewAttestationText handlers. Reference: SPIKE-008 Recommendation
-    section "What needs to change technically — Frontend".
+  - >-
+      Backend developer to move all register settings fields out of the sourceTemplateVersionId
+      conditional in configVersion.publish.service.ts into the always-promote block. Only
+      linkedTemplateVersionId remains inside the conditional. Reference: SPIKE-008 Recommendation
+      section "What needs to change technically — Backend".
+  - >-
+      Frontend developer to update RegisterSettingsTab.tsx so all field blur/change handlers
+      call updateDraftConfig when in draft mode, matching the pattern established by
+      reviewCommentMode and reviewAttestationText handlers. Reference: SPIKE-008 Recommendation
+      section "What needs to change technically — Frontend".
   - Principal Architect to update or create architecture docs codifying the unified draft
     standard, so the rule is documented for future developers.
   - Test engineer to add tests covering the always-promote path and verify no Category B
@@ -4425,13 +2186,14 @@ items:
     - principal-architect is listed because this item introduces a documented architectural
       standard and touches configVersion.publish.service.ts (a core service). PA should
       write the architecture doc update and review the backend changes before they merge.
+    - >-
+        Provenance: extracted from the abandoned v1.27.0 release; no originating request exists.
 - id: UI-024
-  source_request: extracted from abandoned v1.27.0 (SPIKE-008 deferred items)
+  source_request: REQ-093
   title: Surface template-drift banner when linkedTemplate.isLatest is false
   type: improvement
   capability: config-lifecycle-templates
-  phase: null
-  status: in-active-release
+  status: ready
   priority: medium
   confidence: high
   summary: The backend already returns linkedTemplate.isLatest on the register response. The
@@ -4451,6 +2213,9 @@ items:
     and explicitly states that publishing a manual draft does NOT unlink the register from its
     template — the register remains linked at the same template version, and the drift banner
     will appear if the template advances further (REQ-093 policy decision).
+  - The banner and its call-to-action each carry a stable data-testid following the kebab-case
+    convention in docs/operations/e2e-testing.md, "data-testid naming convention" — this is a
+    new user-facing element, so the project's selector standard applies to it.
   remaining:
   - Decide the exact placement of the banner — register settings page, register list, or both.
   - Confirm the linkedTemplate.isLatest field is already available in the frontend data for
@@ -4472,13 +2237,14 @@ items:
     - SPIKE-008 explicitly describes this as a frontend-only change.
     - The minimum viable approach is the drift banner; full notification infrastructure
       (push/email) is a separate capability tracked under PM9-CORE.
+    - >-
+        Provenance: extracted from the abandoned v1.27.0 release (SPIKE-008 deferred items).
 - id: BUG-058
   source_request: REQ-088
   title: Fix createRegisterFromTemplate — Prisma crash due to missing createdBy relation
   type: bug
   capability: config-lifecycle-templates
-  phase: null
-  status: in-active-release
+  status: ready
   priority: critical
   confidence: high
   summary: The "create register from template" feature throws a PrismaClientValidationError
@@ -4516,39 +2282,49 @@ items:
     notes:
     - Error reported with exact correlationId 7f39d6ba-ef11-48b0-96f0-17f2c3973135.
     - Check other register creates in registers.service.ts for the correct relation pattern to follow.
-    - Note: this is a different bug from REQ-091/BUG-060 (missing field copying in the same
-      function). Both bugs exist independently. Fix this crash first; BUG-060 can follow.
+    - >-
+        Note: this is a different bug from REQ-091/BUG-060 (missing field copying in the same
+        function). Both bugs exist independently. Fix this crash first; BUG-060 can follow.
 - id: BUG-059
   source_request: REQ-090
   title: Fix broken Prisma seed file — v1.27.0 remnants
   type: bug
   capability: build-toolchain
-  phase: null
-  status: in-active-release
+  status: ready
   priority: high
-  confidence: medium
-  summary: backend/prisma/seed.ts is broken due to incomplete or conflicting changes left
-    over from the abandoned v1.27.0 release. The seed likely references the ReviewCommentMode
-    enum or related schema fields that were introduced during v1.27.0 and subsequently
-    reverted from the codebase (though the DB column was also cleaned up separately).
-    The fix is to identify and remove or revert the v1.27.0 additions in seed.ts so it
-    runs cleanly against the current schema.
+  confidence: high
+  summary: backend/prisma/seed.ts writes a reviewCommentMode value to the register table,
+    but the review_comment_mode column was introduced during the abandoned v1.27.0 release
+    and removed again when that release was reverted. The seed therefore targets a column
+    the current schema does not have, and fails partway through. Root cause confirmed
+    2026-08-23 — this is the v1.27.0 remnant the item predicted. The fix is to remove the
+    v1.27.0 field references from seed.ts so it runs cleanly against the current schema.
   observed_behaviour:
-  - backend/prisma/seed.ts fails to run, likely due to references to ReviewCommentMode
-    or other schema artefacts from the abandoned v1.27.0 work.
+  - Reproduces via both npm run seed:admin and npm run db:setup.
+  - Fails at backend/prisma/seed.ts:548 in prisma.register.upsert() with "The column
+    review_comment_mode of relation register does not exist in the current database".
+  - The System Admin upsert earlier in the file succeeds; the failure is in the
+    demo-register loop, so the seed leaves the database partially populated.
+  - prisma migrate deploy reports all 19 migrations applied and none pending, confirming
+    the schema is correct and it is seed.ts that is stale.
   expected_behaviour:
-  - The seed runs cleanly against the current schema with no errors.
+  - The seed runs to completion against the current schema with no errors.
   acceptance:
-  - npx prisma db seed runs to completion without errors.
+  - npm run seed:admin completes without errors.
+  - npm run db:setup completes without errors against a clean database.
+  - No references remain anywhere in backend/prisma/seed.ts to reviewCommentMode,
+    review_comment_mode, ReviewCommentMode, or any other schema artefact from the abandoned
+    v1.27.0 release.
   - The seed produces the expected demo data consistent with the MAINT-014 refresh (custom
-    fields, response action child records, custom formula, completed reviews).
-  - No seed references remain to ReviewCommentMode or any other schema artefact from the
-    abandoned v1.27.0 release.
+    fields, response action child records, custom formula, completed reviews) — verified by
+    inspecting the seeded database, not only by the absence of an error.
+  - The seed remains idempotent — running it twice in succession succeeds both times.
+  - backend/test/seed.test.mjs passes.
   remaining:
-  - Inspect backend/prisma/seed.ts for any references to ReviewCommentMode or other
-    v1.27.0 additions and remove them.
-  - Run the seed against a clean database to confirm it completes successfully.
-  - Verify the seeded data matches expectations from MAINT-014.
+  - Remove the reviewCommentMode reference from the register upsert at backend/prisma/seed.ts:548
+    and sweep the rest of the file for any other v1.27.0 field or enum references.
+  - Run the seed against a clean database, twice, to confirm completion and idempotency.
+  - Verify the seeded data matches the MAINT-014 expectations.
   dependencies: []
   suggested_agents:
   - backend-developer
@@ -4559,17 +2335,20 @@ items:
     tests:
     - backend/test/seed.test.mjs
     notes:
-    - v1.27.0 added ReviewCommentMode enum and review_comment_mode column during the release,
-      both of which were reverted from the codebase when the release was abandoned.
-    - Medium confidence because the exact failure mode has not been confirmed — the backend
-      developer should read seed.ts before implementing to confirm the root cause.
+    - v1.27.0 added the ReviewCommentMode enum and review_comment_mode column during the
+      release; both were reverted from schema and migrations when the release was abandoned,
+      but seed.ts was missed.
+    - Root cause confirmed by the human on 2026-08-23 — see REQ-090 Notes for the full
+      reproduction. Confidence raised from medium to high on that evidence.
+    - The seed failing partway means a developer following the README setup path gets a
+      half-seeded database with no obvious signal that it is incomplete. Treat a clean
+      full run, not just a non-erroring run, as the bar.
 - id: BUG-060
   source_request: REQ-091
   title: Fix createRegisterFromTemplate — does not copy reviewCommentMode, scoringFormula, responseActionMode
   type: bug
   capability: config-lifecycle-templates
-  phase: null
-  status: in-active-release
+  status: ready
   priority: high
   confidence: high
   summary: The createRegisterFromTemplate function omits reviewCommentMode, scoringFormula,
@@ -4619,8 +2398,7 @@ items:
   title: Fix Template Compare modal — empty diff when only reviewCommentMode, scoringFormula, or responseActionMode differ
   type: bug
   capability: config-lifecycle-templates
-  phase: null
-  status: in-active-release
+  status: ready
   priority: high
   confidence: high
   summary: The compareRegisterToTemplate function omits reviewCommentMode, scoringFormula,
