@@ -66,7 +66,7 @@ const importRegisterSettingsSchema = z.object({
   riskIdPrefix: z.string().nullable().optional(),
   riskIdZeroPaddingEnabled: z.boolean(),
   riskIdZeroPaddingWidth: z.number().int().min(2).max(12),
-  defaultNewRiskState: z.string(),
+  defaultNewRiskState: z.enum(["DRAFT", "OPEN", "CLOSED"]),
   reviewsEnabled: z.boolean(),
   defaultReviewFrequencyMonths: z.number().int().min(1).max(120),
   reviewAttestationText: z.string(),

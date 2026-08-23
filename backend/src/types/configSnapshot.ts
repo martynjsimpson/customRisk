@@ -67,7 +67,7 @@ export interface ConfigSnapshotRegisterSettings {
   riskIdPrefix: string | null;
   riskIdZeroPaddingEnabled: boolean;
   riskIdZeroPaddingWidth: number;
-  defaultNewRiskState: string;
+  defaultNewRiskState: "DRAFT" | "OPEN" | "CLOSED";
   reviewsEnabled: boolean;
   defaultReviewFrequencyMonths: number;
   reviewAttestationText: string;
