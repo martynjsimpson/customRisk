@@ -11,6 +11,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
+import { updateDraftBodySchema } from "../src/validators/configVersion.schemas.ts";
+import { importBodySchema } from "../src/validators/configExportImport.schemas.ts";
+
 test("all Phase 4 route groups are gated by requireFeature('draftConfig')", async () => {
   const registerRoutes = await readFile(new URL("../src/routes/registers.routes.ts", import.meta.url), "utf8");
   const indexRoutes = await readFile(new URL("../src/routes/index.ts", import.meta.url), "utf8");
@@ -341,18 +344,23 @@ test("publishDraft recalculates risk levels for all open risks against the new m
   assert.match(configVersionService, /snapshot\.matrixCells/);
 });
 
-test("publishDraft advances linkedTemplateVersionId and applies register settings only for template-originated drafts", async () => {
+test("publishDraft advances linkedTemplateVersionId only for template-originated drafts", async () => {
   // MAINT-018: publishConfigVersion lives in configVersion.publish.service.ts.
+  //
+  // DRAFT-UNIFIED note: this test previously also asserted that register settings (e.g.
+  // allowViewerExport) were applied "only for template-originated drafts". That is no longer
+  // true — under the unified draft standard (docs/architecture/register-config-draft-system.md
+  // section 5) every ConfigSnapshotRegisterSettings field is promoted unconditionally regardless
+  // of draft origin. linkedTemplateVersionId is the only field still gated on
+  // draft.sourceTemplateVersionId. The always-promote / conditional-isolation assertions live in
+  // the DRAFT-UNIFIED tests above; this test is scoped to linkedTemplateVersionId only.
   const service = await readFile(new URL("../src/services/configVersion.publish.service.ts", import.meta.url), "utf8");
 
-  // sourceTemplateVersionId presence drives both behaviours
+  // sourceTemplateVersionId drives linkedTemplateVersionId
   assert.match(service, /draft\.sourceTemplateVersionId/);
 
-  // linkedTemplateVersionId is set inside the register update
+  // linkedTemplateVersionId is set inside the register update, from the draft's template origin
   assert.match(service, /linkedTemplateVersionId: draft\.sourceTemplateVersionId/);
-
-  // Register settings are spread from the snapshot inside the template-origin conditional
-  assert.match(service, /allowViewerExport: regSettings\.allowViewerExport/);
 });
 
 test("unlinkRegisterFromTemplate service writes audit event and route is System Admin + feature-flag gated", async () => {
@@ -410,45 +418,158 @@ test("publishDraft calls recalculateRiskScores after recalculateRiskLevels (PM6-
   assert.match(service, /scoringFormula/);
 });
 
-test("publishDraft writes scoringFormula to register.update unconditionally — not inside sourceTemplateVersionId block (BUG-FIX)", async () => {
+// ─── DRAFT-UNIFIED: the unified draft standard (docs/architecture/register-config-draft-system.md
+// section 5) — every ConfigSnapshotRegisterSettings field is promoted unconditionally on publish,
+// regardless of whether the draft originated from a template. linkedTemplateVersionId is the only
+// field that stays inside the sourceTemplateVersionId conditional. ────────────────────────────────
+
+// Extracts the `await tx.register.update({ ... });` call body from configVersion.publish.service.ts
+// so assertions below are on the code's actual shape, not on comment text (a comment can be
+// reworded without changing behaviour, so a regression guard must not depend on it).
+function extractRegisterUpdateCall(serviceSource) {
+  const match = serviceSource.match(/await tx\.register\.update\(\{[\s\S]*?\n {4}\}\);/);
+  assert.ok(match, "Expected to find the tx.register.update(...) call in publishDraft");
+  return match[0];
+}
+
+// Isolates the `...(draft.sourceTemplateVersionId ? { ... } : {}),` spread within the update
+// call body, returning { conditionalSegment, outsideConditional }.
+function splitTemplateConditional(updateCallBody) {
+  const condStart = updateCallBody.indexOf("...(draft.sourceTemplateVersionId");
+  assert.ok(condStart !== -1, "Expected the sourceTemplateVersionId conditional spread in the update call");
+
+  const closeMarker = ": {}),";
+  const closeIdx = updateCallBody.indexOf(closeMarker, condStart);
+  assert.ok(closeIdx !== -1, "Expected the sourceTemplateVersionId conditional to close with ': {}),'");
+
+  const condEnd = closeIdx + closeMarker.length;
+  return {
+    conditionalSegment: updateCallBody.slice(condStart, condEnd),
+    outsideConditional: updateCallBody.slice(0, condStart) + updateCallBody.slice(condEnd)
+  };
+}
+
+const ALWAYS_PROMOTED_REGISTER_SETTINGS_FIELDS = [
+  "name",
+  "description",
+  "riskIdPrefix",
+  "riskIdZeroPaddingEnabled",
+  "riskIdZeroPaddingWidth",
+  "defaultNewRiskState",
+  "reviewsEnabled",
+  "defaultReviewFrequencyMonths",
+  "reviewAttestationText",
+  "allowViewerExport",
+  "customFieldValidationEnabled",
+  "reviewStatusPosition",
+  "scoringFormula"
+];
+
+test("publishDraft promotes every always-promote register setting unconditionally — not inside the sourceTemplateVersionId block (DRAFT-UNIFIED, BUG-FIX)", async () => {
   // MAINT-018: publishConfigVersion lives in configVersion.publish.service.ts.
   const service = await readFile(
     new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
     "utf8"
   );
 
-  // Locate the register.update call inside publishConfigVersion (publishDraft).
-  // The fix places scoringFormula AFTER the sourceTemplateVersionId spread, at the
-  // top level of the data object, so that it is always written regardless of whether
-  // the draft originated from a template.
-  //
-  // Strategy: find the comment that was added to document the fix, then assert that
-  // scoringFormula assignment follows it directly.
-  const fixComment = "Always promote scoringFormula from the published snapshot";
-  assert.ok(
-    service.includes(fixComment),
-    "Expected the unconditional scoringFormula comment to be present in publishConfigVersion"
-  );
+  const updateCall = extractRegisterUpdateCall(service);
+  const { conditionalSegment, outsideConditional } = splitTemplateConditional(updateCall);
 
-  // The scoringFormula assignment must appear AFTER the closing of the
-  // sourceTemplateVersionId conditional block (i.e. after `: {}),`).
-  const templateBlockClose = ": {}),";
-  const templateBlockCloseIdx = service.indexOf(templateBlockClose);
-  assert.ok(templateBlockCloseIdx !== -1, "Expected to find the sourceTemplateVersionId else-branch close");
+  // Every field in ConfigSnapshotRegisterSettings (other than the legacy-snapshot-guarded
+  // responseActionMode and the linkedTemplateVersionId exception) must be assigned outside the
+  // sourceTemplateVersionId conditional, and must NOT appear inside it — a field placed inside
+  // the conditional is silently discarded on a manual draft publish (section 9 of the doc).
+  for (const field of ALWAYS_PROMOTED_REGISTER_SETTINGS_FIELDS) {
+    const fieldAssignment = new RegExp(`\\b${field}:`);
+    assert.match(
+      outsideConditional,
+      fieldAssignment,
+      `${field} must be assigned unconditionally in tx.register.update outside the sourceTemplateVersionId block`
+    );
+    assert.doesNotMatch(
+      conditionalSegment,
+      fieldAssignment,
+      `${field} must NOT be inside the sourceTemplateVersionId conditional — that would make it template-origin-only again`
+    );
+  }
 
-  const fixIdx = service.indexOf(fixComment);
-  assert.ok(
-    fixIdx > templateBlockCloseIdx,
-    "scoringFormula comment must appear AFTER the sourceTemplateVersionId conditional block closes, not inside it"
-  );
-
-  // Also assert the actual assignment is present after the comment.
-  const afterComment = service.slice(fixIdx);
+  // scoringFormula specifically, still assigned from the snapshot with the documented fallback.
   assert.match(
-    afterComment,
+    outsideConditional,
     /scoringFormula:\s*regSettings\.scoringFormula\s*\?\?\s*""/,
-    "scoringFormula must be assigned from regSettings.scoringFormula ?? \"\" after the comment"
+    "scoringFormula must be assigned from regSettings.scoringFormula ?? \"\""
   );
+
+  // responseActionMode keeps its own legacy-snapshot guard (snapshotMode !== undefined) — this is
+  // NOT the template-origin conditional, so it must sit outside it and must never appear inside it.
+  assert.match(
+    outsideConditional,
+    /\.\.\.\(snapshotMode !== undefined \? \{ responseActionMode:/,
+    "responseActionMode must be promoted via its own legacy-snapshot guard, outside the template conditional"
+  );
+  assert.doesNotMatch(
+    conditionalSegment,
+    /responseActionMode/,
+    "responseActionMode must not be gated on sourceTemplateVersionId"
+  );
+});
+
+test("publishDraft's sourceTemplateVersionId conditional contains linkedTemplateVersionId and nothing else (DRAFT-UNIFIED)", async () => {
+  const service = await readFile(
+    new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  const updateCall = extractRegisterUpdateCall(service);
+  const { conditionalSegment } = splitTemplateConditional(updateCall);
+
+  // The one exception: linkedTemplateVersionId is not a settings field, it is the register's
+  // template sync point, and must remain conditional on the draft's template origin.
+  assert.match(
+    conditionalSegment,
+    /linkedTemplateVersionId:\s*draft\.sourceTemplateVersionId/,
+    "linkedTemplateVersionId must be set from draft.sourceTemplateVersionId inside the conditional"
+  );
+
+  // No other register-settings field may share the conditional.
+  for (const field of ALWAYS_PROMOTED_REGISTER_SETTINGS_FIELDS) {
+    assert.doesNotMatch(
+      conditionalSegment,
+      new RegExp(`\\b${field}:`),
+      `${field} must not share the sourceTemplateVersionId conditional with linkedTemplateVersionId`
+    );
+  }
+});
+
+test("publishDraft promotes the same always-promote fields regardless of draft origin — parity between manual and template-origin drafts (DRAFT-UNIFIED)", async () => {
+  // The always-promote block is a single, unconditional block of assignments in the `data`
+  // object of tx.register.update — it does not read draft.sourceTemplateVersionId at all, so
+  // its behaviour cannot differ between a manually-created draft and a template-origin draft.
+  // This is the parity guarantee the unified standard exists to provide (section 5.1: the bug
+  // this replaced was exactly a field that behaved differently based on draft origin).
+  const service = await readFile(
+    new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  const updateCall = extractRegisterUpdateCall(service);
+  const { conditionalSegment, outsideConditional } = splitTemplateConditional(updateCall);
+
+  // None of the always-promoted fields reference draft.sourceTemplateVersionId anywhere in
+  // their assignment (i.e. they are not wrapped in a per-field ternary keyed on draft origin).
+  for (const field of ALWAYS_PROMOTED_REGISTER_SETTINGS_FIELDS) {
+    const fieldLineMatch = outsideConditional.match(new RegExp(`${field}:[^\\n]*`));
+    assert.ok(fieldLineMatch, `Expected to find the ${field} assignment line`);
+    assert.doesNotMatch(
+      fieldLineMatch[0],
+      /sourceTemplateVersionId/,
+      `${field}'s assignment must not itself branch on draft.sourceTemplateVersionId`
+    );
+  }
+
+  // And the only field that does branch on origin is confined to the conditional segment
+  // asserted in the previous test — linkedTemplateVersionId.
+  assert.match(conditionalSegment, /sourceTemplateVersionId/);
 });
 
 test("validate-formula route is exposed under config-versions (PM6-SCORING)", async () => {
@@ -490,4 +611,164 @@ test("recalculateRiskScores emits riskUpdated audit events for changed scores (P
 
   // Only audit when the score actually changed (not unconditionally)
   assert.match(service, /newScoreDecimal\.equals\(oldScore\)/);
+});
+
+// ─── DRAFT-UNIFIED: register-name-collision blocker ───────────────────────────
+
+test("analyseImpact blocks publish on a register-name collision, and publishDraft returns a handled 422 (not a raw Prisma error)", async () => {
+  const service = await readFile(
+    new URL("../src/services/configVersion.publish.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  // The collision check runs inside analyseImpact, using the draft's staged name (falling back
+  // to the live register name when the draft doesn't touch it), and excludes the register itself.
+  assert.match(service, /const draftName = \(snapshot\.register\.name \?\? register\.name\)\.trim\(\)/);
+  assert.match(
+    service,
+    /prisma\.register\.findFirst\(\{\s*where:\s*\{\s*name:\s*draftName,\s*id:\s*\{\s*not:\s*registerId\s*\}/,
+    "Expected the name-collision lookup to exclude the register being published"
+  );
+  assert.match(
+    service,
+    /blockers\.push\(`Register name "\$\{draftName\}" is already in use by another register`\)/,
+    "Expected a blocker naming the collision"
+  );
+
+  // publishDraft rejects with a handled 422 when analyseImpact returns any blocker — it does not
+  // let a Prisma P2002 (or any other raw DB error) escape as an unhandled 500. Per section 9 of
+  // the doc, publishDraft has no try/catch of its own, so any DB-constraint failure on a promoted
+  // field (like the globally-unique Register.name) MUST be caught here as a blocker, not relied
+  // on to throw at the tx.register.update call.
+  assert.match(service, /if \(!impact\.canPublish\) \{/);
+  assert.match(service, /throw new ApiError\(\s*422,\s*"UNPROCESSABLE"/);
+
+  // publishDraft has no error-mapping call of its own around the transaction — confirming the
+  // documented reliance on analyseImpact catching DB-constraint failures up front, rather than a
+  // try/catch + mapPrismaError(...) around the tx.register.update call.
+  assert.doesNotMatch(
+    service,
+    /mapPrismaError\(/,
+    "publishDraft must not rely on a mapPrismaError(...) call — constraint failures must be caught by analyseImpact instead"
+  );
+});
+
+// ─── BUG-058 / BUG-060: createRegisterFromTemplate — createdBy/updatedBy, scoringFormula,
+// responseActionMode ─────────────────────────────────────────────────────────────────────────
+
+test("createRegisterFromTemplate copies scoringFormula and responseActionMode from the template snapshot and sets createdBy/updatedBy via connect relations (BUG-058/BUG-060)", async () => {
+  const service = await readFile(
+    new URL("../src/services/registers.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  const fnStart = service.indexOf("export async function createRegisterFromTemplate");
+  assert.ok(fnStart !== -1, "Expected createRegisterFromTemplate to be exported from registers.service.ts");
+
+  const createCallStart = service.indexOf("tx.register.create(", fnStart);
+  assert.ok(createCallStart !== -1, "Expected a tx.register.create(...) call inside createRegisterFromTemplate");
+
+  // Grab the create({...}) call body for scoped assertions.
+  const createCallMatch = service
+    .slice(createCallStart)
+    .match(/tx\.register\.create\(\{[\s\S]*?\n {6}\}\);/);
+  assert.ok(createCallMatch, "Expected to isolate the tx.register.create({...}) call body");
+  const createCall = createCallMatch[0];
+
+  // createdBy/updatedBy are Prisma connect relations to the actor, not raw FK columns — this is
+  // what previously threw PrismaClientValidationError.
+  assert.match(createCall, /createdBy:\s*\{\s*connect:\s*\{\s*id:\s*actorId\s*\}\s*\}/);
+  assert.match(createCall, /updatedBy:\s*\{\s*connect:\s*\{\s*id:\s*actorId\s*\}\s*\}/);
+
+  // scoringFormula and responseActionMode come from the template snapshot's register settings,
+  // not from the Register model's schema defaults ("" / SIMPLE).
+  assert.match(createCall, /scoringFormula:\s*regSettings\.scoringFormula/);
+  assert.match(createCall, /responseActionMode:\s*regSettings\.responseActionMode/);
+});
+
+// ─── BUG-061: compareRegisterToTemplate — scoringFormula / responseActionMode diff coverage ───
+
+test("compareRegisterToTemplate's registerSettingsKeys includes scoringFormula and responseActionMode (BUG-061)", async () => {
+  const service = await readFile(
+    new URL("../src/services/template.service.ts", import.meta.url),
+    "utf8"
+  );
+
+  const fnStart = service.indexOf("export async function compareRegisterToTemplate");
+  assert.ok(fnStart !== -1, "Expected compareRegisterToTemplate to be exported from template.service.ts");
+
+  const keysStart = service.indexOf("registerSettingsKeys", fnStart);
+  assert.ok(keysStart !== -1, "Expected a registerSettingsKeys array inside compareRegisterToTemplate");
+
+  const keysArrayMatch = service.slice(keysStart).match(/\[[\s\S]*?\];/);
+  assert.ok(keysArrayMatch, "Expected to isolate the registerSettingsKeys array literal");
+  const keysArray = keysArrayMatch[0];
+
+  assert.match(keysArray, /"scoringFormula"/, "scoringFormula must be compared between register and template");
+  assert.match(keysArray, /"responseActionMode"/, "responseActionMode must be compared between register and template");
+
+  // A register diverging in exactly one key produces one named diff entry — the comparison loop
+  // pushes the key itself (not a derived label) onto registerSettings, so the frontend Compare
+  // modal renders the field name directly (see frontend/test for the rendered-modal assertion).
+  assert.match(service, /if \(regVal !== tplVal\) \{\s*registerSettings\.push\(key\);/);
+});
+
+// ─── DRAFT-UNIFIED: Zod schema gaps closed ─────────────────────────────────────────────────────
+
+test("updateDraftBodySchema accepts register.name and does not silently strip it (schema gap closed)", () => {
+  // Before this fix, snapshotRegisterSettingsSchema had no `name` key, so Zod (which strips
+  // unknown keys) silently dropped it from the PATCH body — updateDraft never saw it, the
+  // response was 200, and the value reverted on refresh. This is a pure schema-level assertion:
+  // no DB is needed to prove the field survives validation.
+  const result = updateDraftBodySchema.parse({ register: { name: "Renamed Register" } });
+  assert.equal(result.register?.name, "Renamed Register");
+});
+
+test("updateDraftBodySchema's riskIdPrefix pattern matches the direct-write path (schema gap closed)", () => {
+  assert.throws(() => updateDraftBodySchema.parse({ register: { riskIdPrefix: "bad prefix!" } }));
+
+  const result = updateDraftBodySchema.parse({ register: { riskIdPrefix: "RISK-1" } });
+  assert.equal(result.register?.riskIdPrefix, "RISK-1");
+});
+
+test("updateDraftBodySchema's defaultNewRiskState is a closed enum, not an open string (schema gap closed)", () => {
+  const result = updateDraftBodySchema.parse({ register: { defaultNewRiskState: "OPEN" } });
+  assert.equal(result.register?.defaultNewRiskState, "OPEN");
+
+  assert.throws(() => updateDraftBodySchema.parse({ register: { defaultNewRiskState: "NOT_A_STATE" } }));
+});
+
+function minimalImportConfig(registerOverrides = {}) {
+  return {
+    config: {
+      register: {
+        name: "Imported Register",
+        riskIdZeroPaddingEnabled: false,
+        riskIdZeroPaddingWidth: 4,
+        defaultNewRiskState: "OPEN",
+        reviewsEnabled: true,
+        defaultReviewFrequencyMonths: 12,
+        reviewAttestationText: "",
+        allowViewerExport: false,
+        customFieldValidationEnabled: true,
+        ...registerOverrides
+      },
+      customFields: [],
+      likelihoodValues: [],
+      impactValues: [],
+      riskLevels: [],
+      matrixCells: [],
+      responseStrategies: []
+    }
+  };
+}
+
+test("configExportImport defaultNewRiskState is a closed enum on import — previously any string was accepted (schema gap closed)", () => {
+  const accepted = importBodySchema.parse(minimalImportConfig({ defaultNewRiskState: "OPEN" }));
+  assert.equal(accepted.config.register.defaultNewRiskState, "OPEN");
+
+  assert.throws(
+    () => importBodySchema.parse(minimalImportConfig({ defaultNewRiskState: "NOT_A_STATE" })),
+    "Importing an arbitrary string for defaultNewRiskState must be rejected"
+  );
 });
