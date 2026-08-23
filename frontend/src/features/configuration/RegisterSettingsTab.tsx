@@ -5,12 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FocusEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
+import { type UpdateDraftConfigInput, getConfigVersionStatus, updateDraftConfig } from "../../api/configVersion.api";
 import { getRegisterConfiguration } from "../../api/customFields.api";
 import { deleteRegister, getRegister, updateRegister } from "../../api/registers.api";
 import { ApiErrorAlert } from "../../components/ApiErrorAlert";
 import { useFeatureFlags } from "../../hooks/useFeatureFlags";
 import { usePermissions } from "../../hooks/usePermissions";
+
+type DraftRegisterSettingsPatch = NonNullable<UpdateDraftConfigInput["register"]>;
 
 interface RegisterSettingsTabProps {
   registerId: string;
@@ -56,8 +58,9 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   });
   const hasDraft = statusQuery.data?.hasDraft ?? false;
 
-  // When in draft mode, read responseActionMode from the config snapshot (which reflects
-  // the pending draft value). Outside draft mode, fall back to the live register value.
+  // When in draft mode, every settings field is read from the config snapshot (which reflects
+  // pending draft values, per the unified draft standard). Outside draft mode, fall back to
+  // the live register value — see the setSettingsValues effect below.
   const configQuery = useQuery({
     queryKey: ["register-config", registerId],
     queryFn: () => getRegisterConfiguration(registerId),
@@ -69,24 +72,24 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
   useEffect(() => {
     const register = registerQuery.data;
     if (register) {
-      // In draft mode with a draft, the responseActionMode comes from the config snapshot.
-      // Without a draft, use the live register value.
-      const pendingMode =
-        draftConfigMode && hasDraft && configQuery.data
-          ? configQuery.data.register.responseActionMode
-          : register.responseActionMode;
+      // In draft mode with a draft, every settings field comes from the config snapshot
+      // (getRegisterConfig overlays the draft's register settings over the live row — see
+      // docs/architecture/register-config-draft-system.md section 4). Without a draft, use
+      // the live register value. Reading only some fields from the snapshot would show
+      // pre-draft values for the rest once their direct-write path stops firing.
+      const source = draftConfigMode && hasDraft && configQuery.data ? configQuery.data.register : register;
 
       setSettingsValues({
-        name: register.name,
-        description: register.description ?? "",
-        riskIdPrefix: register.riskIdPrefix ?? "",
-        riskIdZeroPaddingEnabled: register.riskIdZeroPaddingEnabled,
-        riskIdZeroPaddingWidth: register.riskIdZeroPaddingWidth,
-        reviewsEnabled: register.reviewsEnabled,
-        defaultReviewFrequencyMonths: register.defaultReviewFrequencyMonths,
-        allowViewerExport: register.allowViewerExport,
-        customFieldValidationEnabled: register.customFieldValidationEnabled,
-        responseActionMode: pendingMode
+        name: source.name,
+        description: source.description ?? "",
+        riskIdPrefix: source.riskIdPrefix ?? "",
+        riskIdZeroPaddingEnabled: source.riskIdZeroPaddingEnabled,
+        riskIdZeroPaddingWidth: source.riskIdZeroPaddingWidth,
+        reviewsEnabled: source.reviewsEnabled,
+        defaultReviewFrequencyMonths: source.defaultReviewFrequencyMonths,
+        allowViewerExport: source.allowViewerExport,
+        customFieldValidationEnabled: source.customFieldValidationEnabled,
+        responseActionMode: source.responseActionMode
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,6 +117,69 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
       ]);
     }
   });
+
+  // Draft-mode write path for every settings field below responseActionMode (which keeps its
+  // own dedicated mutation pair as the legacy-snapshot-guarded model field — see
+  // docs/architecture/register-config-draft-system.md section 5.2). One shared mutation is
+  // used for the rest: each field handler calls setFieldValue for local form state, then, only
+  // in draft mode with an active draft, patches just that field via updateDraftConfig. The
+  // direct-write path for these fields is unchanged — it is still the form-level onBlur/submit
+  // (updateSettingsMutation) below, guarded by !draftConfigMode, exactly as before.
+  const updateDraftSettingsFieldMutation = useMutation({
+    mutationFn: (patch: DraftRegisterSettingsPatch) => updateDraftConfig(registerId, { register: patch }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["register-config", registerId] }),
+        queryClient.invalidateQueries({ queryKey: ["config-version-status", registerId] })
+      ]);
+    }
+  });
+
+  function commitDraftField(patch: DraftRegisterSettingsPatch) {
+    if (draftConfigMode && hasDraft) {
+      updateDraftSettingsFieldMutation.mutate(patch);
+    }
+  }
+
+  function handleNameBlur() {
+    commitDraftField({ name: settingsForm.values.name });
+  }
+
+  function handleDescriptionBlur() {
+    commitDraftField({ description: settingsForm.values.description });
+  }
+
+  function handleRiskIdPrefixBlur() {
+    commitDraftField({ riskIdPrefix: settingsForm.values.riskIdPrefix || null });
+  }
+
+  function handleRiskIdZeroPaddingEnabledChange(checked: boolean) {
+    settingsForm.setFieldValue("riskIdZeroPaddingEnabled", checked);
+    commitDraftField({ riskIdZeroPaddingEnabled: checked });
+  }
+
+  function handleRiskIdZeroPaddingWidthBlur() {
+    commitDraftField({ riskIdZeroPaddingWidth: settingsForm.values.riskIdZeroPaddingWidth });
+  }
+
+  function handleAllowViewerExportChange(checked: boolean) {
+    settingsForm.setFieldValue("allowViewerExport", checked);
+    commitDraftField({ allowViewerExport: checked });
+  }
+
+  function handleCustomFieldValidationEnabledChange(checked: boolean) {
+    settingsForm.setFieldValue("customFieldValidationEnabled", checked);
+    commitDraftField({ customFieldValidationEnabled: checked });
+  }
+
+  function handleReviewsEnabledChange(checked: boolean) {
+    settingsForm.setFieldValue("reviewsEnabled", checked);
+    commitDraftField({ reviewsEnabled: checked });
+  }
+
+  function handleDefaultReviewFrequencyMonthsBlur() {
+    commitDraftField({ defaultReviewFrequencyMonths: settingsForm.values.defaultReviewFrequencyMonths });
+  }
 
   const updateDraftResponseActionModeMutation = useMutation({
     mutationFn: (mode: "SIMPLE" | "CHILD_RECORDS") =>
@@ -168,20 +234,41 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
       onBlur={handleFormBlur}
     >
       <Stack>
-        <ApiErrorAlert error={updateSettingsMutation.error} fallback="Unable to save register settings" />
+        <ApiErrorAlert
+          error={updateSettingsMutation.error ?? updateDraftSettingsFieldMutation.error}
+          fallback="Unable to save register settings"
+        />
         <Fieldset legend="General">
           <Stack>
-            <TextInput maw={400} label="Name" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("name")} />
-            <Textarea label="Description" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("description")} />
+            <TextInput
+              maw={400}
+              label="Name"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("name")}
+              onBlur={handleNameBlur}
+            />
+            <Textarea
+              label="Description"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("description")}
+              onBlur={handleDescriptionBlur}
+            />
           </Stack>
         </Fieldset>
         <Fieldset legend="Risk IDs">
           <Stack>
-            <TextInput w={180} label="Prefix" disabled={!canManage || settingsLocked} {...settingsForm.getInputProps("riskIdPrefix")} />
+            <TextInput
+              w={180}
+              label="Prefix"
+              disabled={!canManage || settingsLocked}
+              {...settingsForm.getInputProps("riskIdPrefix")}
+              onBlur={handleRiskIdPrefixBlur}
+            />
             <Checkbox
               label="Zero-pad risk IDs"
               disabled={!canManage || settingsLocked}
               {...settingsForm.getInputProps("riskIdZeroPaddingEnabled", { type: "checkbox" })}
+              onChange={(event) => handleRiskIdZeroPaddingEnabledChange(event.currentTarget.checked)}
             />
             <NumberInput
               w={140}
@@ -190,6 +277,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
               max={12}
               disabled={!canManage || settingsLocked || !settingsForm.values.riskIdZeroPaddingEnabled}
               {...settingsForm.getInputProps("riskIdZeroPaddingWidth")}
+              onBlur={handleRiskIdZeroPaddingWidthBlur}
             />
           </Stack>
         </Fieldset>
@@ -199,17 +287,20 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
               label="Allow Register Viewers to export"
               disabled={!canManage || settingsLocked}
               {...settingsForm.getInputProps("allowViewerExport", { type: "checkbox" })}
+              onChange={(event) => handleAllowViewerExportChange(event.currentTarget.checked)}
             />
             <Checkbox
               label="Enable custom field validation"
               description="Controls whether allow / warn / block validation is enforced and shown for this register."
               disabled={!canManage || settingsLocked}
               {...settingsForm.getInputProps("customFieldValidationEnabled", { type: "checkbox" })}
+              onChange={(event) => handleCustomFieldValidationEnabledChange(event.currentTarget.checked)}
             />
             <Checkbox
               label="Reviews enabled"
               disabled={!canManage || settingsLocked}
               {...settingsForm.getInputProps("reviewsEnabled", { type: "checkbox" })}
+              onChange={(event) => handleReviewsEnabledChange(event.currentTarget.checked)}
             />
             <Fieldset legend="Reviews">
               <NumberInput
@@ -219,6 +310,7 @@ export function RegisterSettingsTab({ registerId }: RegisterSettingsTabProps) {
                 max={120}
                 disabled={!canManage || settingsLocked || !settingsForm.values.reviewsEnabled}
                 {...settingsForm.getInputProps("defaultReviewFrequencyMonths")}
+                onBlur={handleDefaultReviewFrequencyMonthsBlur}
               />
             </Fieldset>
           </Stack>
