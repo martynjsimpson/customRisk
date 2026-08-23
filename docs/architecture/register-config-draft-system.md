@@ -1,14 +1,24 @@
 # Register Configuration Draft System
 
-**Audience:** developers adding new settings to the register configuration system.
+**Audience:** developers adding or changing any setting on a register.
 
-**Scope:** this document covers the draft/publish lifecycle for register configuration: the data model, the full pipeline from draft creation through to publish, the two categories of register settings, and a step-by-step guide for extending the system correctly.
+**Scope:** the draft/publish lifecycle for register configuration — the data model, the pipeline
+from draft creation through publish, **the unified draft standard**, and the step-by-step guide for
+extending the system correctly.
+
+**Status:** the unified draft standard (section 5) is the rule as of DRAFT-UNIFIED. It supersedes
+the "two categories of register settings" model described in the v1.27.0 revision of this document
+and in `docs/spikes/SPIKE-008.md`. Where this document and SPIKE-008 disagree, this document wins;
+SPIKE-008 remains the record of *why* the change was made.
 
 ---
 
 ## 1. Overview
 
-The draft system allows a register administrator to stage configuration changes — risk matrix values, custom fields, register settings — without affecting live data. Changes accumulate in a JSON snapshot attached to a `RegisterConfigVersion` row. When the administrator publishes the draft, the snapshot is applied back to the relational tables in a single database transaction.
+The draft system lets a register administrator stage configuration changes — risk matrix values,
+custom fields, register settings — without affecting live data. Changes accumulate in a JSON
+snapshot attached to a `RegisterConfigVersion` row. When the administrator publishes the draft, the
+snapshot is applied back to the relational tables in a single database transaction.
 
 **Lifecycle:**
 
@@ -24,9 +34,17 @@ Draft exists
 Published / No draft
 ```
 
-A register can have at most one draft at a time. Attempting to create a second draft while one already exists returns HTTP 409.
+A register can have at most one draft at a time. Attempting to create a second draft while one
+already exists returns HTTP 409.
 
-The system is gated behind the `draftConfig` feature flag. When the flag is off, the UI falls back to direct saves via `PATCH /registers/:registerId`.
+The system is gated behind the `draftConfig` feature flag. When the flag is off, the UI falls back
+to direct saves via `PATCH /registers/:registerId`. That fallback is correct and supported — see
+section 5.3.
+
+**There is no Save button on the configuration screen when draft mode is active.** The only commit
+point is Publish. This is the single most important fact about the screen's design, and it is the
+reason the unified standard is coherent: an administrator editing anything on that screen is
+already in a "stage, then publish" mental model. No field is exempt from it.
 
 ---
 
@@ -34,7 +52,7 @@ The system is gated behind the `draftConfig` feature flag. When the flag is off,
 
 ### RegisterConfigVersion
 
-Defined in `backend/prisma/schema.prisma` at line 761.
+Defined in `backend/prisma/schema.prisma`.
 
 ```
 model RegisterConfigVersion {
@@ -50,20 +68,25 @@ model RegisterConfigVersion {
 }
 ```
 
-`snapshotJson` holds a `RegisterConfigSnapshot` (defined in `backend/src/types/configSnapshot.ts`). It is a complete point-in-time capture of the register's entire configuration.
+`snapshotJson` holds a `RegisterConfigSnapshot` (`backend/src/types/configSnapshot.ts`). It is a
+complete point-in-time capture of the register's entire configuration.
 
 ### Register foreign keys
 
-The `Register` model carries two nullable foreign keys that control draft state:
+The `Register` model carries two nullable, `@unique` foreign keys that control draft state:
 
-- `currentConfigVersionId` — points to the most recently published version. Null for registers that have never published a draft.
-- `draftConfigVersionId` — points to the active draft. Null when no draft exists.
+- `currentConfigVersionId` — the most recently published version. Null for registers that have
+  never published a draft.
+- `draftConfigVersionId` — the active draft. Null when no draft exists.
 
-Both are `@unique`, so a given `RegisterConfigVersion` row can only ever be the current or the draft for one register at a time.
+It also carries `linkedTemplateVersionId`, the register's template sync point. This is **not** part
+of the config snapshot; it is derived on publish from `draft.sourceTemplateVersionId`. See
+section 5.2.
 
 ### ConfigSnapshotRegisterSettings
 
-This interface (`backend/src/types/configSnapshot.ts`, line 64) represents the `register` section of the snapshot. Current fields:
+This interface (`backend/src/types/configSnapshot.ts`) is the `register` section of the snapshot.
+Every field in it is subject to the unified standard.
 
 ```typescript
 interface ConfigSnapshotRegisterSettings {
@@ -76,7 +99,6 @@ interface ConfigSnapshotRegisterSettings {
   reviewsEnabled: boolean;
   defaultReviewFrequencyMonths: number;
   reviewAttestationText: string;
-  reviewCommentMode: "DISABLED" | "OPTIONAL" | "MANDATORY";
   allowViewerExport: boolean;
   customFieldValidationEnabled: boolean;
   reviewStatusPosition: number | null;
@@ -85,70 +107,55 @@ interface ConfigSnapshotRegisterSettings {
 }
 ```
 
-The full snapshot also contains `customFields`, `likelihoodValues`, `impactValues`, `riskLevels`, `matrixCells`, and `responseStrategies` arrays.
+The full snapshot also contains `customFields`, `likelihoodValues`, `impactValues`, `riskLevels`,
+`matrixCells`, and `responseStrategies` arrays. Those have always travelled through the draft and
+are unaffected by this change.
 
 ---
 
 ## 3. Creating a Draft
 
 **Route:** `POST /api/v1/registers/:registerId/config-versions/draft`
+**Controller:** `backend/src/controllers/configVersion.controller.ts` → `createDraftController`
+**Service:** `backend/src/services/configVersion.draft.service.ts` → `createDraft`
 
-**Controller:** `backend/src/controllers/configVersion.controller.ts` -> `createDraftController`
+The service checks whether the register already has a published version
+(`currentConfigVersionId`):
 
-**Service:** `backend/src/services/configVersion.draft.service.ts`, function `createDraft` (line 202).
+- **Published version exists:** clone its `snapshotJson`. The draft starts from the last
+  known-good published state.
+- **No published version:** call `buildSnapshotFromRelationalTables`, which reads all relational
+  config tables in parallel and constructs the snapshot from the live rows.
 
-### How the initial snapshot is built
-
-The service checks whether the register already has a published version (`currentConfigVersionId`):
-
-- **Published version exists:** clone its `snapshotJson` directly. This ensures the draft starts from the last known-good published state, not from whatever the live relational rows currently look like.
-- **No published version:** call `buildSnapshotFromRelationalTables` (line 42), which reads all relational config tables in parallel and constructs the snapshot. This is the path for registers that have never gone through the draft/publish cycle.
-
-After constructing the snapshot the service:
-
-1. Calculates the next version number (max existing `versionNumber` + 1).
-2. Inserts a `RegisterConfigVersion` row with `status = DRAFT`.
-3. Updates `Register.draftConfigVersionId` to point to the new row.
-4. Records a `configDraftCreated` audit event.
-
-All three writes happen inside a Prisma transaction.
+It then calculates the next version number, inserts a `RegisterConfigVersion` row with
+`status = DRAFT`, points `Register.draftConfigVersionId` at it, and records a `configDraftCreated`
+audit event — all inside one Prisma transaction.
 
 ### normalizeSnapshot
 
-`normalizeSnapshot` (line 27) is applied to the snapshot before any update merge. It back-fills fields that may be absent from older snapshots created before those fields existed:
+`normalizeSnapshot` in `configVersion.draft.service.ts` is applied before any update merge. It
+back-fills fields that may be absent from snapshots created before those fields existed.
 
-```typescript
-export function normalizeSnapshot(snapshot: RegisterConfigSnapshot): RegisterConfigSnapshot {
-  return {
-    ...snapshot,
-    register: {
-      ...snapshot.register,
-      customFieldValidationEnabled: snapshot.register.customFieldValidationEnabled ?? true,
-      reviewStatusPosition: snapshot.register.reviewStatusPosition ?? null,
-      scoringFormula: snapshot.register.scoringFormula ?? "",
-      responseActionMode: snapshot.register.responseActionMode ?? "SIMPLE",
-      reviewCommentMode: snapshot.register.reviewCommentMode ?? "OPTIONAL"
-    },
-    customFields: snapshot.customFields.map((field) => normalizeCustomFieldValidationMode(field))
-  };
-}
-```
+Every new field added to `ConfigSnapshotRegisterSettings` MUST be added to `normalizeSnapshot` with
+a safe default matching the Prisma column default. Without it, an old snapshot will be missing the
+field when it is later read and merged.
 
-Every new field added to `ConfigSnapshotRegisterSettings` MUST be added to `normalizeSnapshot` with a safe default. Without this, old snapshots will be missing the field when they are later read and merged.
+> **Note — a second normaliser exists.** `backend/src/services/registerConfig.service.ts` has its
+> own private `normalizeSnapshot` used on the *read* path (`GET /registers/:registerId/config`).
+> It currently back-fills fewer fields than the draft-service one. On the read path the snapshot is
+> spread over the live `Register` row, so a missing key falls back to the live value rather than
+> producing `undefined` — but the two normalisers should be kept in step. If you add a field,
+> add it to both.
 
 ---
 
 ## 4. Editing a Draft
 
 **Route:** `PATCH /api/v1/registers/:registerId/config-versions/draft`
+**Service:** `configVersion.draft.service.ts` → `updateDraft`
 
-**Controller:** `updateDraftController`
-
-**Service:** `configVersion.draft.service.ts`, function `updateDraft` (line 264).
-
-### Merge semantics
-
-The request body is a partial `UpdateDraftBody` (defined by `updateDraftBodySchema` in `backend/src/validators/configVersion.schemas.ts`). Each top-level key is optional:
+The body is a partial `UpdateDraftBody` (`backend/src/validators/configVersion.schemas.ts`). Each
+top-level key is optional:
 
 ```
 {
@@ -162,121 +169,233 @@ The request body is a partial `UpdateDraftBody` (defined by `updateDraftBodySche
 }
 ```
 
-For the `register` section, the patch is spread onto the existing register settings (field-level merge). For all array sections, the entire array is replaced if the key is present, or left untouched if the key is absent.
+The `register` section is a field-level merge (spread onto existing settings). Array sections are
+wholesale replacements when present, untouched when absent.
 
-The service reads the existing draft snapshot, normalizes it, applies the merge, and writes the result back. An audit event `configDraftUpdated` is recorded with `metadataJson.patchedSections` listing which top-level keys were present in the patch.
+An audit event `configDraftUpdated` is recorded with `metadataJson.patchedSections` listing which
+top-level keys were present.
 
-### Frontend API function
+### Reading the pending values back
 
-`frontend/src/api/configVersion.api.ts`, function `updateDraftConfig` (line 133):
+`GET /registers/:registerId/config` (`registerConfig.service.ts` → `getRegisterConfig`) already
+overlays the draft snapshot's register settings onto the live `Register` row when a draft exists:
 
 ```typescript
-export async function updateDraftConfig(
-  registerId: string,
-  input: UpdateDraftConfigInput
-): Promise<ConfigVersionRecord>
+register: { ...register, ...snapshot.register }
 ```
 
-`UpdateDraftConfigInput` mirrors `UpdateDraftBody` on the frontend side (line 52). Note that `UpdateDraftConfigInput.register` only exposes the fields that have been wired up for draft-mode editing; other fields in `ConfigSnapshotRegisterSettings` are controlled differently (see section 5).
+**This is the read source the UI must use in draft mode.** Reading a settings value from the live
+`Register` row (`GET /registers/:registerId`) while a draft is open shows the pre-draft value and
+silently discards the administrator's staged edit from the form on the next refetch.
 
 ---
 
-## 5. Two Categories of Register Settings
+## 5. The Unified Draft Standard
 
-This is the most important distinction in the system. Every field on a register falls into exactly one of two categories.
+> **The rule.** Every field in `ConfigSnapshotRegisterSettings` travels through the draft and is
+> promoted to the `Register` row **unconditionally** on publish, regardless of whether the draft
+> originated from a template. There are no exceptions and no per-field categories.
+>
+> **The one exception is not a settings field.** `linkedTemplateVersionId` — and nothing else —
+> remains inside the `draft.sourceTemplateVersionId` conditional in `publishDraft`.
+>
+> **Any register settings field added in future follows this rule.** Adding a field to
+> `ConfigSnapshotRegisterSettings` without adding it to the always-promote block is a bug, not a
+> design choice.
 
-### Category A: Config-snapshot fields
+### 5.1 Why
 
-These fields travel through the draft system. They are stored in `snapshotJson` and become live only when the draft is published. They must be saved via `PATCH /config-versions/draft` (i.e., `updateDraftConfig` on the frontend).
+The previous model split register settings into two implicit categories: fields that travelled
+through the draft and were applied on publish, and fields written directly to the `Register` row
+that took effect immediately. The split was never a decision. The original publish implementation
+wrapped the entire register settings block in a `sourceTemplateVersionId` conditional, on the
+reasoning that direct edits made while a manual draft was open should not be overwritten. Every
+field added afterwards inherited that behaviour by default. Some authors noticed their field needed
+unconditional promotion and added a special case; most did not.
 
-When draft mode is active (`draftConfigMode && hasDraft`), these fields MUST NOT be saved via `PATCH /registers/:registerId`. Doing so would write the value directly to the `Register` row, which will then be overwritten (or in some cases ignored) when the draft is published.
+The consequences were not theoretical. In v1.27.0, a field was correctly routed through the draft
+in the UI and correctly blocked from the direct-write path in draft mode, but was never promoted on
+publish for manual drafts. The administrator's change was silently lost. Several rounds of
+per-field patching each produced a new failure mode, because each patch treated a symptom of the
+split rather than the split itself.
 
-**Current Category A fields:**
+The argument for keeping fields immediate-effect rested on a premise that does not hold: that
+administrators expect immediate saves for fields like `name` or `reviewsEnabled`. There is no Save
+button on the configuration screen in draft mode. The expectation being protected does not exist.
 
-All fields in the six array sections of the snapshot (custom fields, likelihood values, impact values, risk levels, matrix cells, response strategies) are inherently Category A.
+`docs/spikes/SPIKE-008.md` carries the field-by-field analysis. Its verdict: no field in
+`ConfigSnapshotRegisterSettings` has a genuine technical blocker to draft treatment. None requires
+a data migration except `responseActionMode`, which is already handled. None has a retroactive
+effect on existing records — `riskIdPrefix` and the zero-padding settings affect only future risk
+ID generation, and `defaultNewRiskState` affects only newly created risks.
 
-For the `register` section, the following are Category A (they travel through the draft and are applied on publish):
+### 5.2 Backend: the publish contract
 
-| Field | Notes |
+In `backend/src/services/configVersion.publish.service.ts`, inside the `publishDraft` transaction,
+the `tx.register.update` call has exactly this shape:
+
+```
+data: {
+  // Always promoted — every field of ConfigSnapshotRegisterSettings.
+  name, description, riskIdPrefix, riskIdZeroPaddingEnabled, riskIdZeroPaddingWidth,
+  defaultNewRiskState, reviewsEnabled, defaultReviewFrequencyMonths, reviewAttestationText,
+  allowViewerExport, customFieldValidationEnabled, reviewStatusPosition, scoringFormula,
+  responseActionMode,
+
+  // The ONLY member of the sourceTemplateVersionId conditional.
+  ...(draft.sourceTemplateVersionId
+        ? { linkedTemplateVersionId: draft.sourceTemplateVersionId }
+        : {}),
+
+  currentConfigVersionId: draft.id,
+  draftConfigVersionId: null,
+  updatedByUserId: actorId
+}
+```
+
+Field-by-field status against the pre-DRAFT-UNIFIED code:
+
+| Field | Before | After |
+|---|---|---|
+| `name` | In the snapshot but **never promoted at all** — absent from both branches | Always promoted |
+| `description` | Template-origin only | Always promoted |
+| `riskIdPrefix` | Template-origin only | Always promoted |
+| `riskIdZeroPaddingEnabled` | Template-origin only | Always promoted |
+| `riskIdZeroPaddingWidth` | Template-origin only | Always promoted |
+| `defaultNewRiskState` | Template-origin only | Always promoted |
+| `reviewsEnabled` | Template-origin only | Always promoted |
+| `defaultReviewFrequencyMonths` | Template-origin only | Always promoted |
+| `reviewAttestationText` | Template-origin only | Always promoted — **confirmed**, no special case |
+| `allowViewerExport` | Template-origin only | Always promoted |
+| `customFieldValidationEnabled` | Template-origin only | Always promoted |
+| `reviewStatusPosition` | Template-origin only | Always promoted |
+| `scoringFormula` | Already always promoted | Unchanged |
+| `responseActionMode` | Already always promoted, guarded on snapshot presence | Unchanged (see below) |
+| `linkedTemplateVersionId` | Template-origin only | **Unchanged — the one exception** |
+
+Two fields keep behaviour that looks like an exception but is not:
+
+- **`responseActionMode`** stays guarded by `snapshotMode !== undefined`. This is a *legacy-snapshot
+  guard*, not a template-origin conditional: snapshots written before the field existed must not be
+  read as a deliberate request to revert to `SIMPLE`. The field is always promoted whenever the
+  snapshot carries it. Its data migration
+  (`migrateSimpleResponseActionsToChildRecords` / `migrateChildRecordsToSimple`) and its
+  `analyseImpact` blocker are unchanged. It remains the model for any future field that needs work
+  beyond a value write.
+- **`reviewCommentMode`** appears in SPIKE-008 and in the v1.27.0 revision of this document. It
+  **does not exist in this codebase** — not in the Prisma schema, not in
+  `ConfigSnapshotRegisterSettings`, not in the Zod schemas, not in the UI. It was reverted with
+  v1.27.0 and returns with PM8-CORE. When it returns, it is always-promote like everything else;
+  there is nothing to preserve from its earlier special-case treatment.
+
+**`linkedTemplateVersionId` and template drift.** Publishing a *manual* draft does not touch
+`linkedTemplateVersionId`. A register linked to a template that publishes its own manual draft stays
+linked at its current template version and drifts from it visibly. It is not automatically
+unlinked. This is deliberate: divergence is a normal, recoverable state that the administrator
+should be able to see and reconcile, not a silent severing of the link. The drift is surfaced in
+the UI via `linkedTemplate.isLatest` on the register response.
+
+### 5.3 The direct-write path is not deprecated
+
+`PATCH /registers/:registerId` (`registers.service.ts` → `updateRegister`) **stays**. It is the
+correct path when no draft is active: with nothing to stage, an edit should apply immediately. It
+is also the only path when the `draftConfig` feature flag is off.
+
+What changed is not the existence of the direct path but the branch selection:
+
+| State | Save path |
 |---|---|
-| `scoringFormula` | Always promoted on publish, regardless of template origin |
-| `responseActionMode` | Promoted on publish only when the snapshot field is present (legacy guard); triggers data migration |
-| `reviewCommentMode` | Snapshot field; applied on publish only for template-origin drafts (see section 6) |
-| `reviewAttestationText` | Same as above |
-| `name` | Applied on publish only for template-origin drafts |
-| `description` | Applied on publish only for template-origin drafts |
-| `riskIdPrefix` | Applied on publish only for template-origin drafts |
-| `riskIdZeroPaddingEnabled` | Applied on publish only for template-origin drafts |
-| `riskIdZeroPaddingWidth` | Applied on publish only for template-origin drafts |
-| `defaultNewRiskState` | Applied on publish only for template-origin drafts |
-| `reviewsEnabled` | Applied on publish only for template-origin drafts |
-| `defaultReviewFrequencyMonths` | Applied on publish only for template-origin drafts |
-| `allowViewerExport` | Applied on publish only for template-origin drafts |
-| `customFieldValidationEnabled` | Applied on publish only for template-origin drafts |
-| `reviewStatusPosition` | Applied on publish only for template-origin drafts |
+| `draftConfigMode && hasDraft` | `PATCH /config-versions/draft` (`updateDraftConfig`) — **every** settings field |
+| `draftConfigMode && !hasDraft` | No save. All inputs are disabled (`settingsLocked`). |
+| `!draftConfigMode` | `PATCH /registers/:registerId` (`updateRegister`) |
 
-### Category B: Direct-register fields
+Never both. Writing a settings field directly to the `Register` row while a draft is open produces
+a value that publish will overwrite from the snapshot — under the unified standard, publish now
+overwrites *every* settings field, so a stray direct write in draft mode is guaranteed data loss,
+where before it was merely inconsistent.
 
-These fields bypass the draft system entirely. They are saved immediately via `PATCH /registers/:registerId` and take effect at once, regardless of whether a draft exists.
+### 5.4 Frontend: every field handler routes through the draft
 
-In `RegisterSettingsTab`, the `updateSettingsMutation` always uses `updateRegister`. Most Category B fields are wired to the form's `onBlur` handler (`handleFormBlur`, line 166), which only fires when draft mode is inactive. However, there is a subtlety: the field values are still read from `registerQuery.data` (the live `Register` row) in all cases.
+In `frontend/src/features/configuration/RegisterSettingsTab.tsx`, in draft mode, **every** register
+settings field handler calls `updateDraftConfig`. The established pattern is
+`handleResponseActionModeChange`:
 
-**Current Category B fields** (those in `UpdateRegisterInput` in `frontend/src/api/registers.api.ts`):
+```typescript
+function handleXChange(next: T) {
+  settingsForm.setFieldValue("x", next);
+  if (draftConfigMode && hasDraft) {
+    updateDraftXMutation.mutate(next);        // PATCH /config-versions/draft
+  } else if (!draftConfigMode) {
+    updateDirectXMutation.mutate(next);       // PATCH /registers/:registerId
+  }
+}
+```
 
-`name`, `description`, `riskIdPrefix`, `riskIdZeroPaddingEnabled`, `riskIdZeroPaddingWidth`, `reviewsEnabled`, `defaultReviewFrequencyMonths`, `reviewAttestationText`, `reviewCommentMode`, `allowViewerExport`, `customFieldValidationEnabled`, `reviewStatusPosition`.
+The form-level `onBlur` handler (`handleFormBlur`) is guarded by `!draftConfigMode` and calls
+`updateRegister`. That guard must stay. It is what keeps the direct path from firing in draft mode;
+it is not a substitute for wiring the draft path.
 
-**Important overlap:** `reviewCommentMode`, `reviewAttestationText`, and several others appear in BOTH `UpdateRegisterInput` (Category B) and `ConfigSnapshotRegisterSettings` (Category A). The correct save path depends on whether draft mode is active:
+Two further requirements that are easy to miss:
 
-- Draft mode inactive (`!draftConfigMode`): save via `updateRegister` on blur.
-- Draft mode active with draft (`draftConfigMode && hasDraft`): save via `updateDraftConfig` on change/blur. The `handleFormBlur` guard (line 167: `if (!draftConfigMode && ...`) prevents the direct-register path from firing.
-
-This dual-path pattern is what `reviewCommentMode` and `reviewAttestationText` implement as of v1.27.0, using `updateDraftReviewFieldsMutation` for the draft path and `updateSettingsMutation` for the direct path.
-
-`responseActionMode` follows the same dual-path pattern via `updateDraftResponseActionModeMutation` and `updateDirectResponseActionModeMutation`.
+1. **Read from the draft in draft mode.** The form's `setSettingsValues` effect must source
+   *every* settings field from `configQuery.data.register` when `draftConfigMode && hasDraft`, and
+   from `registerQuery.data` otherwise. Today only `responseActionMode` does this; the rest read
+   the live `Register` row unconditionally, which will show pre-draft values once the fields stop
+   being written directly.
+2. **`RegisterSettingsTab` is not the only place register settings are edited.**
+   `frontend/src/features/configuration/FieldConfigTab.tsx` persists `reviewStatusPosition` via
+   `updateRegister` with no draft guard, in `reorderReviewStatusMutation` — while the custom-field
+   reorder directly above it correctly branches to the draft path. Any component that writes a
+   `ConfigSnapshotRegisterSettings` field is bound by this standard, not just the settings tab.
 
 ---
 
 ## 6. Publishing a Draft
 
 **Route:** `POST /api/v1/registers/:registerId/config-versions/draft/publish`
-
-**Service:** `configVersion.publish.service.ts`, function `publishDraft` (line 356).
+**Service:** `configVersion.publish.service.ts` → `publishDraft`
 
 ### Pre-flight impact check
 
-`publishDraft` calls `analyseImpact` before making any writes. If `analyseImpact` returns any blockers, publishing is rejected with HTTP 422. The caller may also invoke `POST /config-versions/draft/impact` directly to preview blockers and warnings before committing.
+`publishDraft` calls `analyseImpact` before making any writes. If it returns blockers, publishing is
+rejected with HTTP 422. Callers may invoke `POST /config-versions/draft/impact` directly to preview
+blockers and warnings first.
 
 `analyseImpact` checks:
 
-- At least one active value in each of: likelihood values, impact values, risk levels, response strategies.
+- At least one active value in each of: likelihood values, impact values, risk levels, response
+  strategies.
 - All matrix cell FK references resolve to values present in the snapshot.
 - Scoring formula validity (if non-empty).
-- `responseActionMode` revert feasibility: reverting from `CHILD_RECORDS` to `SIMPLE` is blocked if any non-closed risk has two or more active action records.
+- `responseActionMode` revert feasibility: reverting `CHILD_RECORDS` → `SIMPLE` is blocked if any
+  non-closed risk has two or more active action records.
 
-### What publishDraft does inside the transaction
+**`analyseImpact` is the correct place to reject a register settings value that would fail at the
+database.** Anything that can make the `tx.register.update` throw must be a blocker here, because
+`publishDraft` has no error mapping of its own (section 9).
 
-All of the following happen in a single Prisma transaction:
+### Inside the transaction
 
-1. **Upsert likelihood values** — update existing rows by ID; insert new rows (preserving IDs from snapshot); deactivate rows absent from snapshot.
-2. **Upsert impact values** — same pattern.
-3. **Upsert risk levels** — same pattern.
-4. **Upsert response strategies** — same pattern.
-5. **Upsert custom field definitions and options** — same pattern; options within each field follow the same upsert/deactivate logic.
-6. **Replace matrix cells** — delete all existing `RiskMatrixCell` rows for the register, then bulk-insert from snapshot (IDs preserved).
-7. **Recalculate risk levels** — re-evaluate all open risks against the new matrix.
-8. **Recalculate risk scores** — apply `scoringFormula` from snapshot to all open risks.
-9. **Recalculate CALCULATED custom fields** — evaluate formula fields for all non-closed risks.
-10. **Apply `responseActionMode`** — if snapshot carries the field AND it differs from the live value, run the appropriate data migration (`migrateSimpleResponseActionsToChildRecords` or `migrateChildRecordsToSimple`). Uses `SELECT ... FOR UPDATE` to prevent concurrent publish races.
-11. **Update the Register row:**
-    - If `draft.sourceTemplateVersionId` is set (template-origin draft): write all `ConfigSnapshotRegisterSettings` fields back to the `Register` row.
-    - If manual draft: only `scoringFormula` and (conditionally) `responseActionMode` are always promoted.
-    - Always: set `currentConfigVersionId = draft.id`, `draftConfigVersionId = null`.
-12. **Mark draft PUBLISHED** — update `status = PUBLISHED`, set `publishedAt`.
-13. Record `configPublished` audit event.
-
-**Implication for most Category A register-settings fields:** for manually-created drafts (the common case), fields like `name`, `reviewsEnabled`, `reviewAttestationText`, `reviewCommentMode` etc. are captured in the snapshot during draft edits but are NOT written back to the `Register` row on publish. They are persisted in the snapshot for historical record and for template-origin behaviour, but the authoritative live value remains whatever was last written via `PATCH /registers/:registerId`.
-
-This is why most Category A register-settings fields must also be saved via `PATCH /registers/:registerId` in the non-draft path, and why the dual-path pattern exists.
+1. Upsert likelihood values — update existing rows by ID; insert new rows preserving snapshot IDs;
+   deactivate rows absent from the snapshot.
+2. Upsert impact values — same pattern.
+3. Upsert risk levels — same pattern.
+4. Upsert response strategies — same pattern.
+5. Upsert custom field definitions and options — same pattern; options follow the same
+   upsert/deactivate logic within each field.
+6. Replace matrix cells — delete all `RiskMatrixCell` rows for the register, bulk-insert from the
+   snapshot with IDs preserved.
+7. Recalculate risk levels against the new matrix.
+8. Recalculate risk scores using `scoringFormula` from the snapshot.
+9. Recalculate `CALCULATED` custom fields for all non-closed risks.
+10. Apply `responseActionMode` — if the snapshot carries the field and it differs from the live
+    value, run the appropriate migration. Takes `SELECT ... FOR UPDATE` on the register row to
+    prevent concurrent publish races.
+11. **Update the `Register` row** — all `ConfigSnapshotRegisterSettings` fields unconditionally,
+    plus `linkedTemplateVersionId` only for template-origin drafts, plus
+    `currentConfigVersionId = draft.id` and `draftConfigVersionId = null`.
+12. Mark the draft `PUBLISHED` and set `publishedAt`.
+13. Record the `configPublished` audit event.
 
 ---
 
@@ -284,204 +403,191 @@ This is why most Category A register-settings fields must also be saved via `PAT
 
 ### Feature flag
 
-The draft system is gated by `flags.draftConfig` (from `useFeatureFlags`). When the flag is off, all settings save directly via `updateRegister`; `updateDraftConfig` is never called.
+Gated by `flags.draftConfig` (from `useFeatureFlags`). When off, all settings save directly via
+`updateRegister` and `updateDraftConfig` is never called.
 
 ### Key derived booleans in RegisterSettingsTab
 
 ```typescript
-const draftConfigMode = flags.draftConfig && canManage;
-// true when the user has admin rights AND the flag is on
-
-const hasDraft = statusQuery.data?.hasDraft ?? false;
-// true when Register.draftConfigVersionId is not null
-
-const settingsLocked = draftConfigMode && !hasDraft;
-// true in draft mode with no active draft — all inputs are disabled
+const draftConfigMode = flags.draftConfig && canManage;  // admin rights AND flag on
+const hasDraft = statusQuery.data?.hasDraft ?? false;    // Register.draftConfigVersionId != null
+const settingsLocked = draftConfigMode && !hasDraft;     // draft mode, no draft — inputs disabled
 ```
-
-`settingsLocked` disables all form fields. The user must create a draft before they can edit anything in draft mode.
 
 ### Queries
 
-- `registerQuery` (`["register", registerId]`) — always active; provides live `Register` row data.
-- `statusQuery` (`["config-version-status", registerId]`) — active only in `draftConfigMode`; drives `hasDraft`.
-- `configQuery` (`["register-config", registerId]`) — active only in `draftConfigMode && hasDraft`; reads the current draft snapshot via `getRegisterConfiguration`. Used to read `responseActionMode` from the draft snapshot so the UI reflects pending draft value rather than live register value.
+- `registerQuery` (`["register", registerId]`) — always active; live `Register` row. **Outside
+  draft mode this is the form's read source.**
+- `statusQuery` (`["config-version-status", registerId]`) — active only in `draftConfigMode`;
+  drives `hasDraft`.
+- `configQuery` (`["register-config", registerId]`) — active only in `draftConfigMode && hasDraft`;
+  reads the draft snapshot via `getRegisterConfiguration`. **In draft mode this is the form's read
+  source for every settings field.**
 
 ### Save button
 
-The Save button (`type="submit"`) is rendered only when `canManage && !settingsLocked && !draftConfigMode` (line 299). In draft mode the button is always hidden; saves happen on blur or on change, not on explicit submit.
+Rendered only when `canManage && !settingsLocked && !draftConfigMode`. In draft mode the button is
+hidden; saves happen on change or blur, and Publish is the commit point.
 
-### Auto-save patterns
+### Other configuration tabs
 
-There are two distinct auto-save patterns in `RegisterSettingsTab`:
-
-1. **`onBlur` on the entire form** (`handleFormBlur`, line 166): fires when focus leaves the form entirely (not moving between fields). Calls `updateSettingsMutation` (which calls `updateRegister`). Guard: only fires when `!draftConfigMode`.
-
-2. **Per-field handlers for draft-path fields:**
-   - `handleResponseActionModeChange` (line 172): fires on Switch toggle. Calls `updateDraftResponseActionModeMutation` when `draftConfigMode && hasDraft`, or `updateDirectResponseActionModeMutation` when `!draftConfigMode`.
-   - `handleReviewCommentModeChange` (line 182): fires on Select change. Calls `updateDraftReviewFieldsMutation` when `draftConfigMode && hasDraft`. No direct-register path here (covered by the form `onBlur`).
-   - `handleReviewAttestationTextBlur` (line 190): fires on Textarea blur. Calls `updateDraftReviewFieldsMutation` when `draftConfigMode && hasDraft`.
-
-Other tabs (FormulaConfigTab, RiskLevelConfigTab, ScoringValueConfigTab, MatrixConfigTab, FieldConfigTab) follow the same principle: each calls `updateDraftConfig` when a draft exists, or falls back to direct relational mutations when not in draft mode.
-
-### getConfigVersionStatus
-
-`getConfigVersionStatus` (frontend: `frontend/src/api/configVersion.api.ts` line 94; backend: `configVersion.draft.service.ts` line 179) returns:
-
-```typescript
-{
-  currentVersion: ConfigVersionRecord | null;
-  draftVersion: ConfigVersionRecord | null;
-  hasDraft: boolean;
-}
-```
-
-The `statusQuery` result is polled on demand (invalidated after create/publish/discard mutations). `hasDraft` drives the UI state transitions.
+`FormulaConfigTab`, `RiskLevelConfigTab`, `ScoringValueConfigTab`, `MatrixConfigTab` and
+`FieldConfigTab` follow the same principle: call `updateDraftConfig` when a draft exists, fall back
+to direct relational mutations only outside draft mode. See section 5.4, note 2 — `FieldConfigTab`
+has a known gap for `reviewStatusPosition`.
 
 ---
 
-## 8. Correct Pattern for Adding a New Setting
+## 8. Adding a New Register Setting
 
-### 8A. Adding a field that belongs in the config snapshot (Category A)
+There is one procedure. Every field on `Register` that an administrator can configure belongs in
+the config snapshot and follows it.
 
-Use this for fields that govern the risk matrix, custom field behaviour, or register settings that must be versioned and applied atomically with other config changes. Good candidates: anything that affects risk scoring, matrix structure, or field validation rules.
+**Step 1 — Prisma column.** Add the column to the `Register` model in
+`backend/prisma/schema.prisma` and create a migration. Give it a safe default so existing rows are
+valid.
 
-**Step 1: Add a Prisma column to the Register model**
+**Step 2 — `ConfigSnapshotRegisterSettings`.** Add the field in
+`backend/src/types/configSnapshot.ts`. Prefer a non-optional type; older snapshots are back-filled
+by `normalizeSnapshot`.
 
-Add the column to `backend/prisma/schema.prisma` and create a migration (`npx prisma migrate dev`). Set a safe default value so existing rows are not broken.
+**Step 3 — `normalizeSnapshot` (draft service).** Add the field in
+`configVersion.draft.service.ts` with the same default as the migration:
+`myNewField: snapshot.register.myNewField ?? <default>`. Also add it to the read-path normaliser in
+`registerConfig.service.ts` (section 3, note).
 
-**Step 2: Add the field to ConfigSnapshotRegisterSettings**
+**Step 4 — `buildSnapshotFromRelationalTables`.** In `configVersion.draft.service.ts`, add the
+field to both the `select` clause of the `prisma.register.findUnique` call and the returned
+`register` object.
 
-In `backend/src/types/configSnapshot.ts`, add the field to `ConfigSnapshotRegisterSettings`. Choose a non-optional type if possible; older snapshots that lack the field will be back-filled by `normalizeSnapshot`.
+**Step 5 — `configExport.service.ts`.** `buildSnapshotFromLiveTables` has its own identical
+`select` and return construction. Add the field there too, or exports produce incomplete snapshots.
 
-**Step 3: Add to normalizeSnapshot**
+**Step 6 — `configImport.service.ts`.** The import path normalises the parsed snapshot by hand.
+Add the field to that normalisation block.
 
-In `backend/src/services/configVersion.draft.service.ts`, add the field to the `register` section of `normalizeSnapshot` (line 27) with the same safe default used in the migration:
+**Step 7 — `snapshotRegisterSettingsSchema` (Zod).** In
+`backend/src/validators/configVersion.schemas.ts`, add the field as `.optional()`. **Zod strips
+unknown keys**, so a field missing here is silently dropped from the `PATCH /config-versions/draft`
+body before `updateDraft` ever sees it — the request returns 200 and nothing saves.
 
-```typescript
-myNewField: snapshot.register.myNewField ?? <defaultValue>
-```
+Match the validation to `updateRegisterSchema` in `registers.schemas.ts` field for field. Since
+publish now writes the value to the live column unconditionally, a rule the direct path enforces
+and the draft path does not is a route into an invalid live value.
 
-Do not skip this step. Without it, any snapshot created before this field existed will produce a TypeScript error or a runtime undefined when the field is later read.
+**Step 8 — `publishDraft`.** In `configVersion.publish.service.ts`, add the field to the
+**always-promote** block of the `tx.register.update` call. Do not put it in the
+`draft.sourceTemplateVersionId` conditional; that block is reserved for `linkedTemplateVersionId`.
 
-**Step 4: Add to buildSnapshotFromRelationalTables**
+If the field can fail at the database — a unique constraint, an enum, a foreign key — add a
+corresponding blocker to `analyseImpact` (section 6). If it needs a data migration, model it on
+`responseActionMode`: migrate before the `Register.update`, take the row lock, and add a revert
+blocker to `analyseImpact`.
 
-In `configVersion.draft.service.ts`, add:
-- the field to the `select` clause of the `prisma.register.findUnique` call (lines 46-64).
-- the field to the returned `register` object (lines 96-114).
+**Step 9 — `UpdateRegisterInput` and `updateRegister` (direct path).** The non-draft path must be
+able to save the field too. Add it to `UpdateRegisterInput` and `RegisterRecord` in
+`frontend/src/api/registers.api.ts`, to `updateRegisterSchema` in `registers.schemas.ts`, and to
+the `data` block and `buildFieldChanges` list in `registers.service.ts` → `updateRegister`.
 
-**Step 5: Add to configExport.service.ts**
+**Step 10 — `UpdateDraftConfigInput` (frontend).** Add the field to the `register` section in
+`frontend/src/api/configVersion.api.ts`.
 
-In `backend/src/services/configExport.service.ts`, `buildSnapshotFromLiveTables` (line 7) has its own identical `select` and return construction. Add the field there too or exports will produce incomplete snapshots.
+**Step 11 — Wire the UI.** In `RegisterSettingsTab.tsx` (or the tab that owns the field):
 
-**Step 6: Add to configImport.service.ts**
+1. Add it to the form's `initialValues`.
+2. Add it to `setSettingsValues` in the effect, reading from `configQuery.data.register` when
+   `draftConfigMode && hasDraft` and from `registerQuery.data` otherwise.
+3. Create a draft mutation using `updateDraftConfig`.
+4. Create a direct mutation using `updateRegister`.
+5. Write the handler that branches on `draftConfigMode && hasDraft`, per section 5.4.
+6. Render with `disabled={!canManage || settingsLocked}`.
 
-In `backend/src/services/configImport.service.ts`, the import path normalises the parsed snapshot by hand. Add the field to the normalisation block (around line 55).
-
-**Step 7: Add to snapshotRegisterSettingsSchema (Zod)**
-
-In `backend/src/validators/configVersion.schemas.ts`, add the field to `snapshotRegisterSettingsSchema` as `.optional()`. Zod strips unknown keys by default — any field absent from this schema will be silently dropped when the `PATCH /config-versions/draft` body is validated, meaning the merge in `updateDraft` will never receive the value.
-
-```typescript
-myNewField: z.myType().optional()
-```
-
-**Step 8: Add to publishDraft**
-
-In `backend/src/services/configVersion.publish.service.ts`, add the field to the `Register.update` call inside `publishDraft` (lines 700-731). Decide whether it should be applied only for template-origin drafts (inside the `draft.sourceTemplateVersionId ? { ... } : {}` block) or always. Use the same conditional pattern as `scoringFormula` if it must always be promoted regardless of template origin.
-
-If publishing the field requires a data migration (like `responseActionMode` does), implement that migration before the `Register.update` call.
-
-**Step 9: Add to UpdateDraftConfigInput (frontend)**
-
-In `frontend/src/api/configVersion.api.ts`, add the field to the `register` section of `UpdateDraftConfigInput` (line 52).
-
-**Step 10: Wire the UI in RegisterSettingsTab (or the appropriate tab)**
-
-In `frontend/src/features/configuration/RegisterSettingsTab.tsx`:
-
-1. Add the field to the form's `initialValues`.
-2. Add the field to the `setSettingsValues` call inside the `useEffect` (line 81).
-3. Create a mutation using `updateDraftConfig` for the draft-mode path.
-4. Create a mutation using `updateRegister` for the non-draft path (if the field should also be editable outside draft mode).
-5. Write an `onChange` or `onBlur` handler that dispatches to the correct mutation based on `draftConfigMode && hasDraft`.
-6. Render the field with `disabled={!canManage || settingsLocked}`.
-
-Do NOT wire the field only to `updateSettingsMutation`. That mutation always calls `updateRegister` and ignores draft state.
-
----
-
-### 8B. Adding a field that lives directly on the Register model (Category B)
-
-Use this for fields that take effect immediately and do not need to be staged: display preferences, permission flags, or anything where the cost of accidental over-write on publish is acceptable.
-
-**Step 1: Add a Prisma column to Register and migrate**
-
-Same as Category A step 1.
-
-**Step 2: Add to UpdateRegisterInput (frontend)**
-
-In `frontend/src/api/registers.api.ts`, add the field to the `Pick<RegisterRecord, ...>` union in `UpdateRegisterInput`.
-
-**Step 3: Add to the backend PATCH handler**
-
-In the registers route handler / service, add the field to the allowed update set.
-
-**Step 4: Add to RegisterRecord (frontend)**
-
-Add the field to `RegisterRecord` in `frontend/src/api/registers.api.ts` so it flows back from the GET response.
-
-**Step 5: Wire the UI**
-
-Add to form `initialValues` and `setSettingsValues` in `RegisterSettingsTab`. The field can be saved via `updateSettingsMutation` (which calls `updateRegister`), wired through the form's `onBlur` in the non-draft path. Apply `disabled={!canManage || settingsLocked}` unless the field should remain editable even without a draft.
-
-Do NOT call `updateDraftConfig` for a Category B field. It will appear to save (the PATCH succeeds and returns an updated snapshot) but the value will not be written to the `Register` row until publish — which is incorrect for a field intended to take immediate effect.
+Do not wire the field only to the form-level `updateSettingsMutation`. That mutation always calls
+`updateRegister` and never fires in draft mode.
 
 ---
 
 ## 9. Known Pitfalls
 
-### Missing from normalizeSnapshot
+### Adding a field to the template-origin conditional
 
-If a new field is added to `ConfigSnapshotRegisterSettings` but not to `normalizeSnapshot`, any draft created before the field existed will fail at runtime when the snapshot is read and merged, because the field will be `undefined`. The symptom is a TypeScript compile error in strict mode, or a silent `undefined` write in the merged snapshot.
+The `draft.sourceTemplateVersionId` conditional in `publishDraft` contains
+`linkedTemplateVersionId` and nothing else. A settings field placed inside it is not promoted when
+a manual draft is published — the administrator's staged change is silently discarded on publish.
+This is the exact failure the unified standard exists to prevent, and the conditional is still
+there (for `linkedTemplateVersionId`), so it is still possible to make the mistake.
 
-**Fix:** always add every new field to `normalizeSnapshot` with a safe default.
+### Missing from `snapshotRegisterSettingsSchema` (Zod)
 
-### Missing from snapshotRegisterSettingsSchema (Zod)
+Zod strips unknown keys. A field in `ConfigSnapshotRegisterSettings` and wired to
+`updateDraftConfig`, but absent from `snapshotRegisterSettingsSchema`, is dropped by the
+`validateRequest` middleware. The response is 200 with the unchanged snapshot, so nothing signals a
+failure.
 
-Zod strips unknown keys. If a field is added to `ConfigSnapshotRegisterSettings` and wired to `updateDraftConfig` on the frontend, but not added to `snapshotRegisterSettingsSchema`, the value will be silently dropped by the `validateRequest` middleware before `updateDraft` ever sees it. The frontend will receive a 200 response (the existing snapshot is returned unchanged), giving no indication that the save failed.
+**Symptom:** the user edits the field, the form shows the new value, and the old value returns
+after a refresh. This was the root cause of the v1.27.0 regression.
 
-**Symptom:** user edits the field, the form shows the new value, but after a refresh the old value reappears.
+### Validation that differs between the draft path and the direct path
 
-**Fix:** add the field to `snapshotRegisterSettingsSchema` as `.optional()`.
+`snapshotRegisterSettingsSchema` and `updateRegisterSchema` validate the same columns and must
+agree. Where they do not, the draft becomes the weaker route to the same live column now that
+publish promotes unconditionally. Known divergences to fix or avoid reintroducing:
 
-This was the root cause of the v1.27.0 regression with `reviewCommentMode`.
+- `riskIdPrefix` — `updateRegisterSchema` enforces `/^[A-Z0-9][A-Z0-9-]*$/`; the snapshot schema
+  does not.
+- `name` — `updateRegisterSchema` enforces `.trim().min(1)`; the snapshot schema has historically
+  omitted `name` altogether.
+- `defaultNewRiskState` — typed `string` in the snapshot and validated as `z.string()`, but written
+  to a `RiskState` enum column. It needs `z.enum` validation, not a cast at the write site.
 
-### Missing from buildSnapshotFromRelationalTables or configExport.service.ts
+### `Register.name` is globally unique
 
-If a field is in `ConfigSnapshotRegisterSettings` but not in the `select` of `buildSnapshotFromRelationalTables`, the snapshot built for registers with no published version will be missing the field. The same applies to `buildSnapshotFromLiveTables` in `configExport.service.ts` for the export path.
+`name` is `@unique` on the `Register` model. Promoting it unconditionally means a publish can now
+violate that constraint — the collision may be created after the draft was opened, by a different
+register.
 
-**Fix:** add to both `select` clauses and both return objects whenever a new field is added.
+`publishDraft` has **no** `try`/`catch` and does not call `mapPrismaError`, so a raw `P2002`
+propagates as an unhandled Prisma error and the whole publish fails as a 500 with no usable
+message. Any DB-level constraint on a promoted field must be checked in `analyseImpact` as a
+blocker. Do not rely on the update throwing.
 
-### Wiring to the wrong mutation
+### Missing from `buildSnapshotFromRelationalTables` or `configExport.service.ts`
 
-Wiring a Category A field to `updateSettingsMutation` (which calls `updateRegister`) means the value bypasses the snapshot entirely. If the field is also listed in `UpdateRegisterInput` this will appear to work, but the snapshot will never contain the updated value. If the field is later read from the snapshot (e.g. in a tab that reads `configQuery.data`), it will show stale data.
+A field in `ConfigSnapshotRegisterSettings` but not in the `select` of
+`buildSnapshotFromRelationalTables` is missing from snapshots built for registers with no published
+version. The same applies to `buildSnapshotFromLiveTables` in `configExport.service.ts` for the
+export path. Add it to both `select` clauses and both return objects.
 
-Conversely, wiring a Category B field to `updateDraftConfig` means the value is staged but not applied until publish. This produces a confusing UX where the setting appears to change in the form but has no live effect.
+### Reading live values while a draft is open
 
-### Forgetting the dual-path for fields that span both categories
+Once a field stops being written directly in draft mode, reading it from `registerQuery.data`
+shows the pre-draft value. The form appears to revert on every refetch. In draft mode, read from
+`configQuery.data.register` — `getRegisterConfig` already overlays the draft snapshot for you.
 
-Fields like `reviewCommentMode` and `responseActionMode` appear in both `UpdateRegisterInput` (so they can be edited outside draft mode) and in the snapshot (so they are versioned inside draft mode). Both paths must be wired:
+### Writing a settings field outside `RegisterSettingsTab`
 
-- Draft mode active: call `updateDraftConfig`.
-- Draft mode inactive: let the form `onBlur` fire (or use an explicit `onChange` handler that calls `updateRegister`).
+Any component that calls `updateRegister` with a `ConfigSnapshotRegisterSettings` field must carry
+the same `draftConfigMode && hasDraft` branch. `FieldConfigTab`'s `reorderReviewStatusMutation` is
+the current example of a write that does not.
 
-If only the draft path is wired, the field will not save when the feature flag is off. If only the direct path is wired, in draft mode the edit will write immediately to the register row and be invisible to the draft; the snapshot will lag behind.
+### Audit trail for settings promoted on publish
 
-### Not adding to publishDraft for template-origin drafts
+The direct path records a `registerSettingsUpdated` event with per-field `fieldChanges`. The publish
+path records a single `configPublished` event with counts, and no per-field diff for register
+settings. Under the unified standard, more settings changes now flow through publish, so more of
+them land in the audit trail as "configuration v*N* published" rather than as named field changes.
+This is accepted for now; the config version snapshots are the durable record of what changed. If a
+per-field diff on publish becomes a requirement, it belongs in `publishDraft`'s audit event, not in
+a second write to the direct path.
 
-If a field is added to the snapshot but not to the `Register.update` call in `publishDraft`, publishing a template-origin draft will not transfer the field value to the live register. For non-template drafts this is usually acceptable (since the live value was already updated via `PATCH /registers/:registerId`), but for template-origin behaviour the omission is a silent data loss.
+---
 
-### Import path not updated
+## 10. Related Documents
 
-The import path in `configImport.service.ts` constructs the snapshot by hand from a parsed payload. If a new field is not normalised there, imported configs will produce incomplete snapshots that then fail `normalizeSnapshot` checks or produce undefined values on first use.
+- `docs/spikes/SPIKE-008.md` — the field-by-field analysis and the reasoning that produced this
+  standard. Superseded by this document where the two disagree.
+- `docs/decisions/ADR-0004-config-version-storage.md` — why configuration is versioned as a JSON
+  snapshot.
+- `docs/decisions/ADR-0012-unified-register-settings-draft.md` — the decision record for this
+  standard.
+- `docs/architecture/audit-model.md` — audit event structure and `fieldChanges`.
