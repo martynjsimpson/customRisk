@@ -2142,6 +2142,10 @@ items:
     at least three previously Category B fields.
   - Architecture docs updated to codify the unified draft standard so future developers know
     the rule (all new settings fields go through draft in draft mode).
+  - Because this change alters register configuration publish behaviour, the Test Engineer
+    runs the Playwright E2E suite manually and records the result. E2E is not part of CI on
+    this project — see docs/operations/e2e-testing.md, "E2E tests are not run in CI" — so a
+    green CI run is not sufficient evidence for this item.
   remaining:
   - >-
       Backend developer to move all register settings fields out of the sourceTemplateVersionId
@@ -2209,6 +2213,9 @@ items:
     and explicitly states that publishing a manual draft does NOT unlink the register from its
     template — the register remains linked at the same template version, and the drift banner
     will appear if the template advances further (REQ-093 policy decision).
+  - The banner and its call-to-action each carry a stable data-testid following the kebab-case
+    convention in docs/operations/e2e-testing.md, "data-testid naming convention" — this is a
+    new user-facing element, so the project's selector standard applies to it.
   remaining:
   - Decide the exact placement of the banner — register settings page, register list, or both.
   - Confirm the linkedTemplate.isLatest field is already available in the frontend data for
@@ -2285,29 +2292,39 @@ items:
   capability: build-toolchain
   status: ready
   priority: high
-  confidence: medium
-  summary: backend/prisma/seed.ts is broken due to incomplete or conflicting changes left
-    over from the abandoned v1.27.0 release. The seed likely references the ReviewCommentMode
-    enum or related schema fields that were introduced during v1.27.0 and subsequently
-    reverted from the codebase (though the DB column was also cleaned up separately).
-    The fix is to identify and remove or revert the v1.27.0 additions in seed.ts so it
-    runs cleanly against the current schema.
+  confidence: high
+  summary: backend/prisma/seed.ts writes a reviewCommentMode value to the register table,
+    but the review_comment_mode column was introduced during the abandoned v1.27.0 release
+    and removed again when that release was reverted. The seed therefore targets a column
+    the current schema does not have, and fails partway through. Root cause confirmed
+    2026-08-23 — this is the v1.27.0 remnant the item predicted. The fix is to remove the
+    v1.27.0 field references from seed.ts so it runs cleanly against the current schema.
   observed_behaviour:
-  - backend/prisma/seed.ts fails to run, likely due to references to ReviewCommentMode
-    or other schema artefacts from the abandoned v1.27.0 work.
+  - Reproduces via both npm run seed:admin and npm run db:setup.
+  - Fails at backend/prisma/seed.ts:548 in prisma.register.upsert() with "The column
+    review_comment_mode of relation register does not exist in the current database".
+  - The System Admin upsert earlier in the file succeeds; the failure is in the
+    demo-register loop, so the seed leaves the database partially populated.
+  - prisma migrate deploy reports all 19 migrations applied and none pending, confirming
+    the schema is correct and it is seed.ts that is stale.
   expected_behaviour:
-  - The seed runs cleanly against the current schema with no errors.
+  - The seed runs to completion against the current schema with no errors.
   acceptance:
-  - npx prisma db seed runs to completion without errors.
+  - npm run seed:admin completes without errors.
+  - npm run db:setup completes without errors against a clean database.
+  - No references remain anywhere in backend/prisma/seed.ts to reviewCommentMode,
+    review_comment_mode, ReviewCommentMode, or any other schema artefact from the abandoned
+    v1.27.0 release.
   - The seed produces the expected demo data consistent with the MAINT-014 refresh (custom
-    fields, response action child records, custom formula, completed reviews).
-  - No seed references remain to ReviewCommentMode or any other schema artefact from the
-    abandoned v1.27.0 release.
+    fields, response action child records, custom formula, completed reviews) — verified by
+    inspecting the seeded database, not only by the absence of an error.
+  - The seed remains idempotent — running it twice in succession succeeds both times.
+  - backend/test/seed.test.mjs passes.
   remaining:
-  - Inspect backend/prisma/seed.ts for any references to ReviewCommentMode or other
-    v1.27.0 additions and remove them.
-  - Run the seed against a clean database to confirm it completes successfully.
-  - Verify the seeded data matches expectations from MAINT-014.
+  - Remove the reviewCommentMode reference from the register upsert at backend/prisma/seed.ts:548
+    and sweep the rest of the file for any other v1.27.0 field or enum references.
+  - Run the seed against a clean database, twice, to confirm completion and idempotency.
+  - Verify the seeded data matches the MAINT-014 expectations.
   dependencies: []
   suggested_agents:
   - backend-developer
@@ -2318,10 +2335,14 @@ items:
     tests:
     - backend/test/seed.test.mjs
     notes:
-    - v1.27.0 added ReviewCommentMode enum and review_comment_mode column during the release,
-      both of which were reverted from the codebase when the release was abandoned.
-    - Medium confidence because the exact failure mode has not been confirmed — the backend
-      developer should read seed.ts before implementing to confirm the root cause.
+    - v1.27.0 added the ReviewCommentMode enum and review_comment_mode column during the
+      release; both were reverted from schema and migrations when the release was abandoned,
+      but seed.ts was missed.
+    - Root cause confirmed by the human on 2026-08-23 — see REQ-090 Notes for the full
+      reproduction. Confidence raised from medium to high on that evidence.
+    - The seed failing partway means a developer following the README setup path gets a
+      half-seeded database with no obvious signal that it is incomplete. Treat a clean
+      full run, not just a non-erroring run, as the bar.
 - id: BUG-060
   source_request: REQ-091
   title: Fix createRegisterFromTemplate — does not copy reviewCommentMode, scoringFormula, responseActionMode

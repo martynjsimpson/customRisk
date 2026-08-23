@@ -51,7 +51,7 @@ Type: bug
 Status: in-active-release
 Priority: high
 Summary: The `backend/prisma/seed.ts` file is broken, likely due to incomplete or conflicting changes left over from the abandoned v1.27.0 release. This will affect local development setup and any CI steps that run the seed.
-Notes: Suspected cause is partial v1.27.0 work that was not cleaned up when that release was abandoned. Investigate what schema or data changes were introduced and whether seed.ts needs to be reverted or updated to match the current schema.
+Notes: Suspected cause is partial v1.27.0 work that was not cleaned up when that release was abandoned. Investigate what schema or data changes were introduced and whether seed.ts needs to be reverted or updated to match the current schema. Confirmed 2026-08-23: reproduces via both `npm run seed:admin` and `npm run db:setup`. Fails at `backend/prisma/seed.ts:548` in `prisma.register.upsert()` with "The column `review_comment_mode of relation register` does not exist in the current database". `prisma migrate deploy` reports all 19 migrations applied and none pending, so the seed writes a column the schema no longer has — the v1.27.0 remnant BUG-059 predicted. System Admin upsert succeeds first; the failure is in the demo-register loop.
 Work items: BUG-059
 Source: human request (direct)
 
@@ -165,7 +165,7 @@ Status: partially-done
 Done in: v1.7.0
 Priority: high
 Summary: Register admins need stronger custom field behaviour, including validation modes, calculated behaviour, visibility rules, and safe lifecycle controls.
-Notes: Validation modes, multi-select fields, calculated fields, and field visibility controls are present in code, but full close-out evidence is still incomplete. Evidence: `backend/src/services/customFields.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `frontend/src/features/configuration/CustomFieldModal.tsx`, `backend/test/formulaEvaluator.test.mjs`
+Notes: Validation modes, multi-select fields, calculated fields, and field visibility controls shipped in v1.7.0 and the PM5-CORE audit confirmed every acceptance criterion. Re-checked 2026-08-23: the response-owner field-visibility gap that PM5-CORE left open has since been closed by PM7-CORE (v1.19.0) — `visibleToRiskResponseOwners` is now enforced server-side in `backend/src/services/risks.query.service.ts` and respected in `RiskDetailModal.tsx`, so nothing remains there. The only outstanding scope is whether custom-field visibility should also govern risk CSV export (currently core columns only); that decision is deliberately carried by PM10-CORE, which is `ready` in the backlog, so this request stays partially-done rather than spawning a duplicate. Evidence: `backend/src/services/customFields.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `frontend/src/features/configuration/CustomFieldModal.tsx`, `backend/test/formulaEvaluator.test.mjs`
 Work items: PM5-CORE
 Source: migrated from old planning
 
