@@ -82,7 +82,7 @@ Request ID: REQ-005
 Title: Add child actions and stronger review workflows so treatment work can be tracked properly
 Type: feature
 Status: partially-done
-Done in: v1.19.0 (PM7-CORE — child-record response actions)
+Done in: v1.19.0
 Priority: high
 Summary: Users need first-class response actions, richer review rules, and better ownership tracking instead of relying on a simple risk field.
 Notes: PM7-CORE (child-record response actions) shipped in v1.19.0. PM8-CORE (risk review completeness — comment mode, attestation text UI, review history panel) is blocked pending the unified draft system prerequisite (DRAFT-UNIFIED).
@@ -141,10 +141,9 @@ Status: partially-done
 Done in: v1.9.0
 Priority: high
 Summary: Users need reusable personal views, safer report/export behaviour, and a clearer reporting foundation instead of relying only on ad hoc table state.
-Notes: Personal saved views (filters, sort, column state) shipped in v1.9.0. Report builder, charts, shared views, scheduled reports, CSV import, and export polish remain open.
+Notes: Personal saved views (filters, sort, column state) shipped in v1.9.0. Report builder, charts, shared views, scheduled reports, CSV import, and export polish remain open. Evidence: `backend/src/services/savedViews.service.ts`, `frontend/src/features/risks/SavedViewsPanel.tsx`, `backend/test/savedViews.test.mjs`, `frontend/test/savedViews.behavior.test.tsx`
 Work items: PM11-01, PM10-CORE
 Source: migrated from old planning
-Evidence: `backend/src/services/savedViews.service.ts`, `frontend/src/features/risks/SavedViewsPanel.tsx`, `backend/test/savedViews.test.mjs`, `frontend/test/savedViews.behavior.test.tsx`
 
 ### REQ-002
 Request ID: REQ-002
@@ -154,35 +153,33 @@ Status: partially-done
 Done in: v1.9.0
 Priority: high
 Summary: The product needs safe API key creation, listing, revocation, and audit coverage without exposing secrets.
-Notes: User self-service and admin API key management shipped in v1.9.0 (PM13-01). Keys are inherit-user-permissions scoped. API key request authentication and deactivated-user enforcement remain deferred as PM13-03.
+Notes: User self-service and admin API key management shipped in v1.9.0 (PM13-01). Keys are inherit-user-permissions scoped. API key request authentication and deactivated-user enforcement remain deferred as PM13-03. Evidence: `backend/src/services/apiKeys.service.ts`, `backend/src/routes/apiKeys.routes.ts`, `backend/src/routes/users.routes.ts`, `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `backend/test/apiKeys.test.mjs`
 Work items: PM13-01, PM13-03
 Source: migrated from old planning
-Evidence: `backend/src/services/apiKeys.service.ts`, `backend/src/routes/apiKeys.routes.ts`, `backend/src/routes/users.routes.ts`, `frontend/src/pages/ApiKeysPage.tsx`, `frontend/src/pages/ProfilePage.tsx`, `backend/test/apiKeys.test.mjs`
 
 ### REQ-003
 Request ID: REQ-003
 Title: Support advanced custom field behaviour and safer validation rules
 Type: feature
 Status: partially-done
+Done in: v1.7.0
 Priority: high
 Summary: Register admins need stronger custom field behaviour, including validation modes, calculated behaviour, visibility rules, and safe lifecycle controls.
-Notes: Validation modes, multi-select fields, calculated fields, and field visibility controls are present in code, but full close-out evidence is still incomplete.
+Notes: Validation modes, multi-select fields, calculated fields, and field visibility controls are present in code, but full close-out evidence is still incomplete. Evidence: `backend/src/services/customFields.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `frontend/src/features/configuration/CustomFieldModal.tsx`, `backend/test/formulaEvaluator.test.mjs`
 Work items: PM5-CORE
 Source: migrated from old planning
-Evidence: `backend/src/services/customFields.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `frontend/src/features/configuration/CustomFieldModal.tsx`, `backend/test/formulaEvaluator.test.mjs`
 
 ### REQ-004
 Request ID: REQ-004
 Title: Improve scoring and residual risk support for more advanced methodologies
 Type: feature
 Status: partially-done
-Done in: v1.17.0 (PM6-SCORING)
+Done in: v1.17.0
 Priority: high
 Summary: The platform needs configurable formulas, inherent and residual risk support, and related workflow behaviour to support more mature risk methods.
-Notes: Basic scoring, matrix behaviour, and calculated-field formula support exist. Configurable score formula engine (PM6-SCORING) shipped in v1.17.0. Inherent/residual mode (PM6-CORE) is deferred until after PM7-CORE (child actions). Residual suggestions (PM6-RESIDUAL-SUGGESTIONS) follow after both.
+Notes: Basic scoring, matrix behaviour, and calculated-field formula support exist. Configurable score formula engine (PM6-SCORING) shipped in v1.17.0. Inherent/residual mode (PM6-CORE) is deferred until after PM7-CORE (child actions). Residual suggestions (PM6-RESIDUAL-SUGGESTIONS) follow after both. Evidence: `backend/src/services/scoring.service.ts`, `backend/src/services/matrix.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `backend/test/riskScoring.test.mjs`
 Work items: PM6-SCORING, PM6-CORE, PM6-RESIDUAL-SUGGESTIONS
 Source: migrated from old planning
-Evidence: `backend/src/services/scoring.service.ts`, `backend/src/services/matrix.service.ts`, `backend/src/services/formulaEvaluator.service.ts`, `backend/test/riskScoring.test.mjs`
 
 ### REQ-007
 Request ID: REQ-007
@@ -192,10 +189,9 @@ Status: partially-done
 Done in: v1.9.0
 Priority: medium
 Summary: Operators need more complete data movement support, especially CSV import and more polished exports, without breaking permissions or auditability.
-Notes: Risk CSV export, audit CSV export, and config bundle import/export exist, but CSV import and the broader portability workflow still remain.
+Notes: Risk CSV export, audit CSV export, and config bundle import/export exist, but CSV import and the broader portability workflow still remain. Evidence: `backend/src/services/export.service.ts`, `backend/src/services/audit.service.ts`, `backend/src/services/configExport.service.ts`, `backend/src/services/configImport.service.ts`
 Work items: PM10-CORE
 Source: migrated from old planning
-Evidence: `backend/src/services/export.service.ts`, `backend/src/services/audit.service.ts`, `backend/src/services/configExport.service.ts`, `backend/src/services/configImport.service.ts`
 
 ### REQ-010
 Request ID: REQ-010
@@ -205,10 +201,9 @@ Status: partially-done
 Done in: v1.9.0
 Priority: medium
 Summary: Admins need a clean way to find unresolved person references and understand assignment changes without reopening already shipped person-reference work.
-Notes: Core person-reference support and a system-admin unresolved-person route exist, but there is still no clear evidence of a completed admin UI or fully closed assignment-audit coverage.
+Notes: Core person-reference support and a system-admin unresolved-person route exist, but there is still no clear evidence of a completed admin UI or fully closed assignment-audit coverage. Evidence: `backend/src/routes/persons.routes.ts`, `backend/src/services/personReference.service.ts`, `backend/test/personReferences.test.mjs`
 Work items: PM2-05A
 Source: migrated from old planning
-Evidence: `backend/src/routes/persons.routes.ts`, `backend/src/services/personReference.service.ts`, `backend/test/personReferences.test.mjs`
 
 ## Done
 
@@ -316,9 +311,10 @@ Request ID: REQ-075
 Title: Implement Playwright E2E permission test suite
 Type: feature
 Status: done
-Done in: v1.24.0 (E2E-001 — infrastructure), v1.25.0 (E2E-002 — core permission test suite)
+Done in: v1.24.0, v1.25.0
 Priority: medium
 Summary: Adopt Playwright as a third test layer (E2E) to cover real browser sessions, live backend authorisation, and cross-role permission isolation — gaps that Layers 1 and 2 cannot exercise. Implementation follows the 6-step plan in docs/spikes/SPIKE-003.md. Two work items: E2E-001 (infrastructure) and E2E-002 (core permission test suite).
+Notes: E2E-001 (Playwright infrastructure) shipped in v1.24.0; E2E-002 (core permission test suite) shipped in v1.25.0.
 Work items: E2E-001, E2E-002
 Source: deferred from SPIKE-003
 

@@ -144,16 +144,17 @@ vcs:
     push: agent
     # Merge the release branch into the branch it was cut from.
     #
-    # human because main is fully protected on this project: no direct pushes,
-    # ever. The agent opens the PR (below) and you merge it on GitHub. Recording
-    # the merge as `human` rather than `none` is what makes the tag stage wait
-    # for it to land — a tag created at PR time can point at a commit that never
-    # reaches main, or that a squash rewrites out from under it.
-    merge: human
-    # Open a pull request. The agent opens it; you merge it.
+    # none because integration happens via pull_request below, and the two are
+    # mutually exclusive — a manifest setting both is rejected as invalid.
+    # This does NOT mean no merge occurs: main is fully protected on this
+    # project (no direct pushes, ever), so the agent opens the PR and you merge
+    # it on GitHub. The tag still waits for that merge, because tagging before
+    # a pull request lands is not supported and not configurable.
+    merge: none
+    # Open a pull request. The agent opens it; you merge it on GitHub.
     pull_request: agent
-    # Create the version tag. Comes AFTER integration, so the human-owned merge
-    # above naturally defers it to a later run.
+    # Create the version tag. Comes AFTER integration, so it waits until the
+    # pull request above has actually merged.
     tag: agent
 
   # What happens to the release branch once a merge lands. after-merge is what

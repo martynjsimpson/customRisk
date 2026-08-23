@@ -2,7 +2,7 @@ model_version: 1
 source: planningV3 migration
 items:
 - id: PM4-CLOSEOUT
-  source_request: legacy-migration
+  source_request: null
   legacy_ids:
   - PM4-01
   - PM4-02
@@ -17,8 +17,8 @@ items:
   title: Preserve the shipped configuration lifecycle and template baseline
   type: audit
   capability: config-lifecycle-templates
-  phase: 4
   status: done
+  done_in: ['v1.2.0']
   priority: low
   confidence: medium
   summary: Draft configuration versions, publish flows, import and export, and template operations appear feature-complete
@@ -46,13 +46,15 @@ items:
     - docs/product/prd.md
     notes:
     - Retained as a done baseline because later work depends on it heavily.
+    - >-
+        Provenance: migrated from the legacy planning system (previously recorded as source_request
+        "legacy-migration").
 - id: PM4-TEMPLATE-EXTENSIONS
   source_request: REQ-012
   legacy_ids: []
   title: Extend the template library beyond the shipped baseline
   type: feature
   capability: config-lifecycle-templates
-  phase: 4
   status: deferred
   priority: medium
   confidence: medium
@@ -101,7 +103,6 @@ items:
   title: Close the remaining person-assignment admin and audit gaps
   type: spike
   capability: person-identity
-  phase: 2
   status: ready
   priority: medium
   confidence: medium
@@ -135,8 +136,9 @@ items:
     - The backend route evidence now exists in Planning V3; old planning is only needed for optional historical context.
     - Current code exposes `/persons/unresolved` for System Admins, but no dedicated unresolved-person frontend admin view
       was found in the audit.
-  notes: 'PM2-05 (email-only owner access permission fix) shipped in v1.9.0. Remaining scope: admin UI for unresolved person
-    references and assignment audit gap coverage.'
+    - >-
+        PM2-05 (email-only owner access permission fix) shipped in v1.9.0. Remaining scope: admin UI for
+        unresolved person references and assignment audit gap coverage.
 - id: PM11-01
   source_request: REQ-001
   legacy_ids:
@@ -147,7 +149,6 @@ items:
   title: Ship personal saved views and tighten reporting-export foundations
   type: feature
   capability: reporting-saved-views
-  phase: 11
   status: done
   priority: high
   confidence: medium
@@ -197,7 +198,6 @@ items:
   title: Finish and verify API key management baseline
   type: security
   capability: api-keys
-  phase: 13
   status: done
   priority: high
   confidence: medium
@@ -257,7 +257,6 @@ items:
   title: Harden API key authentication and deactivated-user enforcement
   type: security
   capability: api-keys
-  phase: 13
   status: needs-refinement
   priority: high
   confidence: medium
@@ -306,7 +305,6 @@ items:
   title: Finish the advanced custom-field model
   type: feature
   capability: advanced-fields
-  phase: 5
   status: done
   done_in:
   - v1.7.0
@@ -365,7 +363,6 @@ items:
   title: Implement configurable risk score formula engine
   type: feature
   capability: advanced-scoring
-  phase: 6
   status: done
   done_in: ['v1.17.0']
   priority: high
@@ -433,7 +430,6 @@ items:
   title: Add inherent and residual risk scoring mode
   type: feature
   capability: advanced-scoring
-  phase: 6
   status: deferred
   priority: high
   confidence: medium
@@ -479,7 +475,6 @@ items:
   title: Use child actions as control evidence for residual risk suggestions
   type: feature
   capability: advanced-scoring
-  phase: 6
   status: ready
   priority: medium
   confidence: medium
@@ -543,7 +538,6 @@ items:
   title: Introduce child-record response actions
   type: feature
   capability: child-actions
-  phase: 7
   status: done
   done_in:
   - v1.19.0
@@ -594,7 +588,6 @@ items:
   title: Risk review completeness — comment mode, attestation text UI, and review history panel
   type: feature
   capability: advanced-reviews
-  phase: 8
   status: blocked
   blocked_on: DRAFT-UNIFIED (unified draft system — prerequisite per SPIKE-008; also requires createRegisterFromTemplate data fidelity fix and Template Compare modal fix before re-proposing)
   priority: high
@@ -681,7 +674,6 @@ items:
   title: Add notification and reminder infrastructure
   type: feature
   capability: notifications
-  phase: 9
   status: deferred
   priority: medium
   confidence: medium
@@ -729,7 +721,6 @@ items:
   title: Finish practical data portability beyond the current config and CSV exports
   type: improvement
   capability: import-export
-  phase: 10
   status: ready
   priority: medium
   confidence: medium
@@ -765,8 +756,9 @@ items:
     notes:
     - Old phase docs may still help with CSV import edge cases, but they should not be required for normal understanding.
     - v1.9.0 personal saved views do not make CSV export saved-view-column-aware.
-  notes: 'PM10-10 (audit log CSV export) shipped in v1.9.0. Remaining scope: CSV import, advanced export polish, broader portability
-    workflows.'
+    - >-
+        PM10-10 (audit log CSV export) shipped in v1.9.0. Remaining scope: CSV import, advanced export
+        polish, broader portability workflows.
 - id: PM12-CORE
   source_request: REQ-008
   legacy_ids:
@@ -776,7 +768,6 @@ items:
   title: Implement risk attachments — first slice on approved storage model
   type: feature
   capability: attachments-evidence
-  phase: 12
   status: ready
   priority: medium
   confidence: high
@@ -872,7 +863,6 @@ items:
   title: Add enterprise authentication and recovery foundations
   type: feature
   capability: enterprise-auth
-  phase: 3
   status: deferred
   priority: medium
   confidence: medium
@@ -907,7 +897,6 @@ items:
   title: Overhaul the homepage — post-MVP rework
   type: feature
   capability: homepage
-  phase: null
   status: deferred
   priority: medium
   confidence: low
@@ -940,7 +929,6 @@ items:
   title: Spike — SaaS multi-tenant architecture for hosted offering
   type: spike
   capability: architecture
-  phase: null
   status: deferred
   priority: low
   confidence: low
@@ -975,7 +963,6 @@ items:
   title: Spike — encryption of client data at rest
   type: spike
   capability: architecture
-  phase: null
   status: deferred
   priority: medium
   confidence: low
@@ -1012,7 +999,6 @@ items:
   title: Set up Playwright E2E test infrastructure
   type: feature
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.24.0']
   priority: medium
@@ -1077,7 +1063,6 @@ items:
   title: Implement core Playwright E2E permission test suite
   type: feature
   capability: build-toolchain
-  phase: null
   status: done
   done_in:
   - v1.25.0
@@ -1129,7 +1114,6 @@ items:
   title: Refresh seed scripts to cover features shipped since v1.7.0
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.23.0']
   priority: medium
@@ -1197,7 +1181,6 @@ items:
   title: Implement production editions model for feature flag management
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: deferred
   priority: low
   confidence: high
@@ -1254,7 +1237,6 @@ items:
   title: Audit test code against agreed coding standards
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.23.0']
   priority: medium
@@ -1295,7 +1277,6 @@ items:
   title: Audit backend code against agreed coding standards
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.23.0']
   priority: medium
@@ -1333,7 +1314,6 @@ items:
   title: Audit frontend code against agreed coding standards
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.23.0']
   priority: medium
@@ -1370,7 +1350,6 @@ items:
   title: Fix Admin summary widget to exclude soft-deleted registers
   type: bug
   capability: homepage
-  phase: null
   status: done
   done_in: ['v1.23.0']
   priority: high
@@ -1408,7 +1387,6 @@ items:
   title: Implement internationalisation support
   type: feature
   capability: architecture
-  phase: null
   status: deferred
   priority: low
   confidence: low
@@ -1462,7 +1440,6 @@ items:
   title: Extract feature components from large page files
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.24.0']
   priority: medium
@@ -1503,7 +1480,6 @@ items:
   title: Extract shared utility functions to backend/src/utils/
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.24.0']
   priority: medium
@@ -1544,7 +1520,6 @@ items:
   title: Break up risks.service.ts and configVersion.service.ts into sub-services
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.26.0']
   priority: medium
@@ -1597,7 +1572,6 @@ items:
   title: Add opening block comments to test files missing them
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.24.0']
   priority: low
@@ -1631,7 +1605,6 @@ items:
   title: Restructure myRisks.test.mjs to use describe blocks
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.24.0']
   priority: low
@@ -1664,7 +1637,6 @@ items:
   title: Replace brittle querySelector selectors in three frontend test files
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.24.0']
   priority: medium
@@ -1707,7 +1679,6 @@ items:
   title: Fix 10 CI lint warnings in frontend and backend
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in:
   - v1.25.0
@@ -1749,7 +1720,6 @@ items:
   title: PA assessment — confirm .test.mjs to .test.ts toolchain compatibility
   type: spike
   capability: build-toolchain
-  phase: null
   status: done
   done_in:
   - v1.25.0
@@ -1787,7 +1757,6 @@ items:
   title: PA assessment — define sub-service boundaries for risks.service.ts and configVersion.service.ts
   type: spike
   capability: build-toolchain
-  phase: null
   status: done
   done_in:
   - v1.25.0
@@ -1831,7 +1800,6 @@ items:
   title: Migrate frontend static test files from .test.mjs to .test.ts
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.26.0']
   priority: low
@@ -1875,7 +1843,6 @@ items:
   title: Bump actions/checkout from v6 to v7 in GitHub Actions workflows
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.26.0']
   priority: low
@@ -1904,7 +1871,6 @@ items:
   title: Implement field-value-driven review frequency rules
   type: feature
   capability: advanced-reviews
-  phase: 8
   status: needs-refinement
   priority: medium
   confidence: low
@@ -1954,7 +1920,6 @@ items:
   title: Implement Risk Response Reviews
   type: feature
   capability: advanced-reviews
-  phase: 8
   status: needs-refinement
   priority: medium
   confidence: low
@@ -2002,7 +1967,6 @@ items:
   title: Add attachment support for Risk Response Actions
   type: feature
   capability: attachments-evidence
-  phase: 12
   status: blocked
   blocked_on: PM12-CORE
   priority: medium
@@ -2044,7 +2008,6 @@ items:
   title: Add attachment support for Risk Reviews
   type: feature
   capability: attachments-evidence
-  phase: 12
   status: blocked
   blocked_on: PM12-CORE
   priority: low
@@ -2081,7 +2044,6 @@ items:
   title: Implement orphan file cleanup job for soft-deleted attachments
   type: feature
   capability: attachments-evidence
-  phase: 12
   status: blocked
   blocked_on: PM12-CORE
   priority: medium
@@ -2122,7 +2084,6 @@ items:
   title: Fix Playwright show-report localhost binding on macOS
   type: maintenance
   capability: build-toolchain
-  phase: null
   status: done
   done_in: ['v1.26.0']
   priority: low
@@ -2148,11 +2109,10 @@ items:
     - Firefox on macOS resolves localhost to ::1 (IPv6) by default; Playwright's show-report server binds to 127.0.0.1
       (IPv4) only. Explicitly passing --host 127.0.0.1 makes the URL match the binding.
 - id: DRAFT-UNIFIED
-  source_request: extracted from abandoned v1.27.0
+  source_request: null
   title: Implement unified draft system for all register settings
   type: refactor
   capability: config-lifecycle-templates
-  phase: null
   status: ready
   priority: high
   confidence: high
@@ -2222,12 +2182,13 @@ items:
     - principal-architect is listed because this item introduces a documented architectural
       standard and touches configVersion.publish.service.ts (a core service). PA should
       write the architecture doc update and review the backend changes before they merge.
+    - >-
+        Provenance: extracted from the abandoned v1.27.0 release; no originating request exists.
 - id: UI-024
-  source_request: extracted from abandoned v1.27.0 (SPIKE-008 deferred items)
+  source_request: REQ-093
   title: Surface template-drift banner when linkedTemplate.isLatest is false
   type: improvement
   capability: config-lifecycle-templates
-  phase: null
   status: ready
   priority: medium
   confidence: high
@@ -2269,12 +2230,13 @@ items:
     - SPIKE-008 explicitly describes this as a frontend-only change.
     - The minimum viable approach is the drift banner; full notification infrastructure
       (push/email) is a separate capability tracked under PM9-CORE.
+    - >-
+        Provenance: extracted from the abandoned v1.27.0 release (SPIKE-008 deferred items).
 - id: BUG-058
   source_request: REQ-088
   title: Fix createRegisterFromTemplate — Prisma crash due to missing createdBy relation
   type: bug
   capability: config-lifecycle-templates
-  phase: null
   status: ready
   priority: critical
   confidence: high
@@ -2321,7 +2283,6 @@ items:
   title: Fix broken Prisma seed file — v1.27.0 remnants
   type: bug
   capability: build-toolchain
-  phase: null
   status: ready
   priority: high
   confidence: medium
@@ -2366,7 +2327,6 @@ items:
   title: Fix createRegisterFromTemplate — does not copy reviewCommentMode, scoringFormula, responseActionMode
   type: bug
   capability: config-lifecycle-templates
-  phase: null
   status: ready
   priority: high
   confidence: high
@@ -2417,7 +2377,6 @@ items:
   title: Fix Template Compare modal — empty diff when only reviewCommentMode, scoringFormula, or responseActionMode differ
   type: bug
   capability: config-lifecycle-templates
-  phase: null
   status: ready
   priority: high
   confidence: high
