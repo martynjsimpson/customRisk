@@ -1,7 +1,7 @@
 # Active Release
 
 Version: v1.28.0
-Status: in-progress
+Status: testing
 Branch: release/custom-risk-1.28.0 (cut from main @ 8fc908e)
 
 ## Release goal
