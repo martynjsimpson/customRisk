@@ -18,7 +18,41 @@ Detailed delivery state belongs in `backlog.yml` and `active-release.md`, not in
 
 ## Inbox / needs refinement
 
-*(empty)*
+### REQ-094
+Request ID: REQ-094
+Title: Review and merge Dependabot bump of @types/node from 24.13.2 to 26.2.0
+Type: maintenance
+Status: inbox
+Priority: medium
+Summary: Dependabot PR #159 (opened week of 2026-08-17) bumps the dev dependency @types/node from 24.13.2 to 26.2.0. Two major versions, so backend and shared type-checking may surface new or changed Node type definitions. CI checks are green on the PR. Needs review, a local type-check across all workspaces, and merge or close.
+Source: human request (direct) — Dependabot PR list
+
+### REQ-095
+Request ID: REQ-095
+Title: Review and merge Dependabot bump of jsdom from 29.1.1 to 30.0.1
+Type: maintenance
+Status: inbox
+Priority: medium
+Summary: Dependabot PR #152 (opened around 2026-08-02) bumps the dev dependency jsdom from 29.1.1 to 30.0.1. Major version bump affecting the frontend test environment, so frontend unit tests are the risk area. CI checks are green on the PR. Needs review, a full frontend test run, and merge or close.
+Source: human request (direct) — Dependabot PR list
+
+### REQ-096
+Request ID: REQ-096
+Title: Review and merge Dependabot bump of actions/setup-node from 6 to 7
+Type: maintenance
+Status: inbox
+Priority: low
+Summary: Dependabot PR #140 (opened 2026-07-20) bumps the GitHub Action actions/setup-node from v6 to v7 across the workflows. Major version bump, so caching behaviour and input names are the risk area; affects CI and the release pipeline. CI checks are green on the PR. Needs review and merge or close.
+Source: human request (direct) — Dependabot PR list
+
+### REQ-097
+Request ID: REQ-097
+Title: Review and merge Dependabot bump of typescript from 6.0.3 to 7.0.2
+Type: maintenance
+Status: inbox
+Priority: high
+Summary: Dependabot PR #138 (opened 2026-07-13) bumps the dev dependency typescript from 6.0.3 to 7.0.2. Major compiler version across the whole monorepo (backend, frontend, shared), so stricter checks or changed emit behaviour could break the build even though the PR's CI checks are green. Oldest of the open Dependabot PRs and the highest-risk of the four. Needs review, a full build and test run across all workspaces, and merge or close.
+Source: human request (direct) — Dependabot PR list
 
 ## Refined requests
 
