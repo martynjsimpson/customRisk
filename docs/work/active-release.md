@@ -1,8 +1,9 @@
 # Active Release
 
 Version: v1.28.0
-Status: ready-for-release
-Branch: release/custom-risk-1.28.0 (cut from main @ 8fc908e)
+Status: released
+Branch: release/custom-risk-1.28.0 (cut from main @ 8fc908e; merged in PR #173, deleted after merge)
+Tag: v1.28.0 @ 726829c
 
 ## Release goal
 
