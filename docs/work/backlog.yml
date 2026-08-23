@@ -981,8 +981,8 @@ items:
     - Node 24 is the current LTS line (LTS from October 2025). Node 22 remains Active LTS but Node 24 is the correct upgrade target.
     - The engines constraint change alone does not prevent operators running older Node in production, but it signals the supported
       minimum clearly and lets package managers warn on mismatch.
-    - PM note: this change is potentially disruptive. It should be isolated in its own dedicated release — do not bundle with
-      other work items. PA must confirm compatibility before the devops-engineer proceeds.
+    - "PM note: this change is potentially disruptive. It should be isolated in its own dedicated release — do not bundle with
+      other work items. PA must confirm compatibility before the devops-engineer proceeds."
 - id: BUG-001
   source_issue: '#100'
   title: Keep main audit screen search facets on one line at normal desktop width
@@ -1170,7 +1170,8 @@ items:
     - frontend/test/savedViews.test.mjs
     docs: []
     notes:
-    - Stack trace: SavedViewsPanel@SavedViewsPanel.tsx:85 — confirmed crash point is the .map() call on views.
+    - >-
+        Stack trace: SavedViewsPanel@SavedViewsPanel.tsx:85 — confirmed crash point is the .map() call on views.
     - This is a regression introduced with the v1.9.0 saved-views feature (PM11-01). The feature shipped but the non-array
       edge case was not caught in testing.
     - Fix is likely small (one guard or initialiser) but must be verified against the full saved-views UX to avoid silent regressions.
@@ -1187,7 +1188,8 @@ items:
   summary: The Save View feature on the register page is completely broken. Attempting to save a view throws a validation
     error. Root cause is a type mismatch — the API expects `columns` as an array but the frontend is sending an object.
   observed_behaviour:
-  - Saving a view throws "Invalid request body — Columns: Invalid input: expected array, received object".
+  - >-
+      Saving a view throws "Invalid request body — Columns: Invalid input: expected array, received object".
   - The Save View feature is completely unusable.
   expected_behaviour:
   - Users can save a view successfully with the current filter, sort, and column state persisted.
@@ -2216,7 +2218,8 @@ items:
   - validationMode is sent as "ALLOW" for CALCULATED fields in all form submission paths.
   - No regression to ALLOW/WARN/BLOCK behaviour for non-CALCULATED field types.
   remaining:
-  - In CustomFieldModal.tsx onSubmit handler, add `validationMode: "ALLOW"` when `values.fieldType === "CALCULATED"`.
+  - >-
+      In CustomFieldModal.tsx onSubmit handler, add `validationMode: "ALLOW"` when `values.fieldType === "CALCULATED"`.
   - Add or update a test covering CALCULATED field create and edit.
   dependencies: []
   suggested_agents:
@@ -2228,7 +2231,8 @@ items:
     tests:
     - frontend/test/configuration.test.mjs
     notes:
-    - Error text observed: "Invalid request body — Custom Fields 1 Validation Mode: Invalid option: expected one of 'ALLOW'|'WARN'|'BLOCK'"
+    - >-
+        Error text observed: "Invalid request body — Custom Fields 1 Validation Mode: Invalid option: expected one of 'ALLOW'|'WARN'|'BLOCK'"
     - validationMode input is intentionally hidden for CALCULATED fields; backend still requires the value.
 
 - id: BUG-049
@@ -2296,7 +2300,8 @@ items:
     tests:
     - frontend/test/registers.test.mjs
     notes:
-    - Reference implementation: Admin Summary widget (REQ-034). Use the same link and filter pattern.
+    - >-
+        Reference implementation: Admin Summary widget (REQ-034). Use the same link and filter pattern.
 
 - id: UI-023
   source_request: REQ-055
@@ -2319,9 +2324,10 @@ items:
   remaining:
   - Confirm that the formula and referenced field definitions are available in the risk edit form context (i.e. passed from the
     register config already loaded on the page).
-  - Implement client-side formula evaluation in the edit form, reusing or referencing the formulaEvaluator logic already present
-    in the backend. Note: a lightweight client-side evaluator may need to be extracted or reimplemented for the frontend — do not
-    call the backend on every keystroke.
+  - >-
+      Implement client-side formula evaluation in the edit form, reusing or referencing the formulaEvaluator logic already present
+      in the backend. Note: a lightweight client-side evaluator may need to be extracted or reimplemented for the frontend — do not
+      call the backend on every keystroke.
   - Decide the visual treatment for the preview value (e.g. greyed-out or italicised until saved).
   - Add or update frontend tests to cover the real-time preview behaviour.
   dependencies:
@@ -2438,12 +2444,13 @@ items:
     is a scoping document with a recommended approach, sequencing, risks, and areas
     of the app requiring refactoring before i18n can be added.
   acceptance:
-  - A scoping document exists covering: frontend string externalisation approach (i18n
-    library, translation file structure, locale selection); backend-generated text
-    (error messages, audit summaries, email/notification strings if applicable);
-    help content locale management (relationship to the existing Markdown file
-    structure under frontend/public/help/en/); validation message localisation;
-    and user-visible configuration labels (likelihood/impact names, field labels, etc.).
+  - >-
+      A scoping document exists covering: frontend string externalisation approach (i18n
+      library, translation file structure, locale selection); backend-generated text
+      (error messages, audit summaries, email/notification strings if applicable);
+      help content locale management (relationship to the existing Markdown file
+      structure under frontend/public/help/en/); validation message localisation;
+      and user-visible configuration labels (likelihood/impact names, field labels, etc.).
   - The document covers formatting concerns — dates, numbers, and currency — and
     recommends a consistent approach across frontend and backend.
   - The document identifies which areas of the app require the most refactoring and
@@ -2487,11 +2494,12 @@ items:
     in local development. The spike must also consider how editions might attach to a
     future org/tenant model (REQ-042).
   acceptance:
-  - A scoping document exists covering: how editions are defined and where the
-    edition-to-feature mapping lives; how a production deployment selects an edition
-    (e.g. a single EDITION env var rather than N individual flag vars); how local
-    development retains the ability to override individual flags; and how the current
-    flag-per-env-var approach migrates to the editions model.
+  - >-
+      A scoping document exists covering: how editions are defined and where the
+      edition-to-feature mapping lives; how a production deployment selects an edition
+      (e.g. a single EDITION env var rather than N individual flag vars); how local
+      development retains the ability to override individual flags; and how the current
+      flag-per-env-var approach migrates to the editions model.
   - The document explicitly addresses the short-term context — BUG-055 (flags broken
     in Docker production) — and clarifies whether the editions model is the right
     long-term fix or whether BUG-055 needs a separate immediate fix.
@@ -2538,15 +2546,16 @@ items:
     CI integration approach, and an implementation plan. No implementation in this
     release — the spike document becomes the input for scoping the implementation.
   acceptance:
-  - A spike document exists at docs/spikes/SPIKE-003.md covering: whether to adopt
-    Playwright (vs. Cypress or alternatives) and the rationale; the proposed
-    three-layer test model (static, Vitest/jsdom runtime, Playwright E2E) and how
-    it relates to ADR-0008; the permission fixture design — named users, named
-    registers, named risks and actions, explicit cross-user access edges — and how
-    it would be seeded without coupling to seed.ts; the proposed CI integration
-    approach including how Playwright tests would be gated separately from unit and
-    integration tests; and a scoped implementation plan with sequencing for a
-    follow-on release.
+  - >-
+      A spike document exists at docs/spikes/SPIKE-003.md covering: whether to adopt
+      Playwright (vs. Cypress or alternatives) and the rationale; the proposed
+      three-layer test model (static, Vitest/jsdom runtime, Playwright E2E) and how
+      it relates to ADR-0008; the permission fixture design — named users, named
+      registers, named risks and actions, explicit cross-user access edges — and how
+      it would be seeded without coupling to seed.ts; the proposed CI integration
+      approach including how Playwright tests would be gated separately from unit and
+      integration tests; and a scoped implementation plan with sequencing for a
+      follow-on release.
   - The document explicitly references QA-001 (manual permission test plan) as the
     source of truth for the permission matrix the future suite will automate.
   - ADR-0008 is assessed but not updated in this release — any update to ADR-0008
@@ -2592,12 +2601,14 @@ items:
     covering every role defined in the system — System Admin, Register Admin, Register
     Editor, Register Viewer, Risk Owner, Risk Response Owner — against every
     permission-gated action and entity type.
-  - Each test case specifies: the role or persona, the entity/action being tested, and
-    the expected outcome (allowed or denied).
-  - The plan covers at minimum: register CRUD, risk CRUD, custom field visibility,
-    response action CRUD and ownership, review actions, configuration and permissions
-    tab access, export controls, audit log access, user management, template management,
-    and API key management.
+  - >-
+      Each test case specifies: the role or persona, the entity/action being tested, and
+      the expected outcome (allowed or denied).
+  - >-
+      The plan covers at minimum: register CRUD, risk CRUD, custom field visibility,
+      response action CRUD and ownership, review actions, configuration and permissions
+      tab access, export controls, audit log access, user management, template management,
+      and API key management.
   - The document is structured as a pass/fail checklist executable by a human tester
     without needing code access.
   - The plan is acknowledged as the authoritative permission matrix for SPIKE-003
@@ -2651,12 +2662,13 @@ items:
   - The e2e CI job is added to ci.yml gated on quality, Chromium-only, with artifact upload
     on failure. The job passes with no test files present.
   - e2e:seed and e2e:teardown scripts are added to the root package.json.
-  - docs/operations/e2e-testing.md is created covering: prerequisites and environment setup
-    (required env vars including E2E_TEST_PASSWORD, how to obtain or set them locally);
-    how to run the seed and teardown scripts; how to run the full Playwright suite locally;
-    how to run a single test file or a specific test; how to view the Playwright HTML report
-    after a local run; and how the e2e CI job is triggered and where to find the report
-    artifact on failure.
+  - >-
+      docs/operations/e2e-testing.md is created covering: prerequisites and environment setup
+      (required env vars including E2E_TEST_PASSWORD, how to obtain or set them locally);
+      how to run the seed and teardown scripts; how to run the full Playwright suite locally;
+      how to run a single test file or a specific test; how to view the Playwright HTML report
+      after a local run; and how the e2e CI job is triggered and where to find the report
+      artifact on failure.
   remaining:
   - PA to produce the ADR-0008 amendment as Step 1 before any other work begins.
   - devops-engineer to implement the ci.yml e2e job per the structure in SPIKE-003.md Section 5.2.
@@ -2730,8 +2742,9 @@ items:
     - docs/engineering/permission-test-plan.md
     notes:
     - QA-001 (permission-test-plan.md) is the authoritative source for what the suite automates.
-    - Priority order for test authoring per SPIKE-003.md Section 5 — high: 19, 1, 2, 12, 13;
-      medium: 3, 5, 9, 7, 8; lower: remaining sections.
+    - >-
+        Priority order for test authoring per SPIKE-003.md Section 5 — high: 19, 1, 2, 12, 13;
+        medium: 3, 5, 9, 7, 8; lower: remaining sections.
     - Selector stability pass (Step 6) must be completed before the suite is considered
       production-quality. data-testid attributes preferred; ARIA roles acceptable where
       data-testid is impractical.
@@ -2752,10 +2765,11 @@ items:
     history capabilities shipped since then. The seed should be updated to exercise
     current product capabilities so a fresh deployment is genuinely representative.
   acceptance:
-  - At least one demo register is seeded with custom fields covering: a DROPDOWN field,
-    a CALCULATED field (referencing at least one numeric field), and at least one field
-    with validationMode WARN. Field visibility (visibleToRoles) should be demonstrated
-    on at least one field.
+  - >-
+      At least one demo register is seeded with custom fields covering: a DROPDOWN field,
+      a CALCULATED field (referencing at least one numeric field), and at least one field
+      with validationMode WARN. Field visibility (visibleToRoles) should be demonstrated
+      on at least one field.
   - Custom field values are seeded on demo risks in that register so the fields are
     populated on first load, not empty.
   - One demo register is seeded in responseActionMode CHILD_RECORDS with at least three
@@ -4388,14 +4402,16 @@ items:
   - Architecture docs updated to codify the unified draft standard so future developers know
     the rule (all new settings fields go through draft in draft mode).
   remaining:
-  - Backend developer to move all register settings fields out of the sourceTemplateVersionId
-    conditional in configVersion.publish.service.ts into the always-promote block. Only
-    linkedTemplateVersionId remains inside the conditional. Reference: SPIKE-008 Recommendation
-    section "What needs to change technically — Backend".
-  - Frontend developer to update RegisterSettingsTab.tsx so all field blur/change handlers
-    call updateDraftConfig when in draft mode, matching the pattern established by
-    reviewCommentMode and reviewAttestationText handlers. Reference: SPIKE-008 Recommendation
-    section "What needs to change technically — Frontend".
+  - >-
+      Backend developer to move all register settings fields out of the sourceTemplateVersionId
+      conditional in configVersion.publish.service.ts into the always-promote block. Only
+      linkedTemplateVersionId remains inside the conditional. Reference: SPIKE-008 Recommendation
+      section "What needs to change technically — Backend".
+  - >-
+      Frontend developer to update RegisterSettingsTab.tsx so all field blur/change handlers
+      call updateDraftConfig when in draft mode, matching the pattern established by
+      reviewCommentMode and reviewAttestationText handlers. Reference: SPIKE-008 Recommendation
+      section "What needs to change technically — Frontend".
   - Principal Architect to update or create architecture docs codifying the unified draft
     standard, so the rule is documented for future developers.
   - Test engineer to add tests covering the always-promote path and verify no Category B
@@ -4516,8 +4532,9 @@ items:
     notes:
     - Error reported with exact correlationId 7f39d6ba-ef11-48b0-96f0-17f2c3973135.
     - Check other register creates in registers.service.ts for the correct relation pattern to follow.
-    - Note: this is a different bug from REQ-091/BUG-060 (missing field copying in the same
-      function). Both bugs exist independently. Fix this crash first; BUG-060 can follow.
+    - >-
+        Note: this is a different bug from REQ-091/BUG-060 (missing field copying in the same
+        function). Both bugs exist independently. Fix this crash first; BUG-060 can follow.
 - id: BUG-059
   source_request: REQ-090
   title: Fix broken Prisma seed file — v1.27.0 remnants
