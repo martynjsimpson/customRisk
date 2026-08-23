@@ -54,6 +54,14 @@ If the template has been updated since the register was created, two additional 
 
 A register can also be **unlinked** from its template (System Administrators only). The register retains its current configuration but is no longer tracked against template versions.
 
+### Template Update Notifications
+
+If a register's linked template publishes a newer version, an orange banner appears at the top of the register's page — on every tab, not only Configuration — so Register Admins notice the update even if they do not regularly visit the Configuration tab. The banner's **View changes** button takes you to the Configuration tab, where you can use **Compare** and **Apply latest** as described above.
+
+The banner disappears once the register is on the latest published version of its template, or if the register is not linked to a template at all.
+
+> **Note:** Publishing a manual draft (one not created from **Apply latest**) does **not** unlink the register from its template. The register stays linked at the same template version it was already on. If the template is updated again afterwards, the drift banner appears as usual — publishing your own changes does not exempt the register from future drift notifications.
+
 ## Deactivating a Template
 
 Templates can be deactivated when they are no longer needed. A deactivated template cannot be used to create new registers, but existing registers that are linked to it are not affected — they retain their configuration and can still compare against the template's versions.
