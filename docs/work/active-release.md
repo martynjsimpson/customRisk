@@ -1,7 +1,8 @@
 # Active Release
 
-Version: TBD
-Status: approved
+Version: v1.28.0
+Status: in-progress
+Branch: release/custom-risk-1.28.0 (cut from main @ 8fc908e)
 
 ## Release goal
 
