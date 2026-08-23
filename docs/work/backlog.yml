@@ -1,41 +1,6 @@
 model_version: 1
 source: planningV3 migration
 items:
-- id: PM1-CLOSEOUT
-  source_request: legacy-migration
-  legacy_ids:
-  - PM1-01
-  - PM1-03
-  - PM1-05
-  title: Confirm shipped profile and preferences baseline stays closed
-  type: audit
-  capability: profile-preferences
-  phase: 1
-  status: done
-  priority: low
-  confidence: high
-  summary: Phase 1 post-MVP work is already implemented and tested; keep one concise done marker so agents do not reopen it.
-  acceptance:
-  - Password change preserves the current session while revoking other refresh tokens.
-  - Preference updates deep-merge nested settings rather than overwriting them wholesale.
-  - Preference state is cached and updated consistently in the frontend.
-  remaining:
-  - No active delivery work; reopen only if regressions appear.
-  dependencies: []
-  suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  evidence:
-    code:
-    - backend/src/services/auth.service.ts
-    - frontend/src/hooks/usePreferences.ts
-    tests:
-    - backend/test/auth.test.mjs
-    - frontend/test/preferences.behavior.test.tsx
-    notes:
-    - Verified as done in the current planning audit and retained only to prevent duplicate reopenings.
 - id: PM4-CLOSEOUT
   source_request: legacy-migration
   legacy_ids:
@@ -55,7 +20,7 @@ items:
   phase: 4
   status: done
   priority: low
-  confidence: medium-high
+  confidence: medium
   summary: Draft configuration versions, publish flows, import and export, and template operations appear feature-complete
     enough to treat Phase 4 as closed for normal planning.
   acceptance:
@@ -66,10 +31,10 @@ items:
   - Reopen only if later field or scoring work exposes a concrete gap.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
   evidence:
     code:
     - backend/src/services/configVersion.service.ts
@@ -108,10 +73,10 @@ items:
   dependencies:
   - PM4-CLOSEOUT
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
   evidence:
     code:
     - backend/src/services/template.service.ts
@@ -202,11 +167,10 @@ items:
   dependencies:
   - PM4-CLOSEOUT
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  - Release Manager
+  - product-manager
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/savedViews.service.ts
@@ -252,11 +216,10 @@ items:
   - Verify release docs and UX copy align with the accepted inherit-scope design.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
-  - Release Manager
+  - product-manager
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/apiKeys.service.ts
@@ -313,10 +276,9 @@ items:
   dependencies:
   - PM13-01
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Test Engineer
-  - Release Manager
+  - product-manager
+  - backend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/apiKeys.service.ts
@@ -365,11 +327,11 @@ items:
   dependencies:
   - PM4-CLOSEOUT
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/customFields.service.ts
@@ -405,7 +367,7 @@ items:
   capability: advanced-scoring
   phase: 6
   status: done
-  done_in: v1.17.0
+  done_in: ['v1.17.0']
   priority: high
   confidence: medium
   summary: Replace the hardcoded Likelihood × Impact formula with a per-register configurable scoring formula. Register Admins
@@ -543,11 +505,11 @@ items:
   - PM6-CORE
   - PM7-CORE
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/scoring.service.ts
@@ -603,11 +565,11 @@ items:
   - PM5-CORE
   - PM6-SCORING
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/prisma/schema.prisma
@@ -737,10 +699,10 @@ items:
   - PM7-CORE
   - PM8-CORE
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/config/featureFlags.ts
@@ -787,10 +749,10 @@ items:
   - PM6-CORE
   - PM4-CLOSEOUT
   suggested_agents:
-  - Product Manager
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/services/export.service.ts
@@ -879,7 +841,6 @@ items:
   - backend-developer
   - frontend-developer
   - test-engineer
-  - release-manager
   evidence:
     code:
     - backend/prisma/schema.prisma
@@ -927,11 +888,11 @@ items:
   - Choose the first supported auth pattern explicitly instead of leaving scope abstract.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Principal Architect
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - principal-architect
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - backend/src/config/featureFlags.ts
@@ -1014,9 +975,9 @@ items:
   - Add or update frontend coverage if the audit filter layout has an existing practical test seam.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/features/audit/AuditFilters.tsx
@@ -1058,8 +1019,8 @@ items:
   - Confirm the visual placement — between the new password and confirm password fields is the natural location.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/ProfilePage.tsx
@@ -1107,8 +1068,8 @@ items:
     the card width more naturally, or whether the page width constraint should simply be relaxed for this section.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/ProfilePage.tsx
@@ -1159,8 +1120,8 @@ items:
   - Add or update frontend tests to cover the non-array views case.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/features/risks/SavedViewsPanel.tsx
@@ -1182,7 +1143,7 @@ items:
   capability: reporting-saved-views
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: critical
   confidence: high
   summary: The Save View feature on the register page is completely broken. Attempting to save a view throws a validation
@@ -1204,8 +1165,8 @@ items:
   - Add or update a test to catch this serialisation path.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/features/risks/SavedViewsPanel.tsx
@@ -1223,7 +1184,7 @@ items:
   capability: advanced-fields
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: high
   confidence: high
   summary: Calculated fields are unreadable in dark mode in both the add risk and edit risk modals. They appear to use
@@ -1242,8 +1203,8 @@ items:
   - Replace with Mantine theme tokens or CSS variables that adapt to colour scheme.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/features/risks/RiskFormModal.tsx
@@ -1260,7 +1221,7 @@ items:
   capability: advanced-reviews
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: high
   confidence: high
   summary: The /my-risks table shows a Review button for all risks regardless of whether the parent register has reviews
@@ -1279,8 +1240,8 @@ items:
   - Add conditional rendering in the /my-risks row based on review status.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/MyRisksPage.tsx
@@ -1296,7 +1257,7 @@ items:
   capability: reporting-saved-views
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: high
   confidence: high
   summary: On the /registers/<registerID> page the Views dropdown is styled differently from the adjacent Columns dropdown
@@ -1313,7 +1274,7 @@ items:
   dependencies:
   - BUG-003
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/pages/RegisterPage.tsx
@@ -1329,7 +1290,7 @@ items:
   capability: audit-log-ui
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: high
   confidence: high
   summary: The Export CSV button on /audit is styled incorrectly and positioned below the page title rather than inline
@@ -1348,7 +1309,7 @@ items:
   - Update AuditPage.tsx to match.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/pages/AuditPage.tsx
@@ -1363,7 +1324,7 @@ items:
   capability: help-content
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: medium
   confidence: high
   summary: The /help page displays an icon before the page heading text. No other page in the app follows this pattern.
@@ -1379,7 +1340,7 @@ items:
   - Remove the icon element from the /help page header component.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/pages/HelpPage.tsx
@@ -1413,7 +1374,7 @@ items:
     layout issues.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/features/risks/RiskFormModal.tsx
@@ -1429,7 +1390,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: medium
   confidence: high
   summary: The /registers/<registerID> page has both a State dropdown filter (with Open, Closed, Draft options) and a
@@ -1442,8 +1403,8 @@ items:
   - Confirm that removing the checkbox does not break any filter state persistence or URL param logic that uses it.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/RegisterPage.tsx
@@ -1474,8 +1435,8 @@ items:
   - Wire up the modal open state on MyRisksPage.tsx.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/MyRisksPage.tsx
@@ -1493,7 +1454,7 @@ items:
   capability: my-risks-ui
   phase: null
   status: done
-  done_in: v1.13.0
+  done_in: ['v1.13.0']
   priority: medium
   confidence: medium
   summary: The /my-risks page has no search or filter capability. Standard filters (title/description search, state,
@@ -1511,9 +1472,9 @@ items:
   - Add or update tests for the filter behaviour.
   dependencies: []
   suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/MyRisksPage.tsx
@@ -1531,7 +1492,7 @@ items:
   capability: my-risks-ui
   phase: null
   status: done
-  done_in: v1.13.0
+  done_in: ['v1.13.0']
   priority: medium
   confidence: high
   summary: The /my-risks page has no CSV export capability. An Export CSV button should be added, styled and positioned
@@ -1547,9 +1508,9 @@ items:
   - Implement button in the /my-risks page title row, matching the register page layout.
   dependencies: []
   suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/MyRisksPage.tsx
@@ -1581,7 +1542,7 @@ items:
   - Implement link behaviour on both the open risks and overdue reviews columns.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/features/homepage
@@ -1614,8 +1575,8 @@ items:
   dependencies:
   - UI-004
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/features/homepage
@@ -1633,7 +1594,7 @@ items:
   capability: config-lifecycle-templates
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: medium
   confidence: high
   summary: On the register configuration page, the "Configuration is version-controlled" alert box appears below the
@@ -1646,7 +1607,7 @@ items:
   - Locate the alert and button group in the configuration page component and reorder them.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/pages/RegisterConfigPage.tsx
@@ -1660,7 +1621,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.11.0
+  done_in: ['v1.11.0']
   priority: medium
   confidence: high
   summary: The register permissions page does not use Mantine Fieldset for grouping its content, unlike the configuration
@@ -1673,7 +1634,7 @@ items:
   - Reference the configuration settings page and sub-pages for the Fieldset pattern to follow.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/pages/RegisterPermissionsPage.tsx
@@ -1688,7 +1649,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.15.0
+  done_in: ['v1.15.0']
   priority: medium
   confidence: medium
   summary: Only the /help page displays a subtitle beneath its title. All pages should display short descriptive helper
@@ -1706,7 +1667,7 @@ items:
   - Wire the register description field into the register page subtitle.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/pages/HelpPage.tsx
@@ -1723,7 +1684,7 @@ items:
   capability: api-keys
   phase: null
   status: done
-  done_in: v1.13.0
+  done_in: ['v1.13.0']
   priority: medium
   confidence: high
   summary: The Create API Key modal uses a plain text input for the expiry date field instead of a proper date picker.
@@ -1737,8 +1698,8 @@ items:
   - Replace the plain text input in the Create API Key modal with the date picker.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/ApiKeysPage.tsx
@@ -1770,9 +1731,9 @@ items:
   - Define scope explicitly before adding to a release.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Frontend Developer
-  - Test Engineer
+  - product-manager
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/HomePage.tsx
@@ -1787,7 +1748,7 @@ items:
   capability: help-content
   phase: null
   status: done
-  done_in: v1.15.0
+  done_in: ['v1.15.0']
   priority: medium
   confidence: medium
   summary: Help content is currently embedded in source code, making it hard to maintain and update without a code change.
@@ -1806,7 +1767,7 @@ items:
   - Migrate existing content to the new format.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/pages/HelpPage.tsx
@@ -1823,7 +1784,7 @@ items:
   capability: help-content
   phase: null
   status: done
-  done_in: v1.15.0
+  done_in: ['v1.15.0']
   priority: medium
   confidence: high
   summary: The /help page content has not been kept in sync with the live product. A review pass is needed to identify
@@ -1838,8 +1799,8 @@ items:
   - Identify and add any missing topics.
   dependencies: []
   suggested_agents:
-  - Product Manager
-  - Frontend Developer
+  - product-manager
+  - frontend-developer
   evidence:
     code:
     - frontend/src/pages/HelpPage.tsx
@@ -1854,7 +1815,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.15.0
+  done_in: ['v1.15.0']
   priority: medium
   confidence: medium
   summary: The Review status row in the risk detail modal appears at a fixed position (end of table) because it is not part
@@ -1873,9 +1834,9 @@ items:
   dependencies:
   - PM5-CORE
   suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/features/risks/RiskDetailModal.tsx
@@ -1896,7 +1857,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.14.0
+  done_in: ['v1.14.0']
   priority: medium
   confidence: high
   summary: The left-hand navigation hover and active highlight does not use rounded corners, inconsistent with the rounded
@@ -1911,7 +1872,7 @@ items:
   - Apply border-radius to match the app's standard rounding token.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/components/AppShell.tsx
@@ -1925,7 +1886,7 @@ items:
   capability: audit-log-ui
   phase: null
   status: done
-  done_in: v1.14.0
+  done_in: ['v1.14.0']
   priority: low
   confidence: high
   summary: API key prefixes in the audit log are displayed without a trailing ellipsis (e.g. `cr_live_27e6515b`), which could
@@ -1940,7 +1901,7 @@ items:
   - Confirm both the description text and the affected field column are updated.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
+  - frontend-developer
   evidence:
     code:
     - frontend/src/features/audit/AuditLogPanel.tsx
@@ -1956,7 +1917,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.14.0
+  done_in: ['v1.14.0']
   priority: high
   confidence: medium
   summary: Action buttons throughout the app — including "Review", "Edit", and "Delete" in the register table, the /templates
@@ -1978,8 +1939,8 @@ items:
   - Check that dark mode is handled correctly after restyling.
   dependencies: []
   suggested_agents:
-  - Frontend Developer
-  - Test Engineer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/pages/RegisterPage.tsx
@@ -1998,7 +1959,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.14.0
+  done_in: ['v1.14.0']
   priority: medium
   confidence: high
   summary: The Review History table in the View Risk modal is not paginated. It should be paginated with a page size of 5
@@ -2017,9 +1978,9 @@ items:
   - Add or update tests for the cap and pagination behaviour.
   dependencies: []
   suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/features/risks/RiskDetailModal.tsx
@@ -2037,7 +1998,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.14.0
+  done_in: ['v1.14.0']
   priority: medium
   confidence: high
   summary: The Audit History table in the View Risk modal is not paginated. As audit records accumulate the list can become
@@ -2056,9 +2017,9 @@ items:
   - Add or update tests for the cap and pagination behaviour.
   dependencies: []
   suggested_agents:
-  - Backend Developer
-  - Frontend Developer
-  - Test Engineer
+  - backend-developer
+  - frontend-developer
+  - test-engineer
   evidence:
     code:
     - frontend/src/features/risks/RiskDetailModal.tsx
@@ -2076,7 +2037,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.15.0
+  done_in: ['v1.15.0']
   priority: low
   confidence: high
   summary: The docs/planning directory and all its contents are superseded by the planning system under docs/work. It should
@@ -2206,7 +2167,7 @@ items:
   type: bug
   capability: custom-fields
   status: done
-  done_in: v1.17.1
+  done_in: ['v1.17.1']
   priority: critical
   confidence: high
   summary: Adding or editing a custom field of type CALCULATED throws a backend validation error because the frontend omits
@@ -2241,7 +2202,7 @@ items:
   type: bug
   capability: custom-fields
   status: done
-  done_in: v1.17.1
+  done_in: ['v1.17.1']
   priority: high
   confidence: medium
   summary: Following the BUG-050 save-error fix, verify that calculated fields work correctly end-to-end. Confirm a working
@@ -2276,7 +2237,7 @@ items:
   type: improvement
   capability: register-list
   status: done
-  done_in: v1.17.1
+  done_in: ['v1.17.1']
   priority: medium
   confidence: high
   summary: The /registers page table shows plain-text open-risk and overdue counts. These should be clickable links navigating
@@ -2309,7 +2270,7 @@ items:
   type: improvement
   capability: custom-fields
   status: done
-  done_in: v1.18.0
+  done_in: ['v1.18.0']
   priority: medium
   confidence: medium
   summary: When editing a risk, CALCULATED custom fields show the last saved server-side value and do not update as the user
@@ -2353,7 +2314,7 @@ items:
   type: improvement
   capability: custom-fields
   status: done
-  done_in: v1.18.0
+  done_in: ['v1.18.0']
   priority: medium
   confidence: high
   summary: The formula textarea in CustomFieldModal.tsx gives no validation feedback when the user saves a CALCULATED field
@@ -2395,7 +2356,7 @@ items:
   type: improvement
   capability: custom-fields
   status: done
-  done_in: v1.18.0
+  done_in: ['v1.18.0']
   priority: high
   confidence: high
   summary: The risk edit form shows red asterisks (*) for required (BLOCK) fields but gives no visual indicator for WARN fields.
@@ -2435,7 +2396,7 @@ items:
   capability: architecture
   phase: null
   status: done
-  done_in: v1.20.0
+  done_in: ['v1.20.0']
   priority: low
   confidence: low
   summary: Assess what architectural changes are needed to support multiple languages
@@ -2536,7 +2497,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.20.0
+  done_in: ['v1.20.0']
   priority: low
   confidence: medium
   summary: Current static and Vitest/jsdom tests do not fully exercise real login sessions,
@@ -2589,7 +2550,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.20.0
+  done_in: ['v1.20.0']
   priority: medium
   confidence: high
   summary: No comprehensive permission test plan exists. A human-executable document
@@ -2638,7 +2599,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: medium
   confidence: high
   summary: Establish the Playwright E2E test layer as documented in docs/spikes/SPIKE-003.md
@@ -2755,7 +2716,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: medium
   confidence: high
   summary: The seed data (backend/prisma/seed.ts) was last meaningfully updated on
@@ -2880,7 +2841,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: medium
   confidence: medium
   summary: Test Engineer assesses all test code against the standards established in
@@ -2922,7 +2883,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: medium
   confidence: medium
   summary: Backend Developer assesses all backend code against the standards established
@@ -2961,7 +2922,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: medium
   confidence: medium
   summary: Frontend Developer assesses all frontend code against the standards established
@@ -2999,7 +2960,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.20.0
+  done_in: ['v1.20.0']
   priority: medium
   confidence: high
   summary: Principal Architect writes practical coding standards covering frontend,
@@ -3040,7 +3001,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.21.0
+  done_in: ['v1.21.0']
   priority: medium
   confidence: medium
   summary: CI currently runs the same checks multiple times — on the release branch, again
@@ -3128,7 +3089,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.21.0
+  done_in: ['v1.21.0']
   priority: high
   confidence: high
   summary: There is no way to publish a Docker package for a specific branch without going
@@ -3171,7 +3132,7 @@ items:
   capability: homepage
   phase: null
   status: done
-  done_in: v1.23.0
+  done_in: ['v1.23.0']
   priority: high
   confidence: high
   summary: The Admin summary widget on the homepage includes soft-deleted registers in
@@ -3265,7 +3226,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.21.0
+  done_in: ['v1.21.0']
   priority: high
   confidence: medium
   summary: Feature flags set in .env have no effect when running the production Docker
@@ -3321,7 +3282,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.21.0
+  done_in: ['v1.21.0']
   priority: high
   confidence: medium
   summary: The app may crash or behave incorrectly when certain feature flags are disabled.
@@ -3369,7 +3330,7 @@ items:
   capability: register-ui
   phase: null
   status: done
-  done_in: v1.21.0
+  done_in: ['v1.21.0']
   priority: high
   confidence: high
   summary: Error state is not cleared when modals are closed. Reopening any affected modal
@@ -3414,7 +3375,7 @@ items:
   capability: child-actions
   phase: null
   status: done
-  done_in: v1.21.0
+  done_in: ['v1.21.0']
   priority: medium
   confidence: high
   summary: When a response action is added, edited, or soft-deleted in child record mode,
@@ -3455,7 +3416,7 @@ items:
   capability: help-content
   phase: null
   status: done
-  done_in: v1.20.0
+  done_in: ['v1.20.0']
   priority: medium
   confidence: high
   summary: response-actions.md was written as part of v1.19.0 but was never linked from
@@ -3546,7 +3507,7 @@ items:
   type: maintenance
   capability: help-content
   status: done
-  done_in: v1.17.1
+  done_in: ['v1.17.1']
   priority: medium
   confidence: high
   summary: In-app help docs were not updated when PM6-SCORING shipped in v1.17.0. Users reading help content find no guidance
@@ -3577,7 +3538,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: medium
   confidence: high
   summary: RegisterDetailPage.tsx, UsersPage.tsx, and MyRisksPage.tsx each contain substantial inline logic and JSX that
@@ -3618,7 +3579,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: medium
   confidence: high
   summary: toDateOnlyString and decimalToNumber are duplicated across four backend service files — risks.service.ts,
@@ -3659,7 +3620,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.26.0
+  done_in: ['v1.26.0']
   priority: medium
   confidence: high
   summary: risks.service.ts (1,248 lines) and configVersion.service.ts (1,186 lines) each carry multiple distinct
@@ -3712,7 +3673,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: low
   confidence: high
   summary: Approximately 38 test files (24 backend, 14 frontend static) are missing required opening block comments per the
@@ -3747,7 +3708,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: low
   confidence: high
   summary: 17 tests in myRisks.test.mjs are currently separated by inline comments rather than describe blocks, contrary
@@ -3780,7 +3741,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.24.0
+  done_in: ['v1.24.0']
   priority: medium
   confidence: high
   summary: passwordStrength.behavior.test.tsx, apiKeys.behavior.test.tsx, and riskDetailModal.behavior.test.tsx use
@@ -3947,7 +3908,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.26.0
+  done_in: ['v1.26.0']
   priority: low
   confidence: high
   summary: All 16 frontend static test files use the .test.mjs extension; the coding standard says .test.ts. PA confirmed
@@ -3991,7 +3952,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.26.0
+  done_in: ['v1.26.0']
   priority: low
   confidence: high
   summary: The GitHub Actions workflows use actions/checkout@v6. This should be bumped to @v7 to stay current with the
@@ -4020,6 +3981,7 @@ items:
   capability: advanced-reviews
   phase: 8
   status: done
+  done_in: ['SPIKE: SPIKE-006']
   priority: high
   confidence: medium
   summary: The MVP review baseline exists (reviews.service.ts, ReviewModal.tsx) but the exact gap between what is
@@ -4070,6 +4032,7 @@ items:
   capability: attachments-evidence
   phase: 12
   status: done
+  done_in: ['SPIKE: SPIKE-007']
   priority: medium
   confidence: medium
   summary: ADR-0006 decided the attachment storage model (local filesystem / Docker volume). Before PM12-CORE can
@@ -4343,7 +4306,7 @@ items:
   capability: build-toolchain
   phase: null
   status: done
-  done_in: v1.26.0
+  done_in: ['v1.26.0']
   priority: low
   confidence: high
   summary: npx playwright show-report binds to 127.0.0.1:9323 but Firefox on macOS resolves localhost to IPv6, causing
@@ -4372,7 +4335,7 @@ items:
   type: refactor
   capability: config-lifecycle-templates
   phase: null
-  status: in-active-release
+  status: ready
   priority: high
   confidence: high
   summary: The register settings architecture has an undocumented split — some fields travel
@@ -4447,7 +4410,7 @@ items:
   type: improvement
   capability: config-lifecycle-templates
   phase: null
-  status: in-active-release
+  status: ready
   priority: medium
   confidence: high
   summary: The backend already returns linkedTemplate.isLatest on the register response. The
@@ -4494,7 +4457,7 @@ items:
   type: bug
   capability: config-lifecycle-templates
   phase: null
-  status: in-active-release
+  status: ready
   priority: critical
   confidence: high
   summary: The "create register from template" feature throws a PrismaClientValidationError
@@ -4541,7 +4504,7 @@ items:
   type: bug
   capability: build-toolchain
   phase: null
-  status: in-active-release
+  status: ready
   priority: high
   confidence: medium
   summary: backend/prisma/seed.ts is broken due to incomplete or conflicting changes left
@@ -4586,7 +4549,7 @@ items:
   type: bug
   capability: config-lifecycle-templates
   phase: null
-  status: in-active-release
+  status: ready
   priority: high
   confidence: high
   summary: The createRegisterFromTemplate function omits reviewCommentMode, scoringFormula,
@@ -4637,7 +4600,7 @@ items:
   type: bug
   capability: config-lifecycle-templates
   phase: null
-  status: in-active-release
+  status: ready
   priority: high
   confidence: high
   summary: The compareRegisterToTemplate function omits reviewCommentMode, scoringFormula,
