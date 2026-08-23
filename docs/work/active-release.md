@@ -143,6 +143,35 @@ None blocking implementation. Verifying the build before release remains with th
 - Help content in `frontend/public/help/en/` describes the drift banner and states explicitly that publishing a manual draft does not unlink the register from its template.
 - Mandatory — banner and call-to-action each carry a `data-testid` following the kebab-case convention in `docs/operations/e2e-testing.md`. This is a project selector standard, not a preference.
 
+## Deferred items for PM
+
+Raised during the v1.28.0 release session. Each is a fact about the codebase that the release
+scope does not match; none was absorbed into this release.
+
+1. **`reviewCommentMode` does not exist in this codebase.** Verified on `release/custom-risk-1.28.0`:
+   the field appears nowhere in `schema.prisma`, `ConfigSnapshotRegisterSettings`, the Zod schemas,
+   the backend services or the frontend. It was reverted with v1.27.0 and returns with PM8-CORE, which
+   this release puts out of scope. Three sets of acceptance criteria in `backlog.yml` name it and cannot
+   be met literally: **BUG-060** and **BUG-061** each list it as one of three fields (only
+   `scoringFormula` and `responseActionMode` are real), and **DRAFT-UNIFIED** lists it among the
+   promoted fields (12, not 13). Delivered without it. The criteria need correcting.
+2. **BUG-059's recorded root cause is stale.** `backend/prisma/seed.ts` contains no reference to
+   `reviewCommentMode` in any spelling, and the register upsert at line 548 does not write it. Commit
+   `c4b3dc7` ("fix: seed script failures") has since touched the file. The item was delivered against its
+   acceptance bar — a clean, idempotent seed producing MAINT-014 data — rather than against the
+   described fix.
+3. **BUG-061 names the wrong file.** `compareRegisterToTemplate` and its `registerSettingsKeys` array
+   live in `backend/src/services/template.service.ts` (lines 303 and 342), not `registers.service.ts`.
+4. **Decision 8's premise is wrong.** `docs/architecture/register-config-draft-system.md` is not
+   confined to the `release/v1.27.0` branch — it is already on `main` at commit `4fc0070`. No harm done;
+   the architect updated the existing file, which is what the decision intended.
+5. **`RegisterSettingsTab` renders only 9 of the register settings fields.** `defaultNewRiskState`,
+   `reviewAttestationText` and `reviewStatusPosition` have no control in that tab at all. Adding them is
+   out of scope here — this release routes the handlers that exist — but the unified draft standard now
+   assumes every settings field is editable through the draft, so the gap is worth a request.
+6. **REQ-094 to REQ-097 were captured into `requests.md` mid-release** (Dependabot bumps). Committed on
+   the release branch as intake only; they are not v1.28.0 scope.
+
 ## Blockers
 
 None.
